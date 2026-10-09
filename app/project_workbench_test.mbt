@@ -35,6 +35,18 @@ fn counter_source() -> @project.ProjectSource {
       ("web_wasm", entry_pkg, false, ["moon.pkg", "main.mbt"]),
       ("macos_skia", entry_pkg, false, ["moon.pkg", "main.mbt"]),
     ],
+    dirs: [
+      @project.ScannedDir::{ rel_path: "", files: ["moon.mod"], },
+      @project.ScannedDir::{ rel_path: "app", files: ["moon.pkg", "app.mbt"], },
+      @project.ScannedDir::{
+        rel_path: "web_wasm",
+        files: ["moon.pkg", "main.mbt"],
+      },
+      @project.ScannedDir::{
+        rel_path: "macos_skia",
+        files: ["moon.pkg", "main.mbt"],
+      },
+    ],
   }
 }
 
@@ -131,18 +143,27 @@ test "upsert_project:新工程插表头,同根原位替换" {
 }
 
 ///|
-test "explorer 纯导航:选中工程/折叠包/选中文件(再点取消)" {
+test "explorer 纯导航:选中工程/折叠目录/选中文件(再点取消)" {
   let services = @services.AppServices::new()
   let imported = @app.update_with_services(
       @app.initial_model(),
       ProjectScanCompleted(Success(Ok(Single(counter_source())))),
       services,
     ).0
-  // 折叠/展开翻转
-  let folded = @app.update_pure(imported, ToggleProjectPackage("app")).0
-  assert_true(folded.project_tree_collapsed.contains("app"))
-  let unfolded = @app.update_pure(folded, ToggleProjectPackage("app")).0
-  assert_false(unfolded.project_tree_collapsed.contains("app"))
+  // 折叠/展开翻转（单树多根:键 = 根下标 + rel;不同工程的同名目录各折各的）
+  let key = @app.root_collapse_key(0, "app")
+  let folded = @app.update_pure(imported, ToggleProjectDirAt(0, "app")).0
+  assert_true(folded.project_tree_collapsed.contains(key))
+  let unfolded = @app.update_pure(folded, ToggleProjectDirAt(0, "app")).0
+  assert_false(unfolded.project_tree_collapsed.contains(key))
+  // 根下标参与键:第 1 棵树的 `app/` 折叠不影响第 0 棵
+  let other = @app.update_pure(folded, ToggleProjectDirAt(1, "app")).0
+  assert_true(
+    other.project_tree_collapsed.contains(@app.root_collapse_key(1, "app")),
+  )
+  assert_true(
+    other.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+  )
   // 文件选中 + 再点取消
   let picked = @app.update_pure(imported, SelectProjectFile("app/app.mbt")).0
   assert_eq(picked.selected_project_file, Some("app/app.mbt"))
@@ -151,6 +172,308 @@ test "explorer 纯导航:选中工程/折叠包/选中文件(再点取消)" {
   // 选中工程重置文件选中
   let switched = @app.update_pure(picked, SetActiveProject(0)).0
   assert_eq(switched.selected_project_file, None)
+}
+
+///|
+/// 单树多根的核心不变量:点某棵树里的文件必须**同时**切活动工程与选中
+/// 文件。只改选中会让下游（读文件/保存/搜索）读到另一棵树的同名文件。
+///
+/// 工作区导入后,树上的 rel 是**工作区相对**路径（成员目录前缀 + 工程相对
+/// 路径）——`moui_studio/app/app.mbt` 而不是 `app/app.mbt`。归属由路径
+/// 反查,所以两个成员的同名文件不会互相串台。
+test "explorer 单树多根:点文件同时切活动工程与选中" {
+  let services = @services.AppServices::new()
+  let source_a = { ..counter_source(), root: "/workspace/mod_a", }
+  let source_b = { ..counter_source(), root: "/workspace/mod_b", }
+  let scan : @project.WorkspaceScan = {
+    root: "/workspace",
+    loaded: [source_a, source_b],
+    failed: [],
+    root_dirs: [],
+  }
+  let imported = @app.update_with_services(
+      @app.initial_model(),
+      ProjectScanCompleted(Success(Ok(Workspace(scan)))),
+      services,
+    ).0
+  assert_eq(imported.projects.length(), 2)
+  // `upsert_project` 把**最新导入的放表头**（index 0），所以 projects[0]
+  // 是 mod_b。按 root 取下标，避免依赖插入顺序。
+  let index_a = @app.project_index_of_root(imported, "/workspace/mod_a")
+  let index_b = @app.project_index_of_root(imported, "/workspace/mod_b")
+  assert_true(index_a >= 0 && index_b >= 0)
+  // 树上的 rel 带成员前缀
+  let rel_a = @app.tree_rel_of_project_file(
+    imported,
+    imported.projects[index_a],
+    "app/app.mbt",
+  )
+  let rel_b = @app.tree_rel_of_project_file(
+    imported,
+    imported.projects[index_b],
+    "app/app.mbt",
+  )
+  assert_eq(rel_a, "mod_a/app/app.mbt")
+  assert_eq(rel_b, "mod_b/app/app.mbt")
+  // 点 mod_b 的文件 → 活动工程 = mod_b 的下标,选中该工作区相对路径
+  let picked = @app.update_pure(imported, SelectProjectFileAt(index_b, rel_b)).0
+  assert_eq(
+    picked.active_project,
+    index_b,
+    msg="点 mod_b 的文件应切活动工程",
+  )
+  assert_eq(picked.selected_project_file, Some(rel_b))
+  // 同一文件再点 = 取消选中（不会误切工程）
+  let un = @app.update_pure(picked, SelectProjectFileAt(index_b, rel_b)).0
+  assert_eq(un.selected_project_file, None)
+  // 换到另一个成员点同名文件 = 切回去并选中**另一个** rel
+  let back = @app.update_pure(picked, SelectProjectFileAt(index_a, rel_a)).0
+  assert_eq(back.active_project, index_a)
+  assert_eq(back.selected_project_file, Some(rel_a))
+  assert_true(
+    rel_a != rel_b,
+    msg="两个成员的同名文件必须是不同的树 rel",
+  )
+}
+
+///|
+/// 工作区根**自己**的文件（不属于任何成员）:归属反查为 None,活动工程
+/// 保持不变——不能因为点了根上的 `gradlew` 就把「当前工程」写成 -1。
+test "explorer 工作区根文件:归属反查不污染活动工程" {
+  let services = @services.AppServices::new()
+  let source_a = { ..counter_source(), root: "/workspace/mod_a", }
+  let scan : @project.WorkspaceScan = {
+    root: "/workspace",
+    loaded: [source_a],
+    failed: [],
+    root_dirs: [
+      @project.ScannedDir::{ rel_path: "", files: ["gradlew", "README.md"], },
+      @project.ScannedDir::{ rel_path: "docs", files: ["guide.md"], },
+    ],
+  }
+  let imported = @app.update_with_services(
+      @app.initial_model(),
+      ProjectScanCompleted(Success(Ok(Workspace(scan)))),
+      services,
+    ).0
+  assert_true(imported.workspace_root is Some(_))
+  // 根上的文件不属于任何成员
+  assert_eq(@app.project_index_of_tree_rel(imported, "gradlew"), None)
+  // 成员里的文件归属该成员
+  assert_eq(
+    @app.project_index_of_tree_rel(imported, "mod_a/app/app.mbt"),
+    Some(0),
+  )
+  // 绝对路径由工作区根拼出（这是「看得到根目录文件」的前提）
+  assert_eq(@app.tree_abs_path(imported, "gradlew"), Some("/workspace/gradlew"))
+  // 点根上的文件:选中它,但活动工程**不**被写成 -1
+  let before = imported.active_project
+  let picked = @app.update_pure(
+      imported,
+      SelectProjectFileAt(@app.WORKSPACE_ROOT_INDEX, "gradlew"),
+    ).0
+  assert_eq(picked.selected_project_file, Some("gradlew"))
+  assert_eq(
+    picked.active_project,
+    before,
+    msg="根上文件不应污染活动工程",
+  )
+  assert_true(picked.active_project >= 0, msg="活动工程不应变成 -1")
+}
+
+///|
+/// 「全部折叠」收成 N 行根,并清掉子目录折叠记录（否则折完再展开某棵树,
+/// 里面还记着上次的折叠态,读起来像没生效）。
+test "explorer 全部折叠:根全折,子目录记录清空" {
+  let services = @services.AppServices::new()
+  let imported = @app.update_with_services(
+      @app.initial_model(),
+      ProjectScanCompleted(Success(Ok(Single(counter_source())))),
+      services,
+    ).0
+  let nested = @app.update_pure(imported, ToggleProjectDirAt(0, "app")).0
+  assert_true(nested.project_tree_collapsed.length() > 0)
+  let collapsed = @app.update_pure(nested, ExplorerCollapseAll).0
+  assert_true(
+    collapsed.project_tree_collapsed.contains(@app.root_collapse_key(0, "")),
+  )
+  assert_false(
+    collapsed.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    msg="子目录折叠记录应被全部折叠清掉",
+  )
+}
+
+///|
+/// 「新建文件」是就地输入:消息携带目标目录,提交时把目录拼回 rel。
+/// 挂在根上（rel = ""）时 rel 就是文件名本身。
+test "explorer 就地新建:目标目录参与 rel 拼接" {
+  let services = @services.AppServices::new()
+  let imported = @app.update_with_services(
+      @app.initial_model(),
+      ProjectScanCompleted(Success(Ok(Single(counter_source())))),
+      services,
+    ).0
+  // 在根上新建:目录 = "",草稿 = 文件名
+  let at_root = @app.update_pure(imported, FileCreateAt("")).0
+  assert_true(at_root.file_create_open)
+  assert_eq(at_root.file_create_dir, "")
+  assert_eq(@app.join_rel(at_root.file_create_dir, "main.mbt"), "main.mbt")
+  // 在 app/ 下新建
+  let in_app = @app.update_pure(imported, FileCreateAt("app")).0
+  assert_eq(in_app.file_create_dir, "app")
+  assert_eq(@app.join_rel(in_app.file_create_dir, "main.mbt"), "app/main.mbt")
+  // 就地新建会把目标目录从折叠集里摘掉（否则输入行折在树里看不见）
+  let folded = @app.update_pure(in_app, ToggleProjectDirAt(0, "app")).0
+  assert_true(
+    folded.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+  )
+  let reopened = @app.update_pure(folded, FileCreateAt("app")).0
+  assert_false(
+    reopened.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    msg="就地新建应展开目标目录",
+  )
+}
+
+///|
+/// 改名输入只收文件名,提交时按**原文件所在目录**拼回——用户改的是名字,
+/// 不是位置。
+test "explorer 改名:草稿只填文件名,提交回原目录" {
+  let services = @services.AppServices::new()
+  let imported = @app.update_with_services(
+      @app.initial_model(),
+      ProjectScanCompleted(Success(Ok(Single(counter_source())))),
+      services,
+    ).0
+  let started = @app.update_pure(imported, FileRenameStart("app/app.mbt")).0
+  assert_eq(started.file_rename_open, Some("app/app.mbt"))
+  assert_eq(started.file_name_draft, "app.mbt", msg="草稿应只含文件名")
+  assert_eq(@app.join_rel("app", started.file_name_draft), "app/app.mbt")
+  // 根目录下的文件改名:父目录为空,rel 就是文件名本身
+  let root_file = @app.update_pure(imported, FileRenameStart("moon.mod")).0
+  assert_eq(root_file.file_name_draft, "moon.mod")
+  assert_eq(@app.parent_of("moon.mod"), "")
+}
+
+///|
+/// 分区折叠默认态:文件夹分区默认展开,大纲/时间线/编辑器默认收起——
+/// 侧栏先给树,次级视图按需展开。
+test "explorer 分区折叠默认态与翻转" {
+  let model = @app.initial_model()
+  let folders = @app.explorer_section_expanded(
+    model,
+    @app.EXPLORER_SECTION_FOLDERS,
+  )
+  assert_true(folders, msg="文件夹分区默认展开")
+  assert_false(
+    @app.explorer_section_expanded(model, "outline"),
+    msg="大纲分区默认收起",
+  )
+  assert_false(
+    @app.explorer_section_expanded(model, "timeline"),
+    msg="时间线分区默认收起",
+  )
+  // 翻转一次后状态互换
+  let toggled = @app.update_pure(model, ToggleExplorerSection("outline")).0
+  assert_true(@app.explorer_section_expanded(toggled, "outline"))
+  let closed = @app.update_pure(
+      toggled,
+      ToggleExplorerSection(@app.EXPLORER_SECTION_FOLDERS),
+    ).0
+  assert_false(
+    @app.explorer_section_expanded(closed, @app.EXPLORER_SECTION_FOLDERS),
+  )
+}
+
+///|
+/// 排序口径:文件夹在前、同类按名称不区分大小写。扫描序是 BFS 发现序,
+/// 不是给人读的序——资源管理器必须自己排。
+test "explorer 排序:目录与文件均按名称不区分大小写" {
+  let dirs : Array[@project.ScannedDir] = [
+    @project.ScannedDir::{ rel_path: "zeta", files: [], },
+    @project.ScannedDir::{ rel_path: "Alpha", files: [], },
+    @project.ScannedDir::{ rel_path: "beta", files: [], },
+  ]
+  let children = @app.explorer_child_dirs_for_test(dirs, "")
+  let names : Array[String] = []
+  for child in children {
+    names.push(child.rel_path)
+  }
+  assert_eq(names, ["Alpha", "beta", "zeta"])
+}
+
+///|
+/// 文件类型图标:后缀决定图标（VS Code 的 Seti 口径）。
+test "explorer 文件类型图标按后缀分派" {
+  assert_eq(@app.file_icon_for_test("main.mbt"), @style.FileCode)
+  assert_eq(@app.file_icon_for_test("pkg.generated.mbti"), @style.FileCode)
+  assert_eq(@app.file_icon_for_test("README.md"), @style.FileMarkdown)
+  assert_eq(@app.file_icon_for_test("docs-catalog.json"), @style.FileJson)
+  assert_eq(@app.file_icon_for_test("logo.png"), @style.FileImage)
+  assert_eq(@app.file_icon_for_test("LICENSE"), @style.File)
+}
+
+///|
+/// 缩进导轨:条数 = 层级;第 0 层不画线（只有占位 spacer）。
+test "explorer 缩进导轨条数跟随深度" {
+  assert_eq(
+    @app.explorer_guide_line_count(3),
+    3,
+    msg="3 层缩进画 3 条导轨",
+  )
+  assert_eq(@app.explorer_guide_line_count(1), 1)
+  assert_eq(@app.explorer_guide_line_count(0), 0, msg="根层不画线")
+}
+
+///|
+/// 大纲符号提取:MoonBit 声明行与 Markdown 标题两条口径。
+test "explorer 大纲符号:MoonBit 声明与 Markdown 标题" {
+  let source =
+    #|/// doc
+    #|pub fn main {
+    #|  let x = 1
+    #|}
+    #|struct Foo {
+    #|  bar : Int
+    #|}
+    #|test "t" {
+    #|}
+  let symbols = @app.outline_symbols("main.mbt", source)
+  let names : Array[String] = []
+  for symbol in symbols {
+    names.push(symbol.name)
+  }
+  assert_eq(names, ["main", "x", "Foo", "t"])
+  // 缩进层级:嵌套的 let 比顶层 fn 深一层
+  assert_eq(symbols[0].depth, 0)
+  assert_eq(symbols[1].depth, 1)
+  // 行号是 1 起
+  assert_eq(symbols[0].line, 2)
+  // 注释行不是声明
+  let mut saw_doc = false
+  for symbol in symbols {
+    if symbol.name == "doc" {
+      saw_doc = true
+    }
+  }
+  assert_false(saw_doc, msg="注释行不应进大纲")
+}
+
+///|
+test "explorer 大纲符号:Markdown 标题层级" {
+  let source =
+    #|# Title
+    #|
+    #|text
+    #|
+    #|## Section
+    #|
+    #|#not-a-heading
+  let symbols = @app.outline_symbols("doc.md", source)
+  assert_eq(symbols.length(), 2)
+  assert_eq(symbols[0].name, "Title")
+  assert_eq(symbols[0].depth, 0)
+  assert_eq(symbols[1].name, "Section")
+  assert_eq(symbols[1].depth, 1)
 }
 
 ///|
@@ -166,6 +489,7 @@ test "explorer 移除工程:会话级,active 下标随位次修正" {
             root: "/b",
             module_manifest: "name = \"b/mod\"\nversion = \"0.1.0\"",
             package_sources: [],
+            dirs: [],
           }
         Err(msg) => fail("scan 应成功:\{msg}")
       }
@@ -287,6 +611,14 @@ test "构建门:web 不可用 / 无工程 / 缺入口各自显式说话" {
     package_sources: [
       ("app", app_pkg, true, ["moon.pkg", "app.mbt"]),
       ("web_wasm", entry_pkg, false, ["moon.pkg", "main.mbt"]),
+    ],
+    dirs: [
+      @project.ScannedDir::{ rel_path: "", files: ["moon.mod"], },
+      @project.ScannedDir::{ rel_path: "app", files: ["moon.pkg", "app.mbt"], },
+      @project.ScannedDir::{
+        rel_path: "web_wasm",
+        files: ["moon.pkg", "main.mbt"],
+      },
     ],
   }
   let with_project = @app.update_with_services(
@@ -679,6 +1011,7 @@ test "工作区导入:多成员入库 + 失败汇总" {
     root: "/workspace",
     loaded: [good_a, good_b],
     failed: [("/bad", "目录里没有 moon.mod")],
+    root_dirs: [],
   }
   let (next, _) = @app.update_with_services(
     {
@@ -798,6 +1131,10 @@ test "文件 CRUD:改名链走完 tab rel 替换" {
         draft: "# 旧草稿",
         caret: 3,
         selection: None,
+        md_session: @app.with_md_session(
+          rel="app/old.md",
+          content="# 旧草稿",
+        ),
       },
     ],
     open_file_index: 0,
@@ -880,6 +1217,7 @@ test "保存后自动构建:mbt 触发,md 不触发" {
             draft: "x",
             caret: 0,
             selection: None,
+            md_session: @app.with_md_session(rel="README.md", content="x"),
           },
         ],
         open_file_index: 0,
@@ -915,7 +1253,11 @@ test "全文搜索:命中落集,点击跳转" {
     ).0
   assert_true(queried.search_busy)
   let hits : Array[@app.SearchHit] = [
-    @app.SearchHit::{ rel: "app/app.mbt", line: 3, preview: "pub fn program() {", },
+    @app.SearchHit::{
+      rel: "app/app.mbt",
+      line: 3,
+      preview: "pub fn program() {",
+    },
   ]
   let finished = @app.update_with_services(
       queried,
@@ -1004,4 +1346,25 @@ test "插件管理:禁用终端归一页签并持久化" {
       services,
     ).0
   assert_true(@app.plugin_active(re_enabled, "terminal"))
+}
+
+///|
+/// 文件类型色系与图标形状**同源**:两处各写一遍后缀列表迟早会出现
+/// 「形状是 JSON、颜色是文档」这种自相矛盾的行。这条锁定两者一一对应。
+test "explorer 文件类型:图标与颜色同源" {
+  let pairs : Array[(String, @style.IconName, @app.IconTint)] = [
+    ("main.mbt", @style.FileCode, @app.TintCode),
+    ("pkg.generated.mbti", @style.FileCode, @app.TintCode),
+    ("README.md", @style.FileMarkdown, @app.TintDoc),
+    ("docs-catalog.json", @style.FileJson, @app.TintConfig),
+    ("moon.mod", @style.FileJson, @app.TintConfig),
+    ("moon.work", @style.FileJson, @app.TintConfig),
+    ("logo.png", @style.FileImage, @app.TintAsset),
+    ("LICENSE", @style.File, @app.TintPlain),
+  ]
+  for pair in pairs {
+    let (name, icon, tint) = pair
+    assert_eq(@app.file_icon_for_test(name), icon, msg=name)
+    assert_eq(@app.file_tint_for_test(name), tint, msg=name)
+  }
 }

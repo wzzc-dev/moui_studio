@@ -2,10 +2,10 @@
 package "wzzc-dev/moui_studio/kernel"
 
 import {
-  "wzzc-dev/moui_studio/services/build",
-  "wzzc-dev/moui_studio/services/export",
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/services",
+  "wzzc-dev/moui_studio/services/build",
+  "wzzc-dev/moui_studio/services/export",
 }
 
 // Values

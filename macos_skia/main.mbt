@@ -97,13 +97,12 @@ async fn main {
       }
     _ => @kernel.PreviewWebControls::noop()
   }
-  let config = @provider.load_provider_config(
-    "moui_studio/.config.json",
-  ).unwrap_or(@provider.ProviderConfig::{
-    endpoint: "",
-    model: "",
-    api_key: "",
-  })
+  let config = @provider.load_provider_config("moui_studio/.config.json").unwrap_or(@provider.ProviderConfig::{
+      endpoint: "",
+      model: "",
+      api_key: "",
+    },
+  )
   let provider_config : @studio_app.ProviderConfig = {
     endpoint: config.endpoint,
     model: config.model,

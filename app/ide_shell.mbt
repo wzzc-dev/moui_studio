@@ -408,7 +408,7 @@ pub fn ide_left_panel(
     if model.left_view is LeftData {
       text(t, "app.left.data")
     } else if model.left_view is LeftProject {
-      text(t, "app.left.project")
+      text(t, "app.explorer.title")
     } else if model.left_view is LeftAiSessions {
       text(t, "app.ai.sessions")
     } else {
@@ -448,7 +448,12 @@ pub fn ide_left_panel(
   // 高度预算：头 + 搜索 + 底部条（高度由内容算，见 bottom_strip_height），
   // 其余全给结构树。底部块必须显式定高——不定高的子树会按内容一路长高，
   // 把结构树挤没。
-  let strip_height = bottom_strip_height(model)
+  //
+  // 「最近修改」底部条**不出现在资源管理器页**：改动记录已经是侧栏里的
+  // 「时间线」分区（与 VS Code 的分区口径一致），再在底部留一条同内容的
+  // 尾巴就是同一份数据画两遍，还白吃掉树的高度。
+  let project_page = model.left_view is LeftProject
+  let strip_height = if project_page { 0.0 } else { bottom_strip_height(model) }
   // 搜索框只服务结构树(树查询);工程页/数据页不占这 34pt,还给正文
   let search_visible = model.left_view is LeftTree
   let body_height = (height -
@@ -464,17 +469,21 @@ pub fn ide_left_panel(
   } else {
     tree_view_ide(model, t, width, body_height)
   }
+  let tail : Array[@moui.View[Msg]] = if project_page {
+    []
+  } else {
+    [
+      @views.container(
+        bottom_strip(model, t, width),
+        width~,
+        height=strip_height,
+        padding=0.0,
+      ),
+    ]
+  }
   @views.container(
     @views.column(
-      (if search_visible { [head, search, body] } else { [head, body] }) +
-      [
-        @views.container(
-          bottom_strip(model, t, width),
-          width~,
-          height=strip_height,
-          padding=0.0,
-        ),
-      ],
+      (if search_visible { [head, search, body] } else { [head, body] }) + tail,
       spacing=0.0,
     ),
     background=ide_panel(),

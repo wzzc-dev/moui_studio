@@ -18,6 +18,130 @@ pub(all) struct ProjectRecord {
 }
 
 ///|
+/// 工作区根记录（资源管理器的单根行）。
+///
+/// `dirs` 是工作区根**自己**那一层的目录树（含非成员目录的递归展开），
+/// rel_path 相对工作区根;成员目录**不**在 `dirs` 里——它们各自作为子行
+/// 挂在这条根行之下（成员自己的目录树走各自 `ProjectRecord.scanned.dirs`）。
+pub(all) struct WorkspaceRecord {
+  root : String
+  /// 根行的展示名（取根目录的最后一段）
+  name : String
+  dirs : Array[@project.ScannedDir]
+}
+
+///|
+/// 工作区根的展示名（路径最后一段;空则退回全路径）。
+pub fn workspace_display_name(root : String) -> String {
+  let name = rel_path_last_segment(root)
+  if name == "" {
+    root
+  } else {
+    name
+  }
+}
+
+///|
+/// 资源管理器里**所有 rel 的基准目录**（绝对路径;None = 还没有可寻址的根）。
+///
+/// 这是全 app 唯一的「树路径 → 绝对路径」基准。口径:
+///
+/// - **moon.work 工作区**（`workspace_root` 有值）= 工作区根。树上的 rel 是
+///   工作区相对路径（`gradlew`、`moui_studio/app/app.mbt`）——根上的文件与
+///   成员目录因此同处一个命名空间,「看不到根目录下的文件」才有可能修掉。
+/// - **单模块导入**（`workspace_root` 为空）= 活动工程的根。此时工作区根
+///   就是工程根,rel 与工程相对路径**逐字相同**——旧行为零变化。
+///
+/// 为什么收成一个函数:文件读写/新建/改名/删除共十处各自拼过
+/// `{project.root}/{rel}`,每处都自己 `match active_project_of(model)`。
+/// 那种写法无法表达「这个 rel 属于工作区根,不属于任何工程」,根上的文件
+/// 于是在每一处都落空。
+pub fn tree_root_of(model : Model) -> String? {
+  match model.workspace_root {
+    Some(record) => Some(record.root)
+    None =>
+      match active_project_of(model) {
+        Some(project) => Some(project.root)
+        None => None
+      }
+  }
+}
+
+///|
+/// 树上的 rel → 绝对路径（无根可寻址时 None）。
+pub fn tree_abs_path(model : Model, rel : String) -> String? {
+  match tree_root_of(model) {
+    Some(root) => Some(join_rel(root, rel))
+    None => None
+  }
+}
+
+///|
+/// 工程在工作区里的相对路径（工作区根到工程根）;单模块导入 = ""。
+pub fn tree_rel_of_project(model : Model, project : ProjectRecord) -> String {
+  match model.workspace_root {
+    None => ""
+    Some(record) =>
+      if project.root.has_prefix(record.root + "/") {
+        project.root[record.root.length() + 1:].to_owned()
+      } else {
+        ""
+      }
+  }
+}
+
+///|
+/// 工程相对路径 → 工作区相对路径（在树上寻址用）。
+pub fn tree_rel_of_project_file(
+  model : Model,
+  project : ProjectRecord,
+  project_rel : String,
+) -> String {
+  join_rel(tree_rel_of_project(model, project), project_rel)
+}
+
+///|
+/// 按根路径取工程下标（-1 = 不在册）。
+pub fn project_index_of_root(model : Model, root : String) -> Int {
+  let mut index = 0
+  for project in model.projects {
+    if project.root == root {
+      return index
+    }
+    index = index + 1
+  }
+  -1
+}
+
+///|
+/// 树相对路径 → 归属工程的**下标**（不属于任何成员 = None）。
+///
+/// 成员在树里就是工作区根下的一个子目录,所以「谁拥有这个 rel」= 它的路径
+/// 是否落在某个成员目录之下（最长前缀胜出,成员路径可能是 `a/b` 多段）。
+/// 单模块导入时没有成员概念,恒 None（调用方退回活动工程）。
+pub fn project_index_of_tree_rel(model : Model, rel : String) -> Int? {
+  match model.workspace_root {
+    None => None
+    Some(_) => {
+      let mut best : Int? = None
+      let mut best_length = -1
+      let mut index = 0
+      for project in model.projects {
+        let member_rel = tree_rel_of_project(model, project)
+        if member_rel != "" &&
+          (rel == member_rel || rel.has_prefix(member_rel + "/")) &&
+          member_rel.length() > best_length {
+          best = Some(index)
+          best_length = member_rel.length()
+        }
+        index = index + 1
+      }
+      best
+    }
+  }
+}
+
+///|
 /// 扫描输入 → 工程记录:parse moon.mod + scan 包树。
 /// 任何一步失败都是结构化 `Err(根路径:原因)`,调用方直接 with_notice。
 pub fn project_record_from_source(
@@ -26,7 +150,8 @@ pub fn project_record_from_source(
   match @project.parse_module_manifest(source.module_manifest) {
     Err(msg) => Err("\{source.root}:\{msg}")
     Ok(manifest) =>
-      match @project.scan_module(manifest, source.package_sources) {
+      match
+        @project.scan_module(manifest, source.package_sources, dirs=source.dirs) {
         Err(msg) => Err("\{source.root}:\{msg}")
         Ok(scanned) =>
           Ok(ProjectRecord::{
@@ -148,7 +273,19 @@ pub fn import_workspace_scan(
       ])
     }
     let notified = with_notice(
-      { ..model, projects, active_project: last_index, scan_progress: None, },
+      {
+        ..model,
+        projects,
+        active_project: last_index,
+        // 工作区根记录:资源管理器的单根行。没有它,根上的
+        // moon.work/README.md/gradlew 在树里没有出现的位置。
+        workspace_root: Some(WorkspaceRecord::{
+          root: scan.root,
+          name: workspace_display_name(scan.root),
+          dirs: scan.root_dirs,
+        }),
+        scan_progress: None,
+      },
       message,
       false,
     )
@@ -398,6 +535,21 @@ pub fn file_is_dirty(open : OpenProjectFile) -> Bool {
 }
 
 ///|
+/// `.md` tab 的会话字段构造：md 文件建/换源重建 MoMark 文档会话,
+/// 其余文件恒 None。所有 `OpenProjectFile::{..}` 构造点统一走它,
+/// 避免 `md_session` 在各处手写后缀判断。
+pub fn with_md_session(
+  rel~ : String,
+  content~ : String,
+) -> @moui_richtext.MarkdownDocumentSession? {
+  if rel.has_suffix(".md") {
+    Some(@moui_richtext.MarkdownDocumentSession::new(content))
+  } else {
+    None
+  }
+}
+
+///|
 /// 任一 tab 脏（「保存全部」chip 的出现条件）。
 pub fn any_file_dirty(model : Model) -> Bool {
   for file in model.open_project_files {
@@ -514,6 +666,27 @@ pub fn rename_open_file(
     }
   }
   next
+}
+
+///|
+/// 工程文件树里是否已有该目录 rel（新建文件夹重名拒绝的依据）。
+///
+/// 查的是 `scanned.dirs`（完整目录树）而不是 `packages`——后者只含带
+/// `moon.pkg` 的目录，用它判重会把「已存在一个非包目录」误判成可建，
+/// 于是 `create_dir` 静默失败或覆盖语义不明。
+pub fn project_has_dir(model : Model, rel : String) -> Bool {
+  match active_project_of(model) {
+    None => false
+    Some(project) => {
+      let mut found = false
+      for dir in project.scanned.dirs {
+        if dir.rel_path == rel {
+          found = true
+        }
+      }
+      found
+    }
+  }
 }
 
 ///|

@@ -28,6 +28,9 @@ pub(all) struct ProjectSource {
   module_manifest : String
   /// (包相对路径, moon.pkg 文本, 是否含 pub fn program, 目录内全部文件名)
   package_sources : Array[(String, String, Bool, Array[String])]
+  /// 完整目录树(BFS 序,父先于子;根目录 rel_path = "")。资源管理器按
+  /// 文件夹展开用——不含 moon.pkg 的目录也在这,普通文件因此可见。
+  dirs : Array[ScannedDir]
 }
 
 ///|
@@ -51,6 +54,16 @@ pub(all) struct WorkspaceScan {
   loaded : Array[ProjectSource]
   /// (成员相对路径, 失败原因)
   failed : Array[(String, String)]
+  /// **工作区根自己**的目录树（不含各成员内部）。
+  ///
+  /// 为什么单独带一份:moon.work 只列出成员目录,而工作区根上还有一层属于
+  /// 根的文件（`moon.work`、`README.md`、`AGENTS.md`、`gradlew`…）。它们
+  /// 不属于任何成员,不带上就会**整个消失**——用户看到的现象正是
+  /// 「看不到根目录下的文件」（实测 `gradlew` 的 owner 数为 0）。
+  ///
+  /// 口径:rel_path = 相对工作区根,根目录自身是 `""`;成员目录内部不在这里
+  /// （那是各成员自己的 `dirs`）。
+  root_dirs : Array[ScannedDir]
 }
 
 ///|
@@ -104,6 +117,10 @@ priv enum WalkPhase {
   WkRoot
   /// 读根 moon.work 并解析 members
   WkWorkRead
+  /// 扫工作区根自己那一层（根文件 + 非成员目录）,然后开始逐成员
+  WkRootDirs
+  /// 递归展开根下的非成员目录
+  WkRootSubdirs
   /// 处理当前成员的目录队列
   WkDirs
   /// 读当前成员 moon.mod
@@ -133,6 +150,13 @@ priv struct WalkState {
   member_queue : Array[String]
   loaded : Array[ProjectSource]
   failed : Array[(String, String)]
+  /// 工作区根自己那一层（根文件 + 非成员目录）。由 `WkRootDirs` 阶段
+  /// 在成员入队后扫描——它是**唯一**能让根目录文件出现在树上的来源。
+  root_dirs : Array[ScannedDir]
+  /// 工作区成员相对路径（判「哪些子目录属于成员」用）
+  mut root_members : Array[String]
+  /// 待展开的根下非成员目录队列
+  root_pending : Array[String]
   /// 全程累计目录数(跨成员)
   mut total_dirs : Int
   /// 当前成员相对工作区根的路径(单模块模式 = "")
@@ -185,6 +209,9 @@ pub fn walk_root_task(
         member_queue: [],
         loaded: [],
         failed: [],
+        root_dirs: [],
+        root_members: [],
+        root_pending: [],
         total_dirs: 0,
         member_rel: "",
         member_dirs: 0,
@@ -214,6 +241,8 @@ fn walk_run(
   match state.phase {
     WkRoot => walk_root_step(state, complete)
     WkWorkRead => walk_work_read_step(state, complete)
+    WkRootDirs => walk_root_dirs_step(state, complete)
+    WkRootSubdirs => walk_root_subdirs_step(state, complete)
     WkDirs => walk_dirs_step(state, complete)
     WkMod => walk_mod_step(state, complete)
     WkPkgManifest => walk_pkg_manifest_step(state, complete)
@@ -355,6 +384,87 @@ fn walk_root_step(
 }
 
 ///|
+/// 扫**工作区根自己**那一层（根文件 + 非成员目录）,然后开始逐成员。
+///
+/// 这一步是「根目录下的文件看不见」的修复点:moon.work 只列成员目录,而
+/// 根上的 `moon.work`/`README.md`/`gradlew`… 不属于任何成员。没有这一步,
+/// 它们在整个资源管理器里**没有任何出现的位置**（实测 `gradlew` 的
+/// owner 数为 0）。
+///
+/// 成员目录本身的内部不在这里走（各成员的模块扫描负责）;非成员目录
+/// 递归展开,否则那些目录在树上是空壳。
+fn walk_root_dirs_step(
+  state : WalkState,
+  complete : (@services.ServiceTaskResult[Result[ProjectScanOutput, String]]) -> Unit,
+) -> Unit {
+  let _ = (state.files.list_directory_fn)(state.root).start(result => {
+    match result {
+      Success(entries) => {
+        let root_files : Array[String] = []
+        let subdirs : Array[String] = []
+        for entry in entries {
+          if entry.is_directory {
+            if !is_skipped_dir(entry.name) {
+              subdirs.push(entry.name)
+            }
+          } else {
+            root_files.push(entry.name)
+          }
+        }
+        state.root_dirs.push(ScannedDir::{ rel_path: "", files: root_files, })
+        // 非成员目录递归展开（成员目录的内容留给各自的模块扫描）
+        for name in subdirs {
+          if !state.root_members.contains(name) {
+            state.root_pending.push(name)
+          }
+        }
+        state.phase = WkRootSubdirs
+        walk_root_subdirs_step(state, complete)
+      }
+      Failure(error) => complete(Failure(error))
+      Cancelled => complete(Cancelled)
+    }
+  })
+}
+
+///|
+/// 递归展开工作区根下的非成员目录（BFS,父先于子）。
+fn walk_root_subdirs_step(
+  state : WalkState,
+  complete : (@services.ServiceTaskResult[Result[ProjectScanOutput, String]]) -> Unit,
+) -> Unit {
+  let rel = match state.root_pending.pop() {
+    Some(head) => head
+    None => {
+      state.phase = WkDirs
+      begin_next_member(state, complete)
+      return
+    }
+  }
+  let _ = (state.files.list_directory_fn)(join_path(state.root, rel)).start(result => {
+    match result {
+      Success(entries) => {
+        let names : Array[String] = []
+        for entry in entries {
+          if entry.is_directory {
+            if !is_skipped_dir(entry.name) {
+              state.root_pending.push("\{rel}/\{entry.name}")
+            }
+          } else {
+            names.push(entry.name)
+          }
+        }
+        state.root_dirs.push(ScannedDir::{ rel_path: rel, files: names, })
+        walk_root_subdirs_step(state, complete)
+      }
+      // 单个子目录读不了不挡整单（与成员目录的韧性口径一致）
+      Failure(_) => walk_root_subdirs_step(state, complete)
+      Cancelled => complete(Cancelled)
+    }
+  })
+}
+
+///|
 /// 读根 moon.work → 解析 members → 逐成员扫描。
 fn walk_work_read_step(
   state : WalkState,
@@ -384,8 +494,12 @@ fn walk_work_read_step(
             for member_path in members {
               state.member_queue.push(member_path)
             }
-            state.phase = WkDirs
-            begin_next_member(state, complete)
+            // 先扫工作区根自己那一层（根文件 + 非成员目录）,再逐成员。
+            // 成员列表要留着判「哪些子目录属于成员」——成员目录的内容由
+            // 各自的模块扫描负责,根这一层不重复走。
+            state.root_members = members
+            state.phase = WkRootDirs
+            walk_root_dirs_step(state, complete)
           }
           Err(message) => walk_fail(complete, "\{state.root}:\{message}")
         }
@@ -411,6 +525,7 @@ fn begin_next_member(
               root: state.root,
               loaded: state.loaded,
               failed: state.failed,
+              root_dirs: state.root_dirs,
             }),
           ),
         ),
@@ -556,6 +671,7 @@ fn walk_pkg_manifest_step(
         root: member_root_of(state),
         module_manifest: state.mod_text,
         package_sources: state.results,
+        dirs: scan_dirs(state.entries),
       }
       match state.mode {
         SmSingle => complete(Success(Ok(ProjectScanOutput::Single(source))))
@@ -630,5 +746,3 @@ fn walk_pkg_sources_step(
     }
   })
 }
-
-

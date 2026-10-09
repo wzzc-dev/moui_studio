@@ -2,8 +2,8 @@
 package "wzzc-dev/moui_studio/services/provider_native"
 
 import {
-  "wzzc-dev/moui_studio/services/model_provider",
   "moonbitlang/async/aqueue",
+  "wzzc-dev/moui_studio/services/model_provider",
 }
 
 // Values

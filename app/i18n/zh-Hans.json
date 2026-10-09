@@ -806,6 +806,23 @@
     "app.props.label.font_size": "字号（pt）",
     "app.props.label.bold": "加粗",
     "app.props.label.text_color": "文字色（如 #FF0000）",
-    "app.props.label.back_color": "背景色（如 #003366）"
+    "app.props.label.back_color": "背景色（如 #003366）",
+    "app.explorer.title": "资源管理器",
+    "app.explorer.new_file": "新建文件",
+    "app.explorer.new_folder": "新建文件夹",
+    "app.explorer.refresh": "刷新",
+    "app.explorer.collapse_all": "全部折叠",
+    "app.explorer.more": "更多操作",
+    "app.explorer.open_editors": "打开的编辑器",
+    "app.explorer.outline": "大纲",
+    "app.explorer.timeline": "时间线",
+    "app.explorer.empty": "还没有导入的工程——点上面的「导入 MoonBit 工程」",
+    "app.explorer.rename": "重命名",
+    "app.explorer.delete": "删除",
+    "app.explorer.folder_created": "已创建文件夹 {a}",
+    "app.explorer.folder_failed": "创建文件夹失败：{a}",
+    "app.explorer.folder_exists": "文件夹已存在：{a}",
+    "app.explorer.outline_empty": "当前文件没有可列出的大纲",
+    "app.explorer.timeline_empty": "还没有改动记录"
   }
 }

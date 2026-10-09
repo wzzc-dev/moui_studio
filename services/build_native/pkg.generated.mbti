@@ -2,10 +2,10 @@
 package "wzzc-dev/moui_studio/services/build_native"
 
 import {
-  "wzzc-dev/moui_studio/services/build",
   "moonbitlang/async/aqueue",
   "moonbitlang/async/process",
   "moonbitlang/core/ref",
+  "wzzc-dev/moui_studio/services/build",
 }
 
 // Values

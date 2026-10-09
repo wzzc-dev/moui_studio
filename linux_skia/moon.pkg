@@ -14,6 +14,7 @@ import {
   "wzzc-dev/moui_studio/services/build",
   "wzzc-dev/moui_studio/services/build_native",
 }
+
 supported_targets = "native"
 
 pkgtype(kind: "executable")

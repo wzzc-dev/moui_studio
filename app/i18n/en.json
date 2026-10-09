@@ -806,6 +806,23 @@
     "app.props.label.font_size": "Font size (pt)",
     "app.props.label.bold": "Bold",
     "app.props.label.text_color": "Text color (e.g. #FF0000)",
-    "app.props.label.back_color": "Background (e.g. #003366)"
+    "app.props.label.back_color": "Background (e.g. #003366)",
+    "app.explorer.title": "Explorer",
+    "app.explorer.new_file": "New file",
+    "app.explorer.new_folder": "New folder",
+    "app.explorer.refresh": "Refresh",
+    "app.explorer.collapse_all": "Collapse all",
+    "app.explorer.more": "More actions",
+    "app.explorer.open_editors": "Open editors",
+    "app.explorer.outline": "Outline",
+    "app.explorer.timeline": "Timeline",
+    "app.explorer.empty": "No MoonBit project imported yet — use Import MoonBit project above",
+    "app.explorer.rename": "Rename",
+    "app.explorer.delete": "Delete",
+    "app.explorer.folder_created": "Created folder {a}",
+    "app.explorer.folder_failed": "Could not create folder: {a}",
+    "app.explorer.folder_exists": "Folder already exists: {a}",
+    "app.explorer.outline_empty": "This file has no outline entries",
+    "app.explorer.timeline_empty": "No changes recorded yet"
   }
 }

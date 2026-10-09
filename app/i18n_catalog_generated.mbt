@@ -411,6 +411,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         "app.dialog.export",
         GeneratedI18nMessage::Text("Choose export directory"),
       ),
+      ("app.explorer.more", GeneratedI18nMessage::Text("More actions")),
       ("app.expr.tpl.join", GeneratedI18nMessage::Text("Join texts")),
       ("app.expr.tpl.sqrt", GeneratedI18nMessage::Text("Square root")),
       ("app.help.builtins", GeneratedI18nMessage::Text("Commands & functions")),
@@ -506,6 +507,13 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("No dependencies found"),
       ),
       ("app.ctx.state.gate", GeneratedI18nMessage::Text("Gate")),
+      (
+        "app.explorer.empty",
+        GeneratedI18nMessage::Text(
+          "No MoonBit project imported yet — use Import MoonBit project above",
+        ),
+      ),
+      ("app.explorer.title", GeneratedI18nMessage::Text("Explorer")),
       ("app.expr.tpl.floor", GeneratedI18nMessage::Text("Floor")),
       ("app.expr.tpl.lower", GeneratedI18nMessage::Text("Lowercase")),
       ("app.expr.tpl.round", GeneratedI18nMessage::Text("Round")),
@@ -655,6 +663,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.ctx.state.track", GeneratedI18nMessage::Text("Track")),
       ("app.design.zoom.fit", GeneratedI18nMessage::Text("Fit window")),
       ("app.empty.roll_call", GeneratedI18nMessage::Text("New roll call")),
+      ("app.explorer.delete", GeneratedI18nMessage::Text("Delete")),
+      ("app.explorer.rename", GeneratedI18nMessage::Text("Rename")),
       ("app.expr.tpl.answer", GeneratedI18nMessage::Text("Answer")),
       ("app.expr.tpl.length", GeneratedI18nMessage::Text("Text length")),
       ("app.expr.tpl.letter", GeneratedI18nMessage::Text("Letter N of text")),
@@ -810,6 +820,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("No control or handler selected"),
       ),
       ("app.ctx.state.edited", GeneratedI18nMessage::Text("Edit state")),
+      ("app.explorer.outline", GeneratedI18nMessage::Text("Outline")),
+      ("app.explorer.refresh", GeneratedI18nMessage::Text("Refresh")),
       ("app.expr.tpl.ceiling", GeneratedI18nMessage::Text("Ceiling")),
       ("app.expr.tpl.compare", GeneratedI18nMessage::Text("Compare")),
       ("app.expr.tpl.to_text", GeneratedI18nMessage::Text("To text")),
@@ -935,6 +947,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.ctx.actions.ready", GeneratedI18nMessage::Text("ready")),
       ("app.ctx.state.running", GeneratedI18nMessage::Text("Running")),
+      ("app.explorer.new_file", GeneratedI18nMessage::Text("New file")),
+      ("app.explorer.timeline", GeneratedI18nMessage::Text("Timeline")),
       (
         "app.expr.drop.no_slot",
         GeneratedI18nMessage::Text(
@@ -1201,6 +1215,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("Smoke-running the artifact"),
       ),
       ("app.compile.step_active", GeneratedI18nMessage::Text("running")),
+      ("app.explorer.new_folder", GeneratedI18nMessage::Text("New folder")),
       ("app.expr.tpl.get_number", GeneratedI18nMessage::Text("Read number")),
       (
         "app.inspector.data_hint",
@@ -1433,6 +1448,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         "app.dialog.import_project",
         GeneratedI18nMessage::Text("Select MoonBit project directory"),
       ),
+      ("app.explorer.collapse_all", GeneratedI18nMessage::Text("Collapse all")),
+      ("app.explorer.open_editors", GeneratedI18nMessage::Text("Open editors")),
       ("app.expr.tpl.selected_row", GeneratedI18nMessage::Text("Selected row")),
       ("app.inspector.data_access", GeneratedI18nMessage::Text("Access")),
       ("app.inspector.data_source", GeneratedI18nMessage::Text("Data source")),
@@ -1545,6 +1562,18 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         ),
       ),
       (
+        "app.explorer.folder_exists",
+        GeneratedI18nMessage::Text("Folder already exists: {a}"),
+      ),
+      (
+        "app.explorer.folder_failed",
+        GeneratedI18nMessage::Text("Could not create folder: {a}"),
+      ),
+      (
+        "app.explorer.outline_empty",
+        GeneratedI18nMessage::Text("This file has no outline entries"),
+      ),
+      (
         "app.export.unavailable_web",
         GeneratedI18nMessage::Text(
           "Exporting a standalone app needs a native directory picker and disk writes; unavailable on the web entry — export from the macOS entry instead.",
@@ -1643,6 +1672,14 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text(
           "Delete variable “{a}”? Statements referencing it will error afterwards.",
         ),
+      ),
+      (
+        "app.explorer.folder_created",
+        GeneratedI18nMessage::Text("Created folder {a}"),
+      ),
+      (
+        "app.explorer.timeline_empty",
+        GeneratedI18nMessage::Text("No changes recorded yet"),
       ),
       ("app.inspector.function_body", GeneratedI18nMessage::Text("Block body")),
       (
@@ -2321,6 +2358,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.data.readonly", GeneratedI18nMessage::Text("只读")),
       ("app.design.canvas", GeneratedI18nMessage::Text("表单设计画布")),
       ("app.dialog.export", GeneratedI18nMessage::Text("选择导出目录")),
+      ("app.explorer.more", GeneratedI18nMessage::Text("更多操作")),
       ("app.expr.tpl.join", GeneratedI18nMessage::Text("连接")),
       ("app.expr.tpl.sqrt", GeneratedI18nMessage::Text("平方根")),
       ("app.help.builtins", GeneratedI18nMessage::Text("命令与函数")),
@@ -2404,6 +2442,13 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.ctx.deps.bound", GeneratedI18nMessage::Text("事件绑定")),
       ("app.ctx.deps.empty", GeneratedI18nMessage::Text("没有发现依赖")),
       ("app.ctx.state.gate", GeneratedI18nMessage::Text("闸门")),
+      (
+        "app.explorer.empty",
+        GeneratedI18nMessage::Text(
+          "还没有导入的工程——点上面的「导入 MoonBit 工程」",
+        ),
+      ),
+      ("app.explorer.title", GeneratedI18nMessage::Text("资源管理器")),
       ("app.expr.tpl.floor", GeneratedI18nMessage::Text("向下取整")),
       ("app.expr.tpl.lower", GeneratedI18nMessage::Text("小写")),
       ("app.expr.tpl.round", GeneratedI18nMessage::Text("四舍五入")),
@@ -2552,6 +2597,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.ctx.state.track", GeneratedI18nMessage::Text("运行轨")),
       ("app.design.zoom.fit", GeneratedI18nMessage::Text("适应窗口")),
       ("app.empty.roll_call", GeneratedI18nMessage::Text("新建点名册")),
+      ("app.explorer.delete", GeneratedI18nMessage::Text("删除")),
+      ("app.explorer.rename", GeneratedI18nMessage::Text("重命名")),
       ("app.expr.tpl.answer", GeneratedI18nMessage::Text("回答")),
       ("app.expr.tpl.length", GeneratedI18nMessage::Text("文本长度")),
       ("app.expr.tpl.letter", GeneratedI18nMessage::Text("取字符")),
@@ -2704,6 +2751,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("未选中控件或子程序"),
       ),
       ("app.ctx.state.edited", GeneratedI18nMessage::Text("编辑状态")),
+      ("app.explorer.outline", GeneratedI18nMessage::Text("大纲")),
+      ("app.explorer.refresh", GeneratedI18nMessage::Text("刷新")),
       ("app.expr.tpl.ceiling", GeneratedI18nMessage::Text("向上取整")),
       ("app.expr.tpl.compare", GeneratedI18nMessage::Text("比较")),
       ("app.expr.tpl.to_text", GeneratedI18nMessage::Text("转文本")),
@@ -2826,6 +2875,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.ctx.actions.ready", GeneratedI18nMessage::Text("已建")),
       ("app.ctx.state.running", GeneratedI18nMessage::Text("运行中")),
+      ("app.explorer.new_file", GeneratedI18nMessage::Text("新建文件")),
+      ("app.explorer.timeline", GeneratedI18nMessage::Text("时间线")),
       (
         "app.expr.drop.no_slot",
         GeneratedI18nMessage::Text(
@@ -3079,6 +3130,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("启动产物自检"),
       ),
       ("app.compile.step_active", GeneratedI18nMessage::Text("进行中")),
+      ("app.explorer.new_folder", GeneratedI18nMessage::Text("新建文件夹")),
       ("app.expr.tpl.get_number", GeneratedI18nMessage::Text("读取数字")),
       (
         "app.inspector.data_hint",
@@ -3282,6 +3334,11 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         "app.dialog.import_project",
         GeneratedI18nMessage::Text("选择 MoonBit 工程目录"),
       ),
+      ("app.explorer.collapse_all", GeneratedI18nMessage::Text("全部折叠")),
+      (
+        "app.explorer.open_editors",
+        GeneratedI18nMessage::Text("打开的编辑器"),
+      ),
       ("app.expr.tpl.selected_row", GeneratedI18nMessage::Text("选中行")),
       ("app.inspector.data_access", GeneratedI18nMessage::Text("访问")),
       ("app.inspector.data_source", GeneratedI18nMessage::Text("数据来源")),
@@ -3399,6 +3456,18 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         ),
       ),
       (
+        "app.explorer.folder_exists",
+        GeneratedI18nMessage::Text("文件夹已存在：{a}"),
+      ),
+      (
+        "app.explorer.folder_failed",
+        GeneratedI18nMessage::Text("创建文件夹失败：{a}"),
+      ),
+      (
+        "app.explorer.outline_empty",
+        GeneratedI18nMessage::Text("当前文件没有可列出的大纲"),
+      ),
+      (
         "app.export.unavailable_web",
         GeneratedI18nMessage::Text(
           "导出独立应用需要系统目录选择与写盘：Web 端不可用，请在 macOS 入口导出。",
@@ -3495,6 +3564,14 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text(
           "删除变量「{a}」？引用它的语句之后会报错。",
         ),
+      ),
+      (
+        "app.explorer.folder_created",
+        GeneratedI18nMessage::Text("已创建文件夹 {a}"),
+      ),
+      (
+        "app.explorer.timeline_empty",
+        GeneratedI18nMessage::Text("还没有改动记录"),
       ),
       (
         "app.inspector.function_body",

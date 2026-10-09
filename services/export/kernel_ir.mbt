@@ -163,6 +163,7 @@ pub fn kernel_ir_mbt() -> String {
     #|  password : Bool
     #|} derive(Eq)
     #|
+    #|///|
     #|pub extend ControlProps with Eq::{not_equal, equal}
     #|
     #|///|

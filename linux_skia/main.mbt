@@ -19,13 +19,12 @@ async fn main {
   let compile_owner = @compile.CompileOwner::new()
   let launch_owner = @launch.LaunchOwner::new()
   let build_owner = @build_native.BuildOwner::new()
-  let raw_config = @provider.load_provider_config(
-    "moui_studio/.config.json",
-  ).unwrap_or(@provider.ProviderConfig::{
-    endpoint: "",
-    model: "",
-    api_key: "",
-  })
+  let raw_config = @provider.load_provider_config("moui_studio/.config.json").unwrap_or(@provider.ProviderConfig::{
+      endpoint: "",
+      model: "",
+      api_key: "",
+    },
+  )
   let provider_config : @studio_app.ProviderConfig = {
     endpoint: raw_config.endpoint,
     model: raw_config.model,

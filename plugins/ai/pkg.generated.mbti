@@ -2,8 +2,8 @@
 package "wzzc-dev/moui_studio/plugins/ai"
 
 import {
-  "wzzc-dev/moui_studio/domain/proposals",
   "wzzc-dev/moui/core",
+  "wzzc-dev/moui_studio/domain/proposals",
 }
 
 // Values

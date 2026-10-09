@@ -1976,11 +1976,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 大写（G7.1）。
-    #|pub fn upper_value(
-    #|  value : Value,
-    #|  role : String,
-    #|  line : Int,
-    #|) -> Value {
+    #|pub fn upper_value(value : Value, role : String, line : Int) -> Value {
     #|  ignore(role)
     #|  ignore(line)
     #|  VStr(value_to_text(value).to_upper())
@@ -1988,11 +1984,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 小写（G7.1）。
-    #|pub fn lower_value(
-    #|  value : Value,
-    #|  role : String,
-    #|  line : Int,
-    #|) -> Value {
+    #|pub fn lower_value(value : Value, role : String, line : Int) -> Value {
     #|  ignore(role)
     #|  ignore(line)
     #|  VStr(value_to_text(value).to_lower())

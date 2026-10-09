@@ -125,7 +125,9 @@ pub(all) struct ControlProps {
   password : Bool
 } derive(Eq)
 pub fn ControlProps::default() -> Self
+pub fn ControlProps::equal(Self, Self) -> Bool
 pub fn ControlProps::is_default(Self) -> Bool
+pub fn ControlProps::not_equal(Self, Self) -> Bool
 
 pub(all) enum DragCorner {
   CornerNW

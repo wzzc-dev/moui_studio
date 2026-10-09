@@ -31,7 +31,10 @@ test "form 往返门:render → parse 字段级一致" {
   match @form_designer.parse_form(rendered) {
     Err(msg) => fail("渲染文本应可解析:\{msg}")
     Ok(parsed) =>
-      assert_true(@form_designer.form_model_eq(model, parsed.model), msg="往返门失败")
+      assert_true(
+        @form_designer.form_model_eq(model, parsed.model),
+        msg="往返门失败",
+      )
   }
 }
 
@@ -60,7 +63,9 @@ test "span 补丁:改 x 不破坏其他字段,往返仍闭合" {
     Ok(parsed) => {
       let spans = parsed.spans[0]
       // 拖拽:x 280 → 88
-      let patched = @form_designer.apply_control_patch(source, spans, 88.0, 180.0, 80.0, 36.0)
+      let patched = @form_designer.apply_control_patch(
+        source, spans, 88.0, 180.0, 80.0, 36.0,
+      )
       match @form_designer.parse_form(patched) {
         Err(msg) => fail("补丁后应可解析:\{msg}")
         Ok(parsed2) => {
@@ -115,7 +120,12 @@ test "文本补丁:点标题改文本" {
     Err(msg) => fail("基线应可解析:\{msg}")
     Ok(parsed) => {
       let span = parsed.spans[0]
-      let patched = @form_designer.apply_text_patch(source, span.text, 14, "我的计数器")
+      let patched = @form_designer.apply_text_patch(
+        source,
+        span.text,
+        14,
+        "我的计数器",
+      )
       match @form_designer.parse_form(patched) {
         Err(msg) => fail("补丁后应可解析:\{msg}")
         Ok(parsed2) =>
@@ -210,7 +220,10 @@ test "props roundtrip:styled control survives parse(render(m))" {
   }
   // 未知键结构化报错(规范形态纪律)
   assert_true(
-    match @form_designer.parse_form(rendered.replace(old="font_size=20", new="rotation=45")) {
+    match
+      @form_designer.parse_form(
+        rendered.replace(old="font_size=20", new="rotation=45"),
+      ) {
       Err(msg) => msg.contains("未知属性键")
       Ok(_) => false
     },

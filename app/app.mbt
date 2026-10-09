@@ -64,9 +64,7 @@ pub const LANGUAGE_SETTINGS_KEY : String = "studio.language"
 /// 必须有目录，FileServices.write_text 不会自动创建中间目录）。
 fn ensure_studio_dir() -> Unit {
   if !@x/fs.path_exists(".studio") {
-    try {
-      @x/fs.create_dir(".studio")
-    } catch {
+    @x/fs.create_dir(".studio") catch {
       _ => ()
     }
   }
@@ -249,11 +247,14 @@ pub fn update_with_services(
     // 选中/取消的纯转移照走 update_pure。
     SelectProjectFile(rel) => {
       let (next, effect) = update_pure(model, msg)
-      let read_effect = match active_project_of(model) {
-        Some(project) =>
+      // 路径走 `tree_abs_path` 单一漏斗:工作区导入时 rel 是**工作区相对**
+      // 路径（根上的 gradlew 与成员目录同处一个命名空间）,单模块导入时
+      // 与工程相对路径逐字相同——旧行为零变化。
+      let read_effect = match tree_abs_path(model, rel) {
+        Some(path) =>
           services
           .files()
-          .read_text("\{project.root}/\{rel}")
+          .read_text(path)
           .effect(map=r => ProjectFileLoaded(rel, r))
         None => @moui.Effect::none()
       }
@@ -261,16 +262,20 @@ pub fn update_with_services(
     }
     // 保存工程文件（试用反馈：点开的文件可编辑,保存写回磁盘）。
     SaveProjectFile =>
-      match (active_project_file(model), active_project_of(model)) {
-        (Some(open), Some(project)) =>
-          (
-            model,
-            services
-            .files()
-            .write_text("\{project.root}/\{open.rel}", open.draft)
-            .effect(map=r => ProjectFileSaveFinished(open.rel, r)),
-          )
-        _ => (model, @moui.Effect::none())
+      match active_project_file(model) {
+        Some(open) =>
+          match tree_abs_path(model, open.rel) {
+            Some(path) =>
+              (
+                model,
+                services
+                .files()
+                .write_text(path, open.draft)
+                .effect(map=r => ProjectFileSaveFinished(open.rel, r)),
+              )
+            None => (model, @moui.Effect::none())
+          }
+        None => (model, @moui.Effect::none())
       }
     // 插件管理（G7.3）：禁用 = 过滤贡献项入口（状态保留,非运行时卸载）。
     TogglePlugin(id) => {
@@ -404,11 +409,11 @@ pub fn update_with_services(
         (next, @moui.Effect::none())
       } else {
         let (selected, effect) = update_pure(next, SelectProjectFile(rel))
-        let read_effect = match active_project_of(selected) {
-          Some(project) =>
+        let read_effect = match tree_abs_path(selected, rel) {
+          Some(path) =>
             services
             .files()
-            .read_text("\{project.root}/\{rel}")
+            .read_text(path)
             .effect(map=r => ProjectFileLoaded(rel, r))
           None => @moui.Effect::none()
         }
@@ -417,10 +422,14 @@ pub fn update_with_services(
     }
     // === 文件 CRUD（G4）：新建 = write;改名 = read→write→delete 三步链 ===
     FileCreateCommit =>
-      match active_project_of(model) {
+      match tree_root_of(model) {
         None => (model, @moui.Effect::none())
-        Some(project) => {
-          let rel = model.file_name_draft.trim(chars=" \t").to_owned()
+        Some(_root) => {
+          let name = model.file_name_draft.trim(chars=" \t").to_owned()
+          // 目标目录来自行内入口（VS Code:在哪个文件夹上点新建就建在
+          // 哪个文件夹里）。草稿只收文件名,目录由 file_create_dir 携带;
+          // 两层都是**树相对**路径，所以直接拼即可。
+          let rel = join_rel(model.file_create_dir, name)
           if !valid_new_file_rel(rel) {
             (
               with_notice(
@@ -446,11 +455,122 @@ pub fn update_with_services(
               model,
               services
               .files()
-              .write_text("\{project.root}/\{rel}", "")
+              .write_text(join_rel(_root, rel), "")
               .effect(map=r => ProjectFileCreated(rel, r)),
             )
           }
         }
+      }
+    // 新建文件夹（VS Code 口径）:原生用 @x/fs 直接建目录。
+    //
+    // 为什么**不走** FileServices/host 协议:host 协议面是零余量的棘轮
+    // （`moui/backend` host_contract=268/268）,而目录创建是纯本地能力、
+    // 没有对话框/权限语义要对齐。`@x/fs.create_dir` 已是本仓库既有的
+    // native 直接 I/O 先例（见 `ensure_studio_dir`）。Web 端该调用会失败,
+    // 失败臂如实报错。
+    FolderCreateCommit =>
+      match tree_root_of(model) {
+        None => (model, @moui.Effect::none())
+        Some(_root) => {
+          let name = model.file_name_draft.trim(chars=" \t").to_owned()
+          let rel = join_rel(model.file_create_dir, name)
+          if !valid_new_file_rel(rel) {
+            (
+              with_notice(
+                model,
+                text(translator(model), "app.project.file_name_invalid"),
+                true,
+              ),
+              @moui.Effect::none(),
+            )
+          } else if project_has_dir(model, rel) {
+            (
+              with_notice(
+                model,
+                text_with(translator(model), "app.explorer.folder_exists", [
+                  ("a", rel),
+                ]),
+                true,
+              ),
+              @moui.Effect::none(),
+            )
+          } else {
+            (
+              model,
+              @moui.Effect::dispatch(emit => {
+                // `@x/fs.IOError` 是带 String 载荷的 suberror：取出原文
+                // 而不是 `to_string()`（后者在 suberror 上没有方法）。
+                let result : Result[Unit, String] = try {
+                  @x/fs.create_dir(join_rel(_root, rel))
+                  Ok(())
+                } catch {
+                  @x/fs.IOError(message) => Err(message)
+                }
+                emit(FolderCreated(rel, Success(result)))
+              }),
+            )
+          }
+        }
+      }
+    FolderCreated(rel, result) =>
+      match result {
+        Success(Ok(_)) =>
+          match active_project_of(model) {
+            None =>
+              (
+                { ..model, folder_create_open: false, file_name_draft: "", },
+                @moui.Effect::none(),
+              )
+            Some(project) => {
+              let created = with_notice(
+                { ..model, folder_create_open: false, file_name_draft: "", },
+                text_with(translator(model), "app.explorer.folder_created", [
+                  ("a", rel),
+                ]),
+                false,
+              )
+              // 重扫刷新文件树（与新文件同一条链:扫描是真源）
+              (
+                created,
+                @project.walk_root_task(services.files(), project.root).effect(map=r => {
+                  ProjectScanCompleted(r)
+                }),
+              )
+            }
+          }
+        Success(Err(message)) =>
+          (
+            with_notice(
+              { ..model, folder_create_open: false, },
+              text_with(translator(model), "app.explorer.folder_failed", [
+                ("a", message),
+              ]),
+              true,
+            ),
+            @moui.Effect::none(),
+          )
+        Failure(error) =>
+          (
+            with_notice(
+              { ..model, folder_create_open: false, },
+              error.message,
+              true,
+            ),
+            @moui.Effect::none(),
+          )
+        Cancelled => (model, @moui.Effect::none())
+      }
+    ExplorerRefresh =>
+      // 刷新 = 重扫活动工程（扫描是真源,与导入同一条链）
+      match active_project_of(model) {
+        None => (model, @moui.Effect::none())
+        Some(project) =>
+          (
+            model,
+            @project.walk_root_task(services.files(), project.root).effect(map=r => {
+              ProjectScanCompleted(r)
+            }),
+          )
       }
     ProjectFileCreated(rel, result) =>
       match result {
@@ -465,6 +585,7 @@ pub fn update_with_services(
                 draft: "",
                 caret: 0,
                 selection: None,
+                md_session: with_md_session(rel~, content=""),
               })
               let created = with_notice(
                 {
@@ -499,9 +620,12 @@ pub fn update_with_services(
         Cancelled => (model, @moui.Effect::none())
       }
     FileRenameCommit =>
-      match (model.file_rename_open, active_project_of(model)) {
-        (Some(old), Some(project)) => {
-          let new = model.file_name_draft.trim(chars=" \t").to_owned()
+      match (model.file_rename_open, tree_root_of(model)) {
+        (Some(old), Some(_root)) => {
+          // 输入行只收文件名（FileRenameStart 已把草稿裁成最后一段），
+          // 这里按**原文件所在目录**拼回 rel——用户改的是名字，不是位置。
+          let name = model.file_name_draft.trim(chars=" \t").to_owned()
+          let new = join_rel(parent_of(old), name)
           if !valid_new_file_rel(new) {
             (
               with_notice(
@@ -518,7 +642,7 @@ pub fn update_with_services(
               model,
               services
               .files()
-              .read_text("\{project.root}/\{old}")
+              .read_text(join_rel(_root, old))
               .effect(map=r => ProjectRenameRead(old, new, r)),
             )
           }
@@ -528,14 +652,14 @@ pub fn update_with_services(
     ProjectRenameRead(old, new, result) =>
       match result {
         Success(content) =>
-          match active_project_of(model) {
+          match tree_root_of(model) {
             None => (model, @moui.Effect::none())
-            Some(project) =>
+            Some(_root) =>
               (
                 model,
                 services
                 .files()
-                .write_text("\{project.root}/\{new}", content)
+                .write_text(join_rel(_root, new), content)
                 .effect(map=r => ProjectRenameWritten(old, new, r)),
               )
           }
@@ -553,14 +677,14 @@ pub fn update_with_services(
     ProjectRenameWritten(old, new, result) =>
       match result {
         Success(_) =>
-          match active_project_of(model) {
+          match tree_root_of(model) {
             None => (model, @moui.Effect::none())
-            Some(project) =>
+            Some(_root) =>
               (
                 model,
                 services
                 .files()
-                .delete_file("\{project.root}/\{old}")
+                .delete_file(join_rel(_root, old))
                 .effect(map=r => ProjectRenameDeleted(old, new, r)),
               )
           }
@@ -624,16 +748,16 @@ pub fn update_with_services(
       }
     // 保存全部（G4 多标签）：逐脏 tab 写盘,回执各按 rel 定位落账。
     SaveAllFiles =>
-      match active_project_of(model) {
+      match tree_root_of(model) {
         None => (model, @moui.Effect::none())
-        Some(project) => {
+        Some(_root) => {
           let writes : Array[@moui.Effect[Msg]] = []
           for open in model.open_project_files {
             if open.draft != open.saved_content {
               writes.push(
                 services
                 .files()
-                .write_text("\{project.root}/\{open.rel}", open.draft)
+                .write_text(join_rel(_root, open.rel), open.draft)
                 .effect(map=r => ProjectFileSaveFinished(open.rel, r)),
               )
             }
@@ -846,13 +970,11 @@ pub fn update_with_services(
           (
             model,
             @moui.Effect::dispatch(emit => {
-              let result = direct_scan(
-                root,
-                on_progress=p => emit(ProjectScanProgress(p)),
-              )
+              let result = direct_scan(root, on_progress=p => {
+                emit(ProjectScanProgress(p))
+              })
               match result {
-                Ok(output) =>
-                  emit(ProjectScanCompleted(Success(Ok(output))))
+                Ok(output) => emit(ProjectScanCompleted(Success(Ok(output))))
                 Err(message) =>
                   emit(ProjectScanCompleted(Success(Err(message))))
               }
@@ -958,14 +1080,14 @@ pub fn update_with_services(
     // 删除工程文件(确认流续行,M0-6b):磁盘删除 → 回执后重扫工程
     // (复用导入链,upsert 原位替换刷新文件树)。
     ProjectFileDeleteRun(rel) =>
-      match active_project_of(model) {
+      match tree_root_of(model) {
         None => (model, @moui.Effect::none())
-        Some(project) =>
+        Some(_root) =>
           (
             model,
             services
             .files()
-            .delete_file("\{project.root}/\{rel}")
+            .delete_file(join_rel(_root, rel))
             .effect(map=r => ProjectFileDeleted(rel, r)),
           )
       }

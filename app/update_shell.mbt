@@ -66,24 +66,112 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           @moui.Effect::none(),
         ),
       )
-    ToggleProjectPackage(rel) => {
-      // 折叠集合翻转(与 ToggleTreeGroup 同一手法,不共享可变数组)
-      let collapsed : Array[String] = []
+    ToggleProjectDirAt(index, rel) =>
+      Some(toggle_project_dir(model, index, rel))
+    ExplorerHover(key) =>
+      Some(({ ..model, explorer_hover: key, }, @moui.Effect::none()))
+    ToggleExplorerSection(id) => {
+      // 分区折叠是**布局偏好**,与树内目录折叠分开存（目录键带根下标,
+      // 分区键是固定 id）。文件夹分区默认展开,其余默认收起——所以
+      // 「展开」要登记成 `open:<id>` 标记,「折叠」才是裸 id。
+      let toggled : Array[String] = []
+      let open_key = "open:" + id
+      let track_key = if id == EXPLORER_SECTION_FOLDERS { id } else { open_key }
       let mut removed = false
-      for item in model.project_tree_collapsed {
-        if item == rel {
+      for item in model.explorer_sections_collapsed {
+        if item == track_key {
           removed = true
         } else {
-          collapsed.push(item)
+          toggled.push(item)
         }
       }
       if !removed {
-        collapsed.push(rel)
+        toggled.push(track_key)
       }
       Some(
-        ({ ..model, project_tree_collapsed: collapsed, }, @moui.Effect::none()),
+        (
+          { ..model, explorer_sections_collapsed: toggled, },
+          @moui.Effect::none(),
+        ),
       )
     }
+    FileCreateAt(rel) =>
+      // 在指定目录下就地新建（VS Code 口径）。目标目录必须展开,否则
+      // 输入行会被折在树里看不见——先把该目录从折叠集里摘掉。
+      Some(
+        (
+          {
+            ..model,
+            file_create_open: true,
+            file_create_dir: rel,
+            folder_create_open: false,
+            file_rename_open: None,
+            file_name_draft: "",
+            project_tree_collapsed: unfold_dir(model, model.active_project, rel),
+          },
+          @moui.Effect::none(),
+        ),
+      )
+    FolderCreateAt(rel) =>
+      // 与 `FileCreateAt` 完全同形（只是打开的是文件夹输入行）:两个入口
+      // 必须都能指定目标目录,否则目录行悬浮 ＋ 建出来的东西会落到工程根。
+      Some(
+        (
+          {
+            ..model,
+            folder_create_open: true,
+            file_create_dir: rel,
+            file_create_open: false,
+            file_rename_open: None,
+            file_name_draft: "",
+            project_tree_collapsed: unfold_dir(model, model.active_project, rel),
+          },
+          @moui.Effect::none(),
+        ),
+      )
+    ToggleExplorerMenu =>
+      Some(
+        (
+          { ..model, explorer_menu_open: !model.explorer_menu_open, },
+          @moui.Effect::none(),
+        ),
+      )
+    FolderCreateDraft(value) =>
+      if model.folder_create_open {
+        Some(({ ..model, file_name_draft: value, }, @moui.Effect::none()))
+      } else {
+        Some((model, @moui.Effect::none()))
+      }
+    FolderCreateDismiss =>
+      Some(
+        (
+          { ..model, folder_create_open: false, file_name_draft: "", },
+          @moui.Effect::none(),
+        ),
+      )
+    ExplorerCollapseAll => {
+      // 全部折叠 = 折叠每个工程的根目录（树收成 N 行根）。子目录的折叠
+      // 记录一并清掉:否则再次展开某棵根树时,里面还记着上次的折叠态,
+      // 「全部折叠再全部展开」读起来像没生效。
+      let collapsed : Array[String] = []
+      let mut index = 0
+      while index < model.projects.length() {
+        collapsed.push(root_collapse_key(index, ""))
+        index = index + 1
+      }
+      Some(
+        (
+          {
+            ..model,
+            project_tree_collapsed: collapsed,
+            explorer_scroll: @core.Point::new(x=0.0, y=0.0),
+          },
+          @moui.Effect::none(),
+        ),
+      )
+    }
+    ExplorerScrolled(offset) =>
+      Some(({ ..model, explorer_scroll: offset, }, @moui.Effect::none()))
     ProjectFileLoaded(rel, result) =>
       match result {
         Success(content) =>
@@ -96,6 +184,7 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
               draft: content,
               caret: 0,
               selection: None,
+              md_session: with_md_session(rel~, content~),
             })
             Some(
               (
@@ -181,6 +270,39 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
             ),
           )
       }
+    ProjectFileMarkdownTransaction(transaction) =>
+      // `.md` tab 的 MoMark session 编辑事务：会话 apply 事务（增量的,
+      // 与 momark 同一条链）,草稿/光标随事务回写。兜底分支处理
+      // 会话缺失的 tab（换源重建,不让事务丢失）。
+      match active_project_file(model) {
+        None => Some((model, @moui.Effect::none()))
+        Some(open) => {
+          let session = match open.md_session {
+            Some(session) => session.apply(transaction)
+            None =>
+              @moui_richtext.MarkdownDocumentSession::new(transaction.source)
+          }
+          Some(
+            (
+              {
+                ..model,
+                open_project_files: replace_open_file_at(
+                  model.open_project_files,
+                  model.open_file_index,
+                  {
+                    ..open,
+                    draft: transaction.source,
+                    caret: transaction.caret,
+                    selection: transaction.selection,
+                    md_session: Some(session),
+                  },
+                ),
+              },
+              @moui.Effect::none(),
+            ),
+          )
+        }
+      }
     // tab 导航（G4 多标签）：切换 = 置 active（光标随 tab 恢复）;
     // 关闭的脏 tab 守卫在 update_confirm_msgs（CkCloseFileTab）。
     SelectFileTab(index) =>
@@ -191,20 +313,10 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       }
     CloseFileTab(index) =>
       Some((close_open_file_at(model, index), @moui.Effect::none()))
-    // 文件 CRUD 输入态（G4）：新建/改名共用一行式输入,Start 置草稿,
-    // Dismiss 清态;Draft 只在对应模式打开时接受（防串台）。
-    FileCreateStart =>
-      Some(
-        (
-          {
-            ..model,
-            file_create_open: true,
-            file_rename_open: None,
-            file_name_draft: "",
-          },
-          @moui.Effect::none(),
-        ),
-      )
+    // 文件 CRUD 输入态（G4）：新建/改名共用一行式输入,Dismiss 清态;
+    // Draft 只在对应模式打开时接受（防串台）。打开入口是 `FileCreateAt`
+    // （带目标目录,VS Code 就地新建口径）——没有单独的「Start」变体:
+    // 它不带目录,与就入口径重复。
     FileCreateDraft(value) =>
       if model.file_create_open {
         Some(({ ..model, file_name_draft: value, }, @moui.Effect::none()))
@@ -214,7 +326,12 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     FileCreateDismiss =>
       Some(
         (
-          { ..model, file_create_open: false, file_name_draft: "", },
+          {
+            ..model,
+            file_create_open: false,
+            file_name_draft: "",
+            file_create_dir: "",
+          },
           @moui.Effect::none(),
         ),
       )
@@ -223,9 +340,12 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         (
           {
             ..model,
+            // 改名草稿要**只填文件名**:输入行提交时按 file_create_dir 拼
+            // 回目录（与新建同一条口径）。填整个 rel 会让提交把目录拼两次。
             file_rename_open: Some(rel),
             file_create_open: false,
-            file_name_draft: rel,
+            folder_create_open: false,
+            file_name_draft: rel_path_last_segment(rel),
           },
           @moui.Effect::none(),
         ),
@@ -308,6 +428,40 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           @moui.Effect::none(),
         ),
       )
+    SelectProjectFileAt(index, rel) => {
+      // 点某个文件 = 选中它,并把**活动工程**切到它归属的那一个。
+      //
+      // 归属不直接用行上的 index:工作区导入时树的根是工作区根
+      // （WORKSPACE_ROOT_INDEX）,而根上的 `gradlew` 不属于任何成员——
+      // 把 -1 写进 active_project 会让「当前工程」这个语义失效。归属改成
+      // 由**路径**反查（`project_index_of_tree_rel`）:成员目录下的文件归属
+      // 该成员,根上的文件保持原活动工程不变。
+      let owner = match project_index_of_tree_rel(model, rel) {
+        Some(found) => found
+        None =>
+          if index >= 0 && index < model.projects.length() {
+            index
+          } else {
+            model.active_project
+          }
+      }
+      Some(
+        (
+          {
+            ..model,
+            active_project: owner,
+            selected_project_file: if model.selected_project_file
+              is Some(current) &&
+              current == rel {
+              None
+            } else {
+              Some(rel)
+            },
+          },
+          @moui.Effect::none(),
+        ),
+      )
+    }
     RemoveProject(index) => {
       let removed = remove_project_at(model, index)
       mark_projects_dirty(removed)
@@ -560,6 +714,59 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     RestoreCodeDraft => Some(restore_code_draft(model))
     _ => None
   }
+}
+
+// ============================================================================
+// 资源管理器（VS Code 口径）
+// ============================================================================
+
+///|
+/// 目录折叠翻转（单树多根:键 = 根下标 + rel）。
+///
+/// 展开（非折叠）时把滚动偏移直接设为该目录行的偏移——单一事实源
+/// （无 ScrollRequest/模型双轨;此前双轨发散会把窗口化行画到视口外,
+/// 读成「滚动后行消失」）。视图按内容高度钳制显示;折叠保持当前位置
+/// （与 VS Code 一致）。
+fn toggle_project_dir(
+  model : Model,
+  index : Int,
+  rel : String,
+) -> (Model, @moui.Effect[Msg]) {
+  let key = root_collapse_key(index, rel)
+  let collapsed : Array[String] = []
+  let mut removed = false
+  for item in model.project_tree_collapsed {
+    if item == key {
+      removed = true
+    } else {
+      collapsed.push(item)
+    }
+  }
+  if !removed {
+    collapsed.push(key)
+  }
+  let scroll = if removed {
+    model.explorer_scroll
+  } else {
+    explorer_dir_scroll_target(model, index, rel)
+  }
+  (
+    { ..model, project_tree_collapsed: collapsed, explorer_scroll: scroll, },
+    @moui.Effect::none(),
+  )
+}
+
+///|
+/// 把目标目录从折叠集里摘掉（就地新建前调用:输入行要在可见处出现）。
+fn unfold_dir(model : Model, index : Int, rel : String) -> Array[String] {
+  let key = root_collapse_key(index, rel)
+  let kept : Array[String] = []
+  for item in model.project_tree_collapsed {
+    if item != key {
+      kept.push(item)
+    }
+  }
+  kept
 }
 
 // ============================================================================

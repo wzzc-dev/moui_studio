@@ -2,8 +2,8 @@
 package "wzzc-dev/moui_studio/services/build"
 
 import {
-  "wzzc-dev/moui_studio/services/export",
   "moonbitlang/core/debug",
+  "wzzc-dev/moui_studio/services/export",
 }
 
 // Values

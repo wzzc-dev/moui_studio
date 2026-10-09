@@ -59,13 +59,13 @@ pub fn get_text(Runtime, String) -> Value
 
 pub fn handler_for(@ir.StudioProgram, String, String) -> Handler?
 
-pub fn index_of_list(Runtime, Value, Value, String, Int) -> Value raise ExecError
+pub fn index_of_list(Runtime, Value, Value, String, Int) -> Value
 
 pub fn index_values(Value, Value, Int) -> Value raise ExecError
 
 pub fn int_value(Double) -> Value
 
-pub fn join_value(Value, Value, String, Int) -> Value raise ExecError
+pub fn join_value(Value, Value, String, Int) -> Value
 
 pub fn last_answer(Runtime) -> Value
 
@@ -81,7 +81,7 @@ pub fn lower_traced_handler(Array[@studio_lang.TracedStmt]) -> Handler
 
 pub fn lower_user_function(@ir.FuncDef) -> (Runtime, Array[Value]) -> Value raise ExecError
 
-pub fn lower_value(Value, String, Int) -> Value raise ExecError
+pub fn lower_value(Value, String, Int) -> Value
 
 pub fn make_enum(String, String) -> Value
 
@@ -135,7 +135,7 @@ pub fn to_text(Value) -> Value
 
 pub fn unknown_builtin(String, Int) -> Value raise ExecError
 
-pub fn upper_value(Value, String, Int) -> Value raise ExecError
+pub fn upper_value(Value, String, Int) -> Value
 
 pub fn value_to_text(Value) -> String
 

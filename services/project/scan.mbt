@@ -35,6 +35,29 @@ pub(all) struct ScannedModule {
   native_entry : String
   /// 含 `pub fn program` 的包(逻辑/预览 harness 的挂载点)
   program_packages : Array[String]
+  /// 完整目录树(资源管理器用;BFS 序,父先于子)。包信息由 `packages`
+  /// 按 rel_path 对——树只陈述结构,不含 MoonBit 语义。
+  dirs : Array[ScannedDir]
+}
+
+///|
+/// 扫描目录(资源管理器文件树用;包判定信息不在这——树只陈述结构)。
+pub(all) struct ScannedDir {
+  /// 相对模块根的路径("" = 模块根本身)
+  rel_path : String
+  /// 该目录下的全部文件名(**不含子目录**;构建产物已由遍历层跳过)
+  files : Array[String]
+}
+
+///|
+/// 该相对路径是否是一个 MoonBit 包。
+pub fn is_package_path(scanned : ScannedModule, rel_path : String) -> Bool {
+  for pkg in scanned.packages {
+    if pkg.rel_path == rel_path {
+      return true
+    }
+  }
+  false
 }
 
 ///|
@@ -44,6 +67,19 @@ pub(all) struct LayoutEntry {
   rel_path : String
   is_dir : Bool
   files : Array[String]
+}
+
+///|
+/// 目录条目 → 扫描目录(仅目录条目;文件条目由 `scan_package_paths` 的同一次
+/// 遍历承担,不重复判)。
+pub fn scan_dirs(entries : Array[LayoutEntry]) -> Array[ScannedDir] {
+  let dirs : Array[ScannedDir] = []
+  for entry in entries {
+    if entry.is_dir {
+      dirs.push(ScannedDir::{ rel_path: entry.rel_path, files: entry.files, })
+    }
+  }
+  dirs
 }
 
 ///|
@@ -66,6 +102,7 @@ pub fn scan_package_paths(entries : Array[LayoutEntry]) -> Array[String] {
 pub fn scan_module(
   manifest : ModuleManifest,
   package_sources : Array[(String, String, Bool, Array[String])],
+  dirs? : Array[ScannedDir],
 ) -> Result[ScannedModule, String] {
   let packages : Array[ScannedPackage] = []
   let mut web_entry = ""
@@ -106,6 +143,10 @@ pub fn scan_module(
     web_entry,
     native_entry,
     program_packages,
+    dirs: match dirs {
+      Some(value) => value
+      None => []
+    },
   })
 }
 

@@ -457,6 +457,44 @@ pub fn ide_danger_soft() -> @core.Color {
 }
 
 ///|
+/// 文件类型图标色（资源管理器的 Seti 口径）。
+///
+/// VS Code 的资源管理器靠**颜色**区分文件类型——一眼扫过去就知道哪个是
+/// 源码、哪个是文档、哪个是配置。全灰的树要逐字读文件名才知道,那是列表
+/// 不是树。色值刻意压低饱和度:图标是**线索**不是装饰,满屏高饱和会跟
+/// 语法高亮抢注意力。
+pub fn ide_file_color(kind : IconTint) -> @core.Color {
+  match kind {
+    // 源码:蓝（与强调色同族但更沉,不跟选中态打架）
+    TintCode => @core.Color::rgba(r=0.322, g=0.596, b=0.929)
+    // 文档:青（Markdown/文本）
+    TintDoc => @core.Color::rgba(r=0.376, g=0.741, b=0.741)
+    // 配置:黄（json/pkg/mod 这类清单）
+    TintConfig => @core.Color::rgba(r=0.902, g=0.651, b=0.267)
+    // 资源:紫（图片/二进制）
+    TintAsset => @core.Color::rgba(r=0.702, g=0.522, b=0.898)
+    // 其他:中性灰
+    TintPlain => ide_text_muted()
+  }
+}
+
+///|
+/// 文件类型图标的色系（`ide_file_color` 的分类键）。
+pub(all) enum IconTint {
+  TintCode
+  TintDoc
+  TintConfig
+  TintAsset
+  TintPlain
+} derive(Eq, Debug)
+
+///|
+pub extend IconTint with Eq::{not_equal, equal}
+
+///|
+pub extend IconTint with Debug::{to_repr}
+
+///|
 /// 代码语法色：关键字。
 pub fn code_keyword_color() -> @core.Color {
   if ui_dark_ref.val {

@@ -21,12 +21,8 @@ fn kernel_files() -> Array[(String, Array[(String, String)])] {
       "kernel_ir",
       [
         ("kernel_ir_mbt", "moui_studio/domain/ir/ir.mbt"),
-        (
-          "kernel_ir_invariants_mbt", "moui_studio/domain/ir/invariants.mbt",
-        ),
-        (
-          "kernel_ir_signature_mbt", "moui_studio/domain/ir/signature.mbt",
-        ),
+        ("kernel_ir_invariants_mbt", "moui_studio/domain/ir/invariants.mbt"),
+        ("kernel_ir_signature_mbt", "moui_studio/domain/ir/signature.mbt"),
       ],
     ),
     (

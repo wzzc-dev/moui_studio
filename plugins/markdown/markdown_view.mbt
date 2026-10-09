@@ -48,6 +48,47 @@ pub fn[Msg] markdown_file_view(
 }
 
 ///|
+/// `.md` 文件的 MoMark session 编辑面（与 momark 编辑面同款引擎档位）：
+/// 持久 `MarkdownDocumentSession` 提供块级结构渲染——光标所在 span 的
+/// 标记就地 reveal（`**粗体**` 显示为粗体）、focus mode、软换行一致的
+/// 高度测量、Enter 拆段/列表续行/表格键等真编辑事务。事务经壳消息
+/// 回写模型里的会话与草稿（受控往返,插件不持有状态）。
+pub fn[Msg] markdown_session_file_view(
+  session~ : @richtext.MarkdownDocumentSession,
+  selection~ : @richtext.MarkdownEditorSelection,
+  on_transaction~ : (@richtext.MarkdownEditTransaction) -> Msg,
+  on_selection_change~ : (Int, @core.TextRange?) -> Msg,
+  width~ : Double,
+  height~ : Double,
+  font~ : @text.FontSpec,
+  foreground~ : @graphics.Color,
+  placeholder_color~ : @graphics.Color,
+  background~ : @graphics.Brush,
+  cursor_color~ : @graphics.Color,
+  key? : String = "studio-markdown-session-editor",
+) -> @moui.View[Msg] {
+  let editor_width = (width - 32.0).max(80.0)
+  let content_height = session
+    .estimated_content_height(base=font, content_width=editor_width)
+    .max(height)
+  @richtext.controlled_markdown_session_editor(
+    session~,
+    selection~,
+    on_transaction~,
+    placeholder="",
+    size=@geometry.Size::new(width=editor_width, height=content_height),
+    font~,
+    foreground~,
+    placeholder_color~,
+    background~,
+    cursor_color~,
+    accepts_tab_input=false,
+    on_selection_change=Some(on_selection_change),
+    key=Some(key),
+  )
+}
+
+///|
 /// Markdown 内容的渲染全高估算：整篇源码格式化为富文本文档后量高度
 /// （块级边距未计入,以 +24pt 呼吸位兜底）。
 pub fn markdown_content_height(

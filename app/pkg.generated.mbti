@@ -2,6 +2,14 @@
 package "wzzc-dev/moui_studio/app"
 
 import {
+  "moonbitlang/core/debug",
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/services",
+  "wzzc-dev/moui/views/common",
+  "wzzc-dev/moui/views/style",
+  "wzzc-dev/moui_i18n",
+  "wzzc-dev/moui_richtext",
+  "wzzc-dev/moui_richtext/code_editor",
   "wzzc-dev/moui_studio/domain/blocks",
   "wzzc-dev/moui_studio/domain/ir",
   "wzzc-dev/moui_studio/domain/proposals",
@@ -16,12 +24,6 @@ import {
   "wzzc-dev/moui_studio/services/form_designer",
   "wzzc-dev/moui_studio/services/markdown",
   "wzzc-dev/moui_studio/services/project",
-  "wzzc-dev/moui/core",
-  "wzzc-dev/moui/services",
-  "wzzc-dev/moui/views/common",
-  "wzzc-dev/moui/views/style",
-  "wzzc-dev/moui_i18n",
-  "wzzc-dev/moui_richtext/code_editor",
   "wzzc-dev/moui_webview/host",
 }
 
@@ -63,6 +65,8 @@ pub const CHIPS_HEIGHT : Double = 26.0
 pub const COMPOSER_HEIGHT : Double = 88.0
 
 pub const DRAFT_SETTINGS_KEY : String = "studio.draft"
+
+pub const EXPLORER_SECTION_FOLDERS : String = "folders"
 
 pub const FIELD_HEIGHT : Double = 26.0
 
@@ -147,6 +151,8 @@ pub const UI_DARK_SETTINGS_KEY : String = "studio.ui_dark"
 pub const UNDO_DEPTH : Int = 50
 
 pub const WINDOW_CHROME_HEIGHT : Double = 32.0
+
+pub const WORKSPACE_ROOT_INDEX : Int = -1
 
 pub fn action_chip(String, Msg, ChipTone, Double) -> @core.View[Msg]
 
@@ -402,6 +408,8 @@ pub let design_total_height : Double
 
 pub fn diff_row(String, String, Double) -> @core.View[Msg]
 
+pub fn direct_scan(String, on_progress? : (@project.WalkProgress) -> Unit) -> Result[@project.ProjectScanOutput, String]
+
 pub fn dirname_of(String) -> String
 
 pub fn draw_command_from_json(Json) -> Result[@core.DrawCommand, String]
@@ -424,9 +432,25 @@ pub fn error_message(@moui_i18n.Translator, @studio_lang.LangError) -> String
 
 pub fn explanation_system_prompt() -> String
 
+pub fn explorer_child_dirs_for_test(Array[@project.ScannedDir], String) -> Array[@project.ScannedDir]
+
+pub fn explorer_clamp_scroll_y(Int, Double, Double) -> Double
+
+pub fn explorer_dir_scroll_target(Model, Int, String) -> @core.Point
+
+pub fn explorer_guide_line_count(Int) -> Int
+
+pub fn explorer_rows_for_test(Model) -> Array[String]
+
+pub fn explorer_section_expanded(Model, String) -> Bool
+
 pub fn expression_templates() -> Array[ExpressionTemplate]
 
+pub fn file_icon_for_test(String) -> @style.IconName
+
 pub fn file_is_dirty(OpenProjectFile) -> Bool
+
+pub fn file_tint_for_test(String) -> IconTint
 
 pub fn fill_row(Array[@core.View[Msg]], Double, Double, @style.CrossAlign) -> @core.View[Msg]
 
@@ -506,6 +530,8 @@ pub fn ide_editor_background() -> @core.Color
 
 pub fn ide_elevated() -> @core.Color
 
+pub fn ide_file_color(IconTint) -> @core.Color
+
 pub fn ide_hover() -> @core.Color
 
 pub fn ide_hover_strong() -> @core.Color
@@ -562,6 +588,8 @@ pub fn ir_span_at(Array[IrLineSpan], Array[Int]) -> IrLineSpan?
 
 pub fn ir_span_for_line(Array[IrLineSpan], Int) -> IrLineSpan?
 
+pub fn join_rel(String, String) -> String
+
 pub fn kv_row(String, String, Double, Bool) -> @core.View[Msg]
 
 pub fn live_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
@@ -588,6 +616,8 @@ pub fn no_text_measure(String) -> Double
 
 pub fn open_file_index_of(Array[OpenProjectFile], String) -> Int?
 
+pub fn outline_symbols(String, String) -> Array[OutlineSymbol]
+
 pub fn paint_block_outline(@common.PaintContext, Double, Double, Double, Double, @blocks.BlockKind, Bool, Bool) -> Unit
 
 pub fn pane_foot(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
@@ -597,6 +627,8 @@ pub fn pane_head(String, String, Double, Array[@core.View[Msg]], tail? : String,
 pub fn pane_head_layout(String, String, String, Double, Int, actions_width? : Double) -> PaneHeadLayout
 
 pub fn panel_head(String, String, Array[@core.View[Msg]], Double, trailing_widths? : Array[Double]) -> @core.View[Msg]
+
+pub fn parent_of(String) -> String
 
 pub fn parse_generated_source(String, Array[@export.StmtLine]) -> @blocks_code.ParsedHandlerSource
 
@@ -634,7 +666,13 @@ pub fn progress_bar(Int, Double) -> @core.View[Msg]
 
 pub fn project_explorer(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
+pub fn project_has_dir(Model, String) -> Bool
+
 pub fn project_has_file(Model, String) -> Bool
+
+pub fn project_index_of_root(Model, String) -> Int
+
+pub fn project_index_of_tree_rel(Model, String) -> Int?
 
 pub fn project_record_from_source(@project.ProjectSource) -> Result[ProjectRecord, String]
 
@@ -660,6 +698,8 @@ pub fn push_recent(Model, String, String, Bool) -> Model
 
 pub fn push_toast(Model, String, Bool) -> Model
 
+pub fn rel_path_last_segment(String) -> String
+
 pub fn relative_time_bucket(Int, Int) -> (String, Int)
 
 pub fn rename_open_file(Array[OpenProjectFile], String, String) -> Array[OpenProjectFile]
@@ -667,6 +707,8 @@ pub fn rename_open_file(Array[OpenProjectFile], String, String) -> Array[OpenPro
 pub fn replace_open_file_at(Array[OpenProjectFile], Int, OpenProjectFile) -> Array[OpenProjectFile]
 
 pub fn replace_target_body(Model, String, Array[@ir.Stmt]) -> Model
+
+pub fn root_collapse_key(Int, String) -> String
 
 pub fn round_send_button(String, Msg, Bool, Double) -> @core.View[Msg]
 
@@ -800,6 +842,8 @@ pub fn translator(Model) -> @moui_i18n.Translator
 
 pub fn translator_for(UiLanguage) -> @moui_i18n.Translator
 
+pub fn tree_abs_path(Model, String) -> String?
+
 pub fn tree_group_controls() -> String
 
 pub fn tree_group_data() -> String
@@ -819,6 +863,12 @@ pub fn tree_group_variables() -> String
 pub fn tree_group_window() -> String
 
 pub fn tree_node_selected(Model, TreeNodeKind, String) -> Bool
+
+pub fn tree_rel_of_project(Model, ProjectRecord) -> String
+
+pub fn tree_rel_of_project_file(Model, ProjectRecord, String) -> String
+
+pub fn tree_root_of(Model) -> String?
 
 pub fn tree_row(String, String, Int, Bool, Bool, Bool, Msg?, Msg?, Double, trailing? : @core.View[Msg]?, trailing_width? : Double) -> @core.View[Msg]
 
@@ -854,9 +904,13 @@ pub fn visual_workspace(Model, @moui_i18n.Translator, Double, Double) -> @core.V
 
 pub fn watch_rows(Model) -> Array[WatchRow]
 
+pub fn with_md_session(rel~ : String, content~ : String) -> @moui_richtext.MarkdownDocumentSession?
+
 pub fn with_notice(Model, String, Bool) -> Model
 
 pub fn word_at_caret(String, Int) -> (String, Int)
+
+pub fn workspace_display_name(String) -> String
 
 pub fn wrap_text_lines(String, Double) -> Array[String]
 
@@ -1054,6 +1108,17 @@ pub(all) enum GeneratedI18nMessage {
   Plural(one~ : String, other~ : String)
 }
 
+pub(all) enum IconTint {
+  TintCode
+  TintDoc
+  TintConfig
+  TintAsset
+  TintPlain
+} derive(Eq, @debug.Debug)
+pub fn IconTint::equal(Self, Self) -> Bool
+pub fn IconTint::not_equal(Self, Self) -> Bool
+pub fn IconTint::to_repr(Self) -> @debug.Repr
+
 pub(all) struct IrLineSpan {
   path : Array[Int]
   kind : @blocks.BlockKind
@@ -1184,14 +1249,21 @@ pub(all) struct Model {
   tree_collapsed : Array[String]
   projects : Array[ProjectRecord]
   active_project : Int
+  workspace_root : WorkspaceRecord?
   scan_progress : String?
   projects_restore_pending : Int
   restore_active_root : String
   project_tree_collapsed : Array[String]
   selected_project_file : String?
+  explorer_scroll : @core.Point
+  explorer_hover : String
+  explorer_sections_collapsed : Array[String]
+  explorer_menu_open : Bool
   open_project_files : Array[OpenProjectFile]
   open_file_index : Int
   file_create_open : Bool
+  folder_create_open : Bool
+  file_create_dir : String
   file_rename_open : String?
   file_name_draft : String
   plugin_disabled : Array[String]
@@ -1260,12 +1332,13 @@ pub(all) enum Msg {
   ProjectFileLoaded(String, @services.ServiceTaskResult[String])
   EditProjectFile(String)
   ProjectFileCaretMoved(Int, @core.TextRange?)
+  ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
+  ExplorerScrolled(@core.Point)
   SaveProjectFile
   SaveAllFiles
   ProjectFileSaveFinished(String, @services.ServiceTaskResult[Unit])
   SelectFileTab(Int)
   CloseFileTab(Int)
-  FileCreateStart
   FileCreateDraft(String)
   FileCreateCommit
   FileCreateDismiss
@@ -1434,9 +1507,21 @@ pub(all) enum Msg {
   ProjectsStoreWriteRequested
   ProjectsStoreSaved(@services.ServiceTaskResult[Unit])
   SetActiveProject(Int)
-  ToggleProjectPackage(String)
+  ToggleProjectDirAt(Int, String)
   SelectProjectFile(String)
+  SelectProjectFileAt(Int, String)
   RemoveProject(Int)
+  ExplorerHover(String)
+  ToggleExplorerSection(String)
+  ToggleExplorerMenu
+  FileCreateAt(String)
+  FolderCreateAt(String)
+  FolderCreateDraft(String)
+  FolderCreateDismiss
+  FolderCreateCommit
+  FolderCreated(String, @services.ServiceTaskResult[Result[Unit, String]])
+  ExplorerCollapseAll
+  ExplorerRefresh
   ProjectFileDeleteRun(String)
   ProjectFileDeleted(String, @services.ServiceTaskResult[Unit])
   ProjectBuildRun(@build.BuildKind)
@@ -1539,6 +1624,13 @@ pub(all) struct OpenProjectFile {
   draft : String
   caret : Int
   selection : @core.TextRange?
+  md_session : @moui_richtext.MarkdownDocumentSession?
+}
+
+pub(all) struct OutlineSymbol {
+  name : String
+  line : Int
+  depth : Int
 }
 
 pub(all) struct PaneHeadLayout {
@@ -1796,6 +1888,12 @@ pub(all) enum WorkSpace {
 } derive(Eq)
 pub fn WorkSpace::equal(Self, Self) -> Bool
 pub fn WorkSpace::not_equal(Self, Self) -> Bool
+
+pub(all) struct WorkspaceRecord {
+  root : String
+  name : String
+  dirs : Array[@project.ScannedDir]
+}
 
 // Type aliases
 pub using @ai {type AiCard}

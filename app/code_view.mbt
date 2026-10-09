@@ -1125,17 +1125,45 @@ fn project_file_body(
   content_height : Double,
 ) -> @moui.View[Msg] {
   if open.rel.has_suffix(".md") && plugin_active(model, "markdown") {
-    @md.markdown_file_view(
-      content=open.draft,
-      on_input=value => EditProjectFile(value),
-      width=editor_width,
-      height=content_height,
-      font=@text.FontSpec::new(size=13.0),
-      foreground=ide_text(),
-      placeholder_color=ide_text_faint(),
-      background=@graphics.Brush::solid(ide_editor_background()),
-      cursor_color=ide_accent(),
-    )
+    // MoMark session 编辑面（与 momark 编辑面同引擎档位）：块级结构渲染 +
+    // 光标所在 span 的标记就地 reveal + 真编辑事务（Enter 拆段/列表续行/
+    // 表格键）。事务经 ProjectFileMarkdownTransaction 回写会话与草稿。
+    match open.md_session {
+      Some(session) =>
+        @md.markdown_session_file_view(
+          session~,
+          selection=@moui_richtext.MarkdownEditorSelection::{
+            caret: open.caret,
+            selection: open.selection,
+          },
+          on_transaction=transaction => {
+            ProjectFileMarkdownTransaction(transaction)
+          },
+          on_selection_change=(caret, selection) => {
+            ProjectFileCaretMoved(caret, selection)
+          },
+          width=editor_width,
+          height=content_height,
+          font=@text.FontSpec::new(size=13.0),
+          foreground=ide_text(),
+          placeholder_color=ide_text_faint(),
+          background=@graphics.Brush::solid(ide_editor_background()),
+          cursor_color=ide_accent(),
+        )
+      // 无会话（异常路径兜底）：退回一次性格式化渲染,仍可编辑
+      None =>
+        @md.markdown_file_view(
+          content=open.draft,
+          on_input=value => EditProjectFile(value),
+          width=editor_width,
+          height=content_height,
+          font=@text.FontSpec::new(size=13.0),
+          foreground=ide_text(),
+          placeholder_color=ide_text_faint(),
+          background=@graphics.Brush::solid(ide_editor_background()),
+          cursor_color=ide_accent(),
+        )
+    }
   } else {
     @views.row(
       [
@@ -1181,11 +1209,23 @@ fn project_file_body_height(
   content_height : Double,
 ) -> Double {
   if open.rel.has_suffix(".md") && plugin_active(model, "markdown") {
-    @md.markdown_content_height(
-      content=open.draft,
-      width=editor_width,
-      font=@text.FontSpec::new(size=13.0),
-    ).max(content_height)
+    // session 高度口径优先（块级几何,与 session 编辑面同一条测量链）;
+    // 无会话时退回一次性格式化估算。
+    match open.md_session {
+      Some(session) =>
+        session
+        .estimated_content_height(
+          base=@text.FontSpec::new(size=13.0),
+          content_width=editor_width,
+        )
+        .max(content_height)
+      None =>
+        @md.markdown_content_height(
+          content=open.draft,
+          width=editor_width,
+          font=@text.FontSpec::new(size=13.0),
+        ).max(content_height)
+    }
   } else {
     content_height
   }

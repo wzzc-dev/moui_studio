@@ -16,6 +16,8 @@ pub const PREVIEW_STAGE_HEIGHT : Double = 480.0
 
 pub const PREVIEW_STAGE_WIDTH : Double = 640.0
 
+pub fn is_package_path(ScannedModule, String) -> Bool
+
 pub fn normalize_workspace_member(String) -> String?
 
 pub fn parse_module_manifest(String) -> Result[ModuleManifest, String]
@@ -26,7 +28,9 @@ pub fn parse_package_manifest(rel_path~ : String, String) -> Result[PackageManif
 
 pub fn preview_harness_files(String, String) -> Array[(String, String)]
 
-pub fn scan_module(ModuleManifest, Array[(String, String, Bool, Array[String])]) -> Result[ScannedModule, String]
+pub fn scan_dirs(Array[LayoutEntry]) -> Array[ScannedDir]
+
+pub fn scan_module(ModuleManifest, Array[(String, String, Bool, Array[String])], dirs? : Array[ScannedDir]) -> Result[ScannedModule, String]
 
 pub fn scan_package_paths(Array[LayoutEntry]) -> Array[String]
 
@@ -82,6 +86,12 @@ pub(all) struct ProjectSource {
   root : String
   module_manifest : String
   package_sources : Array[(String, String, Bool, Array[String])]
+  dirs : Array[ScannedDir]
+}
+
+pub(all) struct ScannedDir {
+  rel_path : String
+  files : Array[String]
 }
 
 pub(all) struct ScannedModule {
@@ -90,6 +100,7 @@ pub(all) struct ScannedModule {
   web_entry : String
   native_entry : String
   program_packages : Array[String]
+  dirs : Array[ScannedDir]
 }
 
 pub(all) struct ScannedPackage {
@@ -109,6 +120,7 @@ pub(all) struct WorkspaceScan {
   root : String
   loaded : Array[ProjectSource]
   failed : Array[(String, String)]
+  root_dirs : Array[ScannedDir]
 }
 
 // Type aliases
