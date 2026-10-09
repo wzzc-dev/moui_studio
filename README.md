@@ -11,13 +11,18 @@ MoUI Studio 是一个**中英双语的可视化编程环境**：同一份程序�
 ## 五分钟上手（Web，零安装）
 
 ```sh
-node scripts/package-web-app.mjs moui_studio/web_wasm --out artifacts/web/studio
+git clone https://github.com/wzzc-dev/moui_studio.git
+cd moui_studio
+moon build web_wasm --target wasm-gc
 # ES module 不能用 file:// 打开，需要起一个静态服务：
-python3 -m http.server 8766 --directory artifacts/web/studio
+python3 -m http.server 8766 --directory web_wasm
 # 浏览器打开 http://127.0.0.1:8766 即见 IDE
 ```
 
-macOS 原生入口：`moon run moui_studio/macos_skia --target native`
+`web_wasm/index.html` 会自己探测 `_build/` 下的 wasm 产物，debug 与
+`--release` 两种 profile 都能直接用。
+
+macOS 原生入口：`moon run macos_skia --target native`
 
 ### 界面地图（v4 IDE 壳）
 
@@ -124,7 +129,7 @@ macOS 原生入口：`moon run moui_studio/macos_skia --target native`
 ## macOS 入口（真实模型）
 
 ```sh
-moon run moui_studio/macos_skia --target native
+moon run macos_skia --target native
 ```
 
 - 真实模型默认指向阶跃星辰（`https://api.stepfun.com/step_plan/v1`，`step-5-preview`）。
@@ -144,7 +149,6 @@ moon run moui_studio/macos_skia --target native
 ## 包结构
 
 ```text
-moui_studio/
   domain/ir/          程序 IR + 不变量 + 预算（零依赖）
   domain/studio_lang/  双语 DSL：关键字表/词法/解析/打印/指令机解释器
   domain/codec/       .studio.json 编解码 + 版本门
@@ -160,14 +164,17 @@ moui_studio/
 
 ## 最小验证循环
 
+本仓库是独立模块（`wzzc-dev/moui_studio`），包路径不带
+`moui_studio/` 前缀——那是它作为 MoUI 主仓库 submodule 时的写法。
+
 ```sh
 # domain 是多个包（不是单包路径），逐包跑
 for p in ir studio_lang codec blocks proposals; do
-  moon test moui_studio/domain/$p --target native
+  moon test domain/$p --target native
 done
-moon test moui_studio/app --target native
-moon test moui_studio/app --target wasm-gc
-moon run moui_studio/tools/sync_kernel --target native -- --check
+moon test app --target native
+moon test app --target wasm-gc
+moon run tools/sync_kernel --target native -- --check
 ```
 
 ---
@@ -189,7 +196,9 @@ arbitrary code" to "run it". Projects export to **standalone MoUI apps**
 Try it in five minutes (Web, zero install):
 
 ```sh
-moon build moui_studio/web_wasm --target wasm-gc
+git clone https://github.com/wzzc-dev/moui_studio.git
+cd moui_studio
+moon build web_wasm --target wasm-gc
 ```
 
 - Switch language from the top bar (`English` / `中文`); the DSL keywords
@@ -204,7 +213,7 @@ moon build moui_studio/web_wasm --target wasm-gc
 macOS entry (real model, StepFun `step-5-preview`):
 
 ```sh
-moon run moui_studio/macos_skia --target native
+moon run macos_skia --target native
 ```
 
 Credentials live **only** in the gitignored `moui_studio/.config.json`:

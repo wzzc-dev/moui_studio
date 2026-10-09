@@ -12,11 +12,40 @@
   <script type="module">
     import { bootMouiWasmGcApp } from "../.mooncakes/wzzc-dev/moui_web_renderer/runtime.js";
     const status = document.getElementById("status");
-    bootMouiWasmGcApp({
-      wasmUrl: new URL(
-        "../../../_build/wasm-gc/debug/build/wzzc-dev/moui_studio/web_wasm/web_wasm.wasm",
-        import.meta.url,
+    // `moon build web_wasm --target wasm-gc` lays the artifact out under the
+    // owning module's name, so the path differs between the standalone
+    // `moui_studio` checkout and the MoUI monorepo submodule checkout. Probe
+    // the known locations instead of hardcoding one of them.
+    const wasmCandidates = [
+      "debug/build/wzzc-dev/moui_studio/web_wasm/web_wasm.wasm",
+      "debug/build/web_wasm/web_wasm.wasm",
+      "release/build/wzzc-dev/moui_studio/web_wasm/web_wasm.wasm",
+      "release/build/web_wasm/web_wasm.wasm",
+    ].flatMap(profile =>
+      [0, 1, 2, 3, 4].map(up =>
+        `${"../".repeat(up)}_build/wasm-gc/${profile}`,
       ),
+    );
+    const resolveWasmUrl = async () => {
+      const tried = [];
+      for (const candidate of wasmCandidates) {
+        const url = new URL(candidate, import.meta.url);
+        tried.push(url.pathname);
+        try {
+          const response = await fetch(url, { method: "HEAD" });
+          if (response.ok) return url;
+        } catch (_) {
+          // Fall through to the next candidate.
+        }
+      }
+      throw new Error(
+        "找不到 web_wasm.wasm，请先运行 `moon build web_wasm --target wasm-gc`。已尝试：\n" +
+        tried.join("\n"),
+      );
+    };
+    const wasmUrl = await resolveWasmUrl();
+    bootMouiWasmGcApp({
+      wasmUrl,
       canvasHost: "#studio-root",
       onStatus: (text) => { if (status) status.textContent = text; },
     })
