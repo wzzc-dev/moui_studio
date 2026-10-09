@@ -260,6 +260,26 @@ pub fn update_with_services(
       }
       (next, @moui.Effect::batch([effect, read_effect]))
     }
+    // 资源管理器点文件（单树多根）:与 `SelectProjectFile` 同形,**必须带
+    // 读取臂**。
+    //
+    // 回归:这个变体的状态转移在 `update_shell_msgs`（纯转移层）,那一层
+    // 返回 `Some` 就终止了链——服务层的读取 effect 从来没机会跑。症状是
+    // 「点了文件,选中态变了但代码编辑区一直空着」（用户实测反馈）。
+    // 纯状态留在纯层、读盘留在服务层,两边都要有这一条。
+    SelectProjectFileAt(index, rel) => {
+      ignore(index)
+      let (next, effect) = update_pure(model, msg)
+      let read_effect = match tree_abs_path(next, rel) {
+        Some(path) =>
+          services
+          .files()
+          .read_text(path)
+          .effect(map=r => ProjectFileLoaded(rel, r))
+        None => @moui.Effect::none()
+      }
+      (next, @moui.Effect::batch([effect, read_effect]))
+    }
     // 保存工程文件（试用反馈：点开的文件可编辑,保存写回磁盘）。
     SaveProjectFile =>
       match active_project_file(model) {
@@ -1003,28 +1023,44 @@ pub fn update_with_services(
       match result {
         Success(payload) =>
           match decode_project_store(payload) {
-            Ok((active_root, records)) =>
-              if records.is_empty() {
+            Ok(store) =>
+              if store.projects.is_empty() {
                 (model, @moui.Effect::none())
               } else {
                 let welcomed = with_notice(
                   model,
                   text_with(translator(model), "app.project.restored", [
-                    ("n", records.length().to_string()),
+                    ("n", store.projects.length().to_string()),
                   ]),
                   false,
                 )
                 ignore(welcomed)
+                // **有工作区根就整棵重扫**:`walk_root_task` 会走 moon.work
+                // 分支、带回 root_dirs 与全部成员——工作区树因此被完整重建
+                // （中间目录 `examples/` 与根文件都在,嵌套层级也还原）。
+                //
+                // 只逐成员重扫会把工作区根丢掉:成员退化成互不相干的顶层行、
+                // 每行显示完整 module_name（`examples/counter`）,`examples/`
+                // 那层中间目录消失——用户实测反馈的正是这个形态。
+                let roots : Array[String] = if store.workspace_root != "" {
+                  [store.workspace_root]
+                } else {
+                  let out : Array[String] = []
+                  for entry in store.projects {
+                    let (root, _name) = entry
+                    out.push(root)
+                  }
+                  out
+                }
                 // 逐 root 起静默重扫;回执走 ProjectRestoreScanCompleted
                 (
                   {
                     ..welcomed,
-                    projects_restore_pending: records.length(),
-                    restore_active_root: active_root,
+                    projects_restore_pending: roots.length(),
+                    restore_active_root: store.active_root,
                   },
                   @moui.Effect::dispatch(emit => {
-                    for entry in records {
-                      let (root, _name) = entry
+                    for root in roots {
                       let _ = @project.walk_root_task(services.files(), root).start(r => {
                           emit(ProjectRestoreScanCompleted(r))
                         },
@@ -1067,8 +1103,28 @@ pub fn update_with_services(
               )
           }
         }
-        Success(Ok(Workspace(_))) | Success(Err(_)) | Failure(_) | Cancelled =>
-          // 恢复只存单模块 root;其余回执一律静默递减
+        Success(Ok(Workspace(scan))) => {
+          // **工作区整棵重建**:早先这一臂是 `Workspace(_) => 静默递减`,
+          // 于是重启后工作区根永远恢复不出来——成员只剩存储里的平铺列表,
+          // 渲染成互不相干的顶层行（每行完整 module_name）。现在走与导入
+          // 同一条链（`import_workspace_scan` 会建 workspace_root 记录）。
+          let pending = model.projects_restore_pending - 1
+          // 静默:不弹通知、不写预览 harness（`import_workspace_scan` 里
+          // 的 with_notice 用一条静默改写的消息抵掉）
+          let (imported, _effect) = import_workspace_scan(
+            model,
+            scan,
+            silent=true,
+          )
+          let next = { ..imported, projects_restore_pending: pending, }
+          if pending == 0 {
+            (finish_restore_active(next), @moui.Effect::none())
+          } else {
+            (next, @moui.Effect::none())
+          }
+        }
+        Success(Err(_)) | Failure(_) | Cancelled =>
+          // 扫不动的成员丢弃（工程在盘上,重新导入即可）;pending 照常递减
           (
             {
               ..model,

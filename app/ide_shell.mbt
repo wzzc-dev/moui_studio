@@ -481,11 +481,14 @@ pub fn ide_left_panel(
       ),
     ]
   }
+  // 列必须**显式撑满面板高**:`ContainerBox` 会把子节点居中
+  // （`(measured - child)/2`）,不撑满时整列内容垂直居中——空态尤其明显
+  // （标题跑到面板中间,用户实测反馈「应该在最上面」）。
   @views.container(
     @views.column(
       (if search_visible { [head, search, body] } else { [head, body] }) + tail,
       spacing=0.0,
-    ),
+    ).frame(width~, height~),
     background=ide_panel(),
     width~,
     height~,

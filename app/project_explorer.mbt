@@ -319,6 +319,9 @@ fn explorer_tool_icon(
   enabled : Bool,
   on_click : Msg,
 ) -> @moui.View[Msg] {
+  // **透明底**:这是同一类缺陷的第三处。裸 container 无背景 → 回落环境
+  // 面板色,24×20 的深灰圆角块直接画在工具栏上（截图里图标后面那些方块）。
+  // 需要高亮态（溢出菜单展开）时由调用方显式 `.background(...)` 覆盖。
   @views.container(
     @views.center(
       @views.icon(
@@ -329,6 +332,7 @@ fn explorer_tool_icon(
       width=22.0,
       height=18.0,
     ),
+    background=@core.Color::rgba(r=0.0, g=0.0, b=0.0, a=0.0),
     corner_radius=3.0,
     width=24.0,
     height=20.0,
@@ -467,26 +471,150 @@ fn push_workspace_root(
   }
   // 就地输入行挂在根行之下（新建目标 = 工作区根 "")
   push_input_rows(model, rows, WORKSPACE_ROOT_INDEX, "", 1)
-  // 成员目录行:每个成员一棵子树（内容走各自 `scanned.dirs`）
-  for index, project in model.projects {
-    push_member_dir(model, t, rows, index, project, 1)
-  }
-  // 根自己的目录与文件（非成员）:目录在前、文件在后
-  for child in child_dirs_of(record.dirs, "") {
-    push_root_dir_subtree(model, t, rows, record, child.rel_path, 1)
-  }
-  match find_dir(record.dirs, "") {
-    Some(dir) =>
-      for name in sorted_names(dir.files) {
-        push_file_row(model, rows, WORKSPACE_ROOT_INDEX, name, 1)
+  // 逐层铺开:目录（含成员的中间目录）在前、文件在后。
+  //
+  // **不再遍历成员平铺**——那正是「examples 下的模块直接显示、收起 examples
+  // 收不掉里面」的根因:成员路径是多段的,平铺会让中间目录不存在。
+  push_workspace_tier(model, t, rows, record, "", 1)
+}
+
+///|
+/// 递归铺开工作区根下 `parent_rel` 这一层:每个子目录一行,成员在自己那
+/// 一层由成员行渲染,其余目录继续递归;最后是这一层的文件。
+fn push_workspace_tier(
+  model : Model,
+  t : @i18n.Translator,
+  rows : Array[ExplorerRow],
+  record : WorkspaceRecord,
+  parent_rel : String,
+  depth : Int,
+) -> Unit {
+  let tier = workspace_tier(model, record, parent_rel)
+  for name in tier.dirs {
+    let rel = join_rel(parent_rel, name)
+    let key = root_collapse_key(WORKSPACE_ROOT_INDEX, rel)
+    let expanded = !dir_collapsed(model, key)
+    match member_index_at(model, rel) {
+      Some(index) =>
+        // 这一层正好是一个成员:渲染成员行（元信息给入口概要 + 成员内部）
+        push_member_dir(model, t, rows, index, rel, name, depth)
+      None => {
+        rows.push(DirRow(WORKSPACE_ROOT_INDEX, rel, name, "", depth, expanded))
+        if expanded {
+          push_workspace_tier(model, t, rows, record, rel, depth + 1)
+        }
       }
-    None => ()
+    }
+  }
+  for name in tier.files {
+    push_file_row(
+      model,
+      rows,
+      WORKSPACE_ROOT_INDEX,
+      join_rel(parent_rel, name),
+      depth,
+    )
   }
 }
 
 ///|
 /// 工作区根在折叠键空间里的下标（与成员下标不冲突）。
 pub const WORKSPACE_ROOT_INDEX : Int = -1
+
+///|
+/// 工作区根下的**一层**子项:目录（可能含成员）与文件,各自排好序。
+///
+/// 为什么要按层拼装而不是「遍历成员平铺」:成员路径可以是多段的
+/// （`examples/terminal`、`benchmarks/full_cycle`）。直接遍历成员会让
+/// `examples/terminal` 变成顶层的一行,而 `examples` 这个**中间目录根本不存在**
+/// ——用户看到的正是「examples 下的模块被平铺出来,收起 examples 收不掉里面」
+/// （实测反馈）。正确的树必须先有 `examples` 节点,成员挂在它之下。
+priv struct ExplorerTier {
+  /// 子目录名（已排序）
+  dirs : Array[String]
+  /// 该层普通文件名（已排序）
+  files : Array[String]
+}
+
+///|
+/// 算出工作区根下 `parent_rel` 这一层的子项:目录 = 扫描到的真实目录 ∪
+/// 成员路径在这一层的前缀段;文件 = 该层的普通文件。
+fn workspace_tier(
+  model : Model,
+  record : WorkspaceRecord,
+  parent_rel : String,
+) -> ExplorerTier {
+  let dir_names : Array[String] = []
+  // 1) 扫描到的真实目录（非成员部分已经在扫描层排除了成员内部）
+  for child in child_dirs_of(record.dirs, parent_rel) {
+    dir_names.push(rel_path_last_segment(child.rel_path))
+  }
+  // 2) 成员路径在这一层的前缀段——中间目录也要补出来
+  for project in model.projects {
+    let member_rel = tree_rel_of_project(model, project)
+    if member_rel == "" {
+      continue
+    }
+    let segment = tier_segment_below(member_rel, parent_rel)
+    if segment != "" && !dir_names.contains(segment) {
+      dir_names.push(segment)
+    }
+  }
+  let files : Array[String] = []
+  match find_dir(record.dirs, parent_rel) {
+    Some(dir) =>
+      for name in dir.files {
+        files.push(name)
+      }
+    None => ()
+  }
+  ExplorerTier::{ dirs: sorted_names(dir_names), files: sorted_names(files), }
+}
+
+///|
+/// 把 `rel` 相对 `parent` 的**第一段**取出来（不在 parent 之下则空串）。
+///
+/// `tier_segment_below("examples/terminal", "examples") = "terminal"`;
+/// `tier_segment_below("examples/terminal", "") = "examples"`。
+fn tier_segment_below(rel : String, parent : String) -> String {
+  let rest = if parent == "" {
+    rel
+  } else if rel == parent {
+    // 成员**就是**这一层:它自己由成员行渲染,不再补一个同名中间目录
+    return ""
+  } else if rel.has_prefix(parent + "/") {
+    rel[parent.length() + 1:].to_owned()
+  } else {
+    return ""
+  }
+  head_segment(rest)
+}
+
+///|
+/// 取路径的第一段（`a/b/c` → `a`;无斜杠 → 整串）。
+fn head_segment(rel : String) -> String {
+  let mut i = 0
+  for c in rel {
+    if c == '/' {
+      return rel[0:i].to_owned()
+    }
+    i = i + 1
+  }
+  rel
+}
+
+///|
+/// 树相对路径是否**正好**是一个成员的根（是则这一行由成员行渲染）。
+fn member_index_at(model : Model, rel : String) -> Int? {
+  let mut index = 0
+  for project in model.projects {
+    if tree_rel_of_project(model, project) == rel {
+      return Some(index)
+    }
+    index = index + 1
+  }
+  None
+}
 
 ///|
 /// 一个成员模块在树上的目录行（工作区根的子目录）。
@@ -498,19 +626,18 @@ fn push_member_dir(
   t : @i18n.Translator,
   rows : Array[ExplorerRow],
   index : Int,
-  project : ProjectRecord,
+  member_rel : String,
+  label : String,
   depth : Int,
 ) -> Unit {
-  let member_rel = tree_rel_of_project(model, project)
-  let label = if member_rel == "" {
-    project.module_name
-  } else {
-    rel_path_last_segment(member_rel)
-  }
+  let project = model.projects[index]
   let meta = project_entry_meta(project)
-  let key = root_collapse_key(index, "")
+  // 折叠键用**成员下标 + 成员在树上的 rel**:成员路径可能是多段的
+  // （`examples/terminal`）,键必须唯一到"这一层的那一个目录",否则
+  // `examples` 与 `examples/terminal` 会互相折叠。
+  let key = root_collapse_key(index, member_rel)
   let expanded = !dir_collapsed(model, key)
-  rows.push(DirRow(index, "", label, meta, depth, expanded))
+  rows.push(DirRow(index, member_rel, label, meta, depth, expanded))
   if !expanded {
     return
   }
@@ -575,44 +702,6 @@ fn push_member_dir_subtree(
           rows,
           index,
           join_rel(member_rel, join_rel(rel, name)),
-          depth + 1,
-        )
-      }
-    None => ()
-  }
-}
-
-///|
-/// 工作区根下的普通目录子树（不属于任何成员）。
-fn push_root_dir_subtree(
-  model : Model,
-  t : @i18n.Translator,
-  rows : Array[ExplorerRow],
-  record : WorkspaceRecord,
-  rel : String,
-  depth : Int,
-) -> Unit {
-  let dir = find_dir(record.dirs, rel)
-  let label = rel_path_last_segment(rel)
-  let expanded = !dir_collapsed(
-    model,
-    root_collapse_key(WORKSPACE_ROOT_INDEX, rel),
-  )
-  rows.push(DirRow(WORKSPACE_ROOT_INDEX, rel, label, "", depth, expanded))
-  if !expanded {
-    return
-  }
-  for child in child_dirs_of(record.dirs, rel) {
-    push_root_dir_subtree(model, t, rows, record, child.rel_path, depth + 1)
-  }
-  match dir {
-    Some(entry) =>
-      for name in sorted_names(entry.files) {
-        push_file_row(
-          model,
-          rows,
-          WORKSPACE_ROOT_INDEX,
-          join_rel(rel, name),
           depth + 1,
         )
       }
@@ -1298,16 +1387,27 @@ fn explorer_guides(depth : Int) -> @moui.View[Msg] {
   let lines : Array[@moui.View[Msg]] = []
   let mut level = 0
   while level < explorer_guide_line_count(depth) {
+    // 导轨 = **一格里一条 1pt 竖线**。两个坑都踩过了,这里的写法是被实测
+    // 逼出来的唯一正确形态:
+    //
+    // 1. 给 divider 套**裸 container** → 裸 container 无背景、回落环境面板
+    //    色,每格背后多出 12×16 的深灰圆角块（用户截图里那排黑方块）。
+    // 2. 直接给 divider 加 `.frame(width=12, height=16)` → 竖放 divider
+    //    **填满可用宽**（12pt),整格变成一条实心竖条,比 (1) 更糟
+    //    （实测:1pt 线数从 N 变 0,12×16 实心块变 N）。
+    //
+    // 正解:`center` 给出 12×16 的格子 + **透明背景**,divider 保 1pt 厚
+    // 并居中。格子负责占位,线负责视觉,两者都不画多余的底。
     lines.push(
-      @views.container(
+      @views.center(
         @views.divider(
           axis=@core.Axis::Vertical,
           thickness=1.0,
           color=ide_border_soft(),
         ),
         width=EXPLORER_INDENT_STEP,
-        height=(TREE_ROW_HEIGHT - 8.0).max(1.0),
-        padding=0.0,
+        height=TREE_ROW_HEIGHT - 8.0,
+        background=@core.Color::rgba(r=0.0, g=0.0, b=0.0, a=0.0),
       ),
     )
     level = level + 1
@@ -1860,23 +1960,23 @@ fn explorer_tree_row(
     explorer_guides(depth),
     match twisty {
       Some(message) =>
-        @views.container(
-          @views.center(
-            @views.icon(
-              if expanded {
-                ChevronDown
-              } else {
-                ChevronRight
-              },
-              size=11.0,
-              color=ide_text_muted(),
-            ),
-            width=14.0,
-            height=16.0,
+        // **不能用裸 `container`**:裸 container 没有背景,会回落环境面板色
+        // ——在编辑器底色上读成一个 14×16 的黑方块（截图里箭头位置那一块）。
+        // 这里只需要一个可点热区 + 一个图标,所以用**透明背景**的 `center`:
+        // 几何与原来逐字相同,但不画任何底。
+        @views.center(
+          @views.icon(
+            if expanded {
+              ChevronDown
+            } else {
+              ChevronRight
+            },
+            size=11.0,
+            color=ide_text_muted(),
           ),
           width=14.0,
           height=16.0,
-          padding=0.0,
+          background=@core.Color::rgba(r=0.0, g=0.0, b=0.0, a=0.0),
         ).on_tap(message)
       // 叶子占位:**透明空文本**——裸 container 会回落环境面板色,
       // 在选中行(ide_selection 蓝)上读成黑方块(实测缺陷)。

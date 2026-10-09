@@ -931,11 +931,13 @@ test "工程记录存储编码往返" {
   )
   let encoded = @app.encode_project_store(with_second)
   match @app.decode_project_store(encoded) {
-    Ok((active_root, records)) => {
-      assert_eq(active_root, "/root_b")
-      assert_eq(records.length(), 2)
+    Ok(store) => {
+      assert_eq(store.active_root, "/root_b")
+      assert_eq(store.projects.length(), 2)
       // upsert 头插:后导入的在前
-      assert_eq(records[0], ("/root_b", "examples/counter"))
+      assert_eq(store.projects[0], ("/root_b", "examples/counter"))
+      // 单模块导入没有工作区根
+      assert_eq(store.workspace_root, "")
     }
     Err(msg) => fail("编码产物应可解码:\{msg}")
   }
@@ -1367,4 +1369,134 @@ test "explorer 文件类型:图标与颜色同源" {
     assert_eq(@app.file_icon_for_test(name), icon, msg=name)
     assert_eq(@app.file_tint_for_test(name), tint, msg=name)
   }
+}
+
+///|
+/// **用户反馈回归**:工作区导入后重启,`examples/` 这样的中间目录必须
+/// 还在,成员必须嵌在它下面——不能退化成「每个成员一行完整 module_name
+/// 的顶层行」。
+///
+/// 根因有两处,这条测试一起锁住:
+/// ① `projects.json` 早先**不存工作区根**,重启后无从重建;
+/// ② `ProjectRestoreScanCompleted` 的 `Workspace(_)` 臂是**静默递减**,
+///    即使扫出来了也被丢掉。
+///
+/// 判据:往返编解码后 `workspace_root` 仍在;且用它重建的树里
+/// `examples` 是可折叠的中间目录行。
+test "工程记录存储:工作区根往返保留" {
+  let services = @services.AppServices::new()
+  let nested = {
+    ..counter_source(),
+    root: "/ws/examples/terminal",
+    module_manifest: (
+      #|name = "examples/terminal"
+      #|version = "0.1.0"
+      #|preferred_target = "native"
+    ),
+  }
+  let scan : @project.WorkspaceScan = {
+    root: "/ws",
+    loaded: [nested],
+    failed: [],
+    root_dirs: [@project.ScannedDir::{ rel_path: "", files: ["gradlew"], }],
+  }
+  let imported = @app.update_with_services(
+      @app.initial_model(),
+      ProjectScanCompleted(Success(Ok(Workspace(scan)))),
+      services,
+    ).0
+  // ① 往返后工作区根仍在
+  let encoded = @app.encode_project_store(imported)
+  let store = match @app.decode_project_store(encoded) {
+    Ok(value) => value
+    Err(msg) => fail("编码产物应可解码:\{msg}")
+  }
+  assert_eq(
+    store.workspace_root,
+    "/ws",
+    msg="工作区根必须进存储,否则重启后无从重建",
+  )
+  assert_eq(store.projects.length(), 1)
+  // ② 单模块导入不该写这个键（旧行为零变化）
+  let single = @app.update_with_services(
+      @app.initial_model(),
+      ProjectScanCompleted(Success(Ok(Single(counter_source())))),
+      services,
+    ).0
+  let single_store = match
+    @app.decode_project_store(@app.encode_project_store(single)) {
+    Ok(value) => value
+    Err(msg) => fail("单模块编码产物应可解码:\{msg}")
+  }
+  assert_eq(
+    single_store.workspace_root,
+    "",
+    msg="单模块导入不应写工作区根",
+  )
+  // ③ 旧文件（没有 workspace_root 键）仍可读
+  let legacy =
+    #|{"format":"moui.studio.projects","version":1,"active_root":"/root","projects":[{"root":"/root","module_name":"examples/counter"}]}
+  let legacy_store = match @app.decode_project_store(legacy) {
+    Ok(value) => value
+    Err(msg) => fail("旧文件应可读(字段可缺省):\{msg}")
+  }
+  assert_eq(legacy_store.workspace_root, "")
+  assert_eq(legacy_store.projects.length(), 1)
+}
+
+///|
+/// 启动恢复**必须安静**:重建工作区树,但不弹通知、不标脏。
+///
+/// 判据是「谁发起的」而不是「结果是什么」——用户没做任何操作,boot 每次都
+/// 报一次「已导入 N 个模块」是噪音;主动导入时那条通知才是必要反馈。
+test "工程记录恢复:重建工作区树且不弹通知" {
+  let services = @services.AppServices::new()
+  let nested = {
+    ..counter_source(),
+    root: "/ws/examples/terminal",
+    module_manifest: (
+      #|name = "examples/terminal"
+      #|version = "0.1.0"
+      #|preferred_target = "native"
+    ),
+  }
+  let scan : @project.WorkspaceScan = {
+    root: "/ws",
+    loaded: [nested],
+    failed: [],
+    root_dirs: [@project.ScannedDir::{ rel_path: "", files: ["gradlew"], }],
+  }
+  let base = { ..@app.initial_model(), projects_restore_pending: 1, }
+  let (restored, _) = @app.update_with_services(
+    base,
+    ProjectRestoreScanCompleted(Success(Ok(Workspace(scan)))),
+    services,
+  )
+  // ① 工作区根重建（这是「examples 可折叠」的前提）
+  assert_true(
+    restored.workspace_root is Some(_),
+    msg="恢复后应有工作区根",
+  )
+  assert_eq(restored.projects.length(), 1)
+  // ② 不弹通知
+  assert_eq(restored.toasts.length(), 0, msg="启动恢复不应弹通知")
+  // ③ 树的形态:examples 是可折叠中间目录,成员嵌在它下面
+  let rows = @app.explorer_rows_for_test(restored)
+  let mut has_examples = false
+  let mut has_member = false
+  for r in rows {
+    if r == "dir--1:examples" {
+      has_examples = true
+    }
+    if r.contains(":examples/terminal") {
+      has_member = true
+    }
+  }
+  assert_true(
+    has_examples,
+    msg="恢复后 examples 应是可折叠中间目录",
+  )
+  assert_true(has_member, msg="恢复后成员应嵌在 examples 之下")
+  // ④ pending 归零
+  assert_eq(restored.projects_restore_pending, 0)
 }

@@ -227,9 +227,14 @@ pub fn import_single_source(
 /// 工作区导入(G2):逐成员建记录并 upsert(最后一个成功成员成为 active);
 /// 失败成员与坏成员全部进汇总通知——绝不静默。无预览 harness
 /// (workspace 成员按单模块重新导入即得,见计划 Non-goals)。
+///
+/// `silent` = 启动恢复路径:同样的树照建,但**不弹通知**。boot 每次都
+/// 报一次「已导入 N 个模块」是噪音(用户没做任何操作),而用户主动导入时
+/// 那条通知是必要的反馈。判据是「谁发起的」,不是「结果是什么」。
 pub fn import_workspace_scan(
   model : Model,
   scan : @project.WorkspaceScan,
+  silent? : Bool = false,
 ) -> (Model, @moui.Effect[Msg]) {
   let t = translator(model)
   let mut projects = model.projects
@@ -252,14 +257,20 @@ pub fn import_workspace_scan(
     skipped.push("\{path}:\{reason}")
   }
   if imported == 0 {
-    // 全部失败:用第一条原因说话(逐条列 54 行没人读,修复指引在原因里)
+    // 全部失败:用第一条原因说话(逐条列 54 行没人读,修复指引在原因里)。
+    // 启动恢复路径静默——用户没发起导入,报「导入失败」只会困惑。
     let reason = if skipped.length() > 0 { skipped[0] } else { "无成员" }
+    let failed = { ..model, scan_progress: None, }
     (
-      with_notice(
-        { ..model, scan_progress: None, },
-        text_with(t, "app.project.import_failed", [("reason", reason)]),
-        true,
-      ),
+      if silent {
+        failed
+      } else {
+        with_notice(
+          failed,
+          text_with(t, "app.project.import_failed", [("reason", reason)]),
+          true,
+        )
+      },
       @moui.Effect::none(),
     )
   } else {
@@ -272,24 +283,29 @@ pub fn import_workspace_scan(
         ("reason", skipped[0]),
       ])
     }
-    let notified = with_notice(
-      {
-        ..model,
-        projects,
-        active_project: last_index,
-        // 工作区根记录:资源管理器的单根行。没有它,根上的
-        // moon.work/README.md/gradlew 在树里没有出现的位置。
-        workspace_root: Some(WorkspaceRecord::{
-          root: scan.root,
-          name: workspace_display_name(scan.root),
-          dirs: scan.root_dirs,
-        }),
-        scan_progress: None,
-      },
-      message,
-      false,
-    )
-    mark_projects_dirty(notified)
+    let assembled = {
+      ..model,
+      projects,
+      active_project: last_index,
+      // 工作区根记录:资源管理器的单根行。没有它,根上的
+      // moon.work/README.md/gradlew 在树里没有出现的位置。
+      workspace_root: Some(WorkspaceRecord::{
+        root: scan.root,
+        name: workspace_display_name(scan.root),
+        dirs: scan.root_dirs,
+      }),
+      scan_progress: None,
+    }
+    // 启动恢复不弹通知（用户没发起导入）;主动导入才说话
+    let notified = if silent {
+      assembled
+    } else {
+      with_notice(assembled, message, false)
+    }
+    // 恢复路径不标脏:没改任何东西,不该触发一次存储写回
+    if !silent {
+      mark_projects_dirty(notified)
+    }
     (notified, @moui.Effect::none())
   }
 }
@@ -298,6 +314,12 @@ pub fn import_workspace_scan(
 /// 工程工作台存储格式（G2 W3）：`.studio/projects.json` 的
 /// `moui.studio.projects v1`。只存 {root, module_name} + active_root——
 /// 不落扫描树（数千目录的 JSON 又大又立刻陈旧），启动重扫拿新鲜树。
+///
+/// **另存 `workspace_root`**（可缺省）:不存它,重启后工作区根就丢了——
+/// 成员会被当成互不相干的工程**平铺成顶层行**,每行显示完整 module_name
+/// （`examples/counter`）,而 `examples/` 那层中间目录消失（用户实测反馈）。
+/// 字段可缺省 = v1 旧文件仍能读（缺省即「没有工作区」,退回逐工程根）。
+///
 /// 未知版本/格式拒绝不迁移（与 ai-sessions 同纪律）。
 const PROJECTS_STORE_FORMAT : String = "moui.studio.projects"
 
@@ -305,7 +327,7 @@ const PROJECTS_STORE_FORMAT : String = "moui.studio.projects"
 const PROJECTS_STORE_VERSION : Int = 1
 
 ///|
-/// 编码当前工程列表（root/module_name 摘要 + active_root）。
+/// 编码当前工程列表（root/module_name 摘要 + active_root + 工作区根）。
 pub fn encode_project_store(model : Model) -> String {
   let items : Array[Json] = []
   for project in model.projects {
@@ -325,15 +347,31 @@ pub fn encode_project_store(model : Model) -> String {
   root["version"] = Json::number(PROJECTS_STORE_VERSION.to_double())
   root["active_root"] = Json::string(active_root)
   root["projects"] = Json::array(items)
+  // 工作区根:有则存,没有就**不写这个键**（旧读取方零影响）
+  match model.workspace_root {
+    Some(record) => root["workspace_root"] = Json::string(record.root)
+    None => ()
+  }
   Json::object(root).stringify()
 }
 
 ///|
-/// 解码存储文本 → (active_root, [(root, module_name)])。任何结构不符都
-/// 结构化报错，调用方决定是否说话（boot 首跑文件不存在 = Failure 静默）。
+/// 解码存储文本 → 存储载荷（active_root + 工程列表 + 工作区根）。
+///
+/// 任何结构不符都结构化报错，调用方决定是否说话（boot 首跑文件不存在 =
+/// Failure 静默）。
+pub(all) struct ProjectStorePayload {
+  active_root : String
+  /// (root, module_name)
+  projects : Array[(String, String)]
+  /// 工作区根（无则空串 = 逐工程根渲染）
+  workspace_root : String
+}
+
+///|
 pub fn decode_project_store(
   text : String,
-) -> Result[(String, Array[(String, String)]), String] {
+) -> Result[ProjectStorePayload, String] {
   let payload = @json.parse(text) catch {
     _ => return Err("projects.json:不是合法 JSON")
   }
@@ -380,7 +418,12 @@ pub fn decode_project_store(
       _ => return Err("projects.json:成员不是对象")
     }
   }
-  Ok((active_root, records))
+  // 工作区根:可缺省（旧文件 / 单模块导入都没有这个键）
+  let workspace_root = match fields.get("workspace_root") {
+    Some(String(value)) => value
+    _ => ""
+  }
+  Ok(ProjectStorePayload::{ active_root, projects: records, workspace_root, })
 }
 
 ///|

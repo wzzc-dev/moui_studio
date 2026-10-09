@@ -313,10 +313,10 @@ test "explorer 时间线取代底部最近修改条" {
 /// 工程列表 + 下方单树的二段结构）。
 test "explorer 单树多根:两棵工程根同屏" {
   let services = @services.AppServices::new()
-  let source_a = { ..explorer_source(), root: "/root_a", }
+  let source_a = { ..explorer_source(), root: "/workspace/mod_a", }
   let source_b = {
     ..explorer_source(),
-    root: "/root_b",
+    root: "/workspace/mod_b",
     module_manifest: (
       #|name = "examples/other"
       #|version = "0.1.0"
@@ -335,22 +335,20 @@ test "explorer 单树多根:两棵工程根同屏" {
       services,
     ).0
   let opened = explorer_apply(imported, SetLeftView(LeftProject))
-  let texts = shell_texts(explorer_draw(opened, 1280.0, 800.0))
-  let mut seen_counter = false
-  let mut seen_other = false
-  for run in texts {
-    if run.text.contains("examples/counter") {
-      seen_counter = true
+  // 两个成员同处工作区根之下（单树多根:一棵根,成员是它的子行）
+  let rows = explorer_rows_for_test(opened)
+  let mut seen_a = false
+  let mut seen_b = false
+  for r in rows {
+    if r.contains(":mod_a") {
+      seen_a = true
     }
-    if run.text.contains("examples/other") {
-      seen_other = true
+    if r.contains(":mod_b") {
+      seen_b = true
     }
   }
-  assert_true(seen_counter, msg="第一棵工程根应可见")
-  assert_true(
-    seen_other,
-    msg="第二棵工程根应同屏可见（单树多根）",
-  )
+  assert_true(seen_a, msg="成员 mod_a 应可见")
+  assert_true(seen_b, msg="成员 mod_b 应同屏可见（单树多根）")
 }
 
 ///|
@@ -883,12 +881,223 @@ test "explorer 工作区:根目录自己的文件可见" {
   }
   assert_true(docs_row, msg="根下的非成员目录应有行")
   assert_true(guide_row, msg="非成员目录里的文件应可见")
-  // 成员目录是根的子行,不是另一棵顶层树
+  // 成员目录是根的子行,不是另一棵顶层树;键带成员在树上的 rel
   let mut member_row = false
   for r in rows {
-    if r == "dir-0:" {
+    if r == "dir-0:mod_a" {
       member_row = true
     }
   }
   assert_true(member_row, msg="成员应是工作区根的子目录行")
+}
+
+///|
+/// **用户反馈回归**:树行左侧不得出现不透明的实心方块。
+///
+/// 两个坑都踩过,这条测试把结论钉死:
+/// 1. 给 divider 套**裸 container** → 裸 container 无背景、回落环境面板色,
+///    每格背后多出 12×16 的深灰圆角块（截图里那排黑方块）。
+/// 2. 直接给 divider 加 `.frame(width=12, height=16)` → 竖放 divider
+///    **填满可用宽**,整格变成实心竖条（比 1 更糟）。
+///
+/// 正解:`center(width=12, height=16, 透明背景)` + 内部 1pt divider。
+/// 这条断言「导轨格里没有不透明填充」+「1pt 细线确实还在」两件事。
+test "explorer 缩进导轨:透明占位格 + 1pt 细线" {
+  let services = @services.AppServices::new()
+  let imported = update_with_services(
+      initial_model(),
+      ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
+      services,
+    ).0
+  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let commands = explorer_draw(opened, 1280.0, 800.0)
+  // 导轨格范围（x ∈ [50, 90)）内不得有不透明填充
+  let mut opaque_blocks = 0
+  for command in commands {
+    match command {
+      @core.FillRoundedRectBrush(rounded, brush) =>
+        if rounded.rect.origin.x >= 50.0 && rounded.rect.origin.x < 90.0 {
+          match brush {
+            @core.Brush::Solid(color) =>
+              if color.a > 0.5 {
+                opaque_blocks = opaque_blocks + 1
+              }
+            _ => ()
+          }
+        }
+      _ => ()
+    }
+  }
+  assert_eq(
+    opaque_blocks,
+    0,
+    msg="导轨格里不应有不透明实心块（裸 container 回落底色 / divider 被拉伸都会造成它）",
+  )
+  // 1pt 细线必须还在（否则"没有方块"是靠在导轨没画出来）
+  let mut guide_lines = 0
+  for command in commands {
+    match command {
+      @core.FillRect(rect, _) =>
+        if rect.size.width == 1.0 &&
+          rect.size.height > 10.0 &&
+          rect.origin.x < 100.0 {
+          guide_lines = guide_lines + 1
+        }
+      _ => ()
+    }
+  }
+  assert_true(guide_lines > 0, msg="缩进导轨的 1pt 细线应存在")
+  // 行的箭头位置同样不能是裸 container（同一个缺陷类）
+  let mut opaque_twisty = 0
+  for command in commands {
+    match command {
+      @core.FillRoundedRectBrush(rounded, brush) =>
+        if rounded.rect.origin.x >= 60.0 &&
+          rounded.rect.origin.x <= 70.0 &&
+          rounded.rect.size.width >= 13.0 {
+          match brush {
+            @core.Brush::Solid(color) =>
+              if color.a > 0.5 {
+                opaque_twisty = opaque_twisty + 1
+              }
+            _ => ()
+          }
+        }
+      _ => ()
+    }
+  }
+  assert_eq(opaque_twisty, 0, msg="箭头热区不应有实心底块")
+  // 工具栏图标同样不能有裸 container 的回落底（同一缺陷类的第三处）
+  let mut opaque_toolbar = 0
+  for command in commands {
+    match command {
+      @core.FillRoundedRectBrush(rounded, brush) =>
+        if rounded.rect.size.width == 22.0 && rounded.rect.size.height == 18.0 {
+          match brush {
+            @core.Brush::Solid(color) =>
+              if color.a > 0.5 {
+                opaque_toolbar = opaque_toolbar + 1
+              }
+            _ => ()
+          }
+        }
+      _ => ()
+    }
+  }
+  assert_eq(
+    opaque_toolbar,
+    0,
+    msg="工具栏图标的内格不应有实心底块",
+  )
+}
+
+///|
+/// **用户反馈回归**:`examples/` 这样的中间目录必须是**可折叠的节点**,
+/// 不能把里面的成员平铺到顶层。
+///
+/// 根因:成员路径可以是多段的（`examples/terminal`、`benchmarks/full_cycle`）。
+/// 早先按 `model.projects` 遍历、一个成员一行,于是 `examples/terminal`
+/// 变成顶层一行,而 `examples` 这个中间目录**根本不存在**——用户看到的是
+/// 「examples 下的模块直接显示,收起 examples 收不掉里面」。
+///
+/// 这条断言三件事:① `examples` 有目录行;② 折叠它之后,归属
+/// `examples/*` 成员的**所有行都消失**;③ 折叠前它们确实在（否则判据本身
+/// 失效,测试会变成空断言）。
+test "explorer 嵌套成员:中间目录可折叠" {
+  let services = @services.AppServices::new()
+  // 两个成员:一个在 examples/ 下,一个在顶层
+  let nested = {
+    ..explorer_source(),
+    root: "/ws/examples/terminal",
+    module_manifest: (
+      #|name = "examples/terminal"
+      #|version = "0.1.0"
+      #|preferred_target = "native"
+    ),
+  }
+  let top = { ..explorer_source(), root: "/ws/tools", }
+  let scan : @project.WorkspaceScan = {
+    root: "/ws",
+    loaded: [nested, top],
+    failed: [],
+    root_dirs: [],
+  }
+  let imported = update_with_services(
+      initial_model(),
+      ProjectScanCompleted(Success(Ok(Workspace(scan)))),
+      services,
+    ).0
+  let rows = explorer_rows_for_test(imported)
+  // ① examples 中间目录行存在
+  let mut has_examples = false
+  for r in rows {
+    if r == "dir--1:examples" {
+      has_examples = true
+    }
+  }
+  assert_true(
+    has_examples,
+    msg="examples 应是可折叠的中间目录行（不能把成员平铺到顶层）",
+  )
+  // 顶层成员（tools）仍是工作区根的直接子行
+  let mut has_tools = false
+  for r in rows {
+    if r == "dir-0:tools" || r == "dir-1:tools" {
+      has_tools = true
+    }
+  }
+  assert_true(has_tools, msg="顶层成员应挂在工作区根之下")
+  // examples/terminal 应在 examples 之下,不是顶层
+  let mut nested_key = ""
+  for r in rows {
+    if r.contains(":examples/terminal") {
+      nested_key = r
+    }
+  }
+  assert_true(
+    nested_key != "",
+    msg="examples/terminal 成员行应存在（且在 examples 之下）",
+  )
+  // ② 折叠 examples → 该成员所有行消失
+  let collapsed = explorer_updates(
+    imported,
+    ToggleProjectDirAt(WORKSPACE_ROOT_INDEX, "examples"),
+  )
+  let after = explorer_rows_for_test(collapsed)
+  let mut nested_rows_after = 0
+  for r in after {
+    if r.contains("examples/terminal") {
+      nested_rows_after = nested_rows_after + 1
+    }
+  }
+  assert_eq(
+    nested_rows_after,
+    0,
+    msg="折叠 examples 后,它下面的成员行应全部收起",
+  )
+  // ③ 折叠前确实有（判据有效）
+  let mut nested_rows_before = 0
+  for r in rows {
+    if r.contains("examples/terminal") {
+      nested_rows_before = nested_rows_before + 1
+    }
+  }
+  assert_true(
+    nested_rows_before > 0,
+    msg="折叠前 examples/terminal 的行应存在（否则上一条断言是空的）",
+  )
+  // 顶层成员不受影响
+  let mut tools_after = false
+  for r in after {
+    if r.contains("tools") {
+      tools_after = true
+    }
+  }
+  assert_true(tools_after, msg="折叠 examples 不应影响顶层成员")
+}
+
+///|
+/// 依次派发多条消息（纯转移）。
+fn explorer_updates(model : Model, msg : Msg) -> Model {
+  explorer_apply(model, msg)
 }
