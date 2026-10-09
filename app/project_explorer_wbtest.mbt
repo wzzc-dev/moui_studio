@@ -445,25 +445,44 @@ test "explorer 就地新建输入行跟随目标目录" {
   // 在 app/ 下新建:输入行应排在 app 目录行之后、app 的文件之前
   let creating = explorer_apply(opened, FileCreateAt("app"))
   let runs = shell_texts(explorer_draw(creating, 1280.0, 800.0))
+  // 行序判据用「模块根行 → app 目录行 → 输入行 → app 的第一个文件」这条
+  // 结构链,不要用绝对 y 阈值:面板内边距/搜索框一变,阈值就失效,
+  // 而真正要锁住的是输入行插在目录行与其文件之间。
+  let mut module_y = -1.0
   let mut app_y = -1.0
   let mut input_y = -1.0
+  let mut first_file_y = -1.0
   for run in runs {
-    if run.text == "app" && run.frame.origin.y > 250.0 {
+    // 模块名在底部状态栏也会出现一次,取**最上面**的那次才是树上的根行。
+    if run.text.contains("examples/counter") &&
+      (module_y < 0.0 || run.frame.origin.y < module_y) {
+      module_y = run.frame.origin.y
+    }
+  }
+  for run in runs {
+    if run.text == "app" && run.frame.origin.y > module_y {
       app_y = run.frame.origin.y
     }
     if run.text == "name" {
       // text_field 的 placeholder
       input_y = run.frame.origin.y
     }
+    if run.text == "app.mbt" {
+      first_file_y = run.frame.origin.y
+    }
   }
-  assert_true(app_y > 0.0, msg="app 目录行应可见")
+  assert_true(app_y > 0.0, msg="app 目录行应可见（模块根行 y=\{module_y}）")
   assert_true(
     input_y > 0.0,
     msg="就地输入行应可见（placeholder 未渲染说明输入行没挂上）",
   )
   assert_true(
-    input_y > app_y,
+    app_y < input_y,
     msg="输入行应在 app 目录行之下（app y=\{app_y} vs input y=\{input_y}）",
+  )
+  assert_true(
+    first_file_y < 0.0 || input_y < first_file_y,
+    msg="输入行应在 app 的文件之前（input y=\{input_y} vs app.mbt y=\{first_file_y}）",
   )
 }
 
