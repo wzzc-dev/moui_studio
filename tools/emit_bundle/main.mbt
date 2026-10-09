@@ -6,7 +6,7 @@
 /// 的 web_index_html 目录契约），本工具不拷贝任何仓库文件。
 ///
 /// 用法：
-///   moon run examples/moui_studio/tools/emit_bundle --target native -- \
+///   moon run moui_studio/tools/emit_bundle --target native -- \
 ///     <项目JSON路径> <应用名> <目标目录>
 
 ///|

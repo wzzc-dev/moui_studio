@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "examples/moui_studio/services/build"
+package "wzzc-dev/moui_studio/services/build"
 
 import {
-  "examples/moui_studio/services/export",
+  "wzzc-dev/moui_studio/services/export",
   "moonbitlang/core/debug",
 }
 

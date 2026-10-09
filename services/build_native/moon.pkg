@@ -1,9 +1,9 @@
 import {
   "moonbitlang/async",
   "moonbitlang/async/process",
-  "examples/moui_studio/services/export",
-  "examples/moui_studio/services/build",
-  "examples/moui_studio/services/webpreview",
+  "wzzc-dev/moui_studio/services/export",
+  "wzzc-dev/moui_studio/services/build",
+  "wzzc-dev/moui_studio/services/webpreview",
   "moonbitlang/async/fs",
 }
 

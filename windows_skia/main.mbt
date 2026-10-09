@@ -20,7 +20,7 @@ async fn main {
   let launch_owner = @launch.LaunchOwner::new()
   let build_owner = @build_native.BuildOwner::new()
   let raw_config = @provider.load_provider_config(
-    "examples/moui_studio/.config.json",
+    "moui_studio/.config.json",
   ).unwrap_or(@provider.ProviderConfig::{
     endpoint: "",
     model: "",

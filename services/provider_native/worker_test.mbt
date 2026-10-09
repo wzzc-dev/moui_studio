@@ -81,12 +81,12 @@ test "load_provider_config 拒绝残缺、非法与缺失" {
 /// 配置缺失（本地/CI 未填 .config.json）静默跳过——验收语义是
 /// 「配置存在时可跑通」，不是「无凭据也必须联网」。
 /// 路径按 moon 工具的实际 cwd 候选解析：module 根（moon test，探针实测
-/// cwd = examples/moui_studio/）与仓库根（moon run）各一个。
+/// cwd = moui_studio/）与仓库根（moon run）各一个。
 async test "live smoke (skips without .config.json)" {
   let config = match @provider_native.load_provider_config(".config.json") {
     Some(config) => Some(config)
     None =>
-      @provider_native.load_provider_config("examples/moui_studio/.config.json")
+      @provider_native.load_provider_config("moui_studio/.config.json")
   }
   match config {
     None => ()

@@ -23,10 +23,10 @@ fn counter_mod_source() -> String {
 }
 
 ///|
-/// examples/moui_studio/moon.mod 原文(11 个依赖,含 moonbitlang 生态)。
+/// moui_studio/moon.mod 原文(11 个依赖,含 moonbitlang 生态)。
 fn studio_mod_source() -> String {
   let text =
-    #|name = "examples/moui_studio"
+    #|name = "wzzc-dev/moui_studio"
     #|
     #|version = "0.1.0"
     #|
@@ -59,7 +59,7 @@ fn entry_pkg_source() -> String {
 }
 
 ///|
-/// examples/moui_studio/app/moon.pkg 原文(别名 + wbtest 轨)。
+/// moui_studio/app/moon.pkg 原文(别名 + wbtest 轨)。
 fn studio_app_pkg_source() -> String {
   let text =
     #|import {
@@ -74,13 +74,13 @@ fn studio_app_pkg_source() -> String {
     #|  "wzzc-dev/moui/text",
     #|  "wzzc-dev/moui_richtext",
     #|  "wzzc-dev/moui_richtext/code_editor",
-    #|  "examples/moui_studio/domain/ir",
-    #|  "examples/moui_studio/domain/studio_lang",
-    #|  "examples/moui_studio/domain/codec",
-    #|  "examples/moui_studio/domain/proposals",
-    #|  "examples/moui_studio/domain/blocks",
-    #|  "examples/moui_studio/services/export",
-    #|  "examples/moui_studio/services/compiled_runtime",
+    #|  "wzzc-dev/moui_studio/domain/ir",
+    #|  "wzzc-dev/moui_studio/domain/studio_lang",
+    #|  "wzzc-dev/moui_studio/domain/codec",
+    #|  "wzzc-dev/moui_studio/domain/proposals",
+    #|  "wzzc-dev/moui_studio/domain/blocks",
+    #|  "wzzc-dev/moui_studio/services/export",
+    #|  "wzzc-dev/moui_studio/services/compiled_runtime",
     #|}
     #|
     #|import {
@@ -370,7 +370,7 @@ fn compile_native_pkg_source() -> String {
     #|  "moonbitlang/async/process",
     #|  "moonbitlang/core/env",
     #|  "moonbitlang/x/fs" @x/fs,
-    #|  "examples/moui_studio/services/export",
+    #|  "wzzc-dev/moui_studio/services/export",
     #|}
     #|
     #|supported_targets = "native"
@@ -593,7 +593,7 @@ fn repo_work_source() -> String {
     #|  "./moui",
     #|  "./moui_richtext",
     #|  // 示例
-    #|  "./examples/moui_studio",
+    #|  "./moui_studio",
     #|  "./examples/momark",
     #|]
   text
@@ -604,7 +604,7 @@ test "moon.work 解析:真实样例 + 注释剥离 + ./ 归一" {
   match parse_moon_work(repo_work_source()) {
     Ok(members) =>
       assert_eq(members, [
-        "moui", "moui_richtext", "examples/moui_studio", "examples/momark",
+        "moui", "moui_richtext", "moui_studio", "examples/momark",
       ])
     Err(msg) => fail("moon.work 应可解析:\{msg}")
   }

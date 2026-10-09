@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "examples/moui_studio/domain/ir"
+package "wzzc-dev/moui_studio/domain/ir"
 
 // Values
 pub const DESIGN_HEIGHT : Int = 480

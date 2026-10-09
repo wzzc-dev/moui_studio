@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "examples/moui_studio/services/model_provider"
+package "wzzc-dev/moui_studio/services/model_provider"
 
 // Values
 pub fn build_request_body(CompletionRequest) -> Json

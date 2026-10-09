@@ -2,7 +2,7 @@
 /// MoUI Studio macOS Skia 入口（组合根 + 真实 provider worker）。
 /// 与 Web 入口的差别只有三件事：
 /// 1) 真实 provider worker（阶跃星辰 step-5-preview）在此起线程循环；
-/// 2) 凭据从 gitignored 的 `examples/moui_studio/.config.json` 读取预填面板，
+/// 2) 凭据从 gitignored 的 `moui_studio/.config.json` 读取预填面板，
 ///    缺文件时回退空配置（用户可在面板手填，key 只进会话内存）；
 /// 3) 附加 stdio MCP agent 传输：Agent 在正常开窗运行时上读写已提交语义树，
 ///    无 Agent 附着（stdin 已关闭）时立即返回，不影响正常使用。
@@ -98,7 +98,7 @@ async fn main {
     _ => @kernel.PreviewWebControls::noop()
   }
   let config = @provider.load_provider_config(
-    "examples/moui_studio/.config.json",
+    "moui_studio/.config.json",
   ).unwrap_or(@provider.ProviderConfig::{
     endpoint: "",
     model: "",

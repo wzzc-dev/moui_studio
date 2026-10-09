@@ -11,7 +11,7 @@
 /// ```
 /// members = [
 ///   "./moui",
-///   "./examples/moui_studio",
+///   "./moui_studio",
 /// ]
 /// ```
 

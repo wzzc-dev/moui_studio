@@ -1,9 +1,9 @@
 import {
-  "examples/moui_studio/services/export",
+  "wzzc-dev/moui_studio/services/export",
 }
 
 import {
-  "examples/moui_studio/domain/ir",
+  "wzzc-dev/moui_studio/domain/ir",
 } for "test"
 
 supported_targets = "native+wasm-gc"

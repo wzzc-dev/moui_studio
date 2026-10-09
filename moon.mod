@@ -1,4 +1,4 @@
-name = "examples/moui_studio"
+name = "wzzc-dev/moui_studio"
 
 version = "0.1.0"
 

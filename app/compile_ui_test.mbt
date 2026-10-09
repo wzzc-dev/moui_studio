@@ -70,12 +70,12 @@ test "compile progress completes all phases" {
 /// 中间省略：短路径原样返回；长路径保头保尾且**宽度真的进预算**。
 ///
 /// 缺陷原状：core 的 `Text` 把声明宽度当最小值，超宽时盒子长出去被父容器
-/// 硬裁——`/var/folders/…/moui-studio-` 这样从中间切断，文件名整个丢掉。
+/// 硬裁——`/var/folders/…/moui_studio-` 这样从中间切断，文件名整个丢掉。
 /// 修法是主动中间省略：首尾两段才是识别信息（哪个卷 / 哪个文件）。
 test "long artifact paths keep head and tail inside the budget" {
   let short = "/tmp/app.exe"
   assert_eq(@app.middle_ellipsis(short, 400.0), short)
-  let long = "/var/folders/66/8ky25j191cj8f7zw_xhq4mrm0000gn/T/moui-studio-compile/studio-app/_build/native/debug/build/native_smoke/native_smoke.exe"
+  let long = "/var/folders/66/8ky25j191cj8f7zw_xhq4mrm0000gn/T/moui_studio-compile/studio-app/_build/native/debug/build/native_smoke/native_smoke.exe"
   let budget = 300.0
   let fitted = @app.middle_ellipsis(long, budget)
   // 一定进预算（否则仍会被父容器裁掉）

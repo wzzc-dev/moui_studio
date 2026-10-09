@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "examples/moui_studio/kernel"
+package "wzzc-dev/moui_studio/kernel"
 
 import {
-  "examples/moui_studio/services/build",
-  "examples/moui_studio/services/export",
+  "wzzc-dev/moui_studio/services/build",
+  "wzzc-dev/moui_studio/services/export",
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/services",
 }

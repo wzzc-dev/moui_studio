@@ -2,7 +2,7 @@
 
 ## 许可
 
-MoUI Studio（`examples/moui_studio`）是 MoUI 仓库的一部分，随 MoUI 以 **Apache-2.0** 分发。
+MoUI Studio（`wzzc-dev/moui_studio`）是 MoUI 的姊妹仓库，以 **Apache-2.0** 独立分发。
 
 运行时依赖（版本固定，见 `moon.mod`）：`wzzc-dev/moui@0.2.1`、
 `wzzc-dev/window@0.5.4-0.2.1`、`wzzc-dev/moui_skia_renderer@0.2.1`、
@@ -26,5 +26,5 @@ MoUI Studio（`examples/moui_studio`）是 MoUI 仓库的一部分，随 MoUI �
 ## 凭据
 
 真实模型（阶跃星辰 StepFun）的 endpoint/model/key 只来自 gitignored 的
-`examples/moui_studio/.config.json` 或用户运行时输入；key 只进会话内存，
+`moui_studio/.config.json` 或用户运行时输入；key 只进会话内存，
 禁止进入源码、`.studio.json` 与导出 bundle（有测试断言）。

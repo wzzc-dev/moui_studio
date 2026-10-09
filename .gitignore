@@ -1,0 +1,15 @@
+/target/
+/.moon/
+/.mooncakes/
+/_build/
+/artifacts/
+/dist/
+/.skia-cache/
+/.config.json
+*.log
+*.asan
+*.tmp
+.DS_Store
+/.studio/
+**/.moui/dev-state.json
+**/.moui/dev-status.json

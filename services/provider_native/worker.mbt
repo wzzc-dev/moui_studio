@@ -7,7 +7,7 @@
 /// 继续走确定性假模型（离线硬要求不受影响）。
 ///
 /// 配置加载（`load_provider_config`）是 native-only 的便利：从 gitignored 的
-/// `examples/moui_studio/.config.json`（`{provider:{endpoint,model,api_key}}`）读取
+/// `moui_studio/.config.json`（`{provider:{endpoint,model,api_key}}`）读取
 /// 凭据。key 只进会话内存，绝不进入源码、项目文件或导出 bundle。
 
 ///|

@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "examples/moui_studio/services/provider_native"
+package "wzzc-dev/moui_studio/services/provider_native"
 
 import {
-  "examples/moui_studio/services/model_provider",
+  "wzzc-dev/moui_studio/services/model_provider",
   "moonbitlang/async/aqueue",
 }
 

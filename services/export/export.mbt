@@ -392,7 +392,7 @@ pub fn native_app_pkg(name : String) -> String {
 }
 
 ///|
-/// native GUI 组合根：与 `examples/moui_studio/macos_skia/main.mbt` 同构
+/// native GUI 组合根：与 `moui_studio/macos_skia/main.mbt` 同构
 /// （同一后端、同一渲染器、同一 `run_app` 协议），只是标题与尺寸取自项目。
 ///
 /// `run()`（同步事件循环）而非 `run_async_pump()`：导出应用没有 provider /

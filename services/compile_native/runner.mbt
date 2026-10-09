@@ -66,9 +66,9 @@ pub fn default_work_root() -> String {
   if base == "" {
     ".studio-compile"
   } else if base.has_suffix("/") {
-    "\{base}moui-studio-compile"
+    "\{base}moui_studio-compile"
   } else {
-    "\{base}/moui-studio-compile"
+    "\{base}/moui_studio-compile"
   }
 }
 

@@ -4,7 +4,7 @@
 /// 与 moon.mod 同族但有三点差异:① 导入分**三轨**(默认 / `for "test"` /
 /// `for "wbtest"`);② 无 name 等必填键;③ 有 `supported_targets` 与
 /// `options(...)`。真实样例:`examples/counter/app/moon.pkg`、
-/// `examples/moui_studio/app/moon.pkg`(含 `"wzzc-dev/moui_i18n" @i18n` 别名)。
+/// `moui_studio/app/moon.pkg`(含 `"wzzc-dev/moui_i18n" @i18n` 别名)。
 ///
 /// rel_path 由调用方传入(包目录相对模块根,根包为 ""),报错信息带它——
 /// 「哪个包的 moon.pkg 坏了」是资源管理器必须能回答的问题。

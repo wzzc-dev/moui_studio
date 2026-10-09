@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "examples/moui_studio/domain/blocks"
+package "wzzc-dev/moui_studio/domain/blocks"
 
 import {
-  "examples/moui_studio/domain/ir",
-  "examples/moui_studio/domain/studio_lang",
+  "wzzc-dev/moui_studio/domain/ir",
+  "wzzc-dev/moui_studio/domain/studio_lang",
 }
 
 // Values

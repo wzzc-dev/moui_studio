@@ -1,5 +1,5 @@
 import {
-  "examples/moui_studio/services/export",
+  "wzzc-dev/moui_studio/services/export",
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
 }

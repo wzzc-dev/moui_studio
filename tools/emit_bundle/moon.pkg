@@ -2,7 +2,7 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/x/fs" @x/fs,
   "moonbitlang/x/sys",
-  "examples/moui_studio/services/export",
+  "wzzc-dev/moui_studio/services/export",
 }
 
 supported_targets = "native"

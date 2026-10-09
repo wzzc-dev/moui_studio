@@ -11,13 +11,13 @@ MoUI Studio 是一个**中英双语的可视化编程环境**：同一份程序�
 ## 五分钟上手（Web，零安装）
 
 ```sh
-node scripts/package-web-app.mjs examples/moui_studio/web_wasm --out artifacts/web/studio
+node scripts/package-web-app.mjs moui_studio/web_wasm --out artifacts/web/studio
 # ES module 不能用 file:// 打开，需要起一个静态服务：
 python3 -m http.server 8766 --directory artifacts/web/studio
 # 浏览器打开 http://127.0.0.1:8766 即见 IDE
 ```
 
-macOS 原生入口：`moon run examples/moui_studio/macos_skia --target native`
+macOS 原生入口：`moon run moui_studio/macos_skia --target native`
 
 ### 界面地图（v4 IDE 壳）
 
@@ -96,7 +96,7 @@ macOS 原生入口：`moon run examples/moui_studio/macos_skia --target native`
   （种子跨事件连续推进），所以连点同一个按钮每次都能看到不同结果——
   两轨（解释/真编译）从同一个种子起算，逐位可比
 - 停止：点「停止」回到可视化工作区继续编辑（不是停在空白运行页）
-- 真编译：点「编译 MoonBit」在 `TMPDIR/moui-studio-compile/<app>` 里真跑
+- 真编译：点「编译 MoonBit」在 `TMPDIR/moui_studio-compile/<app>` 里真跑
   `moon update / check / build`，**七步进度逐格可见**（准备工作目录 → 解析依赖
   → 类型检查 → 构建 Web 产物 → 构建 native 产物 → 启动产物自检 → 收集产物，
   已完成点满、进行中高亮）；产物是**磁盘上的真实文件**
@@ -123,11 +123,11 @@ macOS 原生入口：`moon run examples/moui_studio/macos_skia --target native`
 ## macOS 入口（真实模型）
 
 ```sh
-moon run examples/moui_studio/macos_skia --target native
+moon run moui_studio/macos_skia --target native
 ```
 
 - 真实模型默认指向阶跃星辰（`https://api.stepfun.com/step_plan/v1`，`step-5-preview`）。
-- 凭据放在 **gitignored** 的 `examples/moui_studio/.config.json`（可直接在 json 里换 key）：
+- 凭据放在 **gitignored** 的 `moui_studio/.config.json`（可直接在 json 里换 key）：
 
 ```json
 { "provider": { "endpoint": "...", "model": "...", "api_key": "..." } }
@@ -143,7 +143,7 @@ moon run examples/moui_studio/macos_skia --target native
 ## 包结构
 
 ```text
-examples/moui_studio/
+moui_studio/
   domain/ir/          程序 IR + 不变量 + 预算（零依赖）
   domain/studio_lang/  双语 DSL：关键字表/词法/解析/打印/指令机解释器
   domain/codec/       .studio.json 编解码 + 版本门
@@ -162,11 +162,11 @@ examples/moui_studio/
 ```sh
 # domain 是多个包（不是单包路径），逐包跑
 for p in ir studio_lang codec blocks proposals; do
-  moon test examples/moui_studio/domain/$p --target native
+  moon test moui_studio/domain/$p --target native
 done
-moon test examples/moui_studio/app --target native
-moon test examples/moui_studio/app --target wasm-gc
-moon run examples/moui_studio/tools/sync_kernel --target native -- --check
+moon test moui_studio/app --target native
+moon test moui_studio/app --target wasm-gc
+moon run moui_studio/tools/sync_kernel --target native -- --check
 ```
 
 ---
@@ -188,7 +188,7 @@ arbitrary code" to "run it". Projects export to **standalone MoUI apps**
 Try it in five minutes (Web, zero install):
 
 ```sh
-moon build examples/moui_studio/web_wasm --target wasm-gc
+moon build moui_studio/web_wasm --target wasm-gc
 ```
 
 - Switch language from the top bar (`English` / `中文`); the DSL keywords
@@ -203,10 +203,10 @@ moon build examples/moui_studio/web_wasm --target wasm-gc
 macOS entry (real model, StepFun `step-5-preview`):
 
 ```sh
-moon run examples/moui_studio/macos_skia --target native
+moon run moui_studio/macos_skia --target native
 ```
 
-Credentials live **only** in the gitignored `examples/moui_studio/.config.json`:
+Credentials live **only** in the gitignored `moui_studio/.config.json`:
 
 ```json
 { "provider": { "endpoint": "...", "model": "...", "api_key": "..." } }

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "examples/moui_studio/services/markdown"
+package "wzzc-dev/moui_studio/services/markdown"
 
 // Values
 pub fn parse_inline(String) -> Array[MarkdownInline]
