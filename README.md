@@ -62,7 +62,7 @@ macOS 原生入口：`moon run moui_studio/macos_skia --target native`
     按钮。创建入口贴着它创建的东西，与右栏「动作」页签建子程序、积木分类轨
     建语句是同一范式
   - 控件组的菜单与 `ControlKind` 枚举**等长**：按钮 / 标签 / 输入框 / 选择框 /
-    列表框 / 表格。变量此前没有任何新建入口（只来自 AI 提案或手打代码），
+    列表框 / 表格 / 下拉框 / 进度条 / 图片。变量此前没有任何新建入口（只来自 AI 提案或手打代码），
     现在变量组有「+ 新建变量」，改名会同步改写所有引用它的语句
   - 树上的**每一类行都可点选**：窗体 → 窗体属性（标题可改）、控件 → 控件属性、
     事件子程序 → 代码/积木、变量 → 变量属性（改名/初值/删除）、数据条目 →
@@ -112,10 +112,11 @@ macOS 原生入口：`moon run moui_studio/macos_skia --target native`
   首屏是用户设计的表单 + 一行状态条，变量/消息/审计收进默认收起的
   「变量与日志」面板（导出的是**应用**，不是调试台）
 
-## 三个内置样例（各附教案）
+## 四个内置样例（各附教案）
 
 | 样例 | 教什么 | 教案 |
 |---|---|---|
+| 问候小程序 | 三视图与运行闭环（最小起点） | [samples/hello/README.md](samples/hello/README.md) |
 | 班级点名册 | 随机数、列表框取行 | [samples/roll_call/README.md](samples/roll_call/README.md) |
 | 口算训练营 | 分支、变量、算术 | [samples/drill/README.md](samples/drill/README.md) |
 | 班级小卖部 | 跨事件状态、外发闸门 | [samples/store/README.md](samples/store/README.md) |

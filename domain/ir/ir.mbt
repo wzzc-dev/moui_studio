@@ -5,7 +5,7 @@
 /// 零依赖纯 MoonBit：不引用 moui、json 或任何 UI 包。
 
 ///|
-/// 控件种类（v1 表单应用域：6 类）。
+/// 控件种类（v1 表单应用域：9 类）。
 pub(all) enum ControlKind {
   Button
   Label

@@ -592,8 +592,8 @@ fn group_create_menu(
     )
   }
   if group == tree_group_controls() {
-    // 6 种控件**全部**列出：与 `ControlKind` 枚举等长。曾经只有 4 种，
-    // 选择框与表格只能靠 AI 提案或打开模板才会出现。
+    // 9 种控件**全部**列出：与 `ControlKind` 枚举等长。曾经只有 4 种，
+    // 下拉框 / 进度条 / 图片只能靠 AI 提案或打开模板才会出现。
     add(text(t, "control.button"), AddControl(@ir.Button))
     add(text(t, "control.label"), AddControl(@ir.Label))
     add(text(t, "control.text_field"), AddControl(@ir.TextField))
