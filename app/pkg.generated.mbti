@@ -392,7 +392,7 @@ pub fn declaration_strip(Model, Double) -> @core.View[Msg]
 
 pub fn decode_plugin_disabled(String) -> Array[String]
 
-pub fn decode_project_store(String) -> Result[(String, Array[(String, String)]), String]
+pub fn decode_project_store(String) -> Result[ProjectStorePayload, String]
 
 pub fn default_studio_clock() -> StudioClock
 
@@ -572,7 +572,7 @@ pub fn ide_warning_soft() -> @core.Color
 
 pub fn import_single_source(Model, @services.FileServices, @project.ProjectSource) -> (Model, @core.Effect[Msg])
 
-pub fn import_workspace_scan(Model, @project.WorkspaceScan) -> (Model, @core.Effect[Msg])
+pub fn import_workspace_scan(Model, @project.WorkspaceScan, silent? : Bool) -> (Model, @core.Effect[Msg])
 
 pub fn initial_model(provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty_available? : Bool, profile? : StudioProfile) -> Model
 
@@ -1685,6 +1685,12 @@ pub(all) struct ProjectRecord {
   root : String
   module_name : String
   scanned : @project.ScannedModule
+}
+
+pub(all) struct ProjectStorePayload {
+  active_root : String
+  projects : Array[(String, String)]
+  workspace_root : String
 }
 
 pub(all) struct ProviderConfig {

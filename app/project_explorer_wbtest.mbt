@@ -471,7 +471,10 @@ test "explorer 就地新建输入行跟随目标目录" {
       first_file_y = run.frame.origin.y
     }
   }
-  assert_true(app_y > 0.0, msg="app 目录行应可见（模块根行 y=\{module_y}）")
+  assert_true(
+    app_y > 0.0,
+    msg="app 目录行应可见（模块根行 y=\{module_y}）",
+  )
   assert_true(
     input_y > 0.0,
     msg="就地输入行应可见（placeholder 未渲染说明输入行没挂上）",
