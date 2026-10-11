@@ -1,6 +1,7 @@
 import {
   "wzzc-dev/moui",
   "wzzc-dev/moui_richtext" @richtext,
+  "wzzc-dev/moui_markdown" @mdchrome,
   "wzzc-dev/moui/geometry",
   "wzzc-dev/moui/graphics",
   "wzzc-dev/moui/text",
@@ -10,6 +11,7 @@ import {
 import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/runtime",
+  "wzzc-dev/moui/views",
 } for "wbtest"
 
 supported_targets = "native+wasm-gc"
