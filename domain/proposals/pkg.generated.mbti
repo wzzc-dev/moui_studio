@@ -12,7 +12,7 @@ pub fn all_samples() -> Array[@ir.StudioProgram]
 
 pub fn apply_proposal(@ir.StudioProgram, ProposalV1) -> @ir.StudioProgram
 
-pub fn decode_proposal(String) -> Result[ProposalV1, Array[ProposalError]]
+pub fn decode_proposal(String, program? : @ir.StudioProgram) -> Result[ProposalV1, Array[ProposalError]]
 
 pub fn encode_proposal(ProposalV1) -> String
 
@@ -23,6 +23,8 @@ pub fn proposal_diff(@ir.StudioProgram, ProposalV1) -> Array[DiffEntry]
 pub fn proposal_from_program(@ir.StudioProgram, String, String) -> ProposalV1
 
 pub fn proposal_system_prompt() -> String
+
+pub fn proposal_user_prompt(@ir.StudioProgram, String) -> String
 
 pub fn sample_drill() -> @ir.StudioProgram
 

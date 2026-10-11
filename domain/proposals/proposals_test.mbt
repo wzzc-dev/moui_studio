@@ -501,6 +501,60 @@ test "reject: structural issues surface as Structural(IrError)" {
 }
 
 ///|
+/// 实测缺陷回归：update 指向不存在的控件名必须整单拒绝。
+/// replace_control 的「找不到就追加」是 apply 的实现细节——校验层若放过，
+/// 模型发明的名字会以「修改」名义落地成 + 新控件（实测 diff 正是如此）。
+test "reject: control update must reference an existing control" {
+  let program = @proposals.sample_hello()
+  let invented = @ir.Control::{
+    props: @ir.ControlProps::default(),
+    id: 99,
+    kind: @ir.Button,
+    name: "不存在的按钮",
+    text: "点我",
+    x: 0,
+    y: 0,
+    width: 80,
+    height: 28,
+    items: [],
+  }
+  let proposal : @proposals.ProposalV1 = {
+    ..@proposals.proposal_from_program(program, "改按钮", "update button"),
+    controls_add: [],
+    controls_update: [invented],
+  }
+  let errors = @proposals.validate_proposal(program, proposal)
+  assert_true(errors.any(e => e is UnknownControl("不存在的按钮")))
+  // 真实存在的名字照常通过（同一条链不误伤正常修改）
+  let existing = @ir.find_control(program, "按钮").unwrap()
+  let ok : @proposals.ProposalV1 = {
+    ..@proposals.proposal_from_program(program, "改按钮", "update button"),
+    controls_add: [],
+    controls_update: [{ ..existing, text: "新文案", }],
+  }
+  assert_false(
+    @proposals.validate_proposal(program, ok).any(e => e is UnknownControl(_)),
+  )
+}
+
+///|
+/// 实测缺陷回归：用户 prompt 必须携带当前程序（提案是 patch，模型没看到
+/// 对象就只能发明名字）。名字要与落盘编码逐字一致，诉求原文保留。
+test "user prompt carries current program names and request" {
+  let program = @proposals.sample_roll_call()
+  let prompt = @proposals.proposal_user_prompt(
+    program, "把按钮文案改成开始抽签",
+  )
+  assert_true(prompt.contains("点名按钮"))
+  assert_true(prompt.contains("名单"))
+  assert_true(prompt.contains("把按钮文案改成开始抽签"))
+  // 「当前程序」在前、「诉求」在后：长 JSON 与短诉求相邻，模型看到的是
+  // 「基线长什么样 + 要偏离成什么样」这一对最小上下文。
+  assert_true(prompt.contains("Current program"))
+  assert_true(prompt.contains("User request"))
+}
+
+///|
 test "reject: unknown builtin in body is a language issue" {
   let proposal = {
     ..handler_ref_proposal("按钮", @ir.OnClick),
@@ -530,4 +584,92 @@ test "reject: unknown builtin in body is a language issue" {
   }
   let errors = @proposals.validate_proposal(@ir.empty_program(), proposal)
   assert_true(errors.any(e => e is LanguageIssue(_)))
+}
+
+///|
+/// 实测缺陷回归（2026-10-12）：模型对 update 只给变化字段（name + text，
+/// 没有 kind/坐标/items）。提案是 patch，缺的字段必须从当前程序的同名
+/// 控件补出来，而不是报 MissingField("controls.kind") 整单拒绝——否则
+/// 「把按钮文案改成 X」这种最普通诉求会被判无效（真机实测正是如此）。
+test "partial update merges over current program base" {
+  let program = @proposals.sample_roll_call()
+  let command =
+    #|{"version":1,"summary":{"zh":"改按钮文案","en":"change button text"},"controls":{"add":[],"update":[{"name":"点名按钮","text":"开始抽签"}],"remove":[]}}
+  match @proposals.decode_proposal(command, program~) {
+    Ok(decoded) => {
+      assert_eq(decoded.controls_update.length(), 1)
+      let merged = decoded.controls_update[0]
+      assert_eq(merged.text, "开始抽签")
+      // 缺省字段从基底补：kind/坐标/尺寸/items 全部保持原值
+      assert_true(merged.kind is @ir.Button)
+      assert_eq(merged.x, 20)
+      assert_eq(merged.y, 320)
+      assert_eq(merged.width, 120)
+      assert_eq(merged.height, 36)
+      let errors = @proposals.validate_proposal(program, decoded)
+      assert_true(errors.is_empty())
+      let applied = @proposals.apply_proposal(program, decoded)
+      match @ir.find_control(applied, "点名按钮") {
+        Some(control) => assert_eq(control.text, "开始抽签")
+        None => fail("合并后控件应仍在")
+      }
+      // diff 必须是「修改」（Changed），不是「新增」（Added）——
+      // 用户报的原文就是「要求改文案，结果加了新按钮」。
+      let entries = @proposals.proposal_diff(program, decoded)
+      assert_true(
+        entries.any(e => {
+          e.op is @proposals.Changed && e.path == "control.点名按钮.text"
+        }),
+      )
+      assert_false(entries.any(e => e.op is @proposals.Added))
+    }
+    Err(errors) => {
+      let mut detail = ""
+      for error in errors {
+        match error {
+          @proposals.MissingField(field) =>
+            detail = detail + " missing:" + field
+          @proposals.BadControlKind(kind) => detail = detail + " kind:" + kind
+          @proposals.UnknownControl(name) =>
+            detail = detail + " unknown:" + name
+          _ => detail = detail + " other"
+        }
+      }
+      fail("部分字段 update 应可解码合并，却失败:" + detail)
+    }
+  }
+}
+
+///|
+/// add 项没有基底：缺 kind 仍必须拒绝（保持严格 schema，不猜种类）。
+test "add still requires kind with program context" {
+  let program = @proposals.sample_hello()
+  let command =
+    #|{"version":1,"summary":{"zh":"加控件","en":"add control"},"controls":{"add":[{"name":"新按钮","text":"点我"}],"update":[],"remove":[]}}
+  match @proposals.decode_proposal(command, program~) {
+    Err(errors) =>
+      assert_true(
+        errors.any(e => e is @proposals.MissingField("controls.kind")),
+      )
+    Ok(_) => fail("add 缺 kind 应拒绝")
+  }
+}
+
+///|
+/// update 指向不存在的名字：解码不炸（没有基底则整道具名解码），
+/// 校验链报 UnknownControl——「发明名字」必须在 add 区。
+test "update of unknown name decodes then fails validation" {
+  let program = @proposals.sample_hello()
+  let command =
+    #|{"version":1,"summary":{"zh":"改","en":"change"},"controls":{"add":[],"update":[{"name":"不存在的按钮","kind":"button","text":"x"}],"remove":[]}}
+  match @proposals.decode_proposal(command, program~) {
+    Ok(decoded) => {
+      let errors = @proposals.validate_proposal(program, decoded)
+      assert_true(
+        errors.any(e => e is @proposals.UnknownControl("不存在的按钮")),
+      )
+    }
+    Err(_) =>
+      fail("未知名 update 应在校验层拒绝，而不是解码层")
+  }
 }

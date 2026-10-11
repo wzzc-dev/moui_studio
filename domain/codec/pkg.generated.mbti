@@ -18,6 +18,8 @@ pub fn decode_stmt_value(Json) -> Result[@ir.Stmt, CodecError]
 
 pub fn encode_program(@ir.StudioProgram) -> String
 
+pub fn merge_control_props(@ir.ControlProps, Map[String, Json]) -> @ir.ControlProps
+
 // Errors
 
 // Types and methods

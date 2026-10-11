@@ -76,6 +76,16 @@ pub fn validate_proposal(
   if proposal.summary_zh.trim() == "" || proposal.summary_en.trim() == "" {
     errors.push(Readability("summary"))
   }
+  // patch 语义纪律（实测缺陷）：update 只能指向**已存在**的对象。
+  // replace_control 对不存在的名字是「追加」，于是模型发明的新名字会以
+  // update 名义悄悄变成 + 新控件；这里把「改了什么」与「加了什么」分开，
+  // 发明名字必须在 add 区，否则整单拒绝（UnknownControl 的界面文案早已
+  // 就位，此前却没路径能到达）。
+  for control in proposal.controls_update {
+    if @ir.find_control(program, control.name) is None {
+      errors.push(UnknownControl(control.name))
+    }
+  }
   let next = apply_proposal(program, proposal)
   for issue in @ir.validate_program(next) {
     errors.push(Structural(issue))

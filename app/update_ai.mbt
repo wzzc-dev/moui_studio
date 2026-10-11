@@ -266,6 +266,35 @@ fn push_error_card(model : Model, message : String) -> Model {
 }
 
 ///|
+/// 摘掉**离生成最近的那张未结算计划卡**（GenerateProposal 的忙碌占位）。
+/// 回执到达时无论成功/失败都先摘——提案结果由 diff 卡或错误卡另说，
+/// 占位卡留在时间线上会永远转圈（它没有 settle 语义）。
+fn drop_ai_busy_card(model : Model) -> Model {
+  let session = model.ai_sessions.current()
+  let mut target = -1
+  let mut index = 0
+  for card in session.cards {
+    if card.kind is CardPlan && !card.settled {
+      target = index
+    }
+    index = index + 1
+  }
+  if target < 0 {
+    return model
+  }
+  let keep : Array[AiCard] = []
+  let mut i = 0
+  for card in session.cards {
+    if i != target {
+      keep.push(card)
+    }
+    i = i + 1
+  }
+  model.ai_sessions.amend({ ..session, cards: keep, })
+  model
+}
+
+///|
 /// 提交时预置的空流式卡：真实 provider 的分片经 StreamChunk 追加进它，
 /// 停止/完成由既有流式管道收尾——与旧假路径同一条卡流。
 fn push_streaming_card(model : Model, title : String) -> Model {
@@ -332,7 +361,11 @@ fn settle_streaming_card(model : Model, title : String, body : String) -> Model 
 /// 真实 provider 的网络副作用在程序级臂发起；
 /// 这里只负责把「已得到的补全文本」变成待采纳提案。
 pub fn proposal_from_completion(model : Model, completion : String) -> Model {
-  match @proposals.decode_proposal(completion) {
+  // 必须带 model.program：提案是 patch，update 项常常只给变化字段
+  // （实测：模型回执 update 只有 name+text，没有 kind），解码层要拿
+  // 当前程序做字段级合并；不带基线就会 MissingField("controls.kind")
+  // 整单拒绝，真机表现为「AI 不按诉求改程序」。
+  match @proposals.decode_proposal(completion, program=model.program) {
     Err(_) => {
       let message = text(translator(model), "app.status.proposal_invalid")
       push_error_card({ ..model, prompt_error: message, }, message)
@@ -593,7 +626,8 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
       )
     // 真实 provider 结果是纯状态转移（网络已完成）：统一走
     // proposal_from_completion 校验链。
-    RealGenerationFinished(result) =>
+    RealGenerationFinished(result) => {
+      let model = drop_ai_busy_card(model)
       match result {
         Ok(completion) =>
           Some(
@@ -613,6 +647,7 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
             ),
           )
       }
+    }
     RealExplanationFinished(result) =>
       match result {
         Ok(explanation) => {

@@ -413,5 +413,22 @@ pub fn proposal_from_program(
 ///|
 /// 真实模型 system prompt：讲清 schema 与纪律（只产提案，不产源码）。
 pub fn proposal_system_prompt() -> String {
-  "You generate MoUI Studio program proposals as JSON only. A proposal patches a program: {version:1, summary:{zh,en}, window?, controls:{add,update,remove}, variables:{add,update,remove}, handlers:{add,update,remove}, open_handler?}. Controls: kind in button|label|text_field|check_box|list_box|table, with name/text/x/y/width/height/items. Each control may carry an optional props object {font_size:int, bold:bool, text_color:'#RRGGBB', back_color:'#RRGGBB', align:'start'|'center'|'end', visible:bool, disabled:bool} — include it only when the user asks for styling (size/colors); omit otherwise. Events: on_click, on_change. Statements use ops declare/assign/if/count_loop/while/break/call with expression trees {t:num|str|bool|var|not|neg|bin|call}. Builtins: message_box, set_text, append_row, get_text, get_number, to_text, text_length, contains, random, row_count, row_at, selected_row (functions/commands) and ask, submit_data (gates). Every added or updated handler MUST include note {zh,en} explaining intent. Names must be self-explanatory. Never output source code; only the proposal JSON."
+  "You generate MoUI Studio program proposals as JSON only. A proposal patches a program: {version:1, summary:{zh,en}, window?, controls:{add,update,remove}, variables:{add,update,remove}, handlers:{add,update,remove}, open_handler?}. Controls: kind in button|label|text_field|check_box|list_box|table, with name/text/x/y/width/height/items. Each control may carry an optional props object {font_size:int, bold:bool, text_color:'#RRGGBB', back_color:'#RRGGBB', align:'start'|'center'|'end', visible:bool, disabled:bool} — include it only when the user asks for styling (size/colors); omit otherwise. Events: on_click, on_change. Statements use ops declare/assign/if/count_loop/while/break/call with expression trees {t:num|str|bool|var|not|neg|bin|call}. Builtins: message_box, set_text, append_row, get_text, get_number, to_text, text_length, contains, random, row_count, row_at, selected_row (functions/commands) and ask, submit_data (gates). Every added or updated handler MUST include note {zh,en} explaining intent. Names must be self-explanatory. Use add for new objects; update and remove MUST reference exact names that already exist in the current program (never invent or rename). Never output source code; only the proposal JSON."
+}
+
+///|
+/// 真实模型的用户 prompt：**先给当前程序，再给诉求**。
+///
+/// 没有程序上下文时模型只能凭空发明控件名——「把按钮文案改成 X」会被
+/// 当成新控件追加（实测缺陷：ask 说的是修改，落下的 diff 却是 + 新按钮）。
+/// 提案是对现有 IR 的 patch，patch 前必须先看到 patch 对象；这里用的
+/// 就是落盘同款编码，模型看到的名字与用户看到的名字逐字一致。
+pub fn proposal_user_prompt(
+  program : @ir.StudioProgram,
+  request : String,
+) -> String {
+  "Current program (JSON IR):\n" +
+  @codec.encode_program(program) +
+  "\n\nUser request:\n" +
+  request
 }

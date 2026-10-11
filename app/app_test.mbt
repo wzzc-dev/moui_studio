@@ -1058,6 +1058,70 @@ test "deleting an unselected control preserves the current selection" {
 }
 
 ///|
+/// 实测缺陷回归：提案提交后立即进时间线一张忙碌占位卡——
+/// 网络回执前的十几秒不再「点了没反应」；回执到达（成功/失败）先摘占位，
+/// 再落 diff/错误卡，时间线不留永远转圈的卡。
+test "real generation shows busy card until result arrives" {
+  let services = @services.AppServices::new()
+  let asked = apply(
+    { ..@app.initial_model(), provider_key: "k", },
+    SetPrompt("把按钮文案改成开始抽签"),
+  )
+  let counted = asked.ai_sessions.current().card_seq
+  // 走程序级臂（真实 provider 通道）：noop submit 不发回执，卡的状态由
+  // 提交本身断言（生产路径的 message 流一致）。
+  let (busy, _effect) = @app.update_with_launch_for_test(
+    asked,
+    GenerateProposal,
+    services,
+    fn(_path, _done) { () },
+  )
+  assert_true(busy.ai_busy)
+  let cards = busy.ai_sessions.current().cards
+  assert_eq(cards.length(), 1)
+  assert_true(cards[0].kind is @ai.CardPlan)
+  assert_eq(cards[0].title, "正在生成提案…")
+  assert_false(cards[0].settled)
+  assert_true(busy.ai_sessions.current().card_seq > counted)
+  // 成功回执：占位摘掉，只剩 diff 卡，busy 复位
+  let completion = @proposals.encode_proposal(
+    @proposals.proposal_from_program(
+      @proposals.sample_roll_call(),
+      "随机点名",
+      "roll call",
+    ),
+  )
+  let done = apply(busy, RealGenerationFinished(Ok(completion)))
+  assert_false(done.ai_busy)
+  assert_true(done.pending is Some(_))
+  assert_false(
+    done.ai_sessions.current().cards.any(card => card.kind is @ai.CardPlan),
+  )
+  assert_true(
+    done.ai_sessions.current().cards.any(card => card.kind is @ai.CardDiff),
+  )
+  // 失败回执：占位同样摘掉，错误卡留下
+  let (busy2, _) = @app.update_with_launch_for_test(
+    asked,
+    GenerateProposal,
+    services,
+    fn(_path, _done) { () },
+  )
+  let failed = apply(
+    busy2,
+    RealGenerationFinished(Err("provider 返回 HTTP 500")),
+  )
+  assert_false(failed.ai_busy)
+  assert_true(failed.prompt_error.contains("500"))
+  assert_false(
+    failed.ai_sessions.current().cards.any(card => card.kind is @ai.CardPlan),
+  )
+  assert_true(
+    failed.ai_sessions.current().cards.any(card => card.kind is @ai.CardError),
+  )
+}
+
+///|
 test "real generation result becomes pending proposal, failure surfaces" {
   let model = { ..@app.initial_model(), provider_key: "k", }
   // 真实生成成功：补全文本走校验链 → 待采纳提案；busy 复位

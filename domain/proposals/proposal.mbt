@@ -67,8 +67,17 @@ fn json_int_field(fields : Map[String, Json], key : String) -> Int? {
 }
 
 ///|
+/// 控件对象解码。`base` = 当前程序里的同名控件（update 项），非空时按
+/// **字段级 patch** 合并：JSON 里出现的字段覆盖基底，没写的保持原值。
+///
+/// 实测缺陷（2026-10-12）：模型对 update 只给变化字段（name + text），
+/// 严格路径要求 kind 恒在，于是「把按钮文案改成 X」这一条合法诉求被
+/// MissingField("controls.kind") 整单拒绝——用户看到的是「AI 不按诉求
+/// 改程序」。update 的对象已存在于当前程序，缺的字段能从基底补出来；
+/// add 没有基底，保持严格（缺 kind = schema 错）。
 fn decode_control_object(
   value : Json,
+  base : @ir.Control?,
   errors : Array[ProposalError],
 ) -> @ir.Control? {
   match value {
@@ -80,6 +89,24 @@ fn decode_control_object(
           return None
         }
       }
+      // 缺省骨架：add 项的字段默认值（与旧行为逐字段一致）；
+      // update 项以基底替换，实现「只覆盖写出的字段」。
+      let fallback = match base {
+        Some(existing) => existing
+        None =>
+          @ir.Control::{
+            props: @ir.ControlProps::default(),
+            id: 0,
+            kind: @ir.Button,
+            name,
+            text: "",
+            x: 40,
+            y: 40,
+            width: 120,
+            height: 36,
+            items: [],
+          }
+      }
       let kind = match json_string_field(fields, "kind") {
         Some(text) =>
           match @ir.parse_control_kind(text) {
@@ -89,38 +116,46 @@ fn decode_control_object(
               return None
             }
           }
-        None => {
-          errors.push(MissingField("controls.kind"))
-          return None
-        }
+        None =>
+          match base {
+            Some(existing) => existing.kind
+            None => {
+              errors.push(MissingField("controls.kind"))
+              return None
+            }
+          }
       }
-      let items : Array[String] = []
-      match fields.get("items") {
-        Some(Array(values)) =>
+      let items : Array[String] = match fields.get("items") {
+        Some(Array(values)) => {
+          let decoded : Array[String] = []
           for item in values {
             match item {
-              String(text) => items.push(text)
+              String(text) => decoded.push(text)
               _ => ()
             }
           }
-        _ => ()
+          decoded
+        }
+        _ => fallback.items
       }
-      // G7.2:可选 props 对象(AI 可提出带属性的控件;缺省 = 全默认,
-      // 容错口径与项目 codec 完全一致)
+      // G7.2:可选 props 对象(AI 可提出带属性的控件;缺省 = 基底/全默认,
+      // 容错口径与项目 codec 完全一致)。update 项只写要改的属性，
+      // 未写的属性保持基底值（不能按「缺省 = 默认」整块重置）。
       let props = match fields.get("props") {
-        Some(Object(prop_fields)) => @codec.decode_control_props(prop_fields)
-        _ => @ir.ControlProps::default()
+        Some(Object(prop_fields)) =>
+          @codec.merge_control_props(fallback.props, prop_fields)
+        _ => fallback.props
       }
       Some(@ir.Control::{
         props,
-        id: json_int_field(fields, "id").unwrap_or(0),
+        id: json_int_field(fields, "id").unwrap_or(fallback.id),
         kind,
         name,
-        text: json_string_field(fields, "text").unwrap_or(""),
-        x: json_int_field(fields, "x").unwrap_or(40),
-        y: json_int_field(fields, "y").unwrap_or(40),
-        width: json_int_field(fields, "width").unwrap_or(120),
-        height: json_int_field(fields, "height").unwrap_or(36),
+        text: json_string_field(fields, "text").unwrap_or(fallback.text),
+        x: json_int_field(fields, "x").unwrap_or(fallback.x),
+        y: json_int_field(fields, "y").unwrap_or(fallback.y),
+        width: json_int_field(fields, "width").unwrap_or(fallback.width),
+        height: json_int_field(fields, "height").unwrap_or(fallback.height),
         items,
       })
     }
@@ -241,8 +276,12 @@ fn decode_window(
 }
 
 ///|
+/// 控件三节解码。`program` = 当前程序（可选）：update 项先按名字在
+/// 当前程序里找基底，再做字段级 patch 合并；找不到基底的照旧解码成
+/// 「未知名 update 项」，交给 `validate_proposal` 报 UnknownControl。
 fn decode_controls_section(
   fields : Map[String, Json],
+  program : @ir.StudioProgram?,
   errors : Array[ProposalError],
 ) -> (Array[@ir.Control], Array[@ir.Control], Array[String]) {
   let add : Array[@ir.Control] = []
@@ -253,7 +292,7 @@ fn decode_controls_section(
       match sections.get("add") {
         Some(Array(values)) =>
           for value in values {
-            match decode_control_object(value, errors) {
+            match decode_control_object(value, None, errors) {
               Some(control) => add.push(control)
               None => ()
             }
@@ -263,7 +302,16 @@ fn decode_controls_section(
       match sections.get("update") {
         Some(Array(values)) =>
           for value in values {
-            match decode_control_object(value, errors) {
+            // 基底查找按 JSON 里的 name：与 replace_control 的合并键同一口径。
+            let base = match (program, value) {
+              (Some(current), Object(item)) =>
+                match json_string_field(item, "name") {
+                  Some(name) => @ir.find_control(current, name)
+                  None => None
+                }
+              _ => None
+            }
+            match decode_control_object(value, base, errors) {
               Some(control) => update.push(control)
               None => ()
             }
@@ -288,8 +336,13 @@ fn decode_controls_section(
 
 ///|
 /// 解码提案文本：容错 ```json 围栏与前后散文（真实模型常见输出）。
+///
+/// `program` = 当前程序（可选）：update 项按名字回溯基底做字段级合并，
+/// 使「只给变化字段」的合法 patch 能通过解码。不传时与旧版本逐字节等价
+/// （update 项走严格路径），用于没有基线上下文的纯 schema 解码。
 pub fn decode_proposal(
   source : String,
+  program? : @ir.StudioProgram,
 ) -> Result[ProposalV1, Array[ProposalError]] {
   let payload = match extract_json_object(source) {
     Some(text) => @json.parse(text) catch { _ => return Err([InvalidJson]) }
@@ -319,8 +372,13 @@ pub fn decode_proposal(
     None => None
   }
   let errors : Array[ProposalError] = []
+  // patch 合并需要干净的当前程序；调用方没给就退化为严格解码。
+  let merge_base = match program {
+    Some(current) => Some(current)
+    None => None
+  }
   let (controls_add, controls_update, controls_remove) = decode_controls_section(
-    fields, errors,
+    fields, merge_base, errors,
   )
   let variables_add : Array[@ir.Variable] = []
   let variables_update : Array[@ir.Variable] = []

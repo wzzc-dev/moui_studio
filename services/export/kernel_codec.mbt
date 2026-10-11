@@ -105,6 +105,35 @@ pub fn kernel_codec_mbt() -> String {
     #|}
     #|
     #|///|
+    #|/// 属性 patch 解码（提案 update 用）：以 `base` 为底，只覆盖 JSON 里
+    #|/// 出现的字段。update 项只写「要改的属性」，没写的必须保持原值——
+    #|/// 若按 `decode_control_props` 的「缺省 = 默认值」口径，模型只提
+    #|/// font_size 会把 bold/颜色/对齐全部静默重置。
+    #|pub fn merge_control_props(
+    #|  base : @ir.ControlProps,
+    #|  fields : Map[String, Json],
+    #|) -> @ir.ControlProps {
+    #|  {
+    #|    font_size: prop_int_field(fields, "font_size").unwrap_or(base.font_size),
+    #|    bold: prop_bool_field(fields, "bold").unwrap_or(base.bold),
+    #|    text_color: prop_string_field(fields, "text_color").unwrap_or(
+    #|      base.text_color,
+    #|    ),
+    #|    back_color: prop_string_field(fields, "back_color").unwrap_or(
+    #|      base.back_color,
+    #|    ),
+    #|    align: prop_string_field(fields, "align").unwrap_or(base.align),
+    #|    visible: prop_bool_field(fields, "visible").unwrap_or(base.visible),
+    #|    disabled: prop_bool_field(fields, "disabled").unwrap_or(base.disabled),
+    #|    multiline: prop_bool_field(fields, "multiline").unwrap_or(base.multiline),
+    #|    placeholder: prop_string_field(fields, "placeholder").unwrap_or(
+    #|      base.placeholder,
+    #|    ),
+    #|    password: prop_bool_field(fields, "password").unwrap_or(base.password),
+    #|  }
+    #|}
+    #|
+    #|///|
     #|fn decode_props(fields : Map[String, Json]) -> @ir.ControlProps {
     #|  match fields.get("props") {
     #|    Some(Object(prop_fields)) => decode_props_inner(prop_fields)

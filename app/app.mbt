@@ -2465,15 +2465,38 @@ fn update_with_provider(
           @moui.Effect::none(),
         )
       } else {
+        // 生成反馈（实测缺陷：提交后十几秒零反馈）：网络回执那段没有分片
+        // 可流（JSON mode 整包返回），但「正在生成提案…」的计划卡必须立刻
+        // 进时间线——`ai_busy` 只换发送键为停止态，不足以说明点在等什么。
+        // 回执到达时由 drop_ai_busy_card 摘掉（成功/失败两条路都摘）。
+        let busy = push_ai_card({ ..model, prompt_error: "", ai_busy: true, }, AiCard::{
+          kind: @ai.CardPlan,
+          title: text(translator(model), "app.ai.busy"),
+          body: "",
+          steps: [],
+          steps_done: 0,
+          progress: 0,
+          diff_lines: [],
+          settled: false,
+          settled_note: "",
+          seq: 0,
+          at: 0,
+        })
         (
-          { ..model, prompt_error: "", ai_busy: true, },
+          busy,
           @moui.Effect::dispatch(emit => {
-            // 提案要求 JSON 输出（G1）
+            // 提案要求 JSON 输出（G1）。**必须带当前程序**：提案是 patch，
+            // patch 的对象（控件/变量/子程序名）不随诉求出现在 prompt 里，
+            // 模型就只能凭空发明名字——实测「改按钮文案」落成 + 新按钮
+            // （见 @proposals.proposal_user_prompt 注释）。
             submit(
               provider_spec(
                 model,
                 system=@proposals.proposal_system_prompt(),
-                prompt=model.ai_sessions.current().prompt_draft,
+                prompt=@proposals.proposal_user_prompt(
+                  model.program,
+                  model.ai_sessions.current().prompt_draft,
+                ),
                 history=[],
                 json_mode=true,
                 on_chunk=None,
