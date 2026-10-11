@@ -150,14 +150,14 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         ),
       )
     ExplorerCollapseAll => {
-      // 全部折叠 = 折叠每个工程的根目录（树收成 N 行根）。子目录的折叠
-      // 记录一并清掉:否则再次展开某棵根树时,里面还记着上次的折叠态,
-      // 「全部折叠再全部展开」读起来像没生效。
-      let collapsed : Array[String] = []
-      let mut index = 0
-      while index < model.projects.length() {
+      // 全部折叠 = 折叠每棵根（含工作区根键 -1;漏掉它会把默认折叠的
+      // 根反过来展开）。子目录折叠记录一并清掉:否则再次展开某棵根树时,
+      // 里面还记着上次的折叠态,「全部折叠再全部展开」读起来像没生效。
+      let collapsed : Array[String] = [
+        root_collapse_key(WORKSPACE_ROOT_INDEX, ""),
+      ]
+      for index, _project in model.projects {
         collapsed.push(root_collapse_key(index, ""))
-        index = index + 1
       }
       Some(
         (

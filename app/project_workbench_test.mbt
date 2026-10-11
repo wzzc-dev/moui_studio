@@ -1481,7 +1481,8 @@ test "工程记录恢复:重建工作区树且不弹通知" {
   // ② 不弹通知
   assert_eq(restored.toasts.length(), 0, msg="启动恢复不应弹通知")
   // ③ 树的形态:examples 是可折叠中间目录,成员嵌在它下面
-  let rows = @app.explorer_rows_for_test(restored)
+  let expanded = { ..restored, project_tree_collapsed: [], }
+  let rows = @app.explorer_rows_for_test(expanded)
   let mut has_examples = false
   let mut has_member = false
   for r in rows {

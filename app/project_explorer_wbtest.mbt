@@ -25,6 +25,13 @@ fn explorer_draw(
 }
 
 ///|
+/// 展开全部根行:本文件里「树内容可见」的渲染断言都以展开态为前提,
+/// 「导入默认折叠」由专门的回归用例锁定,不在这里重复默认值。
+fn explorer_tree_expanded(model : Model) -> Model {
+  { ..model, project_tree_collapsed: [], }
+}
+
+///|
 /// counter 形工程扫描输入(黑盒测试文件里的同构 fixture 在白盒不可见,自留一份)。
 fn explorer_source() -> @project.ProjectSource {
   let mod_text =
@@ -72,7 +79,10 @@ test "explorer 渲染导入工程的模块名/包名/文件名" {
       ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   let texts = shell_texts(explorer_draw(opened, 1280.0, 800.0))
   let mut seen_module = false
   let mut seen_app_pkg = false
@@ -103,7 +113,10 @@ test "explorer 根文件与非包目录可见" {
       ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   let texts = shell_texts(explorer_draw(opened, 1280.0, 800.0))
   let mut seen_readme = false
   let mut seen_moon_mod = false
@@ -334,7 +347,10 @@ test "explorer 单树多根:两棵工程根同屏" {
       ProjectScanCompleted(Success(Ok(Workspace(scan)))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   // 两个成员同处工作区根之下（单树多根:一棵根,成员是它的子行）
   let rows = explorer_rows_for_test(opened)
   let mut seen_a = false
@@ -441,7 +457,10 @@ test "explorer 就地新建输入行跟随目标目录" {
       ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   // 在 app/ 下新建:输入行应排在 app 目录行之后、app 的文件之前
   let creating = explorer_apply(opened, FileCreateAt("app"))
   let runs = shell_texts(explorer_draw(creating, 1280.0, 800.0))
@@ -499,7 +518,10 @@ test "explorer 行内动作只在悬停行出现" {
       ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   // 没有悬停时,删除图标不应出现在任何行（`Trash` 图标只在悬停行的
   // trailing 里构造）。用带标签的语义节点数间接断言:没有悬停 → 动作
   // 视图不构造。
@@ -538,7 +560,10 @@ test "explorer 缩进导轨随深度增加" {
       ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   // 收集每一行左侧的竖线（宽 1pt 的窄填充）：浅层文件（根下）与深层文件
   // （docs/guide.md）都比对同一口径。
   let runs = shell_texts(explorer_draw(opened, 1280.0, 800.0))
@@ -610,7 +635,10 @@ test "explorer 事件级滚动:到底/回顶行均可见" {
       ProjectScanCompleted(Success(Ok(Single(explorer_big_source())))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   let studio_program = @moui.Program::new_with_environment(
     init=() => (opened, @moui.Effect::none()),
     update=(current, msg) => update_pure(current, msg),
@@ -870,7 +898,10 @@ test "explorer 工作区:根目录自己的文件可见" {
       ProjectScanCompleted(Success(Ok(Workspace(scan)))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   let rows = explorer_rows_for_test(opened)
   // 树上有工作区根行（下标 -1）
   let mut root_row = false
@@ -931,7 +962,10 @@ test "explorer 缩进导轨:透明占位格 + 1pt 细线" {
       ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
       services,
     ).0
-  let opened = explorer_apply(imported, SetLeftView(LeftProject))
+  let opened = explorer_apply(
+    explorer_tree_expanded(imported),
+    SetLeftView(LeftProject),
+  )
   let commands = explorer_draw(opened, 1280.0, 800.0)
   // 导轨格范围（x ∈ [50, 90)）内不得有不透明填充
   let mut opaque_blocks = 0
@@ -1044,11 +1078,13 @@ test "explorer 嵌套成员:中间目录可折叠" {
     failed: [],
     root_dirs: [],
   }
-  let imported = update_with_services(
+  let imported = explorer_tree_expanded(
+    update_with_services(
       initial_model(),
       ProjectScanCompleted(Success(Ok(Workspace(scan)))),
       services,
-    ).0
+    ).0,
+  )
   let rows = explorer_rows_for_test(imported)
   // ① examples 中间目录行存在
   let mut has_examples = false

@@ -174,6 +174,56 @@ pub fn active_project_of(model : Model) -> ProjectRecord? {
 }
 
 ///|
+/// 折叠键随工程表重排的映射（做 `upsert_project` 后必调）。
+///
+/// 键空间是「下标 + rel」,而 `upsert_project` 把新工程**插到表头**、已有
+/// 工程整体右移——不复位的话旧键会错位到别的根上,表现成「新导入一个
+/// 工程,原来折上的根突然展开」。规则:
+///
+/// - 不符任何旧成员下标的键（工作区根 `-1:`）原样保留;
+/// - 旧工程 → 新下标:整族 `旧下标:*` 键搬到 `新下标:*`;
+/// - 新出现的工程:种根键 `新下标:`（用户口径 = 默认只画根行）。
+fn remap_project_tree_collapsed(
+  old_projects : Array[ProjectRecord],
+  new_projects : Array[ProjectRecord],
+  collapsed : Array[String],
+) -> Array[String] {
+  let out : Array[String] = []
+  for key in collapsed {
+    let mut owned = false
+    for old_index, _project in old_projects {
+      if key.has_prefix(old_index.to_string() + ":") {
+        owned = true
+      }
+    }
+    if !owned {
+      out.push(key)
+    }
+  }
+  for new_index, project in new_projects {
+    let mut old_index = -1
+    for candidate, old_project in old_projects {
+      if old_project.root == project.root {
+        old_index = candidate
+      }
+    }
+    if old_index < 0 {
+      out.push(root_collapse_key(new_index, ""))
+    } else {
+      let prefix = old_index.to_string() + ":"
+      for key in collapsed {
+        if key.has_prefix(prefix) {
+          out.push(
+            root_collapse_key(new_index, key[prefix.length():].to_owned()),
+          )
+        }
+      }
+    }
+  }
+  out
+}
+
+///|
 /// 单模块导入(旧 ProjectWalkCompleted 单模块臂原样):upsert + 通知 +
 /// 预览 harness 落盘(逐文件写 .studio/preview,回执推进游标)。
 pub fn import_single_source(
@@ -185,8 +235,22 @@ pub fn import_single_source(
     Ok(record) => {
       // 同 root 原位替换（重复导入=刷新扫描），新工程成为当前选中
       let (projects, index) = upsert_project(model.projects, record)
+      // **新导入默认只画根行**（用户口径）,旧工程的折叠态跟着下标重排
+      // 一起搬;重扫刷新（同 root 原位替换）因此原样保留用户的展开态,
+      // 不会「新建/删除文件 → 重扫 → 树又折上」。
+      let collapsed = remap_project_tree_collapsed(
+        model.projects,
+        projects,
+        model.project_tree_collapsed,
+      )
       let notified = with_notice(
-        { ..model, projects, active_project: index, scan_progress: None, },
+        {
+          ..model,
+          projects,
+          active_project: index,
+          scan_progress: None,
+          project_tree_collapsed: collapsed,
+        },
         text_with(translator(model), "app.project.imported", [
           ("name", record.module_name),
         ]),
@@ -283,6 +347,24 @@ pub fn import_workspace_scan(
         ("reason", skipped[0]),
       ])
     }
+    // **新工作区默认只画根行**（用户口径）:工作区模式下树只有一棵根,
+    // 键固定用 WORKSPACE_ROOT_INDEX(-1);同一工作区重扫（刷新/恢复）
+    // 保留用户的展开态,换一个工作区导入 = 新根,重新折上。
+    let collapsed = remap_project_tree_collapsed(
+      model.projects,
+      projects,
+      model.project_tree_collapsed,
+    )
+    let same_workspace = match model.workspace_root {
+      Some(previous) => previous.root == scan.root
+      None => false
+    }
+    if !same_workspace {
+      let key = root_collapse_key(WORKSPACE_ROOT_INDEX, "")
+      if !collapsed.contains(key) {
+        collapsed.push(key)
+      }
+    }
     let assembled = {
       ..model,
       projects,
@@ -295,6 +377,7 @@ pub fn import_workspace_scan(
         dirs: scan.root_dirs,
       }),
       scan_progress: None,
+      project_tree_collapsed: collapsed,
     }
     // 启动恢复不弹通知（用户没发起导入）;主动导入才说话
     let notified = if silent {
@@ -445,7 +528,30 @@ pub fn finish_restore_active(model : Model) -> Model {
     }
     i = i + 1
   }
-  { ..model, active_project: index, restore_active_root: "", }
+  // boot 恢复与「新导入默认只画根行」同一口径:恢复完成后每个根都折叠。
+  // 单模块恢复臂绕过 import_single_source 直接 upsert,在这里统一补种;
+  // 工作区根键也种上（工作区模式渲染只用它,种成员键无副作用）。
+  let collapsed = model.project_tree_collapsed.copy()
+  let mut root = 0
+  while root < model.projects.length() {
+    let key = root_collapse_key(root, "")
+    if !collapsed.contains(key) {
+      collapsed.push(key)
+    }
+    root = root + 1
+  }
+  if model.workspace_root is Some(_) {
+    let key = root_collapse_key(WORKSPACE_ROOT_INDEX, "")
+    if !collapsed.contains(key) {
+      collapsed.push(key)
+    }
+  }
+  {
+    ..model,
+    active_project: index,
+    restore_active_root: "",
+    project_tree_collapsed: collapsed,
+  }
 }
 
 ///|
