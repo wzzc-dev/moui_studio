@@ -102,9 +102,9 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
               Some(
                 (
                   { ..cleared, new_project_confirmed: true, },
-                  @moui.Effect::dispatch(emit =>
-                    emit(NewProjectRequested(index)),
-                  ),
+                  @moui.Effect::dispatch(emit => {
+                    emit(NewProjectRequested(index))
+                  }),
                 ),
               )
             // 其余在纯链内同步续行：update_pure_inner 跳过守卫层，

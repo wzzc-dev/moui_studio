@@ -592,8 +592,6 @@
     "app.templates.hello": "Hello app",
     "app.templates.roll_call": "Class roll call",
     "app.templates.store": "Class store",
-    "app.terminal.input_hint": "Type a command…",
-    "app.terminal.run": "Run",
     "app.terminal.unavailable": "Terminal is unavailable on this platform (PTY requires native).",
     "app.terminal.waiting": "Switch to the AI mode bottom terminal to start a session.",
     "app.title": "MoUI Studio",

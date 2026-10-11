@@ -51,10 +51,7 @@ fn composer_run(model : Model) -> (Model, @moui.Effect[Msg]) {
     ComposeRepair => update_pure(with_prompt, RestoreCodeDraft)
     // 纯聊天（G1）：真实 provider 带多轮历史；回复以 markdown 消息卡进转录
     ComposeChat =>
-      (
-        with_prompt,
-        @moui.Effect::dispatch(emit => emit(ChatSubmit)),
-      )
+      (with_prompt, @moui.Effect::dispatch(emit => emit(ChatSubmit)))
     // 生成 = 以空程序为基底的修改：清空控件与子程序让提案从零重建，
     // 走的还是同一个 proposals 校验链（不是「另一条生成通道」）。
     ComposeGenerate => {
@@ -68,16 +65,10 @@ fn composer_run(model : Model) -> (Model, @moui.Effect[Msg]) {
           structs: [],
         },
       }
-      (
-        cleared,
-        @moui.Effect::dispatch(emit => emit(GenerateProposal)),
-      )
+      (cleared, @moui.Effect::dispatch(emit => emit(GenerateProposal)))
     }
     ComposeEdit =>
-      (
-        with_prompt,
-        @moui.Effect::dispatch(emit => emit(GenerateProposal)),
-      )
+      (with_prompt, @moui.Effect::dispatch(emit => emit(GenerateProposal)))
   }
 }
 
@@ -626,13 +617,31 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
       match result {
         Ok(explanation) => {
           let titled = text(translator(model), "app.ai.card.explain")
-          let settled = settle_streaming_card({ ..model, ai_busy: false }, titled, explanation)
-          Some(({ ..settled, explanation, ai_streaming: false }, @moui.Effect::none()))
+          let settled = settle_streaming_card(
+            { ..model, ai_busy: false, },
+            titled,
+            explanation,
+          )
+          Some(
+            (
+              { ..settled, explanation, ai_streaming: false, },
+              @moui.Effect::none(),
+            ),
+          )
         }
         Err(message) => {
           let titled = text(translator(model), "app.ai.card.explain")
-          let settled = settle_streaming_card({ ..model, ai_busy: false }, titled, message)
-          Some(({ ..settled, explanation: message, ai_streaming: false }, @moui.Effect::none()))
+          let settled = settle_streaming_card(
+            { ..model, ai_busy: false, },
+            titled,
+            message,
+          )
+          Some(
+            (
+              { ..settled, explanation: message, ai_streaming: false, },
+              @moui.Effect::none(),
+            ),
+          )
         }
       }
     SetProviderEndpoint(value) =>

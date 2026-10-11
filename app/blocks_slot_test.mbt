@@ -712,8 +712,9 @@ test "writing a target note round-trips into the AI context" {
   // 读到了（不是只写进了字段）。
   let handler = @app.current_handler(written).unwrap()
   assert_true(
-    @studio_lang.render_handler(handler, written.language.dsl_language())
-    .contains("这段负责出题与批改"),
+    @studio_lang.render_handler(handler, written.language.dsl_language()).contains(
+      "这段负责出题与批改",
+    ),
   )
   // 写的是**当前界面语言**那一份。模板自带的说明占了另一份（英文模板写
   // `note_en`、中文写 `note_zh`），所以这里断言「本语言那份被改成新值」，

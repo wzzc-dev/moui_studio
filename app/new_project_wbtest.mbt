@@ -5,7 +5,11 @@
 ///|
 test "skeleton files form a self-contained moonbit module" {
   let root = "/tmp/folder-projects-smoke"
-  let files = new_project_skeleton_files(root, "my-app", @proposals.sample_hello())
+  let files = new_project_skeleton_files(
+    root,
+    "my-app",
+    @proposals.sample_hello(),
+  )
   // 路径前缀与关键文件齐备
   assert_true(files.length() > 10)
   let mut has_mod = false
@@ -124,18 +128,21 @@ test "program snapshot restores the stored program" {
   let model = initial_model()
   let json = @codec.encode_program(@proposals.sample_drill())
   let restored = update_with_services(
-    model,
-    ProjectProgramLoaded(Success(json)),
-    @services.AppServices::new(),
-  ).0
-  assert_eq(@ir.program_signature(restored.program), @ir.program_signature(@proposals.sample_drill()))
+      model,
+      ProjectProgramLoaded(Success(json)),
+      @services.AppServices::new(),
+    ).0
+  assert_eq(
+    @ir.program_signature(restored.program),
+    @ir.program_signature(@proposals.sample_drill()),
+  )
   // 基线对齐：恢复不产生脏标记
   assert_false(program_has_work(restored))
   // 坏快照：结构化报错，不载入
   let broken = update_with_services(
-    model,
-    ProjectProgramLoaded(Success("不是 IR")),
-    @services.AppServices::new(),
-  ).0
+      model,
+      ProjectProgramLoaded(Success("不是 IR")),
+      @services.AppServices::new(),
+    ).0
   assert_true(broken.notice.contains("快照"))
 }

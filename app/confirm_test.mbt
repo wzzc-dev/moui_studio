@@ -32,10 +32,10 @@ test "new project is guarded only when work exists" {
   // 出厂初始模型没有用户改动：直接放行（进入选目录流）
   let fresh = @app.initial_model()
   let applied = @app.update_with_services(
-    @app.initial_model(export_available=true),
-    @app.NewProjectRequested(3),
-    @services.AppServices::new(),
-  ).0
+      @app.initial_model(export_available=true),
+      @app.NewProjectRequested(3),
+      @services.AppServices::new(),
+    ).0
   assert_true(applied.pending_confirm is None)
   assert_true(applied.new_project is Some(_))
   // 用户改过（dirty）：先确认。编辑语义在 DSL 外观下进行（M5-5e：
@@ -46,10 +46,10 @@ test "new project is guarded only when work exists" {
   )
   let committed = apply(dirty, @app.SetMode(@app.ModePreview))
   let asked = @app.update_with_services(
-    committed,
-    @app.NewProjectRequested(0),
-    @services.AppServices::new(),
-  ).0
+      committed,
+      @app.NewProjectRequested(0),
+      @services.AppServices::new(),
+    ).0
   assert_true(asked.pending_confirm is Some(_))
   // 确认续行经一次性放行标记重投服务流消息（目录选择在服务层）
   let applied2 = apply(asked, @app.ConfirmAccepted)

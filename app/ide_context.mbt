@@ -142,6 +142,7 @@ fn context_block_editor(
         22.0,
         13.0,
         ide_elevated(),
+        hovered=model.hover_hint,
       ),
       ghost_icon_button(
         Clipboard,
@@ -152,6 +153,7 @@ fn context_block_editor(
         22.0,
         13.0,
         ide_elevated(),
+        hovered=model.hover_hint,
       ),
       ghost_icon_button(
         Trash,
@@ -162,6 +164,7 @@ fn context_block_editor(
         22.0,
         13.0,
         ide_elevated(),
+        hovered=model.hover_hint,
       ),
     ],
     spacing=4.0,
@@ -357,6 +360,7 @@ fn context_head(
         18.0,
         18.0,
         10.0,
+        hovered=model.hover_hint,
       ),
     )
   }
@@ -373,6 +377,7 @@ fn context_head(
       20.0,
       20.0,
       12.0,
+      hovered=model.hover_hint,
     ),
   )
   @views.container(
@@ -1061,6 +1066,7 @@ fn quick_actions(
                 icon_w,
                 AiActionHeight,
                 13.0,
+                hovered=model.hover_hint,
               ),
               icon_button(
                 Columns,
@@ -1070,6 +1076,7 @@ fn quick_actions(
                 icon_w,
                 AiActionHeight,
                 13.0,
+                hovered=model.hover_hint,
               ),
               icon_button(
                 ChevronRight,
@@ -1079,6 +1086,7 @@ fn quick_actions(
                 icon_w,
                 AiActionHeight,
                 13.0,
+                hovered=model.hover_hint,
               ),
               icon_button(
                 Clipboard,
@@ -1088,6 +1096,7 @@ fn quick_actions(
                 icon_w,
                 AiActionHeight,
                 13.0,
+                hovered=model.hover_hint,
               ),
               icon_button(
                 Trash,
@@ -1097,6 +1106,7 @@ fn quick_actions(
                 icon_w,
                 AiActionHeight,
                 13.0,
+                hovered=model.hover_hint,
               ),
               // 手搓而不是 @views.button：button 的 width 是**最小值**，
               // 内容加左右各 16 的内垫会把 64 撑成 ~88，右栏窄时整行溢出

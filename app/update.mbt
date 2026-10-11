@@ -639,13 +639,11 @@ pub fn load_template_program(model : Model, index : Int) -> Model {
   // 代码工程骨架待落盘（M6①，M1 事件化）：发出 EvCodeProjectWrite +
   // IR 快照写盘事件，组合根监听器据此写 form.mbt/handlers.mbt（+ 内嵌
   // IR）/ `<root>/.studio/program.json`
-  sync_code_draft(
-    {
-      ..emit_program_snapshot(emit_code_project_write(next)),
-      selected_control: first_control_name(program.controls),
-      selected_handler: first_handler_key(program.handlers),
-    },
-  )
+  sync_code_draft({
+    ..emit_program_snapshot(emit_code_project_write(next)),
+    selected_control: first_control_name(program.controls),
+    selected_handler: first_handler_key(program.handlers),
+  })
 }
 
 ///|
@@ -658,20 +656,22 @@ pub fn load_program_state(
   root : String,
 ) -> Model {
   sync_code_draft({
-    ..emit_program_snapshot(emit_code_project_write({
-      ..model,
-      program,
-      pending: None,
-      run: None,
-      selected_block: -1,
-      block_draft: "",
-      runtime_values: @studio_lang.initial_values(program),
-      runtime_texts: @studio_lang.initial_texts(program),
-      runtime_rows: @studio_lang.initial_rows(program),
-      runtime_selections: Map([], capacity=4),
-      saved_encoding: @codec.encode_program(program),
-      program_root: root,
-    })),
+    ..emit_program_snapshot(
+      emit_code_project_write({
+        ..model,
+        program,
+        pending: None,
+        run: None,
+        selected_block: -1,
+        block_draft: "",
+        runtime_values: @studio_lang.initial_values(program),
+        runtime_texts: @studio_lang.initial_texts(program),
+        runtime_rows: @studio_lang.initial_rows(program),
+        runtime_selections: Map([], capacity=4),
+        saved_encoding: @codec.encode_program(program),
+        program_root: root,
+      }),
+    ),
     selected_control: first_control_name(program.controls),
     selected_handler: first_handler_key(program.handlers),
   })

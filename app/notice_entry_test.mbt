@@ -173,20 +173,29 @@ test "studio commands really execute: templates, blank, help, preview" {
   let model = @app.initial_model()
   // 教案核心样例必须可达：命令面板把新建工程消息**经效果派发**回程序环
   // （选目录在服务层，纯链没有对话框）——效果形状即契约。
-  let drill_effect = @app.update_pure(model, StudioCommandRun("studio.template.drill")).1
+  let drill_effect = @app.update_pure(
+      model,
+      StudioCommandRun("studio.template.drill"),
+    ).1
   assert_true(effect_is_dispatch(drill_effect))
-  let store_effect = @app.update_pure(model, StudioCommandRun("studio.template.store")).1
+  let store_effect = @app.update_pure(
+      model,
+      StudioCommandRun("studio.template.store"),
+    ).1
   assert_true(effect_is_dispatch(store_effect))
   // 新建空白程序：同一条派发通道（模板下标 -1）
-  let blank_effect = @app.update_pure(model, StudioCommandRun("studio.file.new")).1
+  let blank_effect = @app.update_pure(
+      model,
+      StudioCommandRun("studio.file.new"),
+    ).1
   assert_true(effect_is_dispatch(blank_effect))
   // 服务层真的接得住：草稿就位且带模板下标（目录选择能力仅 native，
   // 测试用 export_available=true 的初始模型绕开 Web 降级）
   let drill = @app.update_with_services(
-    @app.initial_model(export_available=true),
-    @app.NewProjectRequested(2),
-    @services.AppServices::new(),
-  ).0
+      @app.initial_model(export_available=true),
+      @app.NewProjectRequested(2),
+      @services.AppServices::new(),
+    ).0
   assert_true(drill.new_project is Some(_))
   assert_eq(drill.new_project.unwrap().template_index, 2)
   // 帮助 / 预览全屏页可达，且有返回出口（SetMode(ModeDesign)）

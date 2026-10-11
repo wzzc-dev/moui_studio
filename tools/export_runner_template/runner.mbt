@@ -16,6 +16,7 @@ pub(all) enum Msg {
   ToggleCheck(String) // 勾选框切换（视觉态，编译轨语义外）
   Answer(Bool) // 闸门应答：true=确认，false=拒绝
   ToggleDiag // 展开/收起诊断面板（变量 / 消息 / 审计）
+  NoopEdit // 禁用 TextField 的输入接收器（属性 v2 disabled：吃掉输入不派发）
 }
 
 ///|
@@ -129,6 +130,7 @@ pub fn update(model : Model, msg : Msg) -> Model {
       model
     }
     ToggleDiag => { ..model, diag_open: !model.diag_open, }
+    NoopEdit => model
   }
 }
 
@@ -226,17 +228,45 @@ pub fn fit_scale(
 ///|
 /// 单个控件的舞台渲染（表单应用域 6 类）：尺寸/位置由舞台帧驱动，
 /// 与设计画布同款观感。
+///
+/// 属性 v2（G7.2 持久链 P3）：字号/加粗/前景/背景/对齐/可见/禁用在此点
+/// 消费 `control.props`——与 Studio 的 `form_widget`（app/views.mbt）同一
+/// 组论文口径，两处必须同步改（跨 bundle 不能 import，且 Studio 侧挂在
+/// IDE 主题上下文，不能整函数搬）。改动后必须
+/// `moon run moui_studio/tools/sync_kernel --target native`（runner 模板
+/// 逐字节同步进 kernel_runner.mbt，`--check` 在 export_test 里守漂移）。
 fn stage_widget(model : Model, control : @ir.Control) -> @moui.View[Msg] {
+  // 不可见 = 空视图（舞台帧仍占位，布局与设计稿一致）
+  if !control.props.visible {
+    return @views.empty()
+  }
+  let props = control.props
+  let theme = runner_prop_theme(props)
+  let fg = runner_prop_color(props.text_color)
+  let bg = runner_prop_color(props.back_color)
   let value = model.machine.texts.get(control.name).unwrap_or(control.text)
-  match control.kind {
-    @ir.Label => @views.text(value, align=TextStart)
+  let view = match control.kind {
+    @ir.Label =>
+      match theme {
+        Some(t) => @views.text(value, align=runner_prop_align(props.align), theme=t)
+        None => @views.text(value, align=runner_prop_align(props.align))
+      }
     @ir.Button =>
-      @views.button(value, on_click=Trigger(control.name, @ir.OnClick))
+      if props.disabled {
+        @views.button(value)
+      } else {
+        @views.button(value, on_click=Trigger(control.name, @ir.OnClick))
+      }
     @ir.TextField =>
-      @views.text_field(
-        value,
-        on_input=new_text => EditText(control.name, new_text),
-      )
+      if props.disabled {
+        @views.text_field(value, on_input=_new => NoopEdit)
+      } else {
+        @views.text_field(
+          value,
+          on_input=new_text => EditText(control.name, new_text),
+          placeholder=props.placeholder,
+        )
+      }
     @ir.CheckBox =>
       @views.checkbox(
         value,
@@ -310,6 +340,119 @@ fn stage_widget(model : Model, control : @ir.Control) -> @moui.View[Msg] {
         width=control.width.to_double(),
         height=control.height.to_double(),
       )
+  }
+  runner_finish_prop_view(view, fg, bg)
+}
+
+///|
+/// 属性收口（G7.2 持久链 P3）：文字颜色/背景色修饰器（空值跳过）。
+/// 与 Studio `finish_prop_view`（app/views.mbt）同口径。
+fn runner_finish_prop_view(
+  view : @moui.View[Msg],
+  fg : @core.Color?,
+  bg : @core.Color?,
+) -> @moui.View[Msg] {
+  let view = match fg {
+    Some(color) => view.foreground(color)
+    None => view
+  }
+  match bg {
+    Some(color) => view.background_brush(@graphics.Brush::solid(color))
+    None => view
+  }
+}
+
+///|
+/// 属性 → 主题排版覆盖（G7.2 P3）：字号/加粗统一到全部角色；默认返回 None。
+/// 与 Studio `prop_theme`（app/views.mbt）同口径；内联在此避免 runner 依赖
+/// app 包（导出产物自包含口径，与 runner_theme 同款）。
+fn runner_prop_theme(props : @ir.ControlProps) -> @core.Theme? {
+  if props.font_size <= 0 && !props.bold {
+    return None
+  }
+  let base = runner_theme()
+  let ty = base.typography
+  let size = if props.font_size > 0 {
+    props.font_size.to_double()
+  } else {
+    ty.body.size
+  }
+  let weight = if props.bold { 600 } else { 400 }
+  fn role(spec : @core.FontSpec) -> @core.FontSpec {
+    { ..spec, size, weight, }
+  }
+  Some(
+    @core.Theme::with_typography(base, {
+      display: role(ty.display),
+      headline: role(ty.headline),
+      title: role(ty.title),
+      subtitle: role(ty.subtitle),
+      body: role(ty.body),
+      label: role(ty.label),
+      caption: role(ty.caption),
+      overline: role(ty.overline),
+      control: role(ty.control),
+    }),
+  )
+}
+
+///|
+/// 属性 → 颜色（G7.2 P3）：#RRGGBB → Color；空串/非法 = None。
+/// 与 Studio `prop_color`（app/views.mbt）同口径。
+fn runner_prop_color(hex : String) -> @core.Color? {
+  if hex.length() != 7 {
+    return None
+  }
+  fn hex_pair(high : Char, low : Char) -> Int? {
+    fn digit(c : Char) -> Int? {
+      let code = c.to_int()
+      if code >= 48 && code <= 57 {
+        Some(code - 48)
+      } else if code >= 97 && code <= 102 {
+        Some(code - 87)
+      } else if code >= 65 && code <= 70 {
+        Some(code - 55)
+      } else {
+        None
+      }
+    }
+    match (digit(high), digit(low)) {
+      (Some(h), Some(l)) => Some(h * 16 + l)
+      _ => None
+    }
+  }
+  let chars : Array[Char] = []
+  for ch in hex {
+    chars.push(ch)
+  }
+  if chars[0] != '#' {
+    return None
+  }
+  match
+    (
+      hex_pair(chars[1], chars[2]),
+      hex_pair(chars[3], chars[4]),
+      hex_pair(chars[5], chars[6]),
+    ) {
+    (Some(r), Some(g), Some(b)) =>
+      Some(
+        @core.Color::rgba(
+          r=r.to_double() / 255.0,
+          g=g.to_double() / 255.0,
+          b=b.to_double() / 255.0,
+        ),
+      )
+    _ => None
+  }
+}
+
+///|
+/// 属性 → 文本对齐（G7.2 P3）：空 = start；与 Studio `prop_align` 同口径。
+fn runner_prop_align(align : String) -> @core.TextAlign {
+  match align {
+    "center" => TextCenter
+    "end" => TextEnd
+    _ => TextStart
   }
 }
 

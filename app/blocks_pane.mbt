@@ -68,6 +68,7 @@ pub fn blocks_pane(
         24.0,
         22.0,
         13.0,
+        hovered=model.hover_hint,
       ),
       // 隐藏此窗格（设计稿 #btnHideBlocks）
       icon_button(
@@ -78,6 +79,7 @@ pub fn blocks_pane(
         24.0,
         22.0,
         13.0,
+        hovered=model.hover_hint,
       ),
     ],
     tail=text(t, "app.pane.blocks.sub"),

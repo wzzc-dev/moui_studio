@@ -75,20 +75,22 @@ pub fn form_design_apply_move(
   let control = controls[index]
   let new_x = control.x + dx
   let new_y = control.y + dy
-  // span 补丁:x/y 两个字段(补丁后重解析得到权威内存模型)
+  // span 补丁:x/y 两个字段(补丁后重解析得到权威内存模型)。
+  // **从右往左打**(先 y 后 x):字面量长度会变(10 → 25.0),先打左边
+  // 会让右边 span 整体漂移——实测症状 `x=25.0, 15.0y=20`。
   let spans = session.parsed.spans[index]
   let source = session.source
-  let source = @form_designer.apply_number_patch(
-    source,
-    spans.x,
-    spans.x + @form_designer.number_len(source, spans.x),
-    @form_designer.double_literal(new_x),
-  )
   let source = @form_designer.apply_number_patch(
     source,
     spans.y,
     spans.y + @form_designer.number_len(source, spans.y),
     @form_designer.double_literal(new_y),
+  )
+  let source = @form_designer.apply_number_patch(
+    source,
+    spans.x,
+    spans.x + @form_designer.number_len(source, spans.x),
+    @form_designer.double_literal(new_x),
   )
   // 重新解析(span 位移到新位置)——解析失败则回退原会话
   match @form_designer.parse_form(source) {
@@ -112,19 +114,20 @@ pub fn form_design_apply_resize(
   let control = controls[index]
   let new_w = control.width + width
   let new_h = control.height + height
+  // 同上:从右往左(先 height 后 width),避免左侧补丁让右侧 span 漂移。
   let spans = session.parsed.spans[index]
   let source = session.source
-  let source = @form_designer.apply_number_patch(
-    source,
-    spans.width,
-    spans.width + @form_designer.number_len(source, spans.width),
-    @form_designer.double_literal(new_w),
-  )
   let source = @form_designer.apply_number_patch(
     source,
     spans.height,
     spans.height + @form_designer.number_len(source, spans.height),
     @form_designer.double_literal(new_h),
+  )
+  let source = @form_designer.apply_number_patch(
+    source,
+    spans.width,
+    spans.width + @form_designer.number_len(source, spans.width),
+    @form_designer.double_literal(new_w),
   )
   match @form_designer.parse_form(source) {
     Err(_) => (session, false)

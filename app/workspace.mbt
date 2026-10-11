@@ -43,6 +43,7 @@ pub fn live_pane(
         24.0,
         22.0,
         13.0,
+        hovered=model.hover_hint,
       ),
       // 设计稿每个窗格头都有「隐藏此窗格」（#btnHideLive / #btnHideBlocks）
       icon_button(
@@ -53,6 +54,7 @@ pub fn live_pane(
         24.0,
         22.0,
         13.0,
+        hovered=model.hover_hint,
       ),
     ],
   )

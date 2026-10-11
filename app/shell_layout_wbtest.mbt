@@ -881,7 +881,9 @@ test "generate mode starts from an empty program" {
   assert_true(cleared.program.handlers.is_empty())
   // 清空基底上喂真实回执：提案恢复控件（同一校验链）
   let generated = with_pending_roll_call(cleared)
-  guard generated.pending is Some(pending) else { fail("no proposal generated") }
+  guard generated.pending is Some(pending) else {
+    fail("no proposal generated")
+  }
   assert_true(pending.valid)
   // 提案恢复了控件（生成语义），不是空提案
   assert_true(pending.proposal.controls_add.length() > 0)

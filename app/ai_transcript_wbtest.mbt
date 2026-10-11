@@ -36,7 +36,6 @@ fn ai_transcript_model() -> Model {
   with_pending_roll_call(asked)
 }
 
-
 ///|
 test "transcript shows user bubble right aligned and session header" {
   // 只推一张用户气泡卡（内容短于视口,贴底钳制回 0,气泡必在视口内）；

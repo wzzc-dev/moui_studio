@@ -42,11 +42,10 @@ fn with_pending_roll_call(model : @app.Model) -> @app.Model {
     ..proposal,
     controls_remove: model.program.controls.map(control => control.name),
     variables_remove: model.program.variables.map(variable => variable.name),
-    handlers_remove: model.program.handlers.map(handler =>
-      @proposals.HandlerRef::{
-        control: handler.control_name,
-        event: handler.event.tag(),
-      }),
+    handlers_remove: model.program.handlers.map(handler => @proposals.HandlerRef::{
+      control: handler.control_name,
+      event: handler.event.tag(),
+    }),
   }
   @app.proposal_from_completion(model, @proposals.encode_proposal(rebuild))
 }
@@ -474,7 +473,10 @@ test "runtime state accumulates across events" {
 
 ///|
 test "list selection survives the next handler run" {
-  let started = apply(@app.load_template_program(@app.initial_model(), 1), RunStart)
+  let started = apply(
+    @app.load_template_program(@app.initial_model(), 1),
+    RunStart,
+  )
   let picked = apply(started, ControlPicked("名单", 2))
   assert_eq(picked.runtime_selections.get("名单").unwrap_or(-1), 2)
   assert_eq(picked.run.unwrap().state.selections.get("名单").unwrap_or(-1), 2)
@@ -484,7 +486,9 @@ test "list selection survives the next handler run" {
 
 ///|
 test "table row selection dispatches its supported click handler" {
-  let model = dsl_edit_model(@app.load_template_program(@app.initial_model(), 3))
+  let model = dsl_edit_model(
+    @app.load_template_program(@app.initial_model(), 3),
+  )
   let table = @ir.find_control(model.program, "商品表").unwrap()
   let with_handler = apply(model, CreateHandler(table.name, @ir.OnClick))
   let edited = apply(
@@ -501,7 +505,9 @@ test "table row selection dispatches its supported click handler" {
 
 ///|
 test "append row persists across handlers without changing the program" {
-  let model = dsl_edit_model(@app.load_template_program(@app.initial_model(), 1))
+  let model = dsl_edit_model(
+    @app.load_template_program(@app.initial_model(), 1),
+  )
   let edited = apply(model, EditCode("追加行(名单, \"新同学\")\n"))
   // 装填后**点按钮**才执行（运行不再替用户跑一遍）
   let finished = drain(
@@ -580,7 +586,7 @@ test "explanation prompt payload covers every template in both languages" {
 
 ///|
 test "exported bundle never carries the provider key" {
-  let model = { ..@app.initial_model(), provider_key: "SENTINEL-SECRET-KEY" }
+  let model = { ..@app.initial_model(), provider_key: "SENTINEL-SECRET-KEY", }
   let encoded = @codec.encode_program(model.program)
   let bundle = @app.bundle_files(encoded, "x")
   assert_true(bundle.length() > 10)
@@ -1053,7 +1059,7 @@ test "deleting an unselected control preserves the current selection" {
 
 ///|
 test "real generation result becomes pending proposal, failure surfaces" {
-  let model = { ..@app.initial_model(), provider_key: "k" }
+  let model = { ..@app.initial_model(), provider_key: "k", }
   // 真实生成成功：补全文本走校验链 → 待采纳提案；busy 复位
   let completion = @proposals.encode_proposal(
     @proposals.proposal_from_program(
@@ -1821,7 +1827,7 @@ test "ai perspective walks prompt to proposal to accept with isolated sessions" 
 test "real explanation streams chunks and stop truncates cleanly" {
   let services = @services.AppServices::new()
   // 密钥掩码态会忽略 SetProviderKey 输入——测试直接展开字段
-  let model = { ..@app.initial_model(), provider_key: "k" }
+  let model = { ..@app.initial_model(), provider_key: "k", }
   // 启动流式讲解：流式卡就位（空 body）+ 标志为真
   let (streaming, _effect) = @app.update_with_launch_for_test(
     model,
@@ -1863,7 +1869,7 @@ test "real explanation streams chunks and stop truncates cleanly" {
   // 正常完成路径：RealExplanationFinished 结算流式卡并复位标志
   // （会话切片共享可变，避免与前段别名）
   let (fresh_stream, _) = @app.update_with_launch_for_test(
-    { ..@app.initial_model(), provider_key: "k" },
+    { ..@app.initial_model(), provider_key: "k", },
     ExplainHandler,
     services,
     fn(_path, _done) { () },
@@ -1876,8 +1882,10 @@ test "real explanation streams chunks and stop truncates cleanly" {
 }
 
 ///|
-/// M5 验收：终端页签的消息流——派生回执挂句柄、PTY 输出喂屏、输入行经
-/// 服务写出（Dispatch 效应真调 fake write）、关闭触发 kill（生命周期）。
+/// M5/M8 验收：终端页签的消息流——派生回执挂句柄、PTY 输出喂屏、直连
+/// 键入经服务写出（Dispatch 效应真调 fake write）、关闭触发 kill。
+/// 行输入协议（TerminalInput/TerminalType）已随 M9 收尾删除：生产入口
+/// 唯一为 keyboard_input → TerminalWrite 直通。
 test "terminal tab message flow spawns writes and closes via pty service" {
   let services = @services.AppServices::new()
   // fake PTY 服务：记录派生/写入/终止（无头不真起 PTY）
@@ -1919,27 +1927,21 @@ test "terminal tab message flow spawns writes and closes via pty service" {
     ).0
   assert_eq(out.terminal.screen.length(), 2)
   assert_eq(out.terminal.screen[0], "user@host % ls")
-  // 输入行提交：Dispatch 效应真调 fake write（run 即执行）
-  let typed = @app.update_with_services(
-      out,
-      TerminalType("ls -la"),
-      services,
-      pty~,
-    ).0
-  assert_eq(typed.terminal.input_draft, "ls -la")
-  assert_true(typed.terminal.running())
+  // 直连键入：keyboard_input 编码后的字节经 TerminalWrite 派发
+  // Dispatch 效应真调 fake write（run 即执行）
   assert_true(pty.available)
-  let (_m, effect) = @app.update_with_services(
-    typed,
-    TerminalInput,
+  let (typed, effect) = @app.update_with_services(
+    out,
+    TerminalWrite("ls -la\r"),
     services,
     pty~,
   )
   match effect {
     @moui.Effect::Dispatch(run) => run(_msg => ())
-    _ => fail("TerminalInput 应派发写入效应")
+    _ => fail("TerminalWrite 应派发写入效应")
   }
-  assert_eq(written.val, "ls -la\n")
+  assert_eq(written.val, "ls -la\r")
+  assert_true(typed.terminal.running())
   // 派生触发在包装层 effect（本测试不经包装层）；派生计数由真机冒烟覆盖
   // 关闭：kill 一次（Dispatch 效应手动泵）+ 句柄清空（屏保留回看）
   let (_cm, close_effect) = @app.update_with_services(

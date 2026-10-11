@@ -1246,6 +1246,7 @@ fn composer(
         20.0,
         11.0,
         ghost_surface,
+        hovered=model.hover_hint,
       ),
     )
     foot_cells.push(
@@ -1260,6 +1261,7 @@ fn composer(
         20.0,
         11.0,
         ghost_surface,
+        hovered=model.hover_hint,
       ),
     )
     foot_cells.push(
@@ -1272,6 +1274,7 @@ fn composer(
         20.0,
         11.0,
         ghost_surface,
+        hovered=model.hover_hint,
       ),
     )
   }

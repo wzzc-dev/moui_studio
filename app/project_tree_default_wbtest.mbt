@@ -109,7 +109,10 @@ test "嵌套成员:中间目录与成员行都默认折叠" {
     ToggleProjectDirAt(WORKSPACE_ROOT_INDEX, ""),
   )
   let rows = explorer_rows_for_test(expanded)
-  assert_true(rows.contains("dir--1:examples"), msg="展开根后应见中间目录")
+  assert_true(
+    rows.contains("dir--1:examples"),
+    msg="展开根后应见中间目录",
+  )
   assert_false(
     rows.contains("dir-0:examples/terminal"),
     msg="中间目录未展开时成员行不应可见",

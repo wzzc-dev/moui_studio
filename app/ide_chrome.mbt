@@ -398,34 +398,32 @@ pub fn icon_button(
   height : Double,
   icon_size : Double,
   tile? : Bool = true,
+  hovered? : String = "",
 ) -> @moui.View[Msg] {
   // VS Code 活动栏口径：选中 = **深灰微高亮底 + 白色字形**（不是蓝底蓝字
   // ——蓝色块连排是「不协调」的主因）；未选中 = 灰字形裸露（底色与所在
   // 表面同色，即视觉透明）。`tile=false` 时选中也不画底块（颜色两态保留：
   // 亮字 = 活动态）。
   let tint = if selected { ide_text() } else { ide_text_muted() }
-  @views.container(
-    @views.center(
-      @views.icon(icon, size=icon_size, color=tint),
-      width=width - 8.0,
-      height=height - 8.0,
-    ),
-    background=if selected && tile { ide_hover() } else { ide_panel() },
-    corner_radius=4.0,
-    width~,
-    height~,
-    padding=0.0,
-  )
-  .accessibility_label(tip)
-  // 悬停把说明写进状态栏：图标按钮没有文字，状态栏提示是 IDE 的成熟口径
-  // （VS Code/IDEA 的图标悬停解释区），且对键盘用户同样可达。
-  //
-  // 注：框架**有**可用的 `@views.tooltip`（见 controls/control_focus_overlay.mbt，
-  // 走 presentation 定位浮层，`examples/excel` 在用）。这里不用它，是因为
-  // tooltip 需要调用方自己持有 `visible` 状态与逐元素的 hover 追踪，而顶栏
-  // 图标簇共用一处状态栏格已经够用；换成浮层是可选优化，不是能力缺失。
-  .on_hover(active => HoverHint(if active { tip } else { "" }))
-  .on_tap(on_click)
+  let button = @views.container(
+      @views.center(
+        @views.icon(icon, size=icon_size, color=tint),
+        width=width - 8.0,
+        height=height - 8.0,
+      ),
+      background=if selected && tile { ide_hover() } else { ide_panel() },
+      corner_radius=4.0,
+      width~,
+      height~,
+      padding=0.0,
+    )
+    .accessibility_label(tip)
+    // 悬停把说明写进状态栏（一站式提示）；同时在指针处弹框架浮层 tooltip。
+    // tooltip 需调用方持有 visible 状态：`hovered` 由组合根传 `model.hover_hint`，
+    // 与 `on_hover` 写状态同源——同一时刻只有被悬停的那个按钮可见。
+    .on_hover(active => HoverHint(if active { tip } else { "" }))
+    .on_tap(on_click)
+  @views.tooltip(button, tip, visible=tip != "" && hovered == tip)
 }
 
 ///|
@@ -441,36 +439,36 @@ pub fn ghost_icon_button(
   height : Double,
   icon_size : Double,
   surface : @core.Color,
+  hovered? : String = "",
 ) -> @moui.View[Msg] {
-  @views.container(
-    @views.center(
-      @views.icon(
-        icon,
-        size=icon_size,
-        color=if selected {
-          ide_accent()
-        } else if tip == "" {
-          ide_text_faint()
-        } else {
-          ide_text_muted()
-        },
+  let button = @views.container(
+      @views.center(
+        @views.icon(
+          icon,
+          size=icon_size,
+          color=if selected {
+            ide_accent()
+          } else if tip == "" {
+            ide_text_faint()
+          } else {
+            ide_text_muted()
+          },
+        ),
+        width~,
+        height~,
       ),
+      background=if selected { ide_selection() } else { surface },
+      corner_radius=6.0,
       width~,
       height~,
-    ),
-    background=if selected { ide_selection() } else { surface },
-    corner_radius=6.0,
-    width~,
-    height~,
-    padding=0.0,
-  )
-  .accessibility_label(tip)
-  // 悬停把说明写进状态栏：图标按钮没有文字，状态栏提示是 IDE 的成熟口径
-  // （VS Code/IDEA 的图标悬停解释区），且键盘用户同样可达。
-  // 框架另有可用的 `@views.tooltip`（定位浮层，`examples/excel` 在用）——
-  // 这里不用它是因为整簇图标共用一处状态栏格已经够用，不是能力缺失。
-  .on_hover(active => HoverHint(if active { tip } else { "" }))
-  .on_tap(on_click)
+      padding=0.0,
+    )
+    .accessibility_label(tip)
+    // 悬停把说明写进状态栏 + 指针处弹框架 tooltip（与 icon_button 同口径：
+    // `hovered` 由组合根传 `model.hover_hint`，同一时刻只有被悬停者可见）。
+    .on_hover(active => HoverHint(if active { tip } else { "" }))
+    .on_tap(on_click)
+  @views.tooltip(button, tip, visible=tip != "" && hovered == tip)
 }
 
 ///|
@@ -596,7 +594,9 @@ pub fn text_chip(
     width~,
     height=22.0,
     padding=0.0,
-  ).on_tap(on_click)
+  )
+  .accessibility_label(label)
+  .on_tap(on_click)
 }
 
 ///|

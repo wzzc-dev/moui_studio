@@ -441,11 +441,11 @@ test "纯聊天:无 key 提交给结构化引导" {
   )
   // 无 key（程序级臂）：composer 下方红字引导（不弹卡、不占转录）
   let ran = @app.update_with_launch_for_test(
-    asked,
-    ChatSubmit,
-    @services.AppServices::new(),
-    fn(_path, _done) { () },
-  ).0
+      asked,
+      ChatSubmit,
+      @services.AppServices::new(),
+      fn(_path, _done) { () },
+    ).0
   assert_true(ran.prompt_error.contains("密钥"), msg=ran.prompt_error)
   assert_false(ran.ai_busy)
   assert_eq(ran.ai_sessions.current().cards.length(), 0)

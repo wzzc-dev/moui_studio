@@ -592,8 +592,6 @@
     "app.templates.hello": "问候小程序",
     "app.templates.roll_call": "班级点名册",
     "app.templates.store": "班级小卖部",
-    "app.terminal.input_hint": "输入命令…",
-    "app.terminal.run": "执行",
     "app.terminal.unavailable": "本平台没有终端能力（PTY 仅 native）。",
     "app.terminal.waiting": "切到 AI 模式底栏终端即可开启会话。",
     "app.title": "MoUI Studio",

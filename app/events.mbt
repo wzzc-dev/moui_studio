@@ -78,9 +78,9 @@ fn emit_code_project_write_to(model : Model, dir : String) -> Model {
       }
     None => (files.form_mbt, "")
   }
-  model
-  .outbox
-  .push(EvCodeProjectWrite(dir, form_mbt, files.handlers_mbt, project_data))
+  model.outbox.push(
+    EvCodeProjectWrite(dir, form_mbt, files.handlers_mbt, project_data),
+  )
   model
 }
 
@@ -99,9 +99,7 @@ pub fn emit_program_snapshot(model : Model) -> Model {
   }
   match root {
     Some(root) => {
-      model
-      .outbox
-      .push(
+      model.outbox.push(
         EvProgramSnapshotWrite(
           "\{root}/\{PROGRAM_SNAPSHOT_REL}",
           @codec.encode_program(model.program),

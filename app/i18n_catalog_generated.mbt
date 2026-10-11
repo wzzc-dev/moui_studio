@@ -361,7 +361,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.shortcut.run", GeneratedI18nMessage::Text("Run program")),
       ("app.status.saved", GeneratedI18nMessage::Text("Project saved")),
       ("app.stmt.tpl.ask", GeneratedI18nMessage::Text("Ask and wait")),
-      ("app.terminal.run", GeneratedI18nMessage::Text("Run")),
       ("app.variable.new", GeneratedI18nMessage::Text("New variable")),
       ("blocks.set_index", GeneratedI18nMessage::Text("Set element")),
       ("builtin.contains", GeneratedI18nMessage::Text("contains")),
@@ -1247,10 +1246,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.stmt.tpl.append_row", GeneratedI18nMessage::Text("append_row")),
       ("app.templates.roll_call", GeneratedI18nMessage::Text("Class roll call")),
-      (
-        "app.terminal.input_hint",
-        GeneratedI18nMessage::Text("Type a command…"),
-      ),
       ("app.topbar.bottom_panel", GeneratedI18nMessage::Text("Bottom panel")),
       ("app.tree.create.control", GeneratedI18nMessage::Text("New control")),
       (
@@ -2326,7 +2321,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.shortcut.run", GeneratedI18nMessage::Text("运行程序")),
       ("app.status.saved", GeneratedI18nMessage::Text("已保存项目")),
       ("app.stmt.tpl.ask", GeneratedI18nMessage::Text("询问并等待")),
-      ("app.terminal.run", GeneratedI18nMessage::Text("执行")),
       ("app.variable.new", GeneratedI18nMessage::Text("新建变量")),
       ("blocks.set_index", GeneratedI18nMessage::Text("元素赋值")),
       ("builtin.contains", GeneratedI18nMessage::Text("文本包含")),
@@ -3179,7 +3173,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.stmt.tpl.append_row", GeneratedI18nMessage::Text("追加行")),
       ("app.templates.roll_call", GeneratedI18nMessage::Text("班级点名册")),
-      ("app.terminal.input_hint", GeneratedI18nMessage::Text("输入命令…")),
       ("app.topbar.bottom_panel", GeneratedI18nMessage::Text("底栏")),
       ("app.tree.create.control", GeneratedI18nMessage::Text("新建控件")),
       (

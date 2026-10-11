@@ -58,19 +58,23 @@ pub fn new_project_skeleton_files(
   // 必须自包含）。
   files.push(("\{root}/domain/ir/moon.pkg", @export.ir_pkg()))
   files.push(
-    ("\{root}/domain/studio_lang/moon.pkg", @export.studio_lang_pkg(module_name)),
+    (
+      "\{root}/domain/studio_lang/moon.pkg",
+      @export.studio_lang_pkg(module_name),
+    ),
   )
   files.push(("\{root}/domain/codec/moon.pkg", @export.codec_pkg(module_name)))
   files.push(
-    ("\{root}/compiled_runtime/moon.pkg", @export.compiled_runtime_pkg(module_name)),
+    (
+      "\{root}/compiled_runtime/moon.pkg",
+      @export.compiled_runtime_pkg(module_name),
+    ),
   )
   files.push(("\{root}/app/moon.pkg", @export.app_pkg(module_name)))
   for pair in @export.kernel_file_sources() {
     files.push(("\{root}/\{pair.0}", pair.1))
   }
-  files.push(
-    ("\{root}/app/project_data.mbt", @export.project_data_mbt(json)),
-  )
+  files.push(("\{root}/app/project_data.mbt", @export.project_data_mbt(json)))
   files.push(("\{root}/app/handlers.mbt", @export.generated_handlers_mbt(json)))
   // form.mbt 不进应用骨架：render_form 产出的 `on_click=<handler 函数名>`
   // 引用编译轨函数，与 @views 的 Msg 参数类型不兼容（workbench M6 的
@@ -95,10 +99,7 @@ pub fn is_studio_app_bundle(project : ProjectRecord) -> Bool {
 }
 
 ///|
-fn package_files_of(
-  project : ProjectRecord,
-  rel : String,
-) -> Array[String]? {
+fn package_files_of(project : ProjectRecord, rel : String) -> Array[String]? {
   for pkg in project.scanned.packages {
     if pkg.rel_path == rel {
       return Some(pkg.files)
@@ -126,14 +127,14 @@ pub fn dir_is_writable(root : String) -> Result[Unit, String] {
   if !@x/fs.path_exists(root) {
     return Err("目录不存在：\{root}")
   }
-  let is_dir = @x/fs.is_dir(root) catch {
-    _ => false
-  }
+  let is_dir = @x/fs.is_dir(root) catch { _ => false }
   if !is_dir {
     return Err("不是目录：\{root}")
   }
   if @x/fs.path_exists("\{root}/moon.mod") {
-    return Err("目录已是 MoonBit 模块（\{root}/moon.mod 在）——换个空文件夹新建")
+    return Err(
+      "目录已是 MoonBit 模块（\{root}/moon.mod 在）——换个空文件夹新建",
+    )
   }
   Ok(())
 }
@@ -178,11 +179,7 @@ pub fn ensure_dir_under(dir : String) -> Unit {
       prefix = "/"
       continue
     }
-    prefix = if prefix == "/" {
-      "/" + seg
-    } else {
-      prefix + "/" + seg
-    }
+    prefix = if prefix == "/" { "/" + seg } else { prefix + "/" + seg }
     ignore(@x/fs.create_dir(prefix) catch { _ => () })
   }
 }
@@ -217,10 +214,7 @@ fn write_next_project_file(
 /// 走 import_single_source 的既有管道——注册 ProjectRecord、置活跃、写
 /// 预览 harness——再装载模板程序（撤销点/运行态/选中态重置同一纪律），
 /// 记 program_root。骨架文件已含 IR 快照，恢复流下次激活即可用。
-fn finish_new_project(
-  model : Model,
-  services : @services.AppServices,
-) -> Model {
+fn finish_new_project(model : Model, services : @services.AppServices) -> Model {
   match model.new_project {
     Some(draft) => {
       let root = match draft.files.get(0) {
@@ -236,9 +230,12 @@ fn finish_new_project(
         root,
         module_manifest: @export.moon_mod(module_name),
         package_sources: [
-          ("app", pkg_text, true, [
-            "runner.mbt", "project_data.mbt", "handlers.mbt",
-          ]),
+          (
+            "app",
+            pkg_text,
+            true,
+            ["runner.mbt", "project_data.mbt", "handlers.mbt"],
+          ),
         ],
         dirs: [],
       }
@@ -250,9 +247,7 @@ fn finish_new_project(
       let loaded = load_template_program(imported, draft.template_index)
       let done = push_toast(
         loaded,
-        text_with(translator(loaded), "app.project.created", [
-          ("a", root),
-        ]),
+        text_with(translator(loaded), "app.project.created", [("a", root)]),
         false,
       )
       {
@@ -335,7 +330,11 @@ fn new_project_root_picked(
       match model.new_project {
         Some(draft) => {
           let module_name = new_project_module_name(root)
-          let files = new_project_skeleton_files(root, module_name, draft.program)
+          let files = new_project_skeleton_files(
+            root,
+            module_name,
+            draft.program,
+          )
           match dir_is_writable(root) {
             Err(message) =>
               (
@@ -347,7 +346,7 @@ fn new_project_root_picked(
               ensure_skeleton_dirs(files)
               let draft = { ..draft, files, }
               write_next_project_file(
-                { ..model, new_project: Some(draft) },
+                { ..model, new_project: Some(draft), },
                 services,
               )
             }

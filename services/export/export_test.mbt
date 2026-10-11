@@ -185,6 +185,29 @@ test "导出应用是可执行的（含领域内核 + runner 驱动）" {
 }
 
 ///|
+/// 属性 v2 P3（G7.2）：导出的 runner 必须消费 `control.props`——与 Studio
+/// 的 form_widget 同口径（字号/颜色/对齐/可见/禁用）。
+///
+/// 回归意义：P3 的「导出应用渲染一致（kernel 同步再生）」此前只落了
+/// Studio 侧 form_widget；runner 模板没消费 props，导出应用里调好字号/颜色
+/// 的控件会静默回退默认外观。本测试钉住 runner 模板的消费点（同步内核
+/// 逐字节携带），真正编译验证由 emit_bundle 冒烟 + `moon check` 承担。
+test "导出的 runner 消费控件属性 v2（字号/颜色/可见/禁用）" {
+  let files = @export.export_bundle(SAMPLE_PROJECT, "demo")
+  let runner = bundle_file(files, "/app/runner.mbt")
+  assert_true(runner.contains("control.props.visible"))
+  assert_true(runner.contains("runner_prop_theme("))
+  assert_true(runner.contains("runner_prop_color("))
+  assert_true(runner.contains("runner_prop_align("))
+  assert_true(runner.contains("with_typography"))
+  assert_true(runner.contains("runner_finish_prop_view("))
+  // 禁用 Button 不得挂 on_click（与 Studio form_widget 同纪律）
+  assert_true(runner.contains("props.disabled"))
+  // TextField 占位符透传
+  assert_true(runner.contains("placeholder=props.placeholder"))
+}
+
+///|
 /// 按路径后缀取 bundle 文件内容（避免依赖 files 数组顺序）。
 fn bundle_file(files : Array[(String, String)], suffix : String) -> String {
   let matches = files.filter(fn(pair) { pair.0.has_suffix(suffix) })

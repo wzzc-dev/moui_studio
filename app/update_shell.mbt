@@ -149,7 +149,7 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           @moui.Effect::none(),
         ),
       )
-    ExplorerCollapseAll => {
+    ExplorerCollapseAll =>
       // 全部折叠 = 整棵树逐层折上:每棵根、工作区/工程的每一层目录
       // （含成员行与成员内部）都种折叠键。枚举与「导入后整棵树默认折叠」
       // 共用 collapse_all_tree_keys——各写一遍必然漏层,「全部折叠」就会
@@ -164,7 +164,6 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           @moui.Effect::none(),
         ),
       )
-    }
     ExplorerScrolled(offset) =>
       Some(({ ..model, explorer_scroll: offset, }, @moui.Effect::none()))
     ProjectFileLoaded(rel, result) =>

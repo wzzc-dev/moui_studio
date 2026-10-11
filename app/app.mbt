@@ -144,20 +144,6 @@ pub fn update_with_services(
       model.terminal.handle = handle
       (model, @moui.Effect::none())
     }
-    TerminalInput =>
-      match (model.terminal.take_input(), model.terminal.handle) {
-        (Some(line), Some(handle)) =>
-          if pty.available {
-            (model, @moui.Effect::dispatch(_emit => (pty.write)(handle, line)))
-          } else {
-            (model, @moui.Effect::none())
-          }
-        _ => (model, @moui.Effect::none())
-      }
-    TerminalType(text) => {
-      model.terminal.type_text(text)
-      (model, @moui.Effect::none())
-    }
     // 终端页签关闭（M8）：kill PTY + 开关复位 + 页签退选到 Console +
     // 底栏收起（屏保留回看；重开 = 再点页签，重派生条件自动成立）
     TerminalTabClose =>
@@ -1016,8 +1002,7 @@ pub fn update_with_services(
     // 入口（空舞台按钮 / 命令面板）发 NewProjectRequested；脏程序先经
     // CkNewProject 确认（续行置 new_project_confirmed 一次性放行标记）。
     // 链条实现见 new_project.mbt（行数预算：app.mbt 只留分发）。
-    NewProjectRequested(index) =>
-      new_project_requested(model, index, services)
+    NewProjectRequested(index) => new_project_requested(model, index, services)
     NewProjectRootPicked(result) =>
       new_project_root_picked(model, result, services)
     NewProjectFileWritten(result) =>
@@ -1958,8 +1943,7 @@ pub fn program(
   // 程序 IR 快照（folder projects）：恢复 / AI 继续编辑的事实源
   bus.on("studio.snapshot", fn(event) {
     match event {
-      EvProgramSnapshotWrite(path, json) =>
-        [SnapshotWriteRequested(path, json)]
+      EvProgramSnapshotWrite(path, json) => [SnapshotWriteRequested(path, json)]
       _ => []
     }
   })
@@ -2068,7 +2052,11 @@ pub fn program(
           (
             model,
             code_project_write_effect(
-              services.files(), dir~, form_mbt~, handlers_mbt~, project_data~,
+              services.files(),
+              dir~,
+              form_mbt~,
+              handlers_mbt~,
+              project_data~,
             ),
           )
         SnapshotWriteRequested(path, json) =>
@@ -2356,14 +2344,13 @@ fn provider_spec(
     endpoint: model.provider_endpoint,
     key: model.provider_key,
     model: model.provider_model,
-    system: system,
-    prompt: prompt,
-    history: history,
-    json_mode: json_mode,
-    on_chunk: on_chunk,
+    system,
+    prompt,
+    history,
+    json_mode,
+    on_chunk,
   }
 }
-
 
 ///|
 /// 带真实 provider 的服务流（GenerateProposal 走网络）。
@@ -2442,7 +2429,7 @@ fn update_with_provider(
           Some(handler) => {
             // 流式卡预置：分片经 StreamChunk 追加进它（与旧假路径同一卡流）
             let streaming = push_streaming_card(
-              { ..model, explanation: "", ai_busy: true, ai_streaming: true },
+              { ..model, explanation: "", ai_busy: true, ai_streaming: true, },
               text(translator(model), "app.ai.card.explain"),
             )
             (
@@ -2502,7 +2489,7 @@ fn update_with_provider(
         Ok(reply) => {
           // 分片已流进预置卡：结算为全文，不再另推新卡
           let settled = settle_streaming_card(
-            { ..model, ai_busy: false, ai_streaming: false },
+            { ..model, ai_busy: false, ai_streaming: false, },
             titled,
             reply,
           )
@@ -2510,7 +2497,7 @@ fn update_with_provider(
         }
         Err(message) => {
           let errored = push_error_card(
-            { ..model, ai_busy: false, ai_streaming: false },
+            { ..model, ai_busy: false, ai_streaming: false, },
             message,
           )
           (errored, @moui.Effect::none())
@@ -2531,7 +2518,7 @@ fn update_with_provider(
         let history = chat_history(model)
         // 流式回复卡预置：分片追加进它，完成时结算为全文
         let streaming = push_streaming_card(
-          { ..model, ai_busy: true, ai_streaming: true },
+          { ..model, ai_busy: true, ai_streaming: true, },
           text(translator(model), "app.ai.chat.title"),
         )
         (
@@ -2542,7 +2529,7 @@ fn update_with_provider(
                 model,
                 system=chat_system_prompt(),
                 prompt=model.ai_sessions.current().prompt_draft,
-                history=history,
+                history~,
                 json_mode=false,
                 on_chunk=Some(chunk => emit(StreamChunk(chunk))),
               ),

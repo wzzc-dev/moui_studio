@@ -109,6 +109,7 @@ pub fn preview_workspace(
               24.0,
               24.0,
               12.0,
+              hovered=model.hover_hint,
             ),
           ],
           spacing=8.0,

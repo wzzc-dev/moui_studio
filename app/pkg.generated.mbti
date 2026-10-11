@@ -504,7 +504,7 @@ pub fn gate_pending(Model) -> Bool
 
 pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog]
 
-pub fn ghost_icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, @core.Color) -> @core.View[Msg]
+pub fn ghost_icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, @core.Color, hovered? : String) -> @core.View[Msg]
 
 pub fn group_can_create(String) -> Bool
 
@@ -522,7 +522,7 @@ pub fn hit_test_control(Array[@ir.Control], Double, Double) -> @ir.Control?
 
 pub fn hit_test_handle(@ir.Control, Double, Double) -> @ir.DragCorner?
 
-pub fn icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, tile? : Bool) -> @core.View[Msg]
+pub fn icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, tile? : Bool, hovered? : String) -> @core.View[Msg]
 
 pub fn ide_accent() -> @core.Color
 
@@ -1579,9 +1579,7 @@ pub(all) enum Msg {
   AiSessionOp(@ai.AiSessionMsg)
   TerminalOutput(String)
   TerminalSpawned(Int?)
-  TerminalInput
   TerminalClose
-  TerminalType(String)
   TerminalWrite(String)
   TerminalTabClose
   FocusTerminalRequest

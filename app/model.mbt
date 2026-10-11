@@ -1242,14 +1242,12 @@ pub(all) enum Msg {
   /// AI 会话操作（M3 插件化）：新建/切换/删除，经 Feature::scope 委托
   /// 给 plugins/ai 的状态切片
   AiSessionOp(@ai.AiSessionMsg)
-  /// 终端（M5 插件）：PTY 输出增量 / 派生回执 / 提交输入行 / 关闭会话
+  /// 终端（M5 插件）：PTY 输出增量 / 派生回执 / 关闭会话
   TerminalOutput(String)
   TerminalSpawned(Int?)
-  TerminalInput
   TerminalClose
-  /// 终端输入行键入（受控 text_field 增量）
-  TerminalType(String)
-  /// 终端直连键入（M8 交互式：键盘/文本输入经 keyboard_input 透传给 PTY）
+  /// 终端直连键入（M8 交互式：键盘/文本输入经 keyboard_input 透传给 PTY；
+  /// 行输入协议 TerminalInput/TerminalType 已于 2026-10-11 随 M9 收尾删除）
   TerminalWrite(String)
   /// 终端页签开关（M8）：再点选中的终端页签 = 关闭（kill + 收起）；关闭态
   /// 再点 = 重开（重派生）
