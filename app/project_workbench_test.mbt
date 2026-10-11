@@ -151,11 +151,16 @@ test "explorer 纯导航:选中工程/折叠目录/选中文件(再点取消)" {
       services,
     ).0
   // 折叠/展开翻转（单树多根:键 = 根下标 + rel;不同工程的同名目录各折各的）
+  // 导入后 app/ 已默认种键 → 第一次切换是「展开」,第二次才是「折叠」。
   let key = @app.root_collapse_key(0, "app")
-  let folded = @app.update_pure(imported, ToggleProjectDirAt(0, "app")).0
-  assert_true(folded.project_tree_collapsed.contains(key))
-  let unfolded = @app.update_pure(folded, ToggleProjectDirAt(0, "app")).0
+  assert_true(
+    imported.project_tree_collapsed.contains(key),
+    msg="导入后目录应默认折叠",
+  )
+  let unfolded = @app.update_pure(imported, ToggleProjectDirAt(0, "app")).0
   assert_false(unfolded.project_tree_collapsed.contains(key))
+  let folded = @app.update_pure(unfolded, ToggleProjectDirAt(0, "app")).0
+  assert_true(folded.project_tree_collapsed.contains(key))
   // 根下标参与键:第 1 棵树的 `app/` 折叠不影响第 0 棵
   let other = @app.update_pure(folded, ToggleProjectDirAt(1, "app")).0
   assert_true(
@@ -282,24 +287,31 @@ test "explorer 工作区根文件:归属反查不污染活动工程" {
 }
 
 ///|
-/// 「全部折叠」收成 N 行根,并清掉子目录折叠记录（否则折完再展开某棵树,
-/// 里面还记着上次的折叠态,读起来像没生效）。
-test "explorer 全部折叠:根全折,子目录记录清空" {
+/// 「全部折叠」收成 N 行根,并把子目录/成员行也一并种键——这样再逐层展开
+/// 时「折过的层仍是折的」,不会把之前的展开态补回来。
+test "explorer 全部折叠:根与子目录全折" {
   let services = @services.AppServices::new()
   let imported = @app.update_with_services(
       @app.initial_model(),
       ProjectScanCompleted(Success(Ok(Single(counter_source())))),
       services,
     ).0
-  let nested = @app.update_pure(imported, ToggleProjectDirAt(0, "app")).0
-  assert_true(nested.project_tree_collapsed.length() > 0)
-  let collapsed = @app.update_pure(nested, ExplorerCollapseAll).0
+  // 展开根与 app/ 两层（其余目录仍是默认折叠,这里不走全树展开）
+  let opened = @app.update_pure(imported, ToggleProjectDirAt(0, "")).0
+  let fully_open = @app.update_pure(opened, ToggleProjectDirAt(0, "app")).0
+  assert_false(
+    fully_open.project_tree_collapsed.contains(@app.root_collapse_key(0, "")),
+  )
+  assert_false(
+    fully_open.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+  )
+  let collapsed = @app.update_pure(fully_open, ExplorerCollapseAll).0
   assert_true(
     collapsed.project_tree_collapsed.contains(@app.root_collapse_key(0, "")),
   )
-  assert_false(
+  assert_true(
     collapsed.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
-    msg="子目录折叠记录应被全部折叠清掉",
+    msg="全部折叠应连子目录一起折上",
   )
 }
 
@@ -322,10 +334,20 @@ test "explorer 就地新建:目标目录参与 rel 拼接" {
   let in_app = @app.update_pure(imported, FileCreateAt("app")).0
   assert_eq(in_app.file_create_dir, "app")
   assert_eq(@app.join_rel(in_app.file_create_dir, "main.mbt"), "app/main.mbt")
-  // 就地新建会把目标目录从折叠集里摘掉（否则输入行折在树里看不见）
+  // 就地新建会把目标目录从折叠集里摘掉（否则输入行折在树里看不见）:
+  // 导入后 app/ 默认折叠,FileCreateAt 必须先展开它。
+  assert_true(
+    imported.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    msg="导入后 app/ 应默认折叠",
+  )
+  assert_false(
+    in_app.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    msg="FileCreateAt 应展开目标目录",
+  )
   let folded = @app.update_pure(in_app, ToggleProjectDirAt(0, "app")).0
   assert_true(
     folded.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    msg="再次切换应折回目标目录",
   )
   let reopened = @app.update_pure(folded, FileCreateAt("app")).0
   assert_false(

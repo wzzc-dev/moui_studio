@@ -150,20 +150,15 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         ),
       )
     ExplorerCollapseAll => {
-      // 全部折叠 = 折叠每棵根（含工作区根键 -1;漏掉它会把默认折叠的
-      // 根反过来展开）。子目录折叠记录一并清掉:否则再次展开某棵根树时,
-      // 里面还记着上次的折叠态,「全部折叠再全部展开」读起来像没生效。
-      let collapsed : Array[String] = [
-        root_collapse_key(WORKSPACE_ROOT_INDEX, ""),
-      ]
-      for index, _project in model.projects {
-        collapsed.push(root_collapse_key(index, ""))
-      }
+      // 全部折叠 = 整棵树逐层折上:每棵根、工作区/工程的每一层目录
+      // （含成员行与成员内部）都种折叠键。枚举与「导入后整棵树默认折叠」
+      // 共用 collapse_all_tree_keys——各写一遍必然漏层,「全部折叠」就会
+      // 折了根却把里面的文件夹留着。
       Some(
         (
           {
             ..model,
-            project_tree_collapsed: collapsed,
+            project_tree_collapsed: collapse_all_tree_keys(model),
             explorer_scroll: @core.Point::new(x=0.0, y=0.0),
           },
           @moui.Effect::none(),

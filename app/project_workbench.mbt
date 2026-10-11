@@ -174,6 +174,129 @@ pub fn active_project_of(model : Model) -> ProjectRecord? {
 }
 
 ///|
+/// 一个折叠键并入数组（已存在则不动;重复种键必须幂等——导入、恢复、
+/// 全部折叠三条路径共用同一份枚举）。
+fn push_collapse_key(collapsed : Array[String], key : String) -> Unit {
+  if !collapsed.contains(key) {
+    collapsed.push(key)
+  }
+}
+
+///|
+/// 工程根在某工作区根之下的相对路径（不在其下 = ""）。
+///
+/// 与 `tree_rel_of_project` 同口径;独立成函数是因为导入时新
+/// `WorkspaceRecord` 还没挂上模型,不能走 Model 版本。
+fn tree_rel_under_workspace(
+  workspace_root : String,
+  project_root : String,
+) -> String {
+  if project_root.has_prefix(workspace_root + "/") {
+    project_root[workspace_root.length() + 1:].to_owned()
+  } else {
+    ""
+  }
+}
+
+///|
+/// 成员路径的**中间层**目录折叠键（`examples/terminal` → 种 `examples`;
+/// 单段成员没有中间层）。成员自己那一行由工程键（`index, member_rel`）
+/// 承担,不在这里重复。
+fn push_member_prefix_keys(
+  collapsed : Array[String],
+  member_rel : String,
+) -> Unit {
+  let mut i = 0
+  for c in member_rel {
+    if c == '/' {
+      push_collapse_key(
+        collapsed,
+        root_collapse_key(WORKSPACE_ROOT_INDEX, member_rel[0:i].to_owned()),
+      )
+    }
+    i = i + 1
+  }
+}
+
+///|
+/// 种一个工程那一行的折叠键与它内部每一层目录的键。
+///
+/// `row_rel` = 工程行在树上的 rel:单模块模式是 ""（根行）,工作区模式
+/// 是成员相对工作区根的路径（`examples/terminal`）。内部目录键两种形态
+/// 都一样用**工程相对路径**——`push_dir_subtree` / `push_member_dir_subtree`
+/// 的键就是这么取的。
+fn seed_project_collapse_keys(
+  collapsed : Array[String],
+  index : Int,
+  project : ProjectRecord,
+  row_rel : String,
+) -> Unit {
+  push_collapse_key(collapsed, root_collapse_key(index, row_rel))
+  push_member_prefix_keys(collapsed, row_rel)
+  for dir in project.scanned.dirs {
+    if dir.rel_path != "" {
+      push_collapse_key(collapsed, root_collapse_key(index, dir.rel_path))
+    }
+  }
+}
+
+///|
+/// 工作区模式:种工作区根、工作区每层目录与每个成员那一整棵子树。
+fn seed_workspace_collapse_keys(
+  collapsed : Array[String],
+  projects : Array[ProjectRecord],
+  workspace : WorkspaceRecord,
+) -> Unit {
+  push_collapse_key(collapsed, root_collapse_key(WORKSPACE_ROOT_INDEX, ""))
+  for dir in workspace.dirs {
+    if dir.rel_path != "" {
+      push_collapse_key(
+        collapsed,
+        root_collapse_key(WORKSPACE_ROOT_INDEX, dir.rel_path),
+      )
+    }
+  }
+  let mut index = 0
+  for project in projects {
+    seed_project_collapse_keys(
+      collapsed,
+      index,
+      project,
+      tree_rel_under_workspace(workspace.root, project.root),
+    )
+    index = index + 1
+  }
+}
+
+///|
+/// 种**当前模型**下整棵树的折叠键:工作区模式 = 根 + 工作区每层目录 +
+/// 每个成员;单模块模式 = 每个工程根 + 每层目录。
+///
+/// 「导入/恢复后整棵树默认折叠」与「全部折叠」共用这一份枚举——两处
+/// 各写一遍必然漏层（这正是「根折上了,里面的文件夹还开着」的原因）。
+fn seed_all_collapse_keys(collapsed : Array[String], model : Model) -> Unit {
+  match model.workspace_root {
+    Some(workspace) =>
+      seed_workspace_collapse_keys(collapsed, model.projects, workspace)
+    None => {
+      let mut index = 0
+      for project in model.projects {
+        seed_project_collapse_keys(collapsed, index, project, "")
+        index = index + 1
+      }
+    }
+  }
+}
+
+///|
+/// 「全部折叠」的目标折叠集（整棵树逐层折上）。
+fn collapse_all_tree_keys(model : Model) -> Array[String] {
+  let collapsed : Array[String] = []
+  seed_all_collapse_keys(collapsed, model)
+  collapsed
+}
+
+///|
 /// 折叠键随工程表重排的映射（做 `upsert_project` 后必调）。
 ///
 /// 键空间是「下标 + rel」,而 `upsert_project` 把新工程**插到表头**、已有
@@ -235,14 +358,23 @@ pub fn import_single_source(
     Ok(record) => {
       // 同 root 原位替换（重复导入=刷新扫描），新工程成为当前选中
       let (projects, index) = upsert_project(model.projects, record)
-      // **新导入默认只画根行**（用户口径）,旧工程的折叠态跟着下标重排
-      // 一起搬;重扫刷新（同 root 原位替换）因此原样保留用户的展开态,
-      // 不会「新建/删除文件 → 重扫 → 树又折上」。
+      // **新导入整棵树默认折叠**（用户口径）:根与每层目录都种折叠键,
+      // 展开一层才见下一层。旧工程的折叠态跟着下标重排一起搬;重扫刷新
+      // （同 root 原位替换）因此原样保留用户的展开态,不会「新建/删除
+      // 文件 → 重扫 → 树又折上」。
       let collapsed = remap_project_tree_collapsed(
         model.projects,
         projects,
         model.project_tree_collapsed,
       )
+      if project_index_of_root(model, record.root) < 0 {
+        let row_rel = match model.workspace_root {
+          Some(workspace) =>
+            tree_rel_under_workspace(workspace.root, record.root)
+          None => ""
+        }
+        seed_project_collapse_keys(collapsed, index, record, row_rel)
+      }
       let notified = with_notice(
         {
           ..model,
@@ -347,9 +479,9 @@ pub fn import_workspace_scan(
         ("reason", skipped[0]),
       ])
     }
-    // **新工作区默认只画根行**（用户口径）:工作区模式下树只有一棵根,
-    // 键固定用 WORKSPACE_ROOT_INDEX(-1);同一工作区重扫（刷新/恢复）
-    // 保留用户的展开态,换一个工作区导入 = 新根,重新折上。
+    // **新工作区整棵树默认折叠**（用户口径）:根、工作区每层目录、每个
+    // 成员行与成员内部每层目录都种键,展开一层才见下一层。同一工作区
+    // 重扫（刷新/恢复）保留用户的展开态,换一个工作区导入 = 新根,重新折上。
     let collapsed = remap_project_tree_collapsed(
       model.projects,
       projects,
@@ -359,23 +491,21 @@ pub fn import_workspace_scan(
       Some(previous) => previous.root == scan.root
       None => false
     }
+    // 工作区根记录:资源管理器的单根行。没有它,根上的
+    // moon.work/README.md/gradlew 在树里没有出现的位置。
+    let workspace = WorkspaceRecord::{
+      root: scan.root,
+      name: workspace_display_name(scan.root),
+      dirs: scan.root_dirs,
+    }
     if !same_workspace {
-      let key = root_collapse_key(WORKSPACE_ROOT_INDEX, "")
-      if !collapsed.contains(key) {
-        collapsed.push(key)
-      }
+      seed_workspace_collapse_keys(collapsed, projects, workspace)
     }
     let assembled = {
       ..model,
       projects,
       active_project: last_index,
-      // 工作区根记录:资源管理器的单根行。没有它,根上的
-      // moon.work/README.md/gradlew 在树里没有出现的位置。
-      workspace_root: Some(WorkspaceRecord::{
-        root: scan.root,
-        name: workspace_display_name(scan.root),
-        dirs: scan.root_dirs,
-      }),
+      workspace_root: Some(workspace),
       scan_progress: None,
       project_tree_collapsed: collapsed,
     }
@@ -528,24 +658,11 @@ pub fn finish_restore_active(model : Model) -> Model {
     }
     i = i + 1
   }
-  // boot 恢复与「新导入默认只画根行」同一口径:恢复完成后每个根都折叠。
-  // 单模块恢复臂绕过 import_single_source 直接 upsert,在这里统一补种;
-  // 工作区根键也种上（工作区模式渲染只用它,种成员键无副作用）。
+  // boot 恢复与「导入后整棵树默认折叠」同一口径:恢复完成后根与每层
+  // 目录都种折叠键,展开一层见一层。单模块恢复臂绕过 import_single_source
+  // 直接 upsert,在这里统一补种;工作区模式连同中间目录与成员行一起种。
   let collapsed = model.project_tree_collapsed.copy()
-  let mut root = 0
-  while root < model.projects.length() {
-    let key = root_collapse_key(root, "")
-    if !collapsed.contains(key) {
-      collapsed.push(key)
-    }
-    root = root + 1
-  }
-  if model.workspace_root is Some(_) {
-    let key = root_collapse_key(WORKSPACE_ROOT_INDEX, "")
-    if !collapsed.contains(key) {
-      collapsed.push(key)
-    }
-  }
+  seed_all_collapse_keys(collapsed, model)
   {
     ..model,
     active_project: index,
