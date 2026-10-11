@@ -107,7 +107,7 @@ test "each call argument is independently hittable" {
 /// 走的是 `replace_expr_at`（表达式级手术）。
 test "dropping a reporter into a slot replaces that subexpression" {
   // 造一条 `x = 1 + 2`，把右操作数（1）换成别的表达式
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let chain = @app.block_chain_of(model)
   assert_true(chain.length() >= 1)
   // 选第一条语句，把它的根表达式（若可）当作洞
@@ -134,7 +134,7 @@ test "dropping a reporter into a slot replaces that subexpression" {
 ///
 /// 静默什么都不做会让用户以为拖拽坏了；而「悄悄写进去」更糟。
 test "dropping a reporter outside a slot is reported and changes nothing" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let before = @app.block_chain_of(model).map(item => item.text)
   let dropped = apply({ ..model, expr_drag: Some(0), }, ExpressionDrop(-1, []))
   assert_true(dropped.notice != "")
@@ -181,7 +181,7 @@ test "expression templates are not inserted as statements" {
 /// 与整行草稿编辑的关键差别：整行草稿会把用户没碰的部分也重写一遍
 /// （缩进、括号、内建名的规范写法都可能变），而用户只想改一个数。
 test "editing a value changes only that leaf" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let picked = apply(model, SelectBlockStep(1))
   assert_true(picked.selected_block >= 0)
   let index = picked.selected_block
@@ -213,7 +213,7 @@ test "editing a value changes only that leaf" {
 ///
 /// 不校验就会出现「点运算的凹槽弹出文本框」，与「拖一块进去」的语义冲突。
 test "value editing refuses non-leaf positions" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let picked = apply(model, SelectBlockStep(1))
   let index = picked.selected_block
   // 越界路径
@@ -244,7 +244,7 @@ test "value editing refuses non-leaf positions" {
 ///
 /// 没有取消路径的话用户只能提交或点走，而提交会改 IR——想放弃却改了。
 test "cancelling a value edit leaves the program untouched" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let picked = apply(model, SelectBlockStep(1))
   let index = picked.selected_block
   let before = @app.block_chain_of(picked).map(item => item.text)
@@ -417,7 +417,7 @@ test "every palette skeleton parses in both UI languages" {
 /// 判据取**可运行**：建出来的函数必须过语义检查（`program_errors`），
 /// 而不只是「结构上多了一条」。空体函数在结构上合法却什么都不发生。
 test "creating a custom block produces a runnable function" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let before = model.program.functions.length()
   let added = apply(model, AddFunction)
   assert_eq(added.program.functions.length(), before + 1)
@@ -441,7 +441,7 @@ test "creating a custom block produces a runnable function" {
 /// 不同步的后果：改了名、旧调用还在调旧名字，运行时报「函数不存在」，
 /// 而用户以为自己改好了（调用点显示的是渲染后的文本，逐个找不现实）。
 test "renaming a custom block rewrites every call site" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let added = apply(model, AddFunction)
   let old_name = match added.side_target {
     Some(@app.SideFunction(name)) => name
@@ -472,7 +472,7 @@ test "renaming a custom block rewrites every call site" {
 ///|
 /// 重命名**撞名**要拒绝：撞了会调用到错的那个函数，而界面上看不出区别。
 test "renaming a custom block onto an existing name is refused" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let first = apply(model, AddFunction)
   let first_name = match first.side_target {
     Some(@app.SideFunction(name)) => name
@@ -499,7 +499,7 @@ test "renaming a custom block onto an existing name is refused" {
 ///|
 /// 自定义积木出现在**结构树**里且可被选中——「能力在、入口也要在」。
 test "custom blocks appear in the structure tree" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let added = apply(model, AddFunction)
   let nodes = @app.program_tree(added)
   let mut group_seen = false
@@ -527,7 +527,7 @@ test "custom blocks appear in the structure tree" {
 /// 若画布只认 `current_handler`，建出来的积木就只能看、不能改——半个功能。
 /// 统一走 `current_target` 之后，插入 / 删除 / 键盘导航全部对函数体生效。
 test "a custom block body is editable on the blocks canvas" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let added = apply(model, AddFunction)
   // 画布现在应该显示**函数体**（刚建好时有一条 `return`）
   let chain = @app.block_chain_of(added)
@@ -559,7 +559,7 @@ test "a custom block body is editable on the blocks canvas" {
 ///|
 /// 函数体里的**删除**同样生效（写回路径对两种目标一致）。
 test "deleting a statement inside a custom block writes back to the function" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let added = apply(model, AddFunction)
   // 先插一条**变量声明**（不引用模板里的名字），得到 ≥2 条语句
   let with_stmt = apply(
@@ -588,7 +588,7 @@ test "deleting a statement inside a custom block writes back to the function" {
 /// 所以这里验证的是**端到端可用**：新建 → 在事件子程序里手打调用 →
 /// 语义检查通过（不报 `UnknownBuiltin`）→ 能真的跑起来。
 test "a custom block can be called from an event handler" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let added = apply(model, AddFunction)
   let func_name = match added.side_target {
     Some(@app.SideFunction(name)) => name
@@ -634,7 +634,7 @@ test "a custom block can be called from an event handler" {
 ///|
 /// 调用**不存在的名字**仍然要报错（不能因为支持自定义积木就放过拼写错误）。
 test "calling an undefined name is still an error" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   // 先选中一个真实存在的子程序（否则提交无处落地）
   let key = @app.handler_key(
     model.program.handlers[0].control_name,
@@ -658,7 +658,7 @@ test "calling an undefined name is still an error" {
 /// 这条同时守两条不变式：Escape 在「补全弹层」与「值编辑」两个态下各绑
 /// 一条命令，两者**互斥启用**（同一时刻至多一条 enabled），不会双触发。
 test "escape dismisses the completion popup and never double-fires" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   // 打开补全弹层（在代码视图里触发）
   let opened = { ..model, completion_open: true, }
   assert_true(opened.completion_open)
@@ -697,7 +697,7 @@ test "escape dismisses the completion popup and never double-fires" {
 /// （`handler_note`）——只断言「字段被写了」无法发现「写了但读的地方读的是
 /// 另一个字段」这类错配。
 test "writing a target note round-trips into the AI context" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   // 键是「控件名@事件」——用模板里真实存在的那个
   let key = @app.handler_key(
     model.program.handlers[0].control_name,
@@ -707,22 +707,24 @@ test "writing a target note round-trips into the AI context" {
   let written = apply(on_handler, EditTargetNote("这段负责出题与批改"))
   // 读回来一致
   assert_eq(@app.target_note(written), "这段负责出题与批改")
-  // 真的进了 AI 上下文：`local_explanation` 的第一段就是 note，
-  // 所以「说明出现在讲解开头」证明它被读取端读到了（不是只写进了字段）。
+  // 真的进了 AI 上下文：讲解 prompt 的载荷是 render_handler 输出，
+  // note 是它的注释头——「说明出现在 prompt 开头」证明它被读取端
+  // 读到了（不是只写进了字段）。
+  let handler = @app.current_handler(written).unwrap()
   assert_true(
-    @app.local_explanation(written).contains("这段负责出题与批改"),
+    @studio_lang.render_handler(handler, written.language.dsl_language())
+    .contains("这段负责出题与批改"),
   )
   // 写的是**当前界面语言**那一份。模板自带的说明占了另一份（英文模板写
   // `note_en`、中文写 `note_zh`），所以这里断言「本语言那份被改成新值」，
   // 而不是「另一份为空」——后者是模板内容决定的，不是本功能的契约。
-  let handler = @app.current_handler(written).unwrap()
   assert_eq(handler.note_zh, "这段负责出题与批改")
 }
 
 ///|
 /// 自定义积木的说明走**同一个入口**（统一编辑目标），并写进 `FuncDef`。
 test "a custom block carries its own note" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let added = apply(model, AddFunction)
   let written = apply(added, EditTargetNote("我的工具：格式化一行"))
   assert_eq(@app.target_note(written), "我的工具：格式化一行")
@@ -746,7 +748,7 @@ test "a custom block carries its own note" {
 /// 给注释压栈会让「撤销」在用户改了一句逻辑之后先退回「注释被改前」——
 /// 那不是用户想撤的东西。
 test "a note is metadata and does not affect undo or execution" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let key = @app.handler_key(
     model.program.handlers[0].control_name,
     model.program.handlers[0].event.tag(),
@@ -774,7 +776,7 @@ test "a note is metadata and does not affect undo or execution" {
 /// 判据取**真的产生 else 体**（不是「骨架能解析」就算）：插进去之后积木链
 /// 里必须出现 `else` 装饰块，否则这个骨架只是换了个标签的同一条 if。
 test "the if-else skeleton produces a real else branch" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let with_if_else = apply(
     apply(model, SelectBlockStep(1)),
     InsertStatement(

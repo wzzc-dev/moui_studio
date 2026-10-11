@@ -6,8 +6,6 @@ pub fn build_request_body(CompletionRequest) -> Json
 
 pub fn completion_url(String) -> String
 
-pub fn deterministic_completion(CompletionRequest) -> String
-
 pub fn parse_completion(String) -> Result[String, String]
 
 pub fn request_within_budget(CompletionRequest, Int) -> Bool

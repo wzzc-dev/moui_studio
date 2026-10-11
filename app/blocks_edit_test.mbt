@@ -7,7 +7,7 @@
 /// 复制语句（Scratch Duplicate 口径）：克隆体插入原语句之后并选中之，
 /// 撤销一次回到原状。
 test "duplicate block inserts a copy after the original" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() >= 2)
   let original_text = blocks[0].text
@@ -32,7 +32,7 @@ test "duplicate block inserts a copy after the original" {
 /// 落槽指示线（链条坐标）：上边槽画在兄弟行顶缘上方 3pt，落到最后一个
 /// 兄弟之后画在其底缘下方 3pt；非兄弟行不计入槽位。
 test "blocks insert mark follows sibling slots in chain space" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() >= 2)
   let rects = @app.blocks_item_rects(blocks)
@@ -74,7 +74,7 @@ test "blocks insert mark follows sibling slots in chain space" {
 ///|
 test "blocks canvas drag moves the grabbed stack and is undoable" {
   // 口算训练营：取一个有 ≥2 条顶层语句的子程序
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() >= 3)
   let first_text = blocks[0].text
@@ -153,7 +153,7 @@ test "blocks canvas drag moves the grabbed stack and is undoable" {
 /// 3. **不产生撤销点**——纯选中态变更。
 test "keyboard steps through editable blocks and skips decorations" {
   // 口算训练营模板带 ≥2 条顶层语句
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() >= 2)
   // 从「未选中」按 ↓ 落到第一条**可编辑**块
@@ -182,7 +182,7 @@ test "keyboard steps through editable blocks and skips decorations" {
 ///|
 /// 键盘导航**只动选中**，不动 IR——语句内容在导航前后完全一致。
 test "keyboard navigation leaves the program untouched" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let before = @app.block_chain_of(model).map(item => item.text)
   let moved = apply(apply(model, SelectBlockStep(1)), SelectBlockStep(1))
   let after = @app.block_chain_of(moved).map(item => item.text)
@@ -234,7 +234,7 @@ test "block keyboard commands are registered and gated on selection" {
   assert_eq(idle_bindings, 6)
   assert_false(idle_delete_enabled)
   // 选中一块积木后：三条都启用
-  let picked = apply(apply(idle, SelectTemplate(2)), SelectBlockStep(1))
+  let picked = apply(@app.load_template_program(idle, 2), SelectBlockStep(1))
   assert_true(picked.selected_block >= 0)
   let picked_cmds = @app.studio_program_commands(picked)
   let mut delete_enabled = false
@@ -268,7 +268,7 @@ test "block keyboard commands are registered and gated on selection" {
 /// 构造方式：先插一条 if 语句（面板骨架），再拖另一条语句进它的体内。
 test "dragging a statement into an if body moves it across layers" {
   // 口算训练营模板：顶层有 ≥2 条语句
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() >= 2)
   // 选中第一条，插入一条 if 骨架（落在选中块之后）
@@ -359,7 +359,7 @@ test "dragging a statement into an if body moves it across layers" {
 /// - 菜单动作走 `BlocksMenuAction`，与右栏按钮/快捷键**同一条 update 链**，
 ///   不复制语义（复制一份就会分叉——比如撤销点只在一处记）。
 test "block context menu selects the hit block and closes on action" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   // 先选中第 2 条，作为「右键空白不该动它」的基线
   let with_sel = apply(apply(model, SelectBlockStep(1)), SelectBlockStep(1))
   let baseline = with_sel.selected_block
@@ -392,7 +392,7 @@ test "block context menu selects the hit block and closes on action" {
 /// 判据：用与绘制同一组矩形（真实 avail_width）做命中，缩进后的子块也能命中。
 /// 回归意义：命中此前用默认常量 430，窄画布下会在块右侧空白里误判/漏判。
 test "right-click hit-testing uses the same geometry as drawing" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let chain = @app.block_chain_of(model)
   assert_true(chain.length() >= 1)
   // 用**窄画布**（370 ≈ 1280 窗口下积木窗格的实际可用宽）。旧实现命中有个
@@ -433,7 +433,7 @@ test "right-click hit-testing uses the same geometry as drawing" {
 /// 判据取「真的多出一条语句 + 落在指针那一侧」，而不是「状态位翻转」——
 /// 拖放最容易出的错是「手势收到了但语句没插进去」。
 test "dragging a palette skeleton onto the canvas inserts at the pointer" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let before = @app.block_chain_of(model).length()
   // 开始拖一条骨架（流程分类第 0 条 = if 骨架）
   let dragging = apply(model, PaletteDragStart(2, 0))
@@ -477,7 +477,7 @@ test "dragging a palette skeleton onto the canvas inserts at the pointer" {
 test "an invalid drop is rejected and leaves the program untouched" {
   // 造「循环体里有一条 break」的场景：先插循环骨架，再在循环**体内**插一条
   // 跳出骨架（流程分类里「跳出循环」是第 3 条，下标 3）。
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   // 选中一块后插入循环（流程分类下标 2，模板 1 = 计次循环）
   let with_loop = apply(
     apply(model, SelectBlockStep(1)),
@@ -608,7 +608,7 @@ test "an invalid drop is rejected and leaves the program untouched" {
 /// - 偏移**夹在 >= 0**（滚到顶部再往上拖不该出现负偏移，那会把内容推到
 ///   画布下缘之外，看起来像「缺了一块」）。
 test "dragging near the canvas edge auto-scrolls and clamps at the top" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   // 顶部再往上滚：夹在 0
   let up = apply(model, BlocksAutoScroll(-1))
   assert_eq(up.blocks_scroll_y, 0.0)
@@ -634,7 +634,7 @@ test "dragging near the canvas edge auto-scrolls and clamps at the top" {
 /// 判据取**可观测后果**（运行状态里的文本变化），不是「状态位翻转」。
 test "running a single block executes only that statement" {
   // 口算训练营模板：顶层有多条 set_text，逐条可分辨
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() >= 2)
   // 未选中：给出提示而不是静默
@@ -664,7 +664,7 @@ test "running a single block executes only that statement" {
 /// 选中的是**装饰块**（else/end）时给出明确提示——它们没有对应语句，
 /// 静默什么都不做会让用户以为「运行坏了」。
 test "running a decorative block explains why nothing runs" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   // 插一条 if 骨架（流程分类 0 号模板），它会带出 end 装饰块
   let with_if = apply(
     apply(model, SelectBlockStep(1)),
@@ -697,7 +697,7 @@ test "running a decorative block explains why nothing runs" {
 /// → 早先的 `seen > 0` 守卫直接返回 `None`，于是拖进空体**完全没有插入线**，
 /// 用户以为拖不进去。修法是空容器锚在**容器头**的底缘下方。
 test "an empty container still shows an insert mark" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   // 插一条 if 骨架（流程分类 0 号模板）：它的 then 体里自带一行，
   // 先把那一行删掉，得到真正的空体。
   let with_if = apply(

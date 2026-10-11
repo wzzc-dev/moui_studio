@@ -31,8 +31,11 @@ fn ai_draw(
 fn ai_transcript_model() -> Model {
   let asked = apply_ai(initial_model(), SetPerspective(PsAi))
   let asked = apply_ai(asked, SetPrompt("帮我做一个班级随机点名册"))
-  apply_ai(asked, ComposerRun)
+  // 假模型移除后，diff 卡经真实回执通道注入（with_pending_roll_call，
+  // app_test.mbt 同名助手在独立黑盒包里，wbtest 各留一份）
+  with_pending_roll_call(asked)
 }
+
 
 ///|
 test "transcript shows user bubble right aligned and session header" {
@@ -167,7 +170,7 @@ test "composer info layer shows model chips and posture on wide center" {
   let mut model_chip = 0
   let mut posture = false
   for run in shell_texts(commands) {
-    if run.text == "离线模型" {
+    if run.text == "未连接" {
       model_chip = model_chip + 1
     }
     if run.text.contains("闸门 · 逐条采纳") {
@@ -194,7 +197,7 @@ test "composer info layer hides on narrow docked host" {
   let commands = ai_draw(model, 1280.0, 800.0)
   let mut model_chip = false
   for run in shell_texts(commands) {
-    if run.text == "离线模型" {
+    if run.text == "未连接" {
       model_chip = true
     }
   }
@@ -363,7 +366,7 @@ test "ai workspace panel shows changes and files tabs on right expand" {
 test "workspace changes tab lists proposal history with file chips" {
   let base = apply_ai(initial_model(), SetPerspective(PsAi))
   let asked = apply_ai(base, SetPrompt("帮我做一个随机点名册"))
-  let ran = apply_ai(asked, ComposerRun)
+  let ran = with_pending_roll_call(asked)
   let accepted = apply_ai(ran, AcceptProposal)
   let expanded = apply_ai(accepted, StudioCommandRun("studio.right.toggle"))
   let commands = ai_draw(expanded, 1280.0, 800.0)
@@ -372,7 +375,7 @@ test "workspace changes tab lists proposal history with file chips" {
   let mut form_chip = false
   let mut handlers_chip = false
   for run in shell_texts(commands) {
-    if run.text.contains("帮我做一个随机点名册") {
+    if run.text.contains("随机点名") {
       summary_found = true
     }
     if run.text.contains("已采纳") {

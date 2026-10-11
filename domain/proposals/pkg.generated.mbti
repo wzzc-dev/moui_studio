@@ -18,15 +18,11 @@ pub fn encode_proposal(ProposalV1) -> String
 
 pub fn extract_json_object(String) -> String?
 
-pub fn fake_model_completion(String, @ir.StudioProgram) -> String
-
 pub fn proposal_diff(@ir.StudioProgram, ProposalV1) -> Array[DiffEntry]
 
 pub fn proposal_from_program(@ir.StudioProgram, String, String) -> ProposalV1
 
 pub fn proposal_system_prompt() -> String
-
-pub fn route_prompt(String) -> String
 
 pub fn sample_drill() -> @ir.StudioProgram
 

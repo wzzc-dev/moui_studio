@@ -58,7 +58,7 @@ test "form subset boundary skips non form controls honestly" {
 ///|
 test "select template emits code project write only with a write target" {
   // 无在册工程、无迁移目录：与旧「置位后组合根静默清位」同语义——不发事件
-  let applied = apply(@app.initial_model(), SelectTemplate(1))
+  let applied = @app.load_template_program(@app.initial_model(), 1)
   assert_eq(applied.outbox.length(), 0)
   // 有在册工程：事件带目标目录与双腿全文（M1 事件化，组合根监听器写盘）
   let imported = @app.update_with_services(
@@ -66,10 +66,15 @@ test "select template emits code project write only with a write target" {
       ProjectScanCompleted(Success(Ok(Single(counter_source())))),
       @services.AppServices::new(),
     ).0
-  let emitted = apply(imported, SelectTemplate(1))
+  let emitted = @app.load_template_program(imported, 1)
   match emitted.outbox {
-    // import 步已入队 EvProjectsDirty(真实程序每趟排空),这里断言尾部事件
-    [.., EvCodeProjectWrite(dir, form_mbt, handlers_mbt)] => {
+    // import 步已入队 EvProjectsDirty(真实程序每趟排空)；装载尾部是
+    // 代码工程写盘 + IR 快照两个事件
+    [
+      ..,
+      EvCodeProjectWrite(dir, form_mbt, handlers_mbt, _),
+      EvProgramSnapshotWrite(_, _),
+    ] => {
       assert_true(dir.contains("/"))
       assert_true(form_mbt.contains("place(@views."))
       assert_true(handlers_mbt.contains("fn studio_"))

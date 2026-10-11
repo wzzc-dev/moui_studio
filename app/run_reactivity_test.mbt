@@ -40,7 +40,7 @@ fn distinct_count(values : Array[String]) -> Int {
 /// 「王五」——用户读到的是「运行之后点按钮没反应」。修法是种子跨事件
 /// 推进（`runtime_seed` + `next_seed`）。
 test "repeated stage clicks on the interpret track vary the random result" {
-  let model = apply(@app.initial_model(), SelectTemplate(1))
+  let model = @app.load_template_program(@app.initial_model(), 1)
   let started = apply(model, RunStart)
   assert_true(started.run is Some(_))
   let seen : Array[String] = []
@@ -71,9 +71,9 @@ test "repeated stage clicks on the interpret track vary the random result" {
 /// 编译轨的 Runtime 每次事件都重建，种子必须由 app 显式接续；漏掉这一步
 /// 时两轨会**一起**退化成恒定值——本用例把这条并列锁住。
 test "repeated stage clicks on the compile track vary the random result" {
-  let model = apply(
+  let model = @app.load_template_program(
     @app.initial_model(compile_track_available=true),
-    SelectTemplate(1),
+    1,
   )
   let switched = apply(model, SetRunTrack(@app.Compile))
   let started = drain_compiled(apply(switched, RunStart))
@@ -93,9 +93,9 @@ test "repeated stage clicks on the compile track vary the random result" {
 ///
 /// 两台独立的推进器只要有一边漏掉 `next_seed`，这里立刻分叉。
 test "both tracks stay in lockstep across a sequence of clicks" {
-  let base = apply(
+  let base = @app.load_template_program(
     @app.initial_model(compile_track_available=true),
-    SelectTemplate(1),
+    1,
   )
   let mut interp = drain(apply(base, RunStart))
   let mut compiled = drain_compiled(

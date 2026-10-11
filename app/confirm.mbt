@@ -15,8 +15,8 @@ pub(all) enum ConfirmKind {
   CkDeleteControl(String)
   CkDeleteVariable(String)
   CkDeleteProjectFile(String)
-  CkTemplate(Int)
-  CkNewBlank
+  /// 新建工程（folder projects）：载荷 = 模板下标（-1 = 空白程序）
+  CkNewProject(Int)
   CkOpen
   /// 关闭脏 tab（G4 多标签）：载荷 = tab 下标
   CkCloseFileTab(Int)
@@ -32,8 +32,7 @@ pub fn confirm_copy(kind : ConfirmKind, t : @i18n.Translator) -> String {
       text_with(t, "app.confirm.delete_variable", [("a", name)])
     CkDeleteProjectFile(rel) =>
       text_with(t, "app.confirm.delete_project_file", [("a", rel)])
-    CkTemplate(_) => text(t, "app.confirm.template")
-    CkNewBlank => text(t, "app.confirm.new_blank")
+    CkNewProject(_) => text(t, "app.confirm.new_project")
     CkOpen => text(t, "app.confirm.open")
     CkCloseFileTab(_) => text(t, "app.confirm.close_file")
   }
@@ -56,8 +55,7 @@ fn confirm_kind_of(msg : Msg) -> ConfirmKind {
   match msg {
     DeleteControl(name) => CkDeleteControl(name)
     DeleteVariable(name) => CkDeleteVariable(name)
-    SelectTemplate(index) => CkTemplate(index)
-    NewBlankProgram => CkNewBlank
+    NewProjectRequested(index) => CkNewProject(index)
     CloseFileTab(index) => CkCloseFileTab(index)
     _ => CkOpen
   }
@@ -97,17 +95,28 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
                   @moui.Effect::dispatch(emit => emit(ProjectFileDeleteRun(rel))),
                 ),
               )
-            // 其余四种在纯链内同步续行：update_pure_inner 跳过守卫层，
+            // 新建工程走服务流（目录选择 + 落盘），纯链接不住：置一次性
+            // 放行标记后经 Effect 重投 NewProjectRequested（update_with_services
+            // 的臂看到标记即放行并复位）。
+            CkNewProject(index) =>
+              Some(
+                (
+                  { ..cleared, new_project_confirmed: true, },
+                  @moui.Effect::dispatch(emit =>
+                    emit(NewProjectRequested(index)),
+                  ),
+                ),
+              )
+            // 其余在纯链内同步续行：update_pure_inner 跳过守卫层，
             // 原处理器直接执行——测试的纯转移上下文也能走完整流程。
             _ => {
               let follow : Msg = match kind {
                 CkDeleteControl(name) => DeleteControl(name)
                 CkDeleteVariable(name) => DeleteVariable(name)
-                // 删除工程文件在上方独立臂经 Effect 续行(服务流),此分支
-                // 不可达;穷举要求给一个无害映射。
+                // 删除工程文件/新建工程在上方独立臂经 Effect 续行(服务流),
+                // 此分支不可达;穷举要求给一个无害映射。
                 CkDeleteProjectFile(_) => OpenRequested
-                CkTemplate(index) => SelectTemplate(index)
-                CkNewBlank => NewBlankProgram
+                CkNewProject(_) => OpenRequested
                 CkOpen => OpenRequested
                 CkCloseFileTab(index) => CloseFileTab(index)
               }
@@ -120,13 +129,12 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     // 放行（None）让原处理器接手；否则转成确认请求。
     DeleteControl(_)
     | DeleteVariable(_)
-    | SelectTemplate(_)
-    | NewBlankProgram
+    | NewProjectRequested(_)
     | CloseFileTab(_) =>
       if model.pending_confirm is Some(_) {
         None
       } else {
-        // 删除类无条件守卫；模板/新建只挡「有未保存工作」的程序；
+        // 删除类无条件守卫；新建工程只挡「有未保存工作」的程序；
         // 关闭 tab 只挡脏 tab（干净 tab 直接关,不打扰）。
         let guarded = match msg {
           DeleteControl(_) | DeleteVariable(_) => true

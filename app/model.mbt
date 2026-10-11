@@ -13,12 +13,6 @@ pub(all) enum Mode {
 }
 
 ///|
-pub(all) enum ProviderMode {
-  Fake
-  Real
-}
-
-///|
 /// 产物旁路动作的种类：决定成功 toast 的文案。
 /// 三个动作共用一条回执消息（`ArtifactActionDone`），来源必须显式带上。
 pub(all) enum ArtifactAction {
@@ -512,6 +506,13 @@ pub(all) struct Model {
   /// 跨域事件出口（M1 插件化）：update 在事实发生处推进（见 app/events.mbt），
   /// 程序包装层每趟排空一次并经 kernel 事件总线翻译成后续消息。取代旧的
   /// pending_code_project / pending_build / build_seq 三个跨域 flag。
+  // 新建工程进行中的草稿（folder projects）：非空 = 选目录/落盘流进行中。
+  new_project : NewProjectDraft?
+  // 新建工程的一次性放行标记（CkNewProject 确认续行；语义同 open_confirmed）
+  new_project_confirmed : Bool
+  // 当前程序所属工程根（"" = 无所属——出厂样例/未恢复工程）。决定激活
+  // 工程时要不要读 IR 快照恢复（同 root 不重读）。
+  program_root : String
   outbox : Array[StudioEvent]
   /// 迁移写盘目录（M6③）：打开 .studio.json 时 = 旧文件所在目录；
   /// 由代码工程写盘事件的发出点消费（`emit_code_project_write`）。
@@ -587,12 +588,14 @@ pub(all) struct Model {
   // AI 工作区面板（RvWorkspace）当前页签
   right_panel_tab : RightPanelTab
   prompt_error : String
-  provider_mode : ProviderMode
   provider_endpoint : String
   provider_model : String
   provider_key : String
   // 密钥显隐（password_field 的展开态；掩码态下忽略输入防星号写穿）
   provider_key_revealed : Bool
+  // AI 能力可用性（组合根声明）：浏览器入口没有 HTTP 通道，显式降级——
+  // composer 隐藏 + 引导文案，不出「点了必失败」的假按钮。
+  ai_available : Bool
   // 未保存标记：程序编码 ≠ 最近一次保存/打开/还原基线时为真，标题旁显示 ●
   dirty : Bool
   saved_encoding : String
@@ -1056,7 +1059,6 @@ pub(all) enum Msg {
   GenerateProposal
   AcceptProposal
   RejectProposal
-  SetProviderMode(ProviderMode)
   SetProviderEndpoint(String)
   SetProviderModel(String)
   SetProviderKey(String)
@@ -1129,10 +1131,17 @@ pub(all) enum Msg {
   ControlClicked(String)
   ControlPicked(String, Int)
   ControlChanged(String, String)
-  SelectTemplate(Int)
-  /// 新建空白程序（`empty_program`）。与打开文件/切模板同纪律：旧程序
-  /// 进撤销栈可找回，运行态与选中态全部重置。
-  NewBlankProgram
+  /// 新建工程（folder projects）：参数 = 模板下标（-1 = 空白程序）。
+  /// 链条：NewProjectRequested（脏程序确认后选目录）→ NewProjectRootPicked
+  /// （目录确定：算骨架文件集）→ NewProjectFileWritten × N（逐文件落盘，
+  /// 游标推进）→ 完成态注册工程 + 装载模板程序 + IR 快照已随队落盘。
+  NewProjectRequested(Int)
+  NewProjectRootPicked(@services.ServiceTaskResult[String])
+  NewProjectFileWritten(@services.ServiceTaskResult[Unit])
+  /// 工程程序快照回执（SetActiveProject 恢复流）：读 `<root>/.studio/program.json`。
+  ProjectProgramLoaded(@services.ServiceTaskResult[String])
+  /// IR 快照落盘回执（EvProgramSnapshotWrite 翻译而来；失败才说话）。
+  SnapshotWriteSaved(@services.ServiceTaskResult[Unit])
   SaveRequested
   SavePathPicked(@services.ServiceTaskResult[String])
   SaveCompleted(@services.ServiceTaskResult[Unit])
@@ -1223,8 +1232,11 @@ pub(all) enum Msg {
   // === v4 IDE 壳消息 ===
   // 事件驱动消息（M1 内核化）：由 outbox 事件经总线翻译而来，副作用在
   // 程序包装层的臂里经服务容器执行。
-  /// 代码工程骨架写盘（EvCodeProjectWrite 的翻译）：目录 + form.mbt + handlers.mbt
-  CodeProjectWriteRequested(String, String, String)
+  /// 代码工程骨架写盘（EvCodeProjectWrite 的翻译）：目录 + form.mbt +
+  /// handlers.mbt + project_data.mbt（内嵌 IR；"" = 布局不含，跳过）
+  CodeProjectWriteRequested(String, String, String, String)
+  /// 程序 IR 快照写盘（EvProgramSnapshotWrite 的翻译）：绝对路径 + 编码 IR
+  SnapshotWriteRequested(String, String)
   /// 构建请求派发（EvBuildSubmit 的翻译）
   BuildDispatchRequested(ProjectBuildRequest)
   /// AI 会话操作（M3 插件化）：新建/切换/删除，经 Feature::scope 委托
@@ -1248,7 +1260,6 @@ pub(all) enum Msg {
   /// 流式分片到达（M4）：追加进当前会话的流式卡；已停止则忽略
   StreamChunk(String)
   /// 流式完成（正常结束）
-  StreamFinished
   /// 停止生成（用户动作）：截断流式，卡片标记已停止
   StopGeneration
   /// 墙钟刷新（组合根注入 wall_clock 时 1s 一次，仅 AI 模式订阅）：
@@ -1399,7 +1410,7 @@ pub const UI_DARK_SETTINGS_KEY : String = "studio.ui_dark"
 pub const PLUGINS_SETTINGS_KEY : String = "studio.plugins"
 
 ///|
-/// 初始模型：问候样例 + 中文界面 + 假模型；代码草稿按当前语言播种。
+/// 初始模型：问候样例 + 中文界面；代码草稿按当前语言播种。
 /// provider_config 非空时预填面板（key 仍只进会话内存）。
 pub fn initial_model(
   provider_config? : ProviderConfig,
@@ -1408,6 +1419,7 @@ pub fn initial_model(
   immersive? : Bool = false,
   pty_available? : Bool = false,
   profile? : StudioProfile = Full,
+  ai_available? : Bool = true,
 ) -> Model {
   let program = @proposals.sample_hello()
   let config = match provider_config {
@@ -1432,6 +1444,9 @@ pub fn initial_model(
     code_appearance: AppMoonBit,
     outbox: [],
     pending_open_dir: None,
+    new_project: None,
+    new_project_confirmed: false,
+    program_root: "",
     preview_design_open: false,
     mode: ModeDesign,
     design_zoom: 0.0,
@@ -1470,11 +1485,11 @@ pub fn initial_model(
     composer_mode_picker_open: false,
     right_panel_tab: RpChanges,
     prompt_error: "",
-    provider_mode: Fake,
     provider_endpoint: endpoint,
     provider_model: model_name,
     provider_key: config.api_key,
     provider_key_revealed: false,
+    ai_available,
     dirty: false,
     saved_encoding: encoding,
     draft_encoding: encoding,

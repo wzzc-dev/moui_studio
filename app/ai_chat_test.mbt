@@ -163,11 +163,11 @@ test "composer run echoes the prompt as a user bubble card" {
   let asked = apply(model, SetPrompt("帮我做一个随机点名册"))
   let run = apply(asked, ComposerRun)
   let cards = run.ai_sessions.current().cards
-  assert_true(cards.length() >= 2)
-  // 第一张 = 用户提问回显；第二张 = fake 提案的 diff 卡
+  // 第一张 = 用户提问回显。提案生成本轮只到路由（真实 provider 在
+  // 程序级臂，需 API key）：无 key 时不再有即时 diff 卡。
+  assert_true(cards.length() >= 1)
   assert_true(cards[0].kind is @ai.CardUserPrompt)
   assert_eq(cards[0].body, "帮我做一个随机点名册")
-  assert_true(cards[1].kind is @ai.CardDiff)
 }
 
 ///|
@@ -189,16 +189,16 @@ test "edit and retry restore the prompt draft from the timeline" {
   let run = apply(asked, ComposerRun)
   let cards = run.ai_sessions.current().cards
   let user_seq = cards[0].seq
-  let ai_seq = cards[1].seq
   // 编辑：把提问原文回填草稿
   let edited = apply(run, EditUserPrompt(user_seq))
   assert_eq(
     edited.ai_sessions.current().prompt_draft,
     "帮我做一个随机点名册",
   )
-  // 重发：回填 + 立即重跑（时间线再长出一轮提问 + diff）
+  // 重发：回填 + 立即重跑（提案生成本轮只到路由——无 key 时引导在
+  // 程序级臂，时间线仍长出一轮用户提问）
   let before = run.ai_sessions.current().cards.length()
-  let retried = apply(run, RetryUserPrompt(ai_seq))
+  let retried = apply(run, RetryUserPrompt(user_seq))
   assert_eq(
     retried.ai_sessions.current().prompt_draft,
     "帮我做一个随机点名册",
@@ -434,26 +434,22 @@ test "session meta time falls back created then updated then just now" {
 ///|
 /// G1 纯聊天:离线路由——确定性回复卡进转录 + 接通引导提示;
 /// 历史构建——用户气泡与 AI 回复按序进上下文。
-test "纯聊天:离线回复与历史构建" {
+test "纯聊天:无 key 提交给结构化引导" {
   let asked = apply(
     { ..@app.initial_model(), composer_mode: ComposeChat, },
     SetPrompt("你好"),
   )
-  let ran = apply(asked, ComposerRun)
-  // 离线假回复卡在转录里
-  let cards = ran.ai_sessions.current().cards
-  let mut reply_found = false
-  for card in cards {
-    if card.kind is CardExplanation && card.body.contains("离线模型") {
-      reply_found = true
-    }
-  }
-  assert_true(reply_found, msg="离线回复应进转录")
-  // 接通引导提示
-  assert_true(ran.notice.contains("设置"), msg=ran.notice)
-  // 多轮历史:用户提问 + 助手回复
+  // 无 key（程序级臂）：composer 下方红字引导（不弹卡、不占转录）
+  let ran = @app.update_with_launch_for_test(
+    asked,
+    ChatSubmit,
+    @services.AppServices::new(),
+    fn(_path, _done) { () },
+  ).0
+  assert_true(ran.prompt_error.contains("密钥"), msg=ran.prompt_error)
+  assert_false(ran.ai_busy)
+  assert_eq(ran.ai_sessions.current().cards.length(), 0)
+  // 多轮历史构建不受影响（空转录 → 没有可入史的消息）
   let history = @app.chat_history(ran)
-  assert_eq(history.length(), 2)
-  assert_eq(history[0].0, "user")
-  assert_eq(history[1].0, "assistant")
+  assert_eq(history.length(), 0)
 }

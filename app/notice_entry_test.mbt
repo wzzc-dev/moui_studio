@@ -146,7 +146,7 @@ test "native export counts bundle writes and toasts once at completion" {
 ///|
 test "new blank program starts empty and stays undoable" {
   let model = @app.initial_model()
-  let blanked = @app.update_pure(model, NewBlankProgram).0
+  let blanked = @app.load_template_program(model, -1)
   assert_eq(blanked.program.controls.length(), 0)
   assert_eq(blanked.program.handlers.length(), 0)
   assert_eq(blanked.selected_control, "")
@@ -171,14 +171,24 @@ test "command palette carries templates, new, help and preview" {
 ///|
 test "studio commands really execute: templates, blank, help, preview" {
   let model = @app.initial_model()
-  // 教案核心样例必须可达（此前 SelectTemplate(2)/(3) 零构造点）
-  let drill = @app.update_pure(model, StudioCommandRun("studio.template.drill")).0
-  assert_eq(drill.program.window.title, "口算训练营")
-  let store = @app.update_pure(model, StudioCommandRun("studio.template.store")).0
-  assert_eq(store.program.window.title, "班级小卖部")
-  // 新建空白程序
-  let blank = @app.update_pure(model, StudioCommandRun("studio.file.new")).0
-  assert_eq(blank.program.controls.length(), 0)
+  // 教案核心样例必须可达：命令面板把新建工程消息**经效果派发**回程序环
+  // （选目录在服务层，纯链没有对话框）——效果形状即契约。
+  let drill_effect = @app.update_pure(model, StudioCommandRun("studio.template.drill")).1
+  assert_true(effect_is_dispatch(drill_effect))
+  let store_effect = @app.update_pure(model, StudioCommandRun("studio.template.store")).1
+  assert_true(effect_is_dispatch(store_effect))
+  // 新建空白程序：同一条派发通道（模板下标 -1）
+  let blank_effect = @app.update_pure(model, StudioCommandRun("studio.file.new")).1
+  assert_true(effect_is_dispatch(blank_effect))
+  // 服务层真的接得住：草稿就位且带模板下标（目录选择能力仅 native，
+  // 测试用 export_available=true 的初始模型绕开 Web 降级）
+  let drill = @app.update_with_services(
+    @app.initial_model(export_available=true),
+    @app.NewProjectRequested(2),
+    @services.AppServices::new(),
+  ).0
+  assert_true(drill.new_project is Some(_))
+  assert_eq(drill.new_project.unwrap().template_index, 2)
   // 帮助 / 预览全屏页可达，且有返回出口（SetMode(ModeDesign)）
   let help = @app.update_pure(model, StudioCommandRun("studio.help")).0
   assert_true(help.mode is ModeHelp)
@@ -186,4 +196,14 @@ test "studio commands really execute: templates, blank, help, preview" {
   assert_true(back.mode is ModeDesign)
   let preview = @app.update_pure(model, StudioCommandRun("studio.preview")).0
   assert_true(preview.mode is ModePreview)
+}
+
+///|
+/// 效果形状断言：命令面板的新建工程命令必须派发效果回程序环（纯链
+/// 接不住服务流）。
+fn effect_is_dispatch(effect : @moui.Effect[@app.Msg]) -> Bool {
+  match effect {
+    @moui.Effect::Dispatch(_) => true
+    _ => false
+  }
 }

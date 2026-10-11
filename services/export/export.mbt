@@ -30,6 +30,14 @@ fn kernel_sources() -> Array[(String, String)] {
 }
 
 ///|
+/// 内核快照的公开访问：Studio 新建工程骨架与导出 bundle 同源——
+/// 新建工程把这份内核拷进所选文件夹（`wzzc-dev/moui_studio` 未上注册表，
+/// 生成的工程只能自包含），路径与内容逐字节复用导出表的既定事实。
+pub fn kernel_file_sources() -> Array[(String, String)] {
+  kernel_sources()
+}
+
+///|
 /// 生成一批「相对路径 → 内容」的文件。
 /// `project_json` 必须是编码后的项目 JSON；`name` 用作目录与模块名。
 pub fn export_bundle(

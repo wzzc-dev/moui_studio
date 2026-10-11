@@ -104,6 +104,8 @@ pub const PLUGINS_SETTINGS_KEY : String = "studio.plugins"
 
 pub const POSTURE_HEIGHT : Double = 20.0
 
+pub const PROGRAM_SNAPSHOT_REL : String = ".studio/program.json"
+
 pub const RECENT_LIMIT : Int = 24
 
 pub const RECENT_STRIP_ROWS : Int = 3
@@ -330,6 +332,8 @@ pub fn code_project_target(ProjectRecord) -> String?
 
 pub fn code_project_text(@ir.StudioProgram) -> String
 
+pub fn code_project_write_effect(@services.FileServices, dir~ : String, form_mbt~ : String, handlers_mbt~ : String, project_data~ : String) -> @core.Effect[Msg]
+
 pub fn code_string_color() -> @core.Color
 
 pub fn code_text_diff(String, String) -> Array[(String, String)]
@@ -408,6 +412,8 @@ pub let design_total_height : Double
 
 pub fn diff_row(String, String, Double) -> @core.View[Msg]
 
+pub fn dir_is_writable(String) -> Result[Unit, String]
+
 pub fn direct_scan(String, on_progress? : (@project.WalkProgress) -> Unit) -> Result[@project.ProjectScanOutput, String]
 
 pub fn dirname_of(String) -> String
@@ -415,6 +421,8 @@ pub fn dirname_of(String) -> String
 pub fn draw_command_from_json(Json) -> Result[@core.DrawCommand, String]
 
 pub fn emit_code_project_write(Model) -> Model
+
+pub fn emit_program_snapshot(Model) -> Model
 
 pub fn empty_hint(String, Double, Double) -> @core.View[Msg]
 
@@ -427,6 +435,10 @@ pub fn empty_stage(Model, @moui_i18n.Translator, Double, Double) -> @core.View[M
 pub fn encode_plugin_disabled(Model) -> String
 
 pub fn encode_project_store(Model) -> String
+
+pub fn ensure_dir_under(String) -> Unit
+
+pub fn ensure_skeleton_dirs(Array[(String, String)]) -> Unit
 
 pub fn error_message(@moui_i18n.Translator, @studio_lang.LangError) -> String
 
@@ -574,7 +586,7 @@ pub fn import_single_source(Model, @services.FileServices, @project.ProjectSourc
 
 pub fn import_workspace_scan(Model, @project.WorkspaceScan, silent? : Bool) -> (Model, @core.Effect[Msg])
 
-pub fn initial_model(provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty_available? : Bool, profile? : StudioProfile) -> Model
+pub fn initial_model(provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty_available? : Bool, profile? : StudioProfile, ai_available? : Bool) -> Model
 
 pub fn inline_card(@core.Color, @core.View[Msg], Double, Bool) -> @core.View[Msg]
 
@@ -588,6 +600,8 @@ pub fn ir_span_at(Array[IrLineSpan], Array[Int]) -> IrLineSpan?
 
 pub fn ir_span_for_line(Array[IrLineSpan], Int) -> IrLineSpan?
 
+pub fn is_studio_app_bundle(ProjectRecord) -> Bool
+
 pub fn join_rel(String, String) -> String
 
 pub fn kv_row(String, String, Double, Bool) -> @core.View[Msg]
@@ -596,7 +610,9 @@ pub fn live_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg
 
 pub fn live_stage_box(Double, Double) -> (Double, Double)
 
-pub fn local_explanation(Model) -> String
+pub fn load_program_state(Model, @ir.StudioProgram, String) -> Model
+
+pub fn load_template_program(Model, Int) -> Model
 
 pub fn log_line(Model, LogLevel, String) -> Model
 
@@ -611,6 +627,10 @@ pub fn middle_ellipsis(String, Double) -> String
 pub fn migrate_studio_source(String, String) -> Result[MigrationOutcome, String]
 
 pub fn moonbit_line_ranged(String, Int) -> Array[RangedToken]
+
+pub fn new_project_module_name(String) -> String
+
+pub fn new_project_skeleton_files(String, String, @ir.StudioProgram) -> Array[(String, String)]
 
 pub fn no_text_measure(String) -> Double
 
@@ -658,7 +678,7 @@ pub fn problem_rows(Model, @moui_i18n.Translator) -> Array[ProblemRow]
 
 pub fn problems_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
-pub fn program(environment? : @services.AppEnvironment, provider_submit? : (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit, compile_submit? : (String, String, (@export.CompileProgress) -> Unit, (Result[@export.CompileReport, String]) -> Unit) -> Unit, launch_submit? : (String, (Result[Unit, String]) -> Unit) -> Unit, runtime_snapshot? : () -> RuntimeInspectSample?, compile_cancel? : () -> Unit, build_submit? : (@build.BuildKind, String, String, (Result[@build.BuildReport, String]) -> Unit) -> Unit, build_cancel? : () -> Unit, webview_controller? : @host.WebViewController?, preview_web? : @kernel.PreviewWebControls[Msg], provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty? : @kernel.PtyService[Msg], focus_terminal? : () -> Unit, profile? : StudioProfile, apply_locale? : (String) -> Unit, wall_clock? : (() -> StudioClock)?, sessions_store_path? : String, projects_store_path? : String) -> @core.Program[Model, Msg]
+pub fn program(environment? : @services.AppEnvironment, provider_submit? : (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit, compile_submit? : (String, String, (@export.CompileProgress) -> Unit, (Result[@export.CompileReport, String]) -> Unit) -> Unit, launch_submit? : (String, (Result[Unit, String]) -> Unit) -> Unit, runtime_snapshot? : () -> RuntimeInspectSample?, compile_cancel? : () -> Unit, build_submit? : (@build.BuildKind, String, String, (Result[@build.BuildReport, String]) -> Unit) -> Unit, build_cancel? : () -> Unit, webview_controller? : @host.WebViewController?, preview_web? : @kernel.PreviewWebControls[Msg], provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty? : @kernel.PtyService[Msg], focus_terminal? : () -> Unit, profile? : StudioProfile, apply_locale? : (String) -> Unit, wall_clock? : (() -> StudioClock)?, sessions_store_path? : String, projects_store_path? : String, ai_available? : Bool) -> @core.Program[Model, Msg]
 
 pub fn program_tree(Model) -> Array[TreeNode]
 
@@ -809,6 +829,8 @@ pub fn studio_window_background() -> @core.Color
 pub fn target_note(Model) -> String
 
 pub fn template_index_of(Int, String) -> Int?
+
+pub fn template_program(Int) -> @ir.StudioProgram
 
 pub fn templates_for_category(@blocks.BlockCategory) -> Array[StatementTemplate]
 
@@ -1032,8 +1054,7 @@ pub(all) enum ConfirmKind {
   CkDeleteControl(String)
   CkDeleteVariable(String)
   CkDeleteProjectFile(String)
-  CkTemplate(Int)
-  CkNewBlank
+  CkNewProject(Int)
   CkOpen
   CkCloseFileTab(Int)
 }
@@ -1167,6 +1188,9 @@ pub(all) struct Model {
   program : @ir.StudioProgram
   language : UiLanguage
   code_appearance : CodeAppearance
+  new_project : NewProjectDraft?
+  new_project_confirmed : Bool
+  program_root : String
   outbox : Array[StudioEvent]
   pending_open_dir : String?
   preview_design_open : Bool
@@ -1206,11 +1230,11 @@ pub(all) struct Model {
   composer_mode_picker_open : Bool
   right_panel_tab : RightPanelTab
   prompt_error : String
-  provider_mode : ProviderMode
   provider_endpoint : String
   provider_model : String
   provider_key : String
   provider_key_revealed : Bool
+  ai_available : Bool
   dirty : Bool
   saved_encoding : String
   draft_encoding : String
@@ -1446,7 +1470,6 @@ pub(all) enum Msg {
   GenerateProposal
   AcceptProposal
   RejectProposal
-  SetProviderMode(ProviderMode)
   SetProviderEndpoint(String)
   SetProviderModel(String)
   SetProviderKey(String)
@@ -1490,8 +1513,11 @@ pub(all) enum Msg {
   ControlClicked(String)
   ControlPicked(String, Int)
   ControlChanged(String, String)
-  SelectTemplate(Int)
-  NewBlankProgram
+  NewProjectRequested(Int)
+  NewProjectRootPicked(@services.ServiceTaskResult[String])
+  NewProjectFileWritten(@services.ServiceTaskResult[Unit])
+  ProjectProgramLoaded(@services.ServiceTaskResult[String])
+  SnapshotWriteSaved(@services.ServiceTaskResult[Unit])
   SaveRequested
   SavePathPicked(@services.ServiceTaskResult[String])
   SaveCompleted(@services.ServiceTaskResult[Unit])
@@ -1547,7 +1573,8 @@ pub(all) enum Msg {
   ExportDirPicked(@services.ServiceTaskResult[String])
   ExportFileWritten(@services.ServiceTaskResult[Unit])
   SetNotice(String)
-  CodeProjectWriteRequested(String, String, String)
+  CodeProjectWriteRequested(String, String, String, String)
+  SnapshotWriteRequested(String, String)
   BuildDispatchRequested(ProjectBuildRequest)
   AiSessionOp(@ai.AiSessionMsg)
   TerminalOutput(String)
@@ -1559,7 +1586,6 @@ pub(all) enum Msg {
   TerminalTabClose
   FocusTerminalRequest
   StreamChunk(String)
-  StreamFinished
   StopGeneration
   ClockUpdated(StudioClock)
   CopyAiMessage(Int)
@@ -1616,6 +1642,13 @@ pub(all) enum Msg {
   HighlightIrPath(Array[Int])
   HoverIrPath(Array[Int]?)
   RestoreCodeDraft
+}
+
+pub(all) struct NewProjectDraft {
+  template_index : Int
+  program : @ir.StudioProgram
+  files : Array[(String, String)]
+  mut done : Int
 }
 
 pub(all) struct OpenProjectFile {
@@ -1697,11 +1730,6 @@ pub(all) struct ProviderConfig {
   endpoint : String
   model : String
   api_key : String
-}
-
-pub(all) enum ProviderMode {
-  Fake
-  Real
 }
 
 pub(all) struct RangedToken {
@@ -1813,7 +1841,8 @@ pub(all) struct StudioCommand {
 }
 
 pub(all) enum StudioEvent {
-  EvCodeProjectWrite(String, String, String)
+  EvCodeProjectWrite(String, String, String, String)
+  EvProgramSnapshotWrite(String, String)
   EvBuildSubmit(@build.BuildKind, String, String)
   EvPreviewWebNavigate(String)
   EvPreviewWebReload

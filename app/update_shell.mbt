@@ -381,36 +381,6 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       }
       Some(({ ..model, breakpoints: next, }, @moui.Effect::none()))
     }
-    // 纯聊天离线（G1）：确定性假回复 + 接通引导（真实提交在程序级臂）
-    ChatSubmit =>
-      if model.provider_mode is Fake || model.provider_key == "" {
-        let prompt = model.ai_sessions.current().prompt_draft
-        let reply = text_with(translator(model), "app.ai.offline_reply", [
-          ("prompt", prompt),
-        ])
-        let with_card = push_ai_card(model, AiCard::{
-          kind: CardExplanation,
-          title: text(translator(model), "app.ai.chat.title"),
-          body: reply,
-          steps: [],
-          steps_done: 0,
-          progress: 0,
-          diff_lines: [],
-          settled: true,
-          settled_note: "",
-          seq: 0,
-          at: 0,
-        })
-        let hinted = with_notice(
-          with_card,
-          text(translator(model), "app.ai.offline_hint"),
-          false,
-        )
-        Some((hinted, @moui.Effect::none()))
-      } else {
-        // 真实提交：纯链未命中（程序级臂接管）
-        None
-      }
     SelectProjectFile(rel) =>
       // 再点同一个文件 = 取消选中(与图标栏「再点一次」同一心智)
       Some(
@@ -1385,17 +1355,25 @@ fn run_studio_command(model : Model, id : String) -> (Model, @moui.Effect[Msg]) 
     "studio.run.start" => update_pure(model, RunStart)
     "studio.run.stop" => update_pure(model, RunStop)
     "studio.compile.run" => update_pure(model, CompileRun)
-    "studio.file.new" => update_pure(model, NewBlankProgram)
+    // 新建工程（folder projects）：选本地文件夹落盘骨架 + 装载模板。
+    // 服务流消息经**效果派发**回程序环（update_with_services 的臂接住），
+    // 纯链没有目录对话框——同 CkOpen 续行的既有口径。
+    "studio.file.new" =>
+      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(-1))))
     "studio.file.save" => update_pure(model, SaveRequested)
     "studio.file.open" => update_pure(model, OpenRequested)
     "studio.file.export" => update_pure(model, ExportRequested)
     "studio.lang.switch" => update_pure(model, SwitchLanguage)
     "studio.help" => update_pure(model, SetMode(ModeHelp))
     "studio.preview" => update_pure(model, SetMode(ModePreview))
-    "studio.template.hello" => update_pure(model, SelectTemplate(0))
-    "studio.template.roll_call" => update_pure(model, SelectTemplate(1))
-    "studio.template.drill" => update_pure(model, SelectTemplate(2))
-    "studio.template.store" => update_pure(model, SelectTemplate(3))
+    "studio.template.hello" =>
+      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(0))))
+    "studio.template.roll_call" =>
+      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(1))))
+    "studio.template.drill" =>
+      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(2))))
+    "studio.template.store" =>
+      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(3))))
     _ => (model, @moui.Effect::none())
   }
 }

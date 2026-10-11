@@ -1,7 +1,7 @@
 ///|
 /// 插入位置：选中块之后（同层），不是末尾。这是「插入」与「追加」的分野。
 test "insert statement lands right after the selected block" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let before = @app.block_chain_of(model)
   assert_true(before.length() >= 2)
   let original_second = before[1].text
@@ -23,7 +23,7 @@ test "insert statement lands right after the selected block" {
 ///|
 /// 插入可撤销：与 commit/delete 同一口径（写回 IR 才产生还原点）。
 test "inserted statement is undoable" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let count = @app.block_chain_of(model).length()
   let inserted = apply(
     model,
@@ -56,7 +56,7 @@ test "insert statement without a handler is a safe no-op" {
 ///|
 /// 越界的分类/模板下标是安全的 no-op（命令面板与旧配置都可能送进脏下标）。
 test "insert statement ignores out-of-range indices" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let count = @app.block_chain_of(model).length()
   for bad in [(99, 0), (3, 99), (-1, 0)] {
     let (category, template) = bad
@@ -69,7 +69,7 @@ test "insert statement ignores out-of-range indices" {
 /// 再点同一个分类 = 收起（与图标栏「再点当前项」同一心智）；
 /// 点另一个分类 = 直接切换（不要求先收起）。
 test "statement palette toggles on the same category and switches on another" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let opened = apply(model, ToggleStatementPalette(3))
   assert_true(opened.statement_palette_open)
   let closed = apply(opened, ToggleStatementPalette(3))

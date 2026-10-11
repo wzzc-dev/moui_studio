@@ -1,5 +1,5 @@
 ///|
-/// proposals 测试：模板自洽、提案往返、校验链各层、diff、假模型路由。
+/// proposals 测试：模板自洽、提案往返、校验链各层、diff。
 
 ///|
 fn apply_to_empty(proposal : @proposals.ProposalV1) -> @ir.StudioProgram {
@@ -213,44 +213,8 @@ test "handler removal cascades from control removal" {
 }
 
 ///|
-test "fake model routes prompts deterministically" {
-  assert_eq(
-    @proposals.route_prompt("帮我做一个随机点名器"),
-    "roll_call",
-  )
-  assert_eq(@proposals.route_prompt("roll call please"), "roll_call")
-  assert_eq(@proposals.route_prompt("口算练习"), "drill")
-  assert_eq(@proposals.route_prompt("班级小卖部记账"), "store")
-  assert_eq(@proposals.route_prompt("做个小商店"), "store")
-  assert_eq(@proposals.route_prompt("随便做点东西"), "generic")
-  let first = @proposals.fake_model_completion(
-    "随机点名",
-    @ir.empty_program(),
-  )
-  let second = @proposals.fake_model_completion(
-    "随机点名",
-    @ir.empty_program(),
-  )
-  assert_eq(first, second)
-  match @proposals.decode_proposal(first) {
-    Ok(proposal) => {
-      let errors = @proposals.validate_proposal(@ir.empty_program(), proposal)
-      assert_true(errors.is_empty())
-      let applied = apply_to_empty(proposal)
-      assert_eq(applied.window.title, "班级点名册")
-      assert_eq(applied.handlers.length(), 1)
-    }
-    Err(errors) =>
-      fail("假模型产物应可解码: \{errors.length()} 个问题")
-  }
-}
-
-///|
 test "decode tolerates fences and prose around json" {
-  let completion = @proposals.fake_model_completion(
-    "random roll call",
-    @ir.empty_program(),
-  )
+  let completion = encoded_hello()
   let wrapped = "好的，这是提案：\n```json\n\{completion}\n```\n希望对你有帮助"
   match @proposals.decode_proposal(wrapped) {
     Ok(proposal) =>

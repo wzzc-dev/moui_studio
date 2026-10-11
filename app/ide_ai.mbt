@@ -107,8 +107,10 @@ fn context_chips_row(
   }
   // 工程 → 打开资源管理器（切换工程上下文的既有通道）
   cells.push(dropdown_chip(FolderOpen, project_label, SetLeftView(LeftProject)))
-  let model_label = if model.provider_mode is Fake {
-    text(t, "app.ai.fake")
+  let model_label = if !model.ai_available {
+    text(t, "app.ai.unavailable")
+  } else if model.provider_key == "" {
+    text(t, "app.ai.disconnected")
   } else {
     fit_label(model.provider_model, 160.0)
   }
@@ -1177,6 +1179,28 @@ fn composer(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
+  // AI 不可用（Web 入口）：显式降级——引导面板替换整个输入面，不出
+  // 「点了必失败」的假按钮。高度预算与正常 composer 同源，宿主不塌陷。
+  if !model.ai_available {
+    let total = composer_height(width) + context_chips_height(width)
+    let box_width = (width - 16.0).max(120.0)
+    return @views.container(
+      @views.center(
+        @views.text(
+          text(t, "app.ai.unavailable"),
+          theme=studio_theme(),
+          width=(box_width - 24.0).max(80.0),
+          height=16.0,
+        ).foreground(ide_text_muted()),
+        width=box_width,
+        height=composer_height(width),
+      ),
+      background=ide_panel(),
+      width=box_width,
+      height=total,
+      padding=0.0,
+    )
+  }
   // 脚注左端：模式选择（VS Code 的 Agent ⌄ 口径）。收起 = 单个「当前模式 ⌄」
   // 下拉芯片；展开 = 原位切回四选一胶囊行（SetComposerMode 后收起）——
   // 不引入浮层，88 预算内原位切换。
@@ -1251,11 +1275,13 @@ fn composer(
       ),
     )
   }
-  // 模型 chip（VS Code 的 ⚡模型 口径）：离线/真实读数，点击开设置。
+  // 模型 chip（VS Code 的 ⚡模型 口径）：provider 读数，点击开设置。
   // 无推理档/上下文数据——不虚构「极高 · 1.1M」式读数。
   if inner_width >= 300.0 {
-    let model_label = if model.provider_mode is Fake {
-      text(t, "app.ai.fake")
+    let model_label = if !model.ai_available {
+      text(t, "app.ai.unavailable")
+    } else if model.provider_key == "" {
+      text(t, "app.ai.disconnected")
     } else {
       fit_label(model.provider_model, 140.0)
     }

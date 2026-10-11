@@ -52,18 +52,6 @@ test "解析拒绝错误体与残缺结构" {
 }
 
 ///|
-test "确定性假模型：相同输入相同输出" {
-  let request = @model_provider.CompletionRequest::new(
-    "fake-gpt-mini", "友好助手",
-  ).with_message(User, "你好")
-  let first = @model_provider.deterministic_completion(request)
-  let second = @model_provider.deterministic_completion(request)
-  assert_eq(first, second)
-  assert_true(first.contains("【友好助手】"))
-  assert_true(first.contains("你好"))
-}
-
-///|
 test "请求预算守卫拒绝超长输入" {
   let small = @model_provider.CompletionRequest::new("m", "s").with_message(
     User,

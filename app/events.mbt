@@ -8,10 +8,16 @@
 /// 2. 事件进 `model.outbox`，程序包装层每趟**排空一次**并经总线翻译成消息；
 /// 3. 事件发完即忘：不回读、不计数（顺序由 outbox 数组保持）。
 pub(all) enum StudioEvent {
-  /// 代码工程骨架待落盘（SelectTemplate / 提案采纳 / .studio.json 迁移器
-  /// 三条路的汇合点）。载荷 = 目标目录 + form.mbt + handlers.mbt 全文
-  /// （解析在发出点完成，见 `emit_code_project_write`）。
-  EvCodeProjectWrite(String, String, String)
+  /// 代码工程骨架待落盘（SelectTemplate → load_template_program / 提案采纳 /
+  /// .studio.json 迁移器三条路的汇合点）。载荷 = 目标目录 + form.mbt +
+  /// handlers.mbt 全文（解析在发出点完成，见 `emit_code_project_write`）+
+  /// 内嵌 IR 的 project_data.mbt 全文（**仅 Studio 应用骨架布局**——编译面
+  /// 里的内嵌 IR 不跟随提案，构建产物会停在旧程序上；"" = 布局不含，跳过）。
+  EvCodeProjectWrite(String, String, String, String)
+  /// 程序 IR 快照待落盘：载荷 = `<root>/.studio/program.json` 绝对路径 +
+  /// 编码 IR。重开恢复 / AI 继续编辑的事实源（磁盘→IR 反解析是 workbench
+  /// M6 范围，快照是它落地前的恢复机制）。
+  EvProgramSnapshotWrite(String, String)
   /// 构建请求已过门（工具链可达 + busy 互斥 + 工程在册 + 入口在册）。
   /// 载荷 = kind + 工程根 + 入口包相对路径。
   EvBuildSubmit(@build.BuildKind, String, String)
@@ -59,6 +65,50 @@ pub fn emit_code_project_write(model : Model) -> Model {
 ///|
 fn emit_code_project_write_to(model : Model, dir : String) -> Model {
   let files = code_project_files(model.program)
-  model.outbox.push(EvCodeProjectWrite(dir, files.form_mbt, files.handlers_mbt))
+  // Studio 应用骨架布局（首程序包带 runner.mbt）：编译面里的内嵌 IR
+  // 必须跟随提案刷新，而 form.mbt 不参与该布局（见 new_project.mbt）——
+  // form 载荷置空 = 组合根跳过；普通导入工程相反：写 form/handlers，
+  // 不塞 project_data。
+  let (form_mbt, project_data) = match active_project_of(model) {
+    Some(project) =>
+      if is_studio_app_bundle(project) {
+        ("", @export.project_data_mbt(@codec.encode_program(model.program)))
+      } else {
+        (files.form_mbt, "")
+      }
+    None => (files.form_mbt, "")
+  }
   model
+  .outbox
+  .push(EvCodeProjectWrite(dir, form_mbt, files.handlers_mbt, project_data))
+  model
+}
+
+///|
+/// IR 快照写盘事件的统一发出点：目标 = 程序所属工程根的
+/// `.studio/program.json`；无所属工程（出厂样例未恢复、独立 .studio.json）
+/// 静默不发——没有工程根就没有「下次打开」的落点。
+pub fn emit_program_snapshot(model : Model) -> Model {
+  let root = if model.program_root != "" {
+    Some(model.program_root)
+  } else {
+    match active_project_of(model) {
+      Some(record) => Some(record.root)
+      None => None
+    }
+  }
+  match root {
+    Some(root) => {
+      model
+      .outbox
+      .push(
+        EvProgramSnapshotWrite(
+          "\{root}/\{PROGRAM_SNAPSHOT_REL}",
+          @codec.encode_program(model.program),
+        ),
+      )
+      model
+    }
+    None => model
+  }
 }

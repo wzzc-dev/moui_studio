@@ -161,25 +161,6 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
       align=TextStart,
     ).foreground(ide_text_faint()),
     group_label(t, "app.settings.group.provider"),
-    @views.row(
-      [
-        @views.button(
-          text(t, "app.ai.fake"),
-          on_click=SetProviderMode(Fake),
-          variant=if model.provider_mode is Fake { Primary } else { Outline },
-          width=100.0,
-          height=28.0,
-        ),
-        @views.button(
-          text(t, "app.ai.real"),
-          on_click=SetProviderMode(Real),
-          variant=if model.provider_mode is Real { Primary } else { Outline },
-          width=100.0,
-          height=28.0,
-        ),
-      ],
-      spacing=8.0,
-    ),
     field_label(t, "app.ai.endpoint", 392.0),
     @views.text_field(
       model.provider_endpoint,

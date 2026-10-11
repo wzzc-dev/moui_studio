@@ -13,7 +13,7 @@
 ///|
 /// 三条选中槽互斥：任一入口只点亮一条。
 test "selection slots are mutually exclusive" {
-  let base = apply(@app.initial_model(), SelectTemplate(3))
+  let base = @app.load_template_program(@app.initial_model(), 3)
   // 选中控件 → 控件槽亮，另两条清
   let on_control = apply(base, SelectControl("商品表"))
   assert_eq(on_control.selected_control, "商品表")
@@ -56,7 +56,7 @@ test "variable tree rows carry their name as the select key" {
 /// 窗体 / 变量 / 数据三类节点在树里成对出现（点击动作由视图层按 kind 分派，
 /// 而分派依赖 select_key 有值）。
 test "window and data tree rows expose selectable keys" {
-  let model = apply(@app.initial_model(), SelectTemplate(3))
+  let model = @app.load_template_program(@app.initial_model(), 3)
   let nodes = @app.program_tree(model)
   let mut has_window = false
   let mut has_data = false
@@ -78,7 +78,7 @@ test "window and data tree rows expose selectable keys" {
 /// 新建变量：名称自动去重（连点两次不会撞名——重名是 `validate_program`
 /// 的致命错误），并立刻选中供编辑。
 test "add variable dedupes names and selects the new one" {
-  let model = apply(@app.initial_model(), SelectTemplate(3))
+  let model = @app.load_template_program(@app.initial_model(), 3)
   let before = model.program.variables.length()
   let first = apply(model, AddVariable)
   assert_eq(first.program.variables.length(), before + 1)
@@ -120,7 +120,7 @@ test "add variable dedupes names and selects the new one" {
 /// 否则程序会静默变成「引用了未声明变量」。
 test "renaming a variable rewrites its references" {
   // 口算训练营的 handler 里有 得分 之类的变量引用
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let variables = model.program.variables
   if variables.length() == 0 {
     // 模板没有变量时先建一个并写进语句，保证测试始终有东西可改

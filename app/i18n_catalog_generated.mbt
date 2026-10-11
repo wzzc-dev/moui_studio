@@ -39,10 +39,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("op.message", GeneratedI18nMessage::Text("message")),
       ("app.ai.busy", GeneratedI18nMessage::Text("Generating proposal…")),
       ("app.ai.dock", GeneratedI18nMessage::Text("Dock to right panel")),
-      ("app.ai.fake", GeneratedI18nMessage::Text("Offline model")),
       ("app.ai.idle", GeneratedI18nMessage::Text("idle")),
       ("app.ai.pill", GeneratedI18nMessage::Text("Collapse to pill")),
-      ("app.ai.real", GeneratedI18nMessage::Text("Real model")),
       ("app.ai.send", GeneratedI18nMessage::Text("Send")),
       ("app.ai.stop", GeneratedI18nMessage::Text("Stop")),
       ("app.lang.en", GeneratedI18nMessage::Text("English")),
@@ -383,6 +381,10 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.ai.chat.title", GeneratedI18nMessage::Text("Reply")),
       ("app.ai.diff.title", GeneratedI18nMessage::Text("Change preview")),
       (
+        "app.ai.key_needed",
+        GeneratedI18nMessage::Text("Connect an API key in Settings to use AI."),
+      ),
+      (
         "app.ai.no_context",
         GeneratedI18nMessage::Text(
           "No context yet — add the current object with the chip below",
@@ -481,6 +483,10 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.ai.mode.repair", GeneratedI18nMessage::Text("Repair")),
       ("app.ai.session.new", GeneratedI18nMessage::Text("New session")),
+      (
+        "app.ai.unavailable",
+        GeneratedI18nMessage::Text("AI needs the native app"),
+      ),
       ("app.audit.controls", GeneratedI18nMessage::Text("Control layer ready")),
       ("app.audit.handlers", GeneratedI18nMessage::Text("Event handlers ready")),
       ("app.audit.rejected", GeneratedI18nMessage::Text("rejected")),
@@ -586,6 +592,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.ai.anchor.right", GeneratedI18nMessage::Text("Bottom right")),
       ("app.ai.card.applied", GeneratedI18nMessage::Text("Applied")),
       ("app.ai.card.explain", GeneratedI18nMessage::Text("Explanation")),
+      ("app.ai.disconnected", GeneratedI18nMessage::Text("Not connected")),
       (
         "app.ai.fold_pending",
         GeneratedI18nMessage::Text("Agent · {count} to audit"),
@@ -600,12 +607,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("Add history to random roll call"),
       ),
       ("app.ai.mode.explain", GeneratedI18nMessage::Text("Explain")),
-      (
-        "app.ai.offline_hint",
-        GeneratedI18nMessage::Text(
-          "Offline model — open Settings to connect a real provider for real replies.",
-        ),
-      ),
       ("app.ai.pending_chip", GeneratedI18nMessage::Text("{count} to review")),
       ("app.ai.pill_pending", GeneratedI18nMessage::Text("To review")),
       (
@@ -692,6 +693,10 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.plugin.markdown", GeneratedI18nMessage::Text("Markdown pane")),
       ("app.plugin.terminal", GeneratedI18nMessage::Text("Terminal")),
+      (
+        "app.project.created",
+        GeneratedI18nMessage::Text("Project created at {a}"),
+      ),
       ("app.props.align_end", GeneratedI18nMessage::Text("Right")),
       ("app.qa.align_center", GeneratedI18nMessage::Text("Center horizontally")),
       ("app.run.gate.reject", GeneratedI18nMessage::Text("Reject")),
@@ -746,12 +751,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("No proposal history yet"),
       ),
       ("app.ai.mode.generate", GeneratedI18nMessage::Text("Create")),
-      (
-        "app.ai.offline_reply",
-        GeneratedI18nMessage::Text(
-          "[Offline model] Received: \"{prompt}\". Open Settings to switch to a real provider.",
-        ),
-      ),
       ("app.ai.scroll_bottom", GeneratedI18nMessage::Text("Scroll to bottom")),
       ("app.ai.time.just_now", GeneratedI18nMessage::Text("just now")),
       ("app.ai.work.duration", GeneratedI18nMessage::Text("{m}m {s}s")),
@@ -808,12 +807,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       (
         "app.compile.revealed",
         GeneratedI18nMessage::Text("Revealed in the file manager"),
-      ),
-      (
-        "app.confirm.template",
-        GeneratedI18nMessage::Text(
-          "Applying a template overwrites the current program. Continue?",
-        ),
       ),
       (
         "app.ctx.actions.none",
@@ -939,12 +932,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.compile.step_done", GeneratedI18nMessage::Text("done")),
       ("app.compile.work_root", GeneratedI18nMessage::Text("Work root")),
-      (
-        "app.confirm.new_blank",
-        GeneratedI18nMessage::Text(
-          "A new blank program overwrites the current one. Continue?",
-        ),
-      ),
       ("app.ctx.actions.ready", GeneratedI18nMessage::Text("ready")),
       ("app.ctx.state.running", GeneratedI18nMessage::Text("Running")),
       ("app.explorer.new_file", GeneratedI18nMessage::Text("New file")),
@@ -1056,6 +1043,10 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         ),
       ),
       ("app.ctx.actions.create", GeneratedI18nMessage::Text("create")),
+      (
+        "app.dialog.new_project",
+        GeneratedI18nMessage::Text("Choose a folder for the new project"),
+      ),
       (
         "app.expr.drop.rejected",
         GeneratedI18nMessage::Text("That slot cannot hold this expression"),
@@ -1215,6 +1206,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("Smoke-running the artifact"),
       ),
       ("app.compile.step_active", GeneratedI18nMessage::Text("running")),
+      (
+        "app.confirm.new_project",
+        GeneratedI18nMessage::Text(
+          "Create a new project in a local folder? Unsaved changes stay in the undo stack.",
+        ),
+      ),
       ("app.explorer.new_folder", GeneratedI18nMessage::Text("New folder")),
       ("app.expr.tpl.get_number", GeneratedI18nMessage::Text("Read number")),
       (
@@ -1352,6 +1349,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.project.file_renamed", GeneratedI18nMessage::Text("Renamed to {a}")),
       (
+        "app.project.snapshot_bad",
+        GeneratedI18nMessage::Text(
+          "Project program snapshot is invalid — starting from the built-in sample.",
+        ),
+      ),
+      (
         "app.recent.action.delete",
         GeneratedI18nMessage::Text("Deleted control"),
       ),
@@ -1481,6 +1484,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         "app.project.preview_ready",
         GeneratedI18nMessage::Text(
           "Preview ready: the project canvas is available",
+        ),
+      ),
+      (
+        "app.project.snapshot_skip",
+        GeneratedI18nMessage::Text(
+          "Unsaved changes kept — save first, then re-activate the project to load its program.",
         ),
       ),
       (
@@ -1695,6 +1704,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       (
         "app.plugin.terminal.summary",
         GeneratedI18nMessage::Text("Built-in PTY terminal tab"),
+      ),
+      (
+        "app.project.new_native_only",
+        GeneratedI18nMessage::Text(
+          "Creating a project in a local folder needs the native app (no writable folder picker on the web).",
+        ),
       ),
       (
         "app.project.preview_rebuild",
@@ -1993,10 +2008,8 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("op.message", GeneratedI18nMessage::Text("信息框")),
       ("app.ai.busy", GeneratedI18nMessage::Text("正在生成提案…")),
       ("app.ai.dock", GeneratedI18nMessage::Text("停靠右栏")),
-      ("app.ai.fake", GeneratedI18nMessage::Text("离线模型")),
       ("app.ai.idle", GeneratedI18nMessage::Text("待命")),
       ("app.ai.pill", GeneratedI18nMessage::Text("收成药丸")),
-      ("app.ai.real", GeneratedI18nMessage::Text("真实模型")),
       ("app.ai.send", GeneratedI18nMessage::Text("发送")),
       ("app.ai.stop", GeneratedI18nMessage::Text("停止")),
       ("app.lang.en", GeneratedI18nMessage::Text("English")),
@@ -2333,6 +2346,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.ai.chat.title", GeneratedI18nMessage::Text("回复")),
       ("app.ai.diff.title", GeneratedI18nMessage::Text("变更预览")),
       (
+        "app.ai.key_needed",
+        GeneratedI18nMessage::Text(
+          "先在设置里配置 API 密钥，再使用 AI。",
+        ),
+      ),
+      (
         "app.ai.no_context",
         GeneratedI18nMessage::Text(
           "还没有上下文——点下面的芯片把当前对象加进来",
@@ -2416,6 +2435,10 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.ai.mode.repair", GeneratedI18nMessage::Text("修复")),
       ("app.ai.session.new", GeneratedI18nMessage::Text("新建会话")),
+      (
+        "app.ai.unavailable",
+        GeneratedI18nMessage::Text("AI 需要 native 版本"),
+      ),
       ("app.audit.controls", GeneratedI18nMessage::Text("控件层已就绪")),
       (
         "app.audit.handlers",
@@ -2524,6 +2547,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.ai.anchor.right", GeneratedI18nMessage::Text("右下角")),
       ("app.ai.card.applied", GeneratedI18nMessage::Text("已应用")),
       ("app.ai.card.explain", GeneratedI18nMessage::Text("讲解")),
+      ("app.ai.disconnected", GeneratedI18nMessage::Text("未连接")),
       (
         "app.ai.fold_pending",
         GeneratedI18nMessage::Text("Agent 待审计 {count}"),
@@ -2538,12 +2562,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("给随机点名加历史记录"),
       ),
       ("app.ai.mode.explain", GeneratedI18nMessage::Text("解释")),
-      (
-        "app.ai.offline_hint",
-        GeneratedI18nMessage::Text(
-          "当前是离线模型——打开设置接入真实模型后即可获得真实回复。",
-        ),
-      ),
       ("app.ai.pending_chip", GeneratedI18nMessage::Text("待审计 {count}")),
       ("app.ai.pill_pending", GeneratedI18nMessage::Text("待审计")),
       (
@@ -2628,6 +2646,10 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.plugin.markdown", GeneratedI18nMessage::Text("Markdown 面板")),
       ("app.plugin.terminal", GeneratedI18nMessage::Text("终端")),
+      (
+        "app.project.created",
+        GeneratedI18nMessage::Text("工程已创建：{a}"),
+      ),
       ("app.props.align_end", GeneratedI18nMessage::Text("右")),
       ("app.qa.align_center", GeneratedI18nMessage::Text("水平居中")),
       ("app.run.gate.reject", GeneratedI18nMessage::Text("拒绝")),
@@ -2685,12 +2707,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("还没有提案历史"),
       ),
       ("app.ai.mode.generate", GeneratedI18nMessage::Text("生成")),
-      (
-        "app.ai.offline_reply",
-        GeneratedI18nMessage::Text(
-          "【离线模型】已收到：「{prompt}」。打开设置切换到真实模型即可接通。",
-        ),
-      ),
       ("app.ai.scroll_bottom", GeneratedI18nMessage::Text("回到底部")),
       ("app.ai.time.just_now", GeneratedI18nMessage::Text("刚刚")),
       ("app.ai.work.duration", GeneratedI18nMessage::Text("{m} 分 {s} 秒")),
@@ -2739,12 +2755,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       (
         "app.compile.revealed",
         GeneratedI18nMessage::Text("已在文件夹中打开"),
-      ),
-      (
-        "app.confirm.template",
-        GeneratedI18nMessage::Text(
-          "套用模板会覆盖当前程序。继续？",
-        ),
       ),
       (
         "app.ctx.actions.none",
@@ -2867,12 +2877,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.compile.step_done", GeneratedI18nMessage::Text("完成")),
       ("app.compile.work_root", GeneratedI18nMessage::Text("工作目录")),
-      (
-        "app.confirm.new_blank",
-        GeneratedI18nMessage::Text(
-          "新建空白程序会覆盖当前程序。继续？",
-        ),
-      ),
       ("app.ctx.actions.ready", GeneratedI18nMessage::Text("已建")),
       ("app.ctx.state.running", GeneratedI18nMessage::Text("运行中")),
       ("app.explorer.new_file", GeneratedI18nMessage::Text("新建文件")),
@@ -2977,6 +2981,10 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         ),
       ),
       ("app.ctx.actions.create", GeneratedI18nMessage::Text("新建")),
+      (
+        "app.dialog.new_project",
+        GeneratedI18nMessage::Text("为新工程选择一个文件夹"),
+      ),
       (
         "app.expr.drop.rejected",
         GeneratedI18nMessage::Text("这个凹槽放不下这个表达式"),
@@ -3130,6 +3138,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("启动产物自检"),
       ),
       ("app.compile.step_active", GeneratedI18nMessage::Text("进行中")),
+      (
+        "app.confirm.new_project",
+        GeneratedI18nMessage::Text(
+          "在本地文件夹新建工程？未保存的修改仍可从撤销栈找回。",
+        ),
+      ),
       ("app.explorer.new_folder", GeneratedI18nMessage::Text("新建文件夹")),
       ("app.expr.tpl.get_number", GeneratedI18nMessage::Text("读取数字")),
       (
@@ -3260,6 +3274,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         "app.project.file_renamed",
         GeneratedI18nMessage::Text("已重命名为 {a}"),
       ),
+      (
+        "app.project.snapshot_bad",
+        GeneratedI18nMessage::Text(
+          "工程程序快照无效——已回到内置样例。",
+        ),
+      ),
       ("app.recent.action.delete", GeneratedI18nMessage::Text("删除控件")),
       ("app.recent.action.insert", GeneratedI18nMessage::Text("插入控件")),
       ("app.recent.action.rename", GeneratedI18nMessage::Text("重命名")),
@@ -3372,6 +3392,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       (
         "app.project.preview_ready",
         GeneratedI18nMessage::Text("预览已就绪：工程画布可查看了"),
+      ),
+      (
+        "app.project.snapshot_skip",
+        GeneratedI18nMessage::Text(
+          "保留未保存修改——先保存，再重新激活工程即可载入其程序。",
+        ),
       ),
       (
         "app.props.label.font_size",
@@ -3590,6 +3616,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       (
         "app.plugin.terminal.summary",
         GeneratedI18nMessage::Text("内置 PTY 终端页签"),
+      ),
+      (
+        "app.project.new_native_only",
+        GeneratedI18nMessage::Text(
+          "在本地文件夹新建工程需要 native 版本（Web 端没有可写路径的目录选择）。",
+        ),
       ),
       (
         "app.project.preview_rebuild",

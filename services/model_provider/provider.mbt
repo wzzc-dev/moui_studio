@@ -3,9 +3,9 @@
 /// 产品域私有包：被 studio app 与 provider_native worker 依赖。
 ///
 /// 边界：
-/// - provider 只做「请求体构造 / 响应体解析」与确定性假模型；
-///   真实 IO（async HTTP → ServiceTask → Msg）在 app 侧接线，
-///   凭据不进入本包、不进入项目文件、不进入导出 bundle。
+/// - provider 只做「请求体构造 / 响应体解析」；真实 IO（async HTTP →
+///   ServiceTask → Msg）在 app 侧接线，凭据不进入本包、不进入项目文件、
+///   不进入导出 bundle。
 /// - 与 app 的 AI 提案契约正交：这里管单次对话补全，
 ///   ProposalV1 的结构化生成复用同一请求通道（schema 约束见 app 侧）。
 
@@ -155,27 +155,6 @@ pub fn parse_completion(text : String) -> Result[String, String] {
       }
     _ => return Err("choices[0] 不是对象")
   }
-}
-
-///|
-/// 确定性假模型：离线可演示、可回放。相同的请求总是得到相同的回复。
-/// 面试演示不依赖网络；真实 provider 走 build_request_body/parse_completion。
-pub fn deterministic_completion(request : CompletionRequest) -> String {
-  let last_user = request.messages
-    .filter(fn(message) { message.role is User })
-    .map(fn(message) { message.content })
-  let prompt = if last_user.is_empty() {
-    ""
-  } else {
-    let last = last_user.length() - 1
-    last_user[last]
-  }
-  let persona = if request.system == "" {
-    "友好助手"
-  } else {
-    request.system
-  }
-  "【\{persona}】收到：\{prompt}。这是确定性假模型的回复（模型 \{request.model}，温度 \{request.temperature.to_int()}）。"
 }
 
 ///|

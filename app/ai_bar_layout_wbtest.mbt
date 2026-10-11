@@ -139,7 +139,7 @@ test "the AI input bar never overflows the centre column" {
 /// 判据取**可达性**：变量分类下能画出该入口（文字在场），其他分类下不出现
 /// （否则每个分类都挂着同一个按钮，等于噪音）。
 test "the variable palette offers an inline create-variable entry" {
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   // 展开「变量」分类（分类轨里 CatVariable 的下标）
   let rail = block_category_entries(model)
   let mut var_index = -1
@@ -188,7 +188,7 @@ test "the variable palette offers an inline create-variable entry" {
 /// 「状态对了但 popup 没挂上」在 UI 上就是「右键没反应」，而状态断言全绿。
 /// 这里断言菜单项文字出现在绘制指令里。
 test "the blocks context menu actually renders its items" {
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   // 关闭态：菜单项不在
   let closed = shell_draw(model, 1280.0, 800.0)
   assert_false(shell_has_text(closed, "删除语句"))
@@ -215,7 +215,7 @@ test "the blocks context menu actually renders its items" {
 test "reporter slots reach the real draw pipeline" {
   // 口算训练营模板含嵌套二元表达式（`(to_text(第一个数) + " + ")`），
   // 所以它的积木上必然有插槽。
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   let commands = shell_draw(model, 1600.0, 900.0)
   let mut slot_fills = 0
   for command in commands {
@@ -241,7 +241,7 @@ test "reporter slots reach the real draw pipeline" {
 /// 回归意义：模型层写完就算了的话，用户看不到入口——「能力在、入口不在」
 /// 正是这一系列缺口的共同形态，所以要用绘制指令断言它可见。
 test "the note field renders in the block editor card" {
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   // 选中一条积木让编辑卡出现
   let picked = apply_shell(model, SelectBlockStep(1))
   let commands = shell_draw(picked, 1280.0, 800.0)
@@ -266,7 +266,7 @@ test "the note field renders in the block editor card" {
 test "the ask gate renders an answer input but submit does not" {
   // 直接构造一个停在 `询问` 闸门的运行态：`step_once` 走一条指令即挂起。
   // 不用 RunTick 推进——那还要依赖计时器与推进预算，断言会变得间接。
-  let base = apply_shell(initial_model(), SelectTemplate(2))
+  let base = load_template_program(initial_model(), 2)
   let gate_state = @studio_lang.start_run_stmts(
     [
       @ir.Declare(
@@ -350,7 +350,7 @@ test "the ask gate renders an answer input but submit does not" {
 /// 同时断言**空说明不占位**：没有说明时不画横幅（否则每条子程序上方都有
 /// 一条空白带，把画布本来就不多的空间吃掉）。
 test "the script note renders on the blocks canvas only when set" {
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   let key = handler_key(
     model.program.handlers[0].control_name,
     model.program.handlers[0].event.tag(),
@@ -427,7 +427,7 @@ test "the note offset round-trips through the draw/hit conversion" {
 /// 按条数判定根本无法区分「选中了哪一块」。而运行时不对外暴露模型状态，
 /// 所以「发画布会发的消息 + 断言选中」是这里**唯一可靠**的端到端信号。
 test "clicking a block with a note shown selects the block under the pointer" {
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   let key = handler_key(
     model.program.handlers[0].control_name,
     model.program.handlers[0].event.tag(),
@@ -675,7 +675,7 @@ test "explicitly anchoring to the bar reveals the composer" {
 /// 断言它落在右键点附近（右下方向一个菜单高度的量级内）。只断言「菜单项
 /// 出现」的话，锚点写错也照样全绿——这正是原缺陷能溜过去的原因。
 test "the context menu opens at the pointer, not at the host corner" {
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   // 在画布中偏上的位置右键（远离画布左上角，锚点写错时差距明显）
   let click_x = 400.0
   let click_y = 300.0
@@ -739,7 +739,7 @@ test "the context menu opens at the pointer, not at the host corner" {
 /// 消息只能证明那个 handler 对，证明不了「点空白处会发出它」——而缺的
 /// 恰恰是后者。
 test "the context menu closes when clicking outside it" {
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   let opened = apply_shell(model, BlocksContextMenu(0, 400.0, 300.0))
   assert_true(opened.block_menu is Some(_))
 
@@ -787,7 +787,7 @@ test "the context menu closes when clicking outside it" {
 /// 这条守的是「关闭」与「执行」的**互斥**：菜单项的点击既不该被屏障吃掉
 /// （否则点了没反应），屏障也不该被菜单项挡住（否则点别处不关）。
 test "clicking a menu item runs its action instead of being swallowed" {
-  let model = apply_shell(initial_model(), SelectTemplate(2))
+  let model = load_template_program(initial_model(), 2)
   let opened = apply_shell(model, BlocksContextMenu(0, 400.0, 300.0))
   // 直接走「菜单动作」路径（菜单项自身的 on_tap 会先关菜单再发动作）
   let acted = apply_shell(opened, BlocksMenuAction(RunSingleBlock))

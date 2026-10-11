@@ -138,19 +138,6 @@ fn assert_no_effect_ai(effect : @moui.Effect[AiSessionMsg]) -> Unit {
 }
 
 ///|
-test "fake stream chunks are deterministic and cover the whole text" {
-  let chunks = fake_stream_chunks("abcdefghij", 3)
-  assert_eq(chunks.length(), 4)
-  assert_eq(chunks[0], "abc")
-  assert_eq(chunks[3], "j")
-  // 同一文本永远同一序列
-  let again = fake_stream_chunks("abcdefghij", 3)
-  assert_eq(chunks, again)
-  // 空文本 → 零分片
-  assert_eq(fake_stream_chunks("", 3).length(), 0)
-}
-
-///|
 test "ai session append_to_last_card only touches the last card" {
   let sessions = seeded_sessions()
   let before = sessions.current().cards[0].body

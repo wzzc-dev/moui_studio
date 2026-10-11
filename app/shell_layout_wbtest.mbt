@@ -15,6 +15,22 @@ fn apply_shell(model : Model, msg : Msg) -> Model {
 }
 
 ///|
+/// 测试助手：以「随机点名」样例提案走真实回执通道，产出待采纳提案。
+/// 假模型移除后，提案生成的网络段由真实 provider 承担，测试直接喂回执。
+fn with_pending_roll_call(model : Model) -> Model {
+  proposal_from_completion(
+    model,
+    @proposals.encode_proposal(
+      @proposals.proposal_from_program(
+        @proposals.sample_roll_call(),
+        "随机点名",
+        "roll call",
+      ),
+    ),
+  )
+}
+
+///|
 /// 在给定视口渲染一次，返回 draw_commands。
 fn shell_draw(
   model : Model,
@@ -375,7 +391,7 @@ test "a no-op edit records neither a recent change nor an undo point" {
 ///|
 test "accepting a proposal logs an audit entry, console line and toast" {
   let model = apply_shell(initial_model(), SetPrompt("加一个按钮"))
-  let proposed = apply_shell(model, GenerateProposal)
+  let proposed = with_pending_roll_call(model)
   guard proposed.pending is Some(_) else { fail("no proposal generated") }
   let audit_before = proposed.audit_entries.length()
   let log_before = proposed.log_lines.length()
@@ -393,7 +409,7 @@ test "accepting a proposal logs an audit entry, console line and toast" {
 ///|
 test "rejecting a proposal records history without touching the program" {
   let model = apply_shell(initial_model(), SetPrompt("加一个按钮"))
-  let proposed = apply_shell(model, GenerateProposal)
+  let proposed = with_pending_roll_call(model)
   let signature = @ir.program_signature(proposed.program)
   let rejected = apply_shell(proposed, RejectProposal)
   assert_true(rejected.pending is None)
@@ -805,14 +821,18 @@ test "composer mode routes send to existing channels" {
   guard shell_find_send_button(commands) is Some(_) else {
     fail("round send button missing")
   }
-  // 解释模式 → 本地确定性讲解（挂到 explanation）
+  // 解释模式 → 路由到程序级 provider 臂（纯链推用户卡 + 盖戳；
+  // 讲解内容来自真实 provider，流式回执在 app_test 的消息流测试里断言）
   let explain = apply_shell(
-    apply_shell(model, SetComposerMode(ComposeExplain)),
+    apply_shell(
+      apply_shell(model, SetComposerMode(ComposeExplain)),
+      SetPrompt("讲讲这个子程序"),
+    ),
     ComposerRun,
   )
-  if explain.explanation == "" {
+  if explain.ai_sessions.current().cards.length() == 0 {
     fail(
-      "explain mode produced nothing; selected_handler=" +
+      "explain mode lost the user card; selected_handler=" +
       explain.selected_handler,
     )
   }
@@ -848,14 +868,20 @@ test "composer mode routes send to existing channels" {
 }
 
 ///|
-/// 生成模式以空程序为基：提案从零重建，且仍走同一条校验链。
+/// 生成模式以空程序为基：路由前清空控件与子程序，真实回执在此基底上
+/// 走同一条校验链。
 test "generate mode starts from an empty program" {
   let model = apply_shell(initial_model(), SetPrompt("班级点名册"))
   let cleared = apply_shell(
     apply_shell(model, SetComposerMode(ComposeGenerate)),
     ComposerRun,
   )
-  guard cleared.pending is Some(pending) else { fail("no proposal generated") }
+  // 生成语义：清空基底（真实提案从零重建），路由经效果派发到程序级臂
+  assert_true(cleared.program.controls.is_empty())
+  assert_true(cleared.program.handlers.is_empty())
+  // 清空基底上喂真实回执：提案恢复控件（同一校验链）
+  let generated = with_pending_roll_call(cleared)
+  guard generated.pending is Some(pending) else { fail("no proposal generated") }
   assert_true(pending.valid)
   // 提案恢复了控件（生成语义），不是空提案
   assert_true(pending.proposal.controls_add.length() > 0)
@@ -1050,10 +1076,10 @@ test "see all sessions appears only with a long thread list" {
   assert_false(
     shell_has_text(shell_draw(model, 1280.0, 800.0), "查看全部会话 →"),
   )
-  // 每次生成提案都会推进一张 diff 线程卡（真实漏斗：GenerateProposal）
-  let mut many = apply_shell(model, GenerateProposal)
+  // 每条真实回执都会推进一张 diff 线程卡（真实漏斗：proposal_from_completion）
+  let mut many = with_pending_roll_call(model)
   for _ in 0..<4 {
-    many = apply_shell(many, GenerateProposal)
+    many = with_pending_roll_call(many)
   }
   if many.ai_sessions.current().cards.length() <= 3 {
     fail(
@@ -1075,7 +1101,7 @@ test "see all sessions appears only with a long thread list" {
 /// 待审计读数：药丸删除后，`pending_ai_cards` 仍然是唯一来源，
 /// 由底栏 AI 页签的计数徽标承载（页签按钮的 count）。
 test "pending review count still surfaces after the pill removal" {
-  let model = apply_shell(initial_model(), GenerateProposal)
+  let model = with_pending_roll_call(initial_model())
   if pending_ai_cards(model) == 0 {
     fail("proposal did not create a pending thread card")
   }
@@ -1094,7 +1120,7 @@ test "pending review count still surfaces after the pill removal" {
 test "proposal threads produce visible, settleable cards" {
   let model = initial_model()
   assert_eq(model.ai_sessions.current().cards.length(), 0)
-  let proposed = apply_shell(model, GenerateProposal)
+  let proposed = with_pending_roll_call(model)
   assert_true(proposed.pending is Some(_))
   assert_eq(proposed.ai_sessions.current().cards.length(), 1)
   assert_eq(pending_ai_cards(proposed), 1)
@@ -1108,10 +1134,7 @@ test "proposal threads produce visible, settleable cards" {
   assert_eq(accepted.ai_sessions.current().cards.length(), 1)
   assert_true(accepted.ai_sessions.current().cards[0].settled)
   // 拒绝同理
-  let rejected = apply_shell(
-    apply_shell(model, GenerateProposal),
-    RejectProposal,
-  )
+  let rejected = apply_shell(with_pending_roll_call(model), RejectProposal)
   assert_true(rejected.ai_sessions.current().cards[0].settled)
   assert_eq(pending_ai_cards(rejected), 0)
 }
@@ -1150,7 +1173,7 @@ test "thread cards never push the composer out of its host" {
   let mut model = apply_shell(initial_model(), SetRightView(RvAi))
   // 连推几张卡，触发线程区滚动上限
   for _ in 0..<5 {
-    model = apply_shell(model, GenerateProposal)
+    model = with_pending_roll_call(model)
   }
   if model.ai_sessions.current().cards.length() <= 3 {
     fail(
@@ -1219,7 +1242,7 @@ test "hover hint reaches the status bar" {
 test "blocks canvas renders hugging rows with lead-aligned slot holes" {
   // 走**真实更新路径**造一条 If：选模板后从流程分类插入 if 骨架
   // （默认模板链里没有 If，画不出洞）。
-  let base = apply_shell(initial_model(), SelectTemplate(2))
+  let base = load_template_program(initial_model(), 2)
   let model = apply_shell(base, InsertStatement(2, 0))
   let commands = shell_draw(model, 1280.0, 800.0)
   // 块体 = FillRoundedRectBrush + 实心画笔，颜色取自 block_fill 色阶。

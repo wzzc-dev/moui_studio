@@ -1,6 +1,7 @@
 ///|
 /// MoUI Studio Web 入口（wasm-gc）：薄组合根。
-/// 浏览器只用确定性假模型（无网络/无凭据）；真实 provider 仅 native。
+/// 浏览器没有 HTTP 通道（真实 provider 仅 native worker），AI 显式降级：
+/// `ai_available=false` → composer 隐藏 + native 引导文案，不出假按钮。
 /// apply_locale 经 Ref 后置绑定（runtime 构造时还不存在）。
 
 ///|
@@ -25,6 +26,7 @@ fn main {
   let runtime = @runtime.new_program_with_dimensions(
     program=@studio_app.program(
       environment=@web.app_environment(),
+      ai_available=false,
       wall_clock=Some(web_studio_clock),
       apply_locale=tag => {
         match runtime_ref.val {

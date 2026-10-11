@@ -126,12 +126,10 @@ macOS 原生入口：`moon run macos_skia --target native`
 | 口算训练营 | 分支、变量、算术 | [samples/drill/README.md](samples/drill/README.md) |
 | 班级小卖部 | 跨事件状态、外发闸门 | [samples/store/README.md](samples/store/README.md) |
 
-## macOS 入口（真实模型）
+## AI（真实模型）与新建工程
 
-```sh
-moon run macos_skia --target native
-```
-
+- AI 恒走真实 OpenAI 兼容 provider：没有离线假模型。未配置密钥时 composer
+  下方给出接通引导（不弹假回复）；endpoint/model/密钥在设置面板里热改。
 - 真实模型默认指向阶跃星辰（`https://api.stepfun.com/step_plan/v1`，`step-5-preview`）。
 - 凭据放在 **gitignored** 的 `moui_studio/.config.json`（可直接在 json 里换 key）：
 
@@ -139,7 +137,14 @@ moon run macos_skia --target native
 { "provider": { "endpoint": "...", "model": "...", "api_key": "..." } }
 ```
 
-- Web 入口只走确定性假模型——现场演示不依赖网络与凭据。
+- Web 入口（浏览器）没有 HTTP 通道：AI 输入面显式降级为「需要 native 版本」
+  引导，不出假按钮。
+- **新建示例项目 = 落盘本地文件夹**（空舞台按钮 / ⌘K 的模板与「新建」命令）：
+  选一个空文件夹，Studio 写入 `moon.mod` + 可编译的 MoonBit 应用骨架
+  （内嵌领域内核，`moon build` 即过）+ `.studio/program.json` IR 快照。
+  关掉 Studio 再打开时激活该工程即可恢复程序，AI 可以继续在上面改
+  （比如「把按钮字号调大」——提案采纳后 handlers.mbt 与内嵌 IR 直接
+  写回工程文件夹）。
 
 ## 规范文档
 
@@ -152,7 +157,7 @@ moon run macos_skia --target native
   domain/ir/          程序 IR + 不变量 + 预算（零依赖）
   domain/studio_lang/  双语 DSL：关键字表/词法/解析/打印/指令机解释器
   domain/codec/       .studio.json 编解码 + 版本门
-  domain/proposals/   AI 提案契约 + 校验链 + diff + 假模型 + 样例
+  domain/proposals/   AI 提案契约 + 校验链 + diff + 内置模板样例
   domain/blocks/      语句 → 积木规格表
   services/export/    独立应用导出（内核快照 + bundle 生成）
   services/model_provider/  OpenAI 兼容协议（纯）
@@ -203,18 +208,26 @@ moon build web_wasm --target wasm-gc
 
 - Switch language from the top bar (`English` / `中文`); the DSL keywords
   switch with it.
-- Open a template from the empty stage or the `⌘K` command palette
-  (all four samples plus a blank program).
-- In the AI panel type "random roll call" → review the field-level diff →
-  accept or reject.
+- **New sample project = a real folder on disk**: pick an empty folder from
+  the empty stage or the `⌘K` palette (all four samples plus a blank
+  program). Studio writes `moon.mod`, a compiling MoonBit app skeleton
+  (vendored domain kernel — `moon build` passes), and a `.studio/program.json`
+  IR snapshot. Re-open later by activating the project; the AI can keep
+  editing it (e.g. "make the button font bigger" — accepting the proposal
+  rewrites `handlers.mbt` and the embedded IR right in that folder).
+- AI always uses a **real OpenAI-compatible provider** — there is no offline
+  fake model. Without a key the composer shows a connect hint; Web has no
+  HTTP channel, so its AI surface degrades to a "needs the native app" note.
 - Run: buttons really work, and `submit_data` **pauses the program until you
   confirm** — nothing is sent before you do.
 
-macOS entry (real model, StepFun `step-5-preview`):
+macOS entry:
 
 ```sh
 moon run macos_skia --target native
 ```
+
+Provider configuration (default StepFun `step-5-preview`):
 
 Credentials live **only** in the gitignored `moui_studio/.config.json`:
 

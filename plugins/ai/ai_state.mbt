@@ -244,7 +244,7 @@ pub fn AiSessions::touch(self : AiSessions, at : Int) -> Unit {
 
 ///|
 /// 流式追加（M4）：把增量文本**追加到最后一张卡的 body**——流式卡由调用方
-/// （fake/真实 provider 路径）先推入，之后每个分片经本操作追加。追加语义
+/// （真实 provider 路径）先推入，之后每个分片经本操作追加。追加语义
 /// 稳定：只动最后一张卡，既有卡零改动（重渲染不闪不重排）。
 pub fn AiSessions::append_to_last_card(
   self : AiSessions,
@@ -267,31 +267,4 @@ pub fn AiSessions::append_to_last_card(
     index = index + 1
   }
   self.amend({ ..session, cards, })
-}
-
-///|
-/// 确定性分块（fake provider 流式）：把完整回复按固定字符数切块，末块可短。
-/// 纯函数、顺序稳定——同一文本永远产生同一分块序列。
-pub fn fake_stream_chunks(text : String, chunk_size : Int) -> Array[String] {
-  let size = if chunk_size <= 0 { 1 } else { chunk_size }
-  let chars : Array[Char] = []
-  for c in text {
-    chars.push(c)
-  }
-  let chunks : Array[String] = []
-  let buf = StringBuilder()
-  let mut used = 0
-  for c in chars {
-    buf.write_char(c)
-    used = used + 1
-    if used == size {
-      chunks.push(buf.to_string())
-      buf.reset()
-      used = 0
-    }
-  }
-  if used > 0 {
-    chunks.push(buf.to_string())
-  }
-  chunks
 }

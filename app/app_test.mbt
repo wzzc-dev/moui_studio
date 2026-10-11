@@ -28,6 +28,30 @@ fn drain(model : @app.Model) -> @app.Model {
 }
 
 ///|
+/// 测试助手：以「随机点名」样例提案走真实回执通道（proposal_from_completion
+/// 即程序级臂 RealGenerationFinished 的纯转移段），产出待采纳提案。
+/// 假模型移除后，提案生成的网络段由真实 provider 承担，测试直接喂回执。
+/// 提案按假模型同款**全量重建**语义补 removes——样例替换当前程序而非叠加。
+fn with_pending_roll_call(model : @app.Model) -> @app.Model {
+  let proposal = @proposals.proposal_from_program(
+    @proposals.sample_roll_call(),
+    "随机点名",
+    "roll call",
+  )
+  let rebuild = @proposals.ProposalV1::{
+    ..proposal,
+    controls_remove: model.program.controls.map(control => control.name),
+    variables_remove: model.program.variables.map(variable => variable.name),
+    handlers_remove: model.program.handlers.map(handler =>
+      @proposals.HandlerRef::{
+        control: handler.control_name,
+        event: handler.event.tag(),
+      }),
+  }
+  @app.proposal_from_completion(model, @proposals.encode_proposal(rebuild))
+}
+
+///|
 test "initial model loads hello sample in chinese" {
   let model = @app.initial_model()
   assert_true(model.language is ZhHans)
@@ -334,7 +358,7 @@ test "both tracks produce identical observable results for the same handler" {
 
 ///|
 test "run gate pauses submit and confirm completes" {
-  let model = apply(@app.initial_model(), SelectTemplate(3))
+  let model = @app.load_template_program(@app.initial_model(), 3)
   let started = apply(model, RunStart)
   match started.run {
     None => fail("小卖部应能运行")
@@ -374,12 +398,12 @@ test "run gate pauses submit and confirm completes" {
 }
 
 ///|
-test "fake model proposal validates, diffs and applies" {
+test "proposal validates, diffs and applies" {
   let model = apply(
     @app.initial_model(),
     SetPrompt("帮我做一个随机点名"),
   )
-  let generated = apply(model, GenerateProposal)
+  let generated = with_pending_roll_call(model)
   match generated.pending {
     None => fail("应产生待采纳提案")
     Some(pending) => {
@@ -397,7 +421,7 @@ test "fake model proposal validates, diffs and applies" {
 ///|
 test "rejected proposal keeps program" {
   let model = apply(@app.initial_model(), SetPrompt("口算练习"))
-  let generated = apply(model, GenerateProposal)
+  let generated = with_pending_roll_call(model)
   let rejected = apply(generated, RejectProposal)
   assert_true(rejected.pending is None)
   assert_eq(rejected.program.window.title, "问候")
@@ -414,7 +438,7 @@ test "invalid proposal from real model is rejected wholesale" {
 
 ///|
 test "templates switch program and selection" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   assert_eq(model.program.window.title, "口算训练营")
   assert_true(model.selected_handler != "")
 }
@@ -429,7 +453,7 @@ test "split lines helper" {
 
 ///|
 test "runtime state accumulates across events" {
-  let model = apply(@app.initial_model(), SelectTemplate(3))
+  let model = @app.load_template_program(@app.initial_model(), 3)
   let once = drain(apply(model, ControlClicked("卖铅笔")))
   let twice = drain(apply(once, ControlClicked("卖铅笔")))
   let run = twice.run.unwrap()
@@ -450,7 +474,7 @@ test "runtime state accumulates across events" {
 
 ///|
 test "list selection survives the next handler run" {
-  let started = apply(apply(@app.initial_model(), SelectTemplate(1)), RunStart)
+  let started = apply(@app.load_template_program(@app.initial_model(), 1), RunStart)
   let picked = apply(started, ControlPicked("名单", 2))
   assert_eq(picked.runtime_selections.get("名单").unwrap_or(-1), 2)
   assert_eq(picked.run.unwrap().state.selections.get("名单").unwrap_or(-1), 2)
@@ -460,7 +484,7 @@ test "list selection survives the next handler run" {
 
 ///|
 test "table row selection dispatches its supported click handler" {
-  let model = dsl_edit_model(apply(@app.initial_model(), SelectTemplate(3)))
+  let model = dsl_edit_model(@app.load_template_program(@app.initial_model(), 3))
   let table = @ir.find_control(model.program, "商品表").unwrap()
   let with_handler = apply(model, CreateHandler(table.name, @ir.OnClick))
   let edited = apply(
@@ -477,7 +501,7 @@ test "table row selection dispatches its supported click handler" {
 
 ///|
 test "append row persists across handlers without changing the program" {
-  let model = dsl_edit_model(apply(@app.initial_model(), SelectTemplate(1)))
+  let model = dsl_edit_model(@app.load_template_program(@app.initial_model(), 1))
   let edited = apply(model, EditCode("追加行(名单, \"新同学\")\n"))
   // 装填后**点按钮**才执行（运行不再替用户跑一遍）
   let finished = drain(
@@ -509,51 +533,54 @@ test "checkbox change keeps its checked state while running on_change" {
 }
 
 ///|
-test "local explanation walks the handler steps" {
-  let model = apply(@app.initial_model(), SelectTemplate(2))
-  let explained = apply(model, ExplainHandler)
-  assert_true(explained.explanation.contains("random"))
-  assert_true(explained.explanation.contains("1."))
-  let drill = explained
-  assert_true(drill.explanation.contains("set_text"))
+/// 讲解 prompt 的载荷契约：真实 provider 的讲解以 render_handler 输出为
+/// 提问体——note 作注释头、语句逐行渲染，AI 上下文里是真实程序文本。
+test "explanation prompt payload walks the handler" {
+  let model = @app.load_template_program(@app.initial_model(), 2)
+  let handler = @app.current_handler(model).unwrap()
+  let prompt = @studio_lang.render_handler(
+    handler,
+    model.language.dsl_language(),
+  )
+  assert_true(prompt.contains("随机出两个"))
+  assert_true(prompt.contains("随机数"))
+  assert_true(prompt.contains("设置文本"))
 }
 
 ///|
-/// 可读性验收：「解释这个程序」对全部模板 × 双语给出非空、带编号步骤、
-/// note 头随界面语言切换的讲解（步骤行是语言无关的规范算子形式，
-/// 双语差异只在 note 头；每个模板讲解的是其首个子程序）。
-test "local explanation covers every template in both languages" {
-  // (模板下标, 步骤必含规范算子, zh note 片段, en note 片段)
-  let cases : Array[(Int, Array[String], String, String)] = [
-    (0, ["set_text"], "问候语", "greeting"),
-    (1, ["row_count", "random", "row_at"], "随机序号", "random row index"),
-    (2, ["random", "to_text"], "随机出", "roll two numbers"),
-    (3, ["to_text", "set_text"], "铅笔", "revenue per pencil"),
+/// 可读性验收：讲解 prompt 对全部模板 × 双语给出非空载荷——note 头随
+/// 界面语言切换（每个模板讲解的是其首个子程序）。
+test "explanation prompt payload covers every template in both languages" {
+  // (模板下标, zh note 片段, en note 片段)
+  let cases : Array[(Int, String, String)] = [
+    (0, "问候语", "greeting"),
+    (1, "随机序号", "random row index"),
+    (2, "随机出", "roll two numbers"),
+    (3, "铅笔", "revenue per pencil"),
   ]
   for case in cases {
-    let zh = apply(
-      apply(@app.initial_model(), SelectTemplate(case.0)),
-      ExplainHandler,
+    let zh = @app.load_template_program(@app.initial_model(), case.0)
+    let zh_handler = @app.current_handler(zh).unwrap()
+    let zh_prompt = @studio_lang.render_handler(
+      zh_handler,
+      zh.language.dsl_language(),
     )
-    assert_true(zh.explanation.contains("\n1. "))
-    for keyword in case.1 {
-      assert_true(zh.explanation.contains(keyword))
-    }
-    assert_true(zh.explanation.contains(case.2))
-    let en = apply(apply(zh, SwitchLanguage), ExplainHandler)
-    assert_true(en.explanation.contains("\n1. "))
-    for keyword in case.1 {
-      assert_true(en.explanation.contains(keyword))
-    }
-    assert_true(en.explanation.contains(case.3))
-    // 步骤行语言无关，双语差异只在 note 头
-    assert_true(en.explanation != zh.explanation)
+    assert_true(zh_prompt.contains(case.1))
+    let en = apply(zh, SwitchLanguage)
+    let en_handler = @app.current_handler(en).unwrap()
+    let en_prompt = @studio_lang.render_handler(
+      en_handler,
+      en.language.dsl_language(),
+    )
+    assert_true(en_prompt.contains(case.2))
+    // note 头随语言切换
+    assert_true(en_prompt != zh_prompt)
   }
 }
 
 ///|
 test "exported bundle never carries the provider key" {
-  let model = apply(@app.initial_model(), SetProviderKey("SENTINEL-SECRET-KEY"))
+  let model = { ..@app.initial_model(), provider_key: "SENTINEL-SECRET-KEY" }
   let encoded = @codec.encode_program(model.program)
   let bundle = @app.bundle_files(encoded, "x")
   assert_true(bundle.length() > 10)
@@ -618,7 +645,7 @@ test "placeholder messages interpolate in both locales" {
 
 ///|
 test "block view edits write back to the ir" {
-  let model = apply(@app.initial_model(), SelectTemplate(1))
+  let model = @app.load_template_program(@app.initial_model(), 1)
   // 点名册：handler 链 = [declare 人数, declare 序号, set_text]
   let blocks = @app.block_chain_of(model)
   assert_eq(blocks.length(), 3)
@@ -655,7 +682,7 @@ test "block view edits write back to the ir" {
 
 ///|
 test "block edit rejects unparseable draft" {
-  let model = apply(@app.initial_model(), SelectTemplate(1))
+  let model = @app.load_template_program(@app.initial_model(), 1)
   let selected = select_block_index(model, 0)
   let broken = apply(selected, EditBlock("如果 真的 则\n"))
   let committed = apply(broken, CommitBlock)
@@ -671,7 +698,7 @@ test "block edit rejects unparseable draft" {
 ///|
 test "block edit on nested statement path" {
   // 口算训练营：批改 handler = [If(cond, [set_text], [], [set_text])]
-  let model = apply(@app.initial_model(), SelectTemplate(2))
+  let model = @app.load_template_program(@app.initial_model(), 2)
   let picked = apply(model, SelectHandler("批改按钮@on_click"))
   let blocks = @app.block_chain_of(picked)
   // if / then-set_text / else / else-set_text / end
@@ -1026,11 +1053,14 @@ test "deleting an unselected control preserves the current selection" {
 
 ///|
 test "real generation result becomes pending proposal, failure surfaces" {
-  let model = apply(@app.initial_model(), SetProviderKey("k"))
-  // 真实生成成功：与假模型同走校验链 → 待采纳提案；busy 复位
-  let completion = @proposals.fake_model_completion(
-    "帮我做一个随机点名",
-    model.program,
+  let model = { ..@app.initial_model(), provider_key: "k" }
+  // 真实生成成功：补全文本走校验链 → 待采纳提案；busy 复位
+  let completion = @proposals.encode_proposal(
+    @proposals.proposal_from_program(
+      @proposals.sample_roll_call(),
+      "随机点名",
+      "roll call",
+    ),
   )
   let next = apply(model, RealGenerationFinished(Ok(completion)))
   assert_true(next.pending is Some(_))
@@ -1160,10 +1190,9 @@ test "duplicate control copies props with offset and undo removes it" {
 test "undo reverts accepted proposal" {
   let model = @app.initial_model()
   let prompted = apply(model, SetPrompt("做一个查询成绩的表单"))
-  let generated = apply(prompted, GenerateProposal)
-  // 假模型确定性：样例相关 prompt 应产出待采纳提案
+  let generated = with_pending_roll_call(prompted)
   match generated.pending {
-    None => fail("假模型应产出待采纳提案")
+    None => fail("应产出待采纳提案")
     Some(_) => ()
   }
   let accepted = apply(generated, AcceptProposal)
@@ -1179,7 +1208,7 @@ test "undo reverts accepted proposal" {
 ///|
 test "template switch is undoable" {
   let model = @app.initial_model()
-  let switched = apply(model, SelectTemplate(2))
+  let switched = @app.load_template_program(model, 2)
   assert_true(
     @ir.program_signature(switched.program) !=
     @ir.program_signature(model.program),
@@ -1225,7 +1254,7 @@ test "single step pauses auto-advance and walks one instruction" {
 ///|
 test "variables table data fills as the run declares variables" {
   // 点名册样例声明了变量：装填后点按钮，运行到完成后 vars 非空
-  let model = apply(@app.initial_model(), SelectTemplate(1))
+  let model = @app.load_template_program(@app.initial_model(), 1)
   let started = apply(apply(model, RunStart), ControlClicked("点名按钮"))
   let finished = drain(started)
   match finished.run {
@@ -1245,24 +1274,22 @@ test "proposal history records accept and reject" {
   let model = @app.initial_model()
   assert_eq(model.ai_sessions.current().proposal_history.length(), 0)
   // 采纳一条
-  let accepted = apply(
-    apply(
-      apply(model, SetPrompt("做一个查询成绩的表单")),
-      GenerateProposal,
-    ),
-    AcceptProposal,
-  )
+  let accepted = apply(with_pending_roll_call(model), AcceptProposal)
   assert_eq(accepted.ai_sessions.current().proposal_history.length(), 1)
   assert_true(accepted.ai_sessions.current().proposal_history[0].accepted)
   assert_eq(accepted.ai_sessions.current().proposal_history[0].seq, 1)
-  // 再生成并拒绝一条
-  let rejected = apply(
-    apply(
-      apply(accepted, SetPrompt("做一个借书登记的表单")),
-      GenerateProposal,
+  // 再生成（口算样例）并拒绝一条
+  let second = @app.proposal_from_completion(
+    accepted,
+    @proposals.encode_proposal(
+      @proposals.proposal_from_program(
+        @proposals.sample_drill(),
+        "口算训练营",
+        "arithmetic drill",
+      ),
     ),
-    RejectProposal,
   )
+  let rejected = apply(second, RejectProposal)
   assert_eq(rejected.ai_sessions.current().proposal_history.length(), 2)
   assert_true(!rejected.ai_sessions.current().proposal_history[1].accepted)
   assert_eq(rejected.ai_sessions.current().proposal_history[1].seq, 2)
@@ -1379,7 +1406,7 @@ test "blocks canvas layout, hit test and drop slot" {
       if has_depth {
         chosen = Some(
           apply(
-            apply(@app.initial_model(), SelectTemplate(idx)),
+            @app.load_template_program(@app.initial_model(), idx),
             SelectHandler(keyed),
           ),
         )
@@ -1592,7 +1619,7 @@ test "proposal diff shows code text and accept triggers codegen write" {
       @services.AppServices::new(),
     ).0
   let model = apply(imported, SetPrompt("帮我做一个随机点名"))
-  let generated = apply(model, GenerateProposal)
+  let generated = with_pending_roll_call(model)
   match generated.pending {
     None => fail("应产生待采纳提案")
     Some(pending) => {
@@ -1607,7 +1634,7 @@ test "proposal diff shows code text and accept triggers codegen write" {
       // 采纳：发出代码工程写盘事件（M1 事件化，组合根监听器写盘）
       let accepted = apply(generated, AcceptProposal)
       assert_true(
-        accepted.outbox.any(event => event is EvCodeProjectWrite(_, _, _)),
+        accepted.outbox.any(event => event is EvCodeProjectWrite(_, _, _, _)),
       )
       // 历史记录保留文本 diff（会话回放看代码改了哪几行）
       assert_true(accepted.ai_sessions.current().proposal_history.length() > 0)
@@ -1752,8 +1779,8 @@ test "ai perspective walks prompt to proposal to accept with isolated sessions" 
     asked.ai_sessions.current().prompt_draft,
     "帮我做一个随机点名",
   )
-  // 生成（fake provider）：待审提案 + diff 卡进线程
-  let generated = apply(asked, GenerateProposal)
+  // 生成（真实回执通道）：待审提案 + diff 卡进线程
+  let generated = with_pending_roll_call(asked)
   match generated.pending {
     None => fail("应产生待采纳提案")
     Some(pending) => assert_true(pending.valid)
@@ -1764,7 +1791,7 @@ test "ai perspective walks prompt to proposal to accept with isolated sessions" 
   assert_eq(accepted.ai_sessions.current().proposal_history.length(), 1)
   assert_true(accepted.outbox.any(event => event is EvProposalAccepted(_, _)))
   assert_true(
-    accepted.outbox.any(event => event is EvCodeProjectWrite(_, _, _)),
+    accepted.outbox.any(event => event is EvCodeProjectWrite(_, _, _, _)),
   )
   assert_true(
     accepted.audit_entries.any(entry => {
@@ -1788,12 +1815,13 @@ test "ai perspective walks prompt to proposal to accept with isolated sessions" 
 }
 
 ///|
-/// M4 验收：fake 讲解走确定性分块流式——分片逐段追加进当前会话的流式卡，
+/// M4 验收：真实讲解提交预置空流式卡——分片逐段追加进当前会话的流式卡，
 /// 停止生成干净截断（后续分片被忽略），正常完成复位标志。
-test "fake explanation streams chunks and stop truncates cleanly" {
+/// （noop provider 不发回执：dispatch 效果由测试手动跟随，分片消息可断言。）
+test "real explanation streams chunks and stop truncates cleanly" {
   let services = @services.AppServices::new()
-  let model = @app.initial_model()
-  assert_true(model.provider_mode is @app.Fake)
+  // 密钥掩码态会忽略 SetProviderKey 输入——测试直接展开字段
+  let model = { ..@app.initial_model(), provider_key: "k" }
   // 启动流式讲解：流式卡就位（空 body）+ 标志为真
   let (streaming, _effect) = @app.update_with_launch_for_test(
     model,
@@ -1832,21 +1860,19 @@ test "fake explanation streams chunks and stop truncates cleanly" {
     ignored.ai_sessions.current().cards[0].body,
     "第一段。第二段。",
   )
-  // 正常完成路径：独立一轮流（会话切片共享可变，避免与前段别名）——
-  // StreamFinished 只复位标志，不标已停止
+  // 正常完成路径：RealExplanationFinished 结算流式卡并复位标志
+  // （会话切片共享可变，避免与前段别名）
   let (fresh_stream, _) = @app.update_with_launch_for_test(
-    @app.initial_model(),
+    { ..@app.initial_model(), provider_key: "k" },
     ExplainHandler,
     services,
     fn(_path, _done) { () },
   )
-  let (done, _) = @app.update_with_services(
-    fresh_stream,
-    StreamFinished,
-    services,
-  )
+  let done = apply(fresh_stream, RealExplanationFinished(Ok("讲完了")))
   assert_false(done.ai_streaming)
-  assert_false(done.ai_sessions.current().cards[0].settled)
+  // 完成即结算（全文落卡）
+  assert_true(done.ai_sessions.current().cards[0].settled)
+  assert_eq(done.ai_sessions.current().cards[0].body, "讲完了")
 }
 
 ///|

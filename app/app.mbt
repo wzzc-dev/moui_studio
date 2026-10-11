@@ -213,12 +213,6 @@ pub fn update_with_services(
       } else {
         (model, @moui.Effect::none())
       }
-    StreamFinished => {
-      // 一轮流式收尾 = 结构性事件：会话存储脏标
-      let finished = { ..model, ai_streaming: false, }
-      mark_ai_sessions_dirty(finished)
-      (finished, @moui.Effect::none())
-    }
     StopGeneration => {
       // 截断：停止标志复位 + 流式卡标记已停止（「已停止」回执）
       let session = model.ai_sessions.current()
@@ -1017,6 +1011,27 @@ pub fn update_with_services(
         Failure(error) =>
           (with_notice(model, error.message, true), @moui.Effect::none())
         Cancelled => (model, @moui.Effect::none())
+      }
+    // === 新建工程（folder projects）：选目录 → 骨架落盘 → 注册激活 ===
+    // 入口（空舞台按钮 / 命令面板）发 NewProjectRequested；脏程序先经
+    // CkNewProject 确认（续行置 new_project_confirmed 一次性放行标记）。
+    // 链条实现见 new_project.mbt（行数预算：app.mbt 只留分发）。
+    NewProjectRequested(index) =>
+      new_project_requested(model, index, services)
+    NewProjectRootPicked(result) =>
+      new_project_root_picked(model, result, services)
+    NewProjectFileWritten(result) =>
+      new_project_file_written(model, result, services)
+    // 激活工程：纯转移照走 update_pure；带 IR 快照的工程异步读取恢复
+    // （folder projects 的「重开继续编辑」）；回执处理见 new_project.mbt。
+    SetActiveProject(index) =>
+      activate_project_with_restore(model, index, services)
+    ProjectProgramLoaded(result) => project_program_loaded(model, result)
+    SnapshotWriteSaved(result) =>
+      match result {
+        Failure(error) =>
+          (push_toast(model, error.message, true), @moui.Effect::none())
+        Success(_) | Cancelled => (model, @moui.Effect::none())
       }
     // 工程记录存储(G2 W3):boot 读取 → 静默重扫 → 静默合并;坏文件才说话。
     ProjectsStoreLoaded(result) =>
@@ -1863,8 +1878,9 @@ fn run_subscription(
 }
 
 ///|
-/// Program 组合根。provider_submit 由平台入口注入（macOS 真实 worker；
-/// Web 入口注入 noop——浏览器只用离线假模型）。
+/// Program 组合根。provider_submit 由平台入口注入（native 真实 worker；
+/// Web 入口注入 noop 并声明 ai_available=false——浏览器没有 HTTP 通道，
+/// AI 显式降级，不出假按钮）。
 pub fn program(
   environment? : @services.AppEnvironment = @services.AppEnvironment::new(),
   provider_submit? : ProviderSubmit = @kernel.noop_provider_submit,
@@ -1893,6 +1909,9 @@ pub fn program(
   /// 工程记录存储路径（G2）：`.studio/projects.json`（只存 root/module_name
   /// 摘要,启动重扫拿新鲜树）；空 = 关闭（web 入口）。
   projects_store_path? : String = "",
+  /// AI 能力可用性：浏览器没有 HTTP 通道，Web 入口传 false——composer
+  /// 隐藏 + native 引导文案（显式降级，不出假按钮）。
+  ai_available? : Bool = true,
 ) -> @moui.Program[Model, Msg] {
   let services = environment.services()
   let timer = environment.timer()
@@ -1931,8 +1950,16 @@ pub fn program(
   // 代码工程写盘（SelectTemplate / 提案采纳 / 迁移器的汇合点）
   bus.on("studio.code_project", fn(event) {
     match event {
-      EvCodeProjectWrite(dir, form_mbt, handlers_mbt) =>
-        [CodeProjectWriteRequested(dir, form_mbt, handlers_mbt)]
+      EvCodeProjectWrite(dir, form_mbt, handlers_mbt, project_data) =>
+        [CodeProjectWriteRequested(dir, form_mbt, handlers_mbt, project_data)]
+      _ => []
+    }
+  })
+  // 程序 IR 快照（folder projects）：恢复 / AI 继续编辑的事实源
+  bus.on("studio.snapshot", fn(event) {
+    match event {
+      EvProgramSnapshotWrite(path, json) =>
+        [SnapshotWriteRequested(path, json)]
       _ => []
     }
   })
@@ -1982,6 +2009,7 @@ pub fn program(
         immersive~,
         pty_available=pty.available && !(profile is Teaching),
         profile~,
+        ai_available~,
       )
       // 组合根注入了墙钟就用真实时刻播种 Model.clock（常数钟只兜底）
       let model = match wall {
@@ -2036,19 +2064,20 @@ pub fn program(
       let (next0, effect0) = match msg {
         // 事件驱动消息（M1 内核化）：由事件总线从 outbox 翻译而来，副作用
         // 经服务容器执行——监听器保持纯函数，这里才是副作用的家。
-        CodeProjectWriteRequested(dir, form_mbt, handlers_mbt) =>
+        CodeProjectWriteRequested(dir, form_mbt, handlers_mbt, project_data) =>
           (
             model,
-            @moui.Effect::batch([
-              services
-              .files()
-              .write_text("\{dir}/form.mbt", form_mbt)
-              .effect(map=r => CodeProjectSaved(r)),
-              services
-              .files()
-              .write_text("\{dir}/handlers.mbt", handlers_mbt)
-              .effect(map=r => CodeProjectSaved(r)),
-            ]),
+            code_project_write_effect(
+              services.files(), dir~, form_mbt~, handlers_mbt~, project_data~,
+            ),
+          )
+        SnapshotWriteRequested(path, json) =>
+          (
+            model,
+            services
+            .files()
+            .write_text(path, json)
+            .effect(map=r => SnapshotWriteSaved(r)),
           )
         BuildDispatchRequested(request) =>
           (
@@ -2153,6 +2182,8 @@ pub fn program(
         | RealGenerationFinished(_)
         | ExplainHandler
         | RealExplanationFinished(_)
+        | ChatSubmit
+        | RealChatFinished(_)
         | SwitchLanguage
         | LanguageLoaded(_) =>
           update_with_provider(
@@ -2310,6 +2341,31 @@ pub fn program(
 }
 
 ///|
+/// 真实 provider 请求规格的统一组装：endpoint/model/key 全部取当前配置
+/// （设置面板热改即生效），system/prompt/history/json_mode/on_chunk 由
+/// 各提交臂给。
+fn provider_spec(
+  model : Model,
+  system~ : String,
+  prompt~ : String,
+  history~ : Array[(String, String)],
+  json_mode~ : Bool,
+  on_chunk~ : ((String) -> Unit)?,
+) -> @kernel.ProviderRequestSpec {
+  {
+    endpoint: model.provider_endpoint,
+    key: model.provider_key,
+    model: model.provider_model,
+    system: system,
+    prompt: prompt,
+    history: history,
+    json_mode: json_mode,
+    on_chunk: on_chunk,
+  }
+}
+
+
+///|
 /// 带真实 provider 的服务流（GenerateProposal 走网络）。
 fn update_with_provider(
   model : Model,
@@ -2369,141 +2425,131 @@ fn update_with_provider(
       apply_locale(next.language.tag())
       (next, @moui.Effect::none())
     }
+    // AI 提交无 key 的统一引导：prompt_error 走 composer 下方红字，
+    // 不弹卡不占转录——配置凭据是表单动作，不是对话内容。
     ExplainHandler =>
-      if model.provider_mode is Fake || model.provider_key == "" {
-        // M4 流式：fake 路径 = 确定性分块流（本地讲解文本按固定字符数
-        // 切块，逐片经 StreamChunk 追加进当前会话的流式卡；真实 provider
-        // 未来把回调换成 SSE 分片即可复用同一消息流）
-        let (with_explanation, _) = update_pure(model, msg)
-        let streamed = push_ai_card(with_explanation, AiCard::{
-          kind: CardExplanation,
-          title: text(translator(model), "app.ai.card.explain"),
-          body: "",
-          steps: [],
-          steps_done: 0,
-          progress: 0,
-          diff_lines: [],
-          settled: false,
-          settled_note: "",
-          seq: 0,
-          at: 0,
-        })
-        let streamed = { ..streamed, ai_streaming: true, explanation: "", }
-        let chunks = @ai.fake_stream_chunks(with_explanation.explanation, 12)
+      if !model.ai_available || model.provider_key == "" {
         (
-          streamed,
-          @moui.Effect::dispatch(emit => {
-            for chunk in chunks {
-              emit(StreamChunk(chunk))
-            }
-            emit(StreamFinished)
-          }),
+          {
+            ..model,
+            prompt_error: text(translator(model), "app.ai.key_needed"),
+          },
+          @moui.Effect::none(),
         )
       } else {
         match current_handler(model) {
           None => (model, @moui.Effect::none())
-          Some(handler) =>
+          Some(handler) => {
+            // 流式卡预置：分片经 StreamChunk 追加进它（与旧假路径同一卡流）
+            let streaming = push_streaming_card(
+              { ..model, explanation: "", ai_busy: true, ai_streaming: true },
+              text(translator(model), "app.ai.card.explain"),
+            )
             (
-              { ..model, explanation: "", ai_busy: true, },
+              streaming,
               @moui.Effect::dispatch(emit => {
+                // 讲解是纯文本：不带 JSON mode
                 submit(
-                  {
-                    endpoint: model.provider_endpoint,
-                    key: model.provider_key,
-                    model: model.provider_model,
-                    system: explanation_system_prompt(),
-                    prompt: @studio_lang.render_handler(
+                  provider_spec(
+                    model,
+                    system=explanation_system_prompt(),
+                    prompt=@studio_lang.render_handler(
                       handler,
                       model.language.dsl_language(),
                     ),
-                    history: [],
-                    // 讲解是纯文本：不带 JSON mode
-                    json_mode: false,
-                    on_chunk: Some(chunk => emit(StreamChunk(chunk))),
-                  },
+                    history=[],
+                    json_mode=false,
+                    on_chunk=Some(chunk => emit(StreamChunk(chunk))),
+                  ),
                   result => emit(RealExplanationFinished(result)),
                 )
               }),
             )
+          }
         }
       }
     GenerateProposal =>
-      if model.provider_mode is Fake {
-        update_pure(model, GenerateProposal)
-      } else if model.provider_key == "" {
+      if !model.ai_available || model.provider_key == "" {
         (
-          { ..model, prompt_error: text(translator(model), "app.ai.key"), },
+          {
+            ..model,
+            prompt_error: text(translator(model), "app.ai.key_needed"),
+          },
           @moui.Effect::none(),
         )
       } else {
         (
           { ..model, prompt_error: "", ai_busy: true, },
           @moui.Effect::dispatch(emit => {
+            // 提案要求 JSON 输出（G1）
             submit(
-              {
-                endpoint: model.provider_endpoint,
-                key: model.provider_key,
-                model: model.provider_model,
-                system: @proposals.proposal_system_prompt(),
-                prompt: model.ai_sessions.current().prompt_draft,
-                history: [],
-                // 提案要求 JSON 输出（G1）
-                json_mode: true,
-                on_chunk: None,
-              },
+              provider_spec(
+                model,
+                system=@proposals.proposal_system_prompt(),
+                prompt=model.ai_sessions.current().prompt_draft,
+                history=[],
+                json_mode=true,
+                on_chunk=None,
+              ),
               result => emit(RealGenerationFinished(result)),
             )
           }),
         )
       }
-    RealChatFinished(result) =>
+    RealChatFinished(result) => {
+      let titled = text(translator(model), "app.ai.chat.title")
       match result {
         Ok(reply) => {
-          let with_card = push_ai_card(model, AiCard::{
-            kind: CardExplanation,
-            title: text(translator(model), "app.ai.chat.title"),
-            body: reply,
-            steps: [],
-            steps_done: 0,
-            progress: 0,
-            diff_lines: [],
-            settled: true,
-            settled_note: "",
-            seq: 0,
-            at: 0,
-          })
-          ({ ..with_card, ai_busy: false, }, @moui.Effect::none())
+          // 分片已流进预置卡：结算为全文，不再另推新卡
+          let settled = settle_streaming_card(
+            { ..model, ai_busy: false, ai_streaming: false },
+            titled,
+            reply,
+          )
+          (settled, @moui.Effect::none())
         }
         Err(message) => {
-          let errored = push_error_card({ ..model, ai_busy: false, }, message)
+          let errored = push_error_card(
+            { ..model, ai_busy: false, ai_streaming: false },
+            message,
+          )
           (errored, @moui.Effect::none())
         }
       }
-    // 纯聊天真提交（G1）：带多轮历史、纯文本；离线路由在纯链
-    // （update_ide_msgs 的 ChatSubmit 臂）。
+    }
+    // 纯聊天真提交（G1）：带多轮历史、纯文本；无 key/不可用给引导。
     ChatSubmit =>
-      if !(model.provider_mode is Fake) && model.provider_key != "" {
-        let history = chat_history(model)
+      if !model.ai_available || model.provider_key == "" {
         (
-          { ..model, ai_busy: true, },
+          {
+            ..model,
+            prompt_error: text(translator(model), "app.ai.key_needed"),
+          },
+          @moui.Effect::none(),
+        )
+      } else {
+        let history = chat_history(model)
+        // 流式回复卡预置：分片追加进它，完成时结算为全文
+        let streaming = push_streaming_card(
+          { ..model, ai_busy: true, ai_streaming: true },
+          text(translator(model), "app.ai.chat.title"),
+        )
+        (
+          streaming,
           @moui.Effect::dispatch(emit => {
             submit(
-              {
-                endpoint: model.provider_endpoint,
-                key: model.provider_key,
-                model: model.provider_model,
-                system: chat_system_prompt(),
-                prompt: model.ai_sessions.current().prompt_draft,
-                history,
-                json_mode: false,
-                on_chunk: Some(chunk => emit(StreamChunk(chunk))),
-              },
+              provider_spec(
+                model,
+                system=chat_system_prompt(),
+                prompt=model.ai_sessions.current().prompt_draft,
+                history=history,
+                json_mode=false,
+                on_chunk=Some(chunk => emit(StreamChunk(chunk))),
+              ),
               result => emit(RealChatFinished(result)),
             )
           }),
         )
-      } else {
-        update_with_services(model, msg, services)
       }
     _ => update_with_services(model, msg, services)
   }

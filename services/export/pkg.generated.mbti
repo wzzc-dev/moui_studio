@@ -38,6 +38,8 @@ pub fn kernel_codec_mbt() -> String
 
 pub fn kernel_compiled_runtime_mbt() -> String
 
+pub fn kernel_file_sources() -> Array[(String, String)]
+
 pub fn kernel_ir_invariants_mbt() -> String
 
 pub fn kernel_ir_mbt() -> String

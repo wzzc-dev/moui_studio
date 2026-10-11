@@ -1,9 +1,13 @@
 ///|
 /// 「发送」按当前模式分流到既有通道——模式只改**入口路由**，不新增
-/// 执行路径（提案仍走 proposals 校验链，讲解仍是确定性函数）。
+/// 执行路径（提案仍走 proposals 校验链，讲解/聊天走真实 provider）。
 ///
 /// 提交是**结构性事件**：先给当前会话盖戳（默认名置题 + 工程戳 + updated
 /// 时间戳），再进模式路由——草稿键入不经过这里，列表排序不随打字抖动。
+///
+/// 路由经**效果派发**回到程序级臂（`update_with_provider`）：AI 提交要
+/// 拿组合根注入的 provider 通道，纯转移链没有它——此前假模型在纯链里
+/// 自产自销，真实路径只能经程序级臂，两条路在模式路由处汇合。
 fn composer_run(model : Model) -> (Model, @moui.Effect[Msg]) {
   let stamped = stamp_session_submit(model)
   // 用户提问进时间线（对白转录）：气泡卡在路由前推送——无论走哪条模式，
@@ -41,12 +45,16 @@ fn composer_run(model : Model) -> (Model, @moui.Effect[Msg]) {
       } else {
         (with_prompt, @moui.Effect::none())
       }
-      update_pure(targeted.0, ExplainHandler)
+      let (next, _) = targeted
+      (next, @moui.Effect::dispatch(emit => emit(ExplainHandler)))
     }
     ComposeRepair => update_pure(with_prompt, RestoreCodeDraft)
-    // 纯聊天（G1）：ChatSubmit 在服务层拆分——真 provider 带多轮历史,
-    // 离线给确定性回复;回复以普通 markdown 消息卡进转录
-    ComposeChat => update_pure(with_prompt, ChatSubmit)
+    // 纯聊天（G1）：真实 provider 带多轮历史；回复以 markdown 消息卡进转录
+    ComposeChat =>
+      (
+        with_prompt,
+        @moui.Effect::dispatch(emit => emit(ChatSubmit)),
+      )
     // 生成 = 以空程序为基底的修改：清空控件与子程序让提案从零重建，
     // 走的还是同一个 proposals 校验链（不是「另一条生成通道」）。
     ComposeGenerate => {
@@ -60,9 +68,16 @@ fn composer_run(model : Model) -> (Model, @moui.Effect[Msg]) {
           structs: [],
         },
       }
-      update_pure(cleared, GenerateProposal)
+      (
+        cleared,
+        @moui.Effect::dispatch(emit => emit(GenerateProposal)),
+      )
     }
-    ComposeEdit => update_pure(with_prompt, GenerateProposal)
+    ComposeEdit =>
+      (
+        with_prompt,
+        @moui.Effect::dispatch(emit => emit(GenerateProposal)),
+      )
   }
 }
 
@@ -260,8 +275,70 @@ fn push_error_card(model : Model, message : String) -> Model {
 }
 
 ///|
-/// 生成提案：假模型（默认）或真实模型回填文案走同一条严格校验链。
-/// 真实 provider 的网络副作用在 update_with_services 中发起；
+/// 提交时预置的空流式卡：真实 provider 的分片经 StreamChunk 追加进它，
+/// 停止/完成由既有流式管道收尾——与旧假路径同一条卡流。
+fn push_streaming_card(model : Model, title : String) -> Model {
+  push_ai_card(model, AiCard::{
+    kind: CardExplanation,
+    title,
+    body: "",
+    steps: [],
+    steps_done: 0,
+    progress: 0,
+    diff_lines: [],
+    settled: false,
+    settled_note: "",
+    seq: 0,
+    at: 0,
+  })
+}
+
+///|
+/// 回执落卡：把最后一张未结算的流式卡写成全文并结算（网络已完成，
+/// 纯状态转移）。没有未结算卡（异常时序）退化为推新卡，内容不丢。
+fn settle_streaming_card(model : Model, title : String, body : String) -> Model {
+  let session = model.ai_sessions.current()
+  let total = session.cards.length()
+  let mut target = -1
+  let mut index = 0
+  for card in session.cards {
+    if index == total - 1 && !card.settled {
+      target = index
+    }
+    index = index + 1
+  }
+  if target < 0 {
+    return push_ai_card(model, AiCard::{
+      kind: CardExplanation,
+      title,
+      body,
+      steps: [],
+      steps_done: 0,
+      progress: 0,
+      diff_lines: [],
+      settled: true,
+      settled_note: "",
+      seq: 0,
+      at: 0,
+    })
+  }
+  let cards : Array[AiCard] = []
+  let mut i = 0
+  for card in session.cards {
+    if i == target {
+      cards.push({ ..card, body, settled: true, })
+    } else {
+      cards.push(card)
+    }
+    i = i + 1
+  }
+  model.ai_sessions.amend({ ..session, cards, })
+  model
+}
+
+///|
+/// 生成提案：真实模型回填文案走严格校验链。
+/// 真实 provider 的网络副作用在程序级臂发起；
 /// 这里只负责把「已得到的补全文本」变成待采纳提案。
 pub fn proposal_from_completion(model : Model, completion : String) -> Model {
   match @proposals.decode_proposal(completion) {
@@ -446,47 +523,6 @@ pub fn structural_error_text(
 }
 
 ///|
-/// 本地讲解（假模型路径）：note 作头 + 编号的规范步骤。
-/// 语言中立、确定性、离线可用；真实 provider 讲解走网络路径。
-pub fn local_explanation(model : Model) -> String {
-  match current_handler(model) {
-    None => ""
-    Some(handler) => {
-      let note = match model.language {
-        ZhHans =>
-          if handler.note_zh == "" {
-            handler.note_en
-          } else {
-            handler.note_zh
-          }
-        En =>
-          if handler.note_en == "" {
-            handler.note_zh
-          } else {
-            handler.note_en
-          }
-      }
-      let buf = StringBuilder()
-      if note != "" {
-        buf.write_string(note)
-        buf.write_string("\n")
-      }
-      let mut index = 1
-      for item in @blocks.block_chain(handler.body) {
-        if item.text == "" {
-          continue
-        }
-        buf.write_string("\{index}. ")
-        buf.write_string(item.text)
-        buf.write_string("\n")
-        index = index + 1
-      }
-      buf.to_string()
-    }
-  }
-}
-
-///|
 /// AI 域消息处理：未命中的消息返回 None 交还链式分发。
 fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
   match msg {
@@ -498,13 +534,6 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
       })
       Some(({ ..model, prompt_error: "", }, @moui.Effect::none()))
     }
-    ExplainHandler =>
-      Some(
-        (
-          { ..model, explanation: local_explanation(model), },
-          @moui.Effect::none(),
-        ),
-      )
     // 选模式即收起下拉（V4）：脚注从四选一胶囊行切回单芯片
     SetComposerMode(mode) =>
       Some(
@@ -526,15 +555,8 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
         ),
       )
     // 「发送」按当前模式分流到既有通道——模式只改**入口路由**，
-    // 不新增执行路径（提案仍走校验链，讲解仍是确定性函数）。
+    // 不新增执行路径（提案仍走校验链，讲解/聊天走真实 provider）。
     ComposerRun => Some(composer_run(model))
-    GenerateProposal => {
-      let completion = @proposals.fake_model_completion(
-        model.ai_sessions.current().prompt_draft,
-        model.program,
-      )
-      Some((proposal_from_completion(model, completion), @moui.Effect::none()))
-    }
     AcceptProposal =>
       // 采纳是程序变更：过撤销点（提案未改变 IR 时为 no-op 不入栈）
       Some(
@@ -578,9 +600,8 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
           @moui.Effect::none(),
         ),
       )
-    // 真实 provider 结果是纯状态转移（网络已完成）：走与假模型同一条
-    // proposal_from_completion 校验链。此前 RealGenerationFinished 没有
-    // 处理器、结果被静默丢弃（404 时代从未成功所以未暴露）。
+    // 真实 provider 结果是纯状态转移（网络已完成）：统一走
+    // proposal_from_completion 校验链。
     RealGenerationFinished(result) =>
       match result {
         Ok(completion) =>
@@ -603,20 +624,17 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
       }
     RealExplanationFinished(result) =>
       match result {
-        Ok(explanation) =>
-          Some(
-            ({ ..model, explanation, ai_busy: false, }, @moui.Effect::none()),
-          )
-        Err(message) =>
-          Some(
-            (
-              { ..model, explanation: message, ai_busy: false, },
-              @moui.Effect::none(),
-            ),
-          )
+        Ok(explanation) => {
+          let titled = text(translator(model), "app.ai.card.explain")
+          let settled = settle_streaming_card({ ..model, ai_busy: false }, titled, explanation)
+          Some(({ ..settled, explanation, ai_streaming: false }, @moui.Effect::none()))
+        }
+        Err(message) => {
+          let titled = text(translator(model), "app.ai.card.explain")
+          let settled = settle_streaming_card({ ..model, ai_busy: false }, titled, message)
+          Some(({ ..settled, explanation: message, ai_streaming: false }, @moui.Effect::none()))
+        }
       }
-    SetProviderMode(mode) =>
-      Some(({ ..model, provider_mode: mode, }, @moui.Effect::none()))
     SetProviderEndpoint(value) =>
       Some(({ ..model, provider_endpoint: value, }, @moui.Effect::none()))
     SetProviderModel(value) =>

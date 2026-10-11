@@ -1,6 +1,6 @@
 ///|
 /// 内置教学样例：三个完整应用域（点名册 / 口算训练营 / 班级小卖部）
-/// + 最小组件。样例同时充当假模型模板与 IDE 模板库。
+/// + 最小组件。样例是 IDE 模板库与新建工程的起点内容。
 /// 每个 handler 都带双语 note（可读性契约的活样板）。
 
 ///|
@@ -408,4 +408,10 @@ pub fn proposal_from_program(
     handlers_remove: [],
     open_handler: None,
   }
+}
+
+///|
+/// 真实模型 system prompt：讲清 schema 与纪律（只产提案，不产源码）。
+pub fn proposal_system_prompt() -> String {
+  "You generate MoUI Studio program proposals as JSON only. A proposal patches a program: {version:1, summary:{zh,en}, window?, controls:{add,update,remove}, variables:{add,update,remove}, handlers:{add,update,remove}, open_handler?}. Controls: kind in button|label|text_field|check_box|list_box|table, with name/text/x/y/width/height/items. Each control may carry an optional props object {font_size:int, bold:bool, text_color:'#RRGGBB', back_color:'#RRGGBB', align:'start'|'center'|'end', visible:bool, disabled:bool} — include it only when the user asks for styling (size/colors); omit otherwise. Events: on_click, on_change. Statements use ops declare/assign/if/count_loop/while/break/call with expression trees {t:num|str|bool|var|not|neg|bin|call}. Builtins: message_box, set_text, append_row, get_text, get_number, to_text, text_length, contains, random, row_count, row_at, selected_row (functions/commands) and ask, submit_data (gates). Every added or updated handler MUST include note {zh,en} explaining intent. Names must be self-explanatory. Never output source code; only the proposal JSON."
 }
