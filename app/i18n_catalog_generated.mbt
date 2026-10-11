@@ -827,6 +827,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("Project imported: {name}"),
       ),
       ("app.project.kind.web", GeneratedI18nMessage::Text("web entry")),
+      ("app.project.mode.web", GeneratedI18nMessage::Text("Live web")),
       ("app.project.new_file", GeneratedI18nMessage::Text("New file")),
       (
         "app.project.no_entry",
@@ -1075,6 +1076,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("Workspace imported: {n} modules"),
       ),
       ("app.project.kind.plain", GeneratedI18nMessage::Text("package")),
+      ("app.project.mode.frame", GeneratedI18nMessage::Text("Canvas quicklook")),
       (
         "app.project.no_project",
         GeneratedI18nMessage::Text("Import a MoonBit project first"),
@@ -1230,6 +1232,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("File already exists: {a}"),
       ),
       ("app.project.kind.native", GeneratedI18nMessage::Text("native entry")),
+      ("app.project.mode.native", GeneratedI18nMessage::Text("Standalone run")),
       ("app.project.props_apply", GeneratedI18nMessage::Text("Apply & rebuild")),
       ("app.project.props_title", GeneratedI18nMessage::Text("Properties")),
       ("app.recent.action.align", GeneratedI18nMessage::Text("Aligned control")),
@@ -1980,6 +1983,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       (
         "app.command.code.dismiss_completion",
         GeneratedI18nMessage::Text("Dismiss completion"),
+      ),
+      (
+        "app.project.preview_web_unavailable",
+        GeneratedI18nMessage::Text(
+          "Live web preview needs the local static server and webview controller (native entry); unavailable right now",
+        ),
       ),
     ],
   },
@@ -2770,6 +2779,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("工程已导入：{name}"),
       ),
       ("app.project.kind.web", GeneratedI18nMessage::Text("web 入口")),
+      ("app.project.mode.web", GeneratedI18nMessage::Text("网页实时")),
       ("app.project.new_file", GeneratedI18nMessage::Text("新建文件")),
       (
         "app.project.no_entry",
@@ -3008,6 +3018,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("工作区已导入：{n} 个模块"),
       ),
       ("app.project.kind.plain", GeneratedI18nMessage::Text("包")),
+      ("app.project.mode.frame", GeneratedI18nMessage::Text("画布快览")),
       (
         "app.project.no_project",
         GeneratedI18nMessage::Text("先导入一个 MoonBit 工程"),
@@ -3157,6 +3168,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("文件已存在：{a}"),
       ),
       ("app.project.kind.native", GeneratedI18nMessage::Text("native 入口")),
+      ("app.project.mode.native", GeneratedI18nMessage::Text("独立运行")),
       ("app.project.props_apply", GeneratedI18nMessage::Text("应用并重建")),
       ("app.project.props_title", GeneratedI18nMessage::Text("属性")),
       ("app.recent.action.align", GeneratedI18nMessage::Text("对齐控件")),
@@ -3885,6 +3897,12 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       (
         "app.command.code.dismiss_completion",
         GeneratedI18nMessage::Text("收起补全"),
+      ),
+      (
+        "app.project.preview_web_unavailable",
+        GeneratedI18nMessage::Text(
+          "Web 实时预览需要本机静态服务与 webview 控制器（native 入口）；当前不可用",
+        ),
       ),
     ],
   },
