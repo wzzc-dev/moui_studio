@@ -1312,7 +1312,7 @@ pub fn update_with_services(
           }
           // FramePreview 成功(M1-2):解析哨兵协议 → 可重放帧
           let with_frame = if kind is BkFramePreview && report.ok {
-            match parse_preview_frame(report.output) {
+            match @run.parse_preview_frame(report.output) {
               Ok(frame) => { ..cleared, preview_frame: Some(frame), }
               Err(message) =>
                 return (
@@ -1439,7 +1439,7 @@ pub fn update_with_services(
         Some(Ok(request)) =>
           (
             model,
-            semantic_label_patch_task(services.files(), request).effect(map=r => {
+            @run.semantic_label_patch_task(services.files(), request).effect(map=r => {
               match r {
                 @services.Success(result) => SemanticPatchFinished(result)
                 @services.Failure(error) =>

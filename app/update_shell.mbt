@@ -391,7 +391,7 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       } else {
         let draft = match model.preview_frame {
           Some(frame) => {
-            let nodes = semantic_hit_nodes(frame)
+            let nodes = @run.semantic_hit_nodes(frame)
             if index >= 0 && index < nodes.length() {
               nodes[index].label
             } else {

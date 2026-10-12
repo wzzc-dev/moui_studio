@@ -16,7 +16,7 @@ fn preview_payload() -> String {
 
 ///|
 test "哨兵协议:噪声分流 + 命令重建 + 未知 op 报告" {
-  match parse_preview_frame(preview_payload()) {
+  match @run.parse_preview_frame(preview_payload()) {
     Ok(frame) => {
       assert_eq(frame.version, 1)
       assert_eq(frame.width, 640.0)
@@ -31,7 +31,7 @@ test "哨兵协议:噪声分流 + 命令重建 + 未知 op 报告" {
 
 ///|
 test "哨兵协议:重建的命令类型正确(毛刺不混类)" {
-  match parse_preview_frame(preview_payload()) {
+  match @run.parse_preview_frame(preview_payload()) {
     Ok(frame) => {
       // [0] FillRoundedRectBrush → 画笔为 Solid
       let mut brush_ok = false
@@ -52,7 +52,7 @@ test "哨兵协议:重建的命令类型正确(毛刺不混类)" {
 
 ///|
 test "哨兵协议:无哨兵报结构化错误" {
-  match parse_preview_frame("just toolchain logs\nnothing else") {
+  match @run.parse_preview_frame("just toolchain logs\nnothing else") {
     Err(msg) => assert_true(msg.contains("哨兵"), msg~)
     Ok(_) => fail("无哨兵应失败")
   }
@@ -63,7 +63,7 @@ test "哨兵协议:版本不匹配报错" {
   let payload =
     #|__STUDIO_PREVIEW_V1__
     #|{"version":"99","width":640.0,"height":480.0,"commands":[],"semantics":[]}
-  match parse_preview_frame(payload) {
+  match @run.parse_preview_frame(payload) {
     Err(msg) => assert_true(msg.contains("版本"), msg~)
     Ok(_) => fail("版本不匹配应失败")
   }

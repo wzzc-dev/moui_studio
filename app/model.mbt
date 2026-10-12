@@ -172,6 +172,18 @@ pub extend WorkSpace with Eq::{not_equal, equal}
 
 ///|
 /// 预览模式(M2-2):画布快览(模式一)/ web 实时(模式二,webview)。
+
+///|
+/// 预览数据层(S3a 出壳,plugins/run):帧结构与命中语义的类型转发。
+pub type PreviewFrame = @run.PreviewFrame
+
+///|
+pub type SemanticHitNode = @run.SemanticHitNode
+
+///|
+pub type SemanticPatchRequest = @run.SemanticPatchRequest
+
+///|
 pub(all) enum PreviewMode {
   PmFrame
   PmWeb

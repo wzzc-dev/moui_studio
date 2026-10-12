@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/plugins/run"
+
+import {
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/services",
+}
+
+// Values
+pub fn draw_command_from_json(Json) -> Result[@core.DrawCommand, String]
+
+pub fn find_literal_span(String, String) -> (Int, Int)?
+
+pub fn parse_preview_frame(String) -> Result[PreviewFrame, String]
+
+pub fn semantic_hit_index(Array[SemanticHitNode], Double, Double) -> Int
+
+pub fn semantic_hit_nodes(PreviewFrame) -> Array[SemanticHitNode]
+
+pub fn semantic_label_patch_task(@services.FileServices, SemanticPatchRequest) -> @services.ServiceTask[Result[String, String]]
+
+// Errors
+
+// Types and methods
+pub(all) struct PreviewFrame {
+  version : Int
+  width : Double
+  height : Double
+  commands : Array[@core.DrawCommand]
+  semantics : Array[Json]
+  unknown_ops : Array[String]
+}
+
+pub(all) struct SemanticHitNode {
+  role : String
+  label : String
+  frame : @core.Rect
+}
+
+pub(all) struct SemanticPatchRequest {
+  paths : Array[String]
+  label : String
+  new_text : String
+}
+
+// Type aliases
+
+// Traits

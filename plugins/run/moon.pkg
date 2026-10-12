@@ -1,0 +1,7 @@
+import {
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/geometry",
+  "wzzc-dev/moui/services",
+  "moonbitlang/core/json",
+  "wzzc-dev/moui_studio/services/project",
+}

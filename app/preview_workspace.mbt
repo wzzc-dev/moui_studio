@@ -276,7 +276,7 @@ pub fn preview_replay_canvas(
   // 画布 1:1(帧坐标),超出交给外层滚动;缩放跟随 M2 的适配逻辑
   let canvas_width = frame.width.max(1.0)
   let canvas_height = frame.height.max(1.0)
-  let nodes = semantic_hit_nodes(frame)
+  let nodes = @run.semantic_hit_nodes(frame)
   let selected = match model.selected_semantic {
     Some(index) =>
       if index >= 0 && index < nodes.length() {
@@ -319,7 +319,7 @@ pub fn preview_replay_canvas(
       // 画布局部坐标 = 帧坐标(1:1);命中取最深(最后一个匹配)
       let x = position.x - tap_frame.origin.x
       let y = position.y - tap_frame.origin.y
-      Msg::SelectSemanticNode(semantic_hit_index(nodes, x, y))
+      Msg::SelectSemanticNode(@run.semantic_hit_index(nodes, x, y))
     }),
     background=@chrome.ide_editor_background(),
     width=canvas_width.min(pane_width - 2.0).max(1.0),
@@ -339,7 +339,7 @@ pub fn semantic_property_strip(
     Some(index) =>
       match model.preview_frame {
         Some(frame) => {
-          let nodes = semantic_hit_nodes(frame)
+          let nodes = @run.semantic_hit_nodes(frame)
           if index >= 0 && index < nodes.length() {
             Some(nodes[index])
           } else {

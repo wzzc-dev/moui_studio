@@ -935,8 +935,8 @@ test "FramePreview 回执:解析失败显式报错,不落帧" {
 /// M1-3:字面量定位(引号感知 + 精确匹配)+ 补丁任务(fake FS 全链)。
 test "字面量 span 定位与补丁任务" {
   let source = "fn view(_) { text(\"MoUI Counter\", x=1) }"
-  assert_true(@app.find_literal_span(source, "MoUI Counter") is Some(_))
-  assert_true(@app.find_literal_span(source, "Other") is None)
+  assert_true(@run.find_literal_span(source, "MoUI Counter") is Some(_))
+  assert_true(@run.find_literal_span(source, "Other") is None)
   // 假 FS:读源文件 → 定位 → 转义回写
   let texts : Map[String, String] = Map([])
   texts["/root/app/app.mbt"] = source
@@ -957,7 +957,7 @@ test "字面量 span 定位与补丁任务" {
       @services.ServiceTask::succeed(key="fake:write", value=())
     },
   )
-  let request = @app.SemanticPatchRequest::{
+  let request = @run.SemanticPatchRequest::{
     paths: ["/root/app/app.mbt"],
     label: "MoUI Counter",
     new_text: "我的计数器",
@@ -965,7 +965,7 @@ test "字面量 span 定位与补丁任务" {
   let outcome : Ref[@services.ServiceTaskResult[Result[String, String]]?] = Ref(
     None,
   )
-  let _ = @app.semantic_label_patch_task(files, request).start(result => {
+  let _ = @run.semantic_label_patch_task(files, request).start(result => {
     outcome.val = Some(result)
   })
   match outcome.val {

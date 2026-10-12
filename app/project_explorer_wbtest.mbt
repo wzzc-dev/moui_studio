@@ -758,11 +758,11 @@ test "预览工作区重放帧:JSON 命令真画到画布上" {
 ///|
 /// M1-3:语义投影 + 命中测试(最深匹配)。
 test "语义投影与命中:点标题选中,点空白取消" {
-  let frame = match parse_preview_frame(preview_payload()) {
+  let frame = match @run.parse_preview_frame(preview_payload()) {
     Ok(frame) => frame
     Err(msg) => fail("载荷应可解析:\{msg}")
   }
-  let nodes = semantic_hit_nodes(frame)
+  let nodes = @run.semantic_hit_nodes(frame)
   // fixture 语义:标题节点(MoUI Studio)+ 无 label 的容器节点
   assert_true(nodes.length() >= 2)
   // 命中标题(x=100,y=15 在 frame {44,10,96,20} 内)
@@ -775,9 +775,9 @@ test "语义投影与命中:点标题选中,点空白取消" {
     i = i + 1
   }
   assert_true(title_index >= 0, msg="fixture 应含标题节点")
-  assert_eq(semantic_hit_index(nodes, 100.0, 15.0), title_index)
+  assert_eq(@run.semantic_hit_index(nodes, 100.0, 15.0), title_index)
   // 画布坐标系之外的点未命中(容器节点覆盖整个 640×480)
-  assert_eq(semantic_hit_index(nodes, 700.0, 500.0), -1)
+  assert_eq(@run.semantic_hit_index(nodes, 700.0, 500.0), -1)
 }
 
 ///|

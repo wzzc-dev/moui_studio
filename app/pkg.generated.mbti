@@ -16,6 +16,7 @@ import {
   "wzzc-dev/moui_studio/domain/studio_lang",
   "wzzc-dev/moui_studio/kernel",
   "wzzc-dev/moui_studio/plugins/ai",
+  "wzzc-dev/moui_studio/plugins/run",
   "wzzc-dev/moui_studio/plugins/terminal",
   "wzzc-dev/moui_studio/services/blocks_code",
   "wzzc-dev/moui_studio/services/build",
@@ -323,8 +324,6 @@ pub fn direct_scan(String, on_progress? : (@wzzc-dev/moui_studio/services/projec
 
 pub fn dirname_of(String) -> String
 
-pub fn draw_command_from_json(Json) -> Result[@core.DrawCommand, String]
-
 pub fn emit_code_project_write(Model) -> Model
 
 pub fn emit_program_snapshot(Model) -> Model
@@ -368,8 +367,6 @@ pub fn file_is_dirty(@wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> B
 pub fn file_tint_for_test(String) -> @chrome.IconTint
 
 pub fn filter_studio_commands(Array[StudioCommand], String) -> Array[StudioCommand]
-
-pub fn find_literal_span(String, String) -> (Int, Int)?
 
 pub fn finish_restore_active(Model) -> Model
 
@@ -495,15 +492,13 @@ pub fn parent_of(String) -> String
 
 pub fn parse_generated_source(String, Array[@export.StmtLine]) -> @blocks_code.ParsedHandlerSource
 
-pub fn parse_preview_frame(String) -> Result[PreviewFrame, String]
-
 pub fn pending_ai_cards(Model) -> Int
 
 pub fn pending_side_effects(Model) -> Int
 
 pub fn plugin_active(Model, String) -> Bool
 
-pub fn preview_replay_canvas(Model, PreviewFrame, Double) -> @core.View[Msg]
+pub fn preview_replay_canvas(Model, @run.PreviewFrame, Double) -> @core.View[Msg]
 
 pub fn preview_web_controller() -> @host.WebViewController?
 
@@ -599,13 +594,7 @@ pub fn selected_function(Model) -> @ir.FuncDef?
 
 pub fn selected_variable(Model) -> @ir.Variable?
 
-pub fn semantic_commit_request(Model) -> Result[SemanticPatchRequest, String]?
-
-pub fn semantic_hit_index(Array[SemanticHitNode], Double, Double) -> Int
-
-pub fn semantic_hit_nodes(PreviewFrame) -> Array[SemanticHitNode]
-
-pub fn semantic_label_patch_task(@services.FileServices, SemanticPatchRequest) -> @services.ServiceTask[Result[String, String]]
+pub fn semantic_commit_request(Model) -> Result[@run.SemanticPatchRequest, String]?
 
 pub fn semantic_property_strip(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
@@ -1070,7 +1059,7 @@ pub(all) struct Model {
   last_build : @build.BuildReport?
   build_busy : Bool
   preview_write : PreviewWriteState?
-  preview_frame : PreviewFrame?
+  preview_frame : @run.PreviewFrame?
   selected_semantic : Int?
   semantic_draft : String
   form_designer : FormDesignerSession?
@@ -1419,15 +1408,6 @@ pub(all) struct PendingProposal {
   valid : Bool
 }
 
-pub(all) struct PreviewFrame {
-  version : Int
-  width : Double
-  height : Double
-  commands : Array[@core.DrawCommand]
-  semantics : Array[Json]
-  unknown_ops : Array[String]
-}
-
 pub(all) enum PreviewMode {
   PmFrame
   PmWeb
@@ -1507,18 +1487,6 @@ pub(all) struct SearchHit {
   rel : String
   line : Int
   preview : String
-}
-
-pub(all) struct SemanticHitNode {
-  role : String
-  label : String
-  frame : @core.Rect
-}
-
-pub(all) struct SemanticPatchRequest {
-  paths : Array[String]
-  label : String
-  new_text : String
 }
 
 pub(all) struct ShellChromeWidths {
@@ -1664,6 +1632,8 @@ pub using @wzzc-dev/moui_studio/plugins/project {type OpenProjectFile}
 
 pub using @wzzc-dev/moui_studio/plugins/project {type OutlineSymbol}
 
+pub using @run {type PreviewFrame}
+
 pub type PreviewWebControls = @kernel.PreviewWebControls[Msg]
 
 pub using @wzzc-dev/moui_studio/plugins/project {type ProjectRecord}
@@ -1677,6 +1647,10 @@ pub type ProviderSubmit = (@kernel.ProviderRequestSpec, (Result[String, String])
 pub using @wzzc-dev/moui_studio/plugins/project {type RecentChange}
 
 pub type RuntimeSnapshotFn = () -> RuntimeInspectSample?
+
+pub using @run {type SemanticHitNode}
+
+pub using @run {type SemanticPatchRequest}
 
 pub using @wzzc-dev/moui_studio/plugins/project {type WorkspaceRecord}
 
