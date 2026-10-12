@@ -4,13 +4,11 @@ package "wzzc-dev/moui_studio/app"
 import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/services",
-  "wzzc-dev/moui/views/common",
   "wzzc-dev/moui/views/style",
   "wzzc-dev/moui_i18n",
   "wzzc-dev/moui_richtext",
   "wzzc-dev/moui_richtext/code_editor",
   "wzzc-dev/moui_studio/chrome",
-  "wzzc-dev/moui_studio/domain/blocks",
   "wzzc-dev/moui_studio/domain/ir",
   "wzzc-dev/moui_studio/domain/proposals",
   "wzzc-dev/moui_studio/domain/studio_lang",
@@ -47,10 +45,6 @@ pub const ALIGN_MARGIN : Int = 24
 pub const AUDIT_LIMIT : Int = 200
 
 pub const BLOCKS_AUTOSCROLL_STEP : Double = 28.0
-
-pub const BLOCKS_EDGE_ZONE : Double = 24.0
-
-pub const BLOCKS_NOTE_HEIGHT : Double = 22.0
 
 pub const BLOCK_ROW_HEIGHT : Double = 40.0
 
@@ -146,59 +140,27 @@ pub fn audit_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Ms
 
 pub fn auto_build_after_save(Model, String) -> (Model, @core.Effect[Msg])
 
-pub fn block_category(@blocks.BlockKind) -> @blocks.BlockCategory
+pub fn block_category(@wzzc-dev/moui_studio/domain/blocks.BlockKind) -> @wzzc-dev/moui_studio/domain/blocks.BlockCategory
 
 pub fn block_category_entries(Model) -> Array[BlockCategoryEntry]
 
 pub fn block_category_first(Array[BlockCategoryEntry], Int) -> Int
 
-pub fn block_category_label_key(@blocks.BlockCategory) -> String
+pub fn block_category_label_key(@wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> String
 
-pub fn block_chain_of(Model) -> Array[@blocks.BlockItem]
+pub fn block_chain_of(Model) -> Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem]
 
 pub fn block_context_menu(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
-pub fn block_outline_path(Double, Double, Double, Double, Bool, Bool) -> Array[@core.PathVerb]
-
-pub fn block_row_texts(@moui_i18n.Translator, Array[@blocks.BlockItem]) -> (Array[String], Array[String])
+pub fn block_row_texts(@moui_i18n.Translator, Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem]) -> (Array[String], Array[String])
 
 pub fn blocks_body_height(Model, Double) -> Double
 
-pub fn blocks_c_arms(Array[@blocks.BlockItem], Array[@core.Rect]) -> Map[Int, Double]
-
-pub fn blocks_canvas(Array[@blocks.BlockItem], Array[String], Int, String, (Double, Double, Bool)?, Double, Double, String, y_offset? : Double, palette_drag? : Bool, expr_drag? : Bool, script_note? : String, note_height? : Double, lead_texts? : Array[String]) -> @core.View[Msg]
-
-pub fn blocks_chain_y(Double, Double, Double) -> Double
-
-pub fn blocks_draw_plan(Array[@blocks.BlockItem], Array[String], Array[@core.Rect], Int, String, (Double, Double, Bool)?, Double, Double, measure? : (String) -> Double, lead_texts? : Array[String]) -> Array[BlocksDrawOp]
-
-pub fn blocks_drop_list_of(Array[@blocks.BlockItem], Array[@core.Rect], Double, Array[Int]) -> Array[Int]
-
-pub fn blocks_drop_slot(Array[@blocks.BlockItem], Array[Int], Double, Array[@core.Rect]) -> Int
-
-pub fn blocks_hit_index(Array[@blocks.BlockItem], Double, Double, avail_width? : Double, display_texts? : Array[String]) -> Int
-
-pub fn blocks_in_c_body(Array[@blocks.BlockItem], Int) -> Bool
-
-pub fn blocks_insert_mark(Array[@blocks.BlockItem], Array[@core.Rect], BlocksDragState?) -> (Double, Double, Bool)?
-
-pub fn blocks_item_rects(Array[@blocks.BlockItem], avail_width? : Double, display_texts? : Array[String]) -> Array[@core.Rect]
+pub fn blocks_canvas(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[String], Int, String, (Double, Double, Bool)?, Double, Double, String, y_offset? : Double, palette_drag? : Bool, expr_drag? : Bool, script_note? : String, note_height? : Double, lead_texts? : Array[String]) -> @core.View[Msg]
 
 pub fn blocks_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn blocks_pane_wanted(Model) -> Bool
-
-pub fn blocks_parent_of(Array[Int]) -> Array[Int]
-
-pub fn blocks_same_path(Array[Int], Array[Int]) -> Bool
-
-pub fn blocks_slot_hit(Array[@blocks.BlockItem], Array[@core.Rect], Double, Double, (String) -> Double, y_offset? : Double, lead_texts? : Array[String]) -> SlotHit?
-
-pub fn blocks_slot_rects(@blocks.BlockItem, @core.Rect, (String) -> Double, lead? : Double) -> Array[(@blocks.TextSegment, @core.Rect)]
-
-pub fn blocks_value_hit(Array[@blocks.BlockItem], Array[@core.Rect], Double, Double, (String) -> Double, y_offset? : Double, lead_texts? : Array[String]) -> SlotHit?
-
-pub fn blocks_visual_rects(Array[@blocks.BlockItem], Array[@core.Rect]) -> Array[@core.Rect]
 
 pub fn bottom_strip_height(Model) -> Double
 
@@ -212,7 +174,7 @@ pub fn button_label_width(String) -> Double
 
 pub fn card_text_by_seq(Model, Int) -> String?
 
-pub fn category_at(Int) -> @blocks.BlockCategory?
+pub fn category_at(Int) -> @wzzc-dev/moui_studio/domain/blocks.BlockCategory?
 
 pub fn category_rail(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
@@ -468,13 +430,9 @@ pub fn new_project_module_name(String) -> String
 
 pub fn new_project_skeleton_files(String, String, @ir.StudioProgram) -> Array[(String, String)]
 
-pub fn no_text_measure(String) -> Double
-
 pub fn open_file_index_of(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String) -> Int?
 
 pub fn outline_symbols(String, String) -> Array[@wzzc-dev/moui_studio/plugins/project.OutlineSymbol]
-
-pub fn paint_block_outline(@common.PaintContext, Double, Double, Double, Double, @blocks.BlockKind, Bool, Bool) -> Unit
 
 pub fn pane_foot(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
@@ -564,7 +522,7 @@ pub fn runtime_refresh_attached(Model, Msg, () -> RuntimeInspectSample?) -> (Mod
 
 pub fn runtime_sample_arrived(Model, RuntimeInspectSample) -> Model
 
-pub fn same_category(@blocks.BlockCategory, @blocks.BlockCategory) -> Bool
+pub fn same_category(@wzzc-dev/moui_studio/domain/blocks.BlockCategory, @wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> Bool
 
 pub fn same_path(Array[Int], Array[Int]) -> Bool
 
@@ -632,7 +590,7 @@ pub fn template_index_of(Int, String) -> Int?
 
 pub fn template_program(Int) -> @ir.StudioProgram
 
-pub fn templates_for_category(@blocks.BlockCategory) -> Array[StatementTemplate]
+pub fn templates_for_category(@wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> Array[StatementTemplate]
 
 pub fn terminal_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -750,28 +708,8 @@ pub(all) enum AuditKind {
 }
 
 pub(all) struct BlockCategoryEntry {
-  category : @blocks.BlockCategory
+  category : @wzzc-dev/moui_studio/domain/blocks.BlockCategory
   first_index : Int
-}
-
-pub(all) struct BlocksDragState {
-  list_path : Array[Int]
-  from_path : Array[Int]
-  from : Int
-  to : Int
-  to_list : Array[Int]
-  valid : Bool
-}
-
-pub(all) enum BlocksDrawOp {
-  BlockOutline(Double, Double, Double, Double, @blocks.BlockKind, Bool, Bool)
-  BlockArm(Double, Double, Double, Double, @blocks.BlockKind)
-  BlockBadge(Double, Double, @blocks.BlockKind)
-  BlockLabel(String, Double, Double, Double, String)
-  ScriptNote(String, Double, Double, Double)
-  BlockStroke(Double, Double, Double, Double)
-  InsertMark(Double, Double, Double, Bool)
-  SlotHole(Double, Double, Double, Double, Bool, Bool)
 }
 
 pub(all) enum BottomTab {
@@ -903,7 +841,7 @@ pub(all) enum GeneratedI18nMessage {
 
 pub(all) struct IrLineSpan {
   path : Array[Int]
-  kind : @blocks.BlockKind
+  kind : @wzzc-dev/moui_studio/domain/blocks.BlockKind
   depth : Int
   first_line : Int
   last_line : Int
@@ -1018,7 +956,7 @@ pub(all) struct Model {
   timer_elapsed : Int
   undo_stack : Array[UndoEntry]
   redo_stack : Array[UndoEntry]
-  block_drag : BlocksDragState?
+  block_drag : @wzzc-dev/moui_studio/plugins/blocks.BlocksDragState?
   workspace : WorkSpace
   pane_live : Bool
   pane_blocks : Bool
@@ -1483,14 +1421,8 @@ pub(all) enum SideTarget {
   SideFunction(String)
 }
 
-pub(all) struct SlotHit {
-  block_index : Int
-  expr_path : Array[Int]
-  rect : @core.Rect
-}
-
 pub(all) struct StatementTemplate {
-  category : @blocks.BlockCategory
+  category : @wzzc-dev/moui_studio/domain/blocks.BlockCategory
   label_key : String
   skeleton_zh : String
   skeleton_en : String
@@ -1602,6 +1534,8 @@ pub fn WorkSpace::not_equal(Self, Self) -> Bool
 pub using @ai {type AiCard}
 
 pub using @ai {type AiCardKind}
+
+pub using @wzzc-dev/moui_studio/plugins/blocks {type BlocksDragState}
 
 pub type BuildSubmit = (@build.BuildKind, String, String, (Result[@build.BuildReport, String]) -> Unit) -> Unit
 
