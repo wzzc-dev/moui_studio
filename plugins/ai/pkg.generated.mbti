@@ -11,7 +11,17 @@ pub const AI_SESSIONS_FORMAT : String = "moui.studio.ai-sessions"
 
 pub const AI_SESSIONS_VERSION : Int = 1
 
+pub const CHIPS_HEIGHT : Double = 26.0
+
+pub const COMPOSER_HEIGHT : Double = 88.0
+
 pub fn ai_sessions_feature() -> @core.Feature[AiSessions, AiSessionMsg]
+
+pub fn composer_block_height(Double) -> Double
+
+pub fn composer_height(Double) -> Double
+
+pub fn context_chips_height(Double) -> Double
 
 pub fn decode_ai_sessions(String) -> Result[AiSessions, AiStoreError]
 

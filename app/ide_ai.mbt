@@ -20,48 +20,26 @@
 pub const FOLD_BAR_HEIGHT : Double = 27.0
 
 ///|
-/// 上下文芯片行高（无芯片时不占位）。
-pub const CHIPS_HEIGHT : Double = 26.0
-
-///|
-/// 输入盒高：两行文本域 + 盒内脚注一行（模式胶囊 | ghost 操作 | 圆形发送）
-/// + 盒内垫。Codex/ZCode 口径——输入区是两行高的「书写区」，不是单行框。
-/// 高度必须给 `lines × line_height + 16`：text_area 内部有 8pt×2 垂直内垫，
-/// 只传 `lines=2` 时可见文本区只剩一行——这就是「输入区还是一行」的根因。
-/// 这里 lines=3 × 20 = 60 → 可见 44 = 两整行（长 prompt 折行可读）。
-pub const COMPOSER_HEIGHT : Double = 88.0
-
-///|
-/// 输入盒高度唯一计算源（视图层与 card_chrome_height 共用——两处各算
-/// 一份就会把 composer 顶出卡片）。
-pub fn composer_height(width : Double) -> Double {
-  ignore(width)
-  COMPOSER_HEIGHT
-}
-
-///|
-/// composer 信息层（对白转录）：工程芯片（有 active 工程才在）+ 模型芯片
-/// （离线/真实读数恒在）。只在宽卡（≥420）显示——右栏停靠/窄底栏放不下，
-/// 强行显示会把脚注挤出面板。
-pub fn context_chips_height(width : Double) -> Double {
-  if width >= 420.0 {
-    CHIPS_HEIGHT + 2.0
-  } else {
-    0.0
-  }
-}
-
-///|
-/// composer 块高 = 输入盒 + 上方上下文芯片行 + 空会话提示头条（仅中心态）。
-/// 中心态与紧凑宿主的高度预算都从这里取——两处各算一份，芯片行/提示条
-/// 就会把输入盒顶出宿主。
-pub fn composer_block_height(width : Double) -> Double {
-  composer_height(width) + context_chips_height(width)
-}
-
-///|
 /// 下拉芯片（VS Code 智能体模式口径）：图标 + 文案 + ChevronDown，
 /// 点击走真实命令（工程 → 打开资源管理器切换上下文；模型 → 设置）。
+
+///|
+/// 输入盒高度（转发插件版;测试与布局计算共用）。
+pub fn composer_height(width : Double) -> Double {
+  @ai.composer_height(width)
+}
+
+///|
+pub fn context_chips_height(width : Double) -> Double {
+  @ai.context_chips_height(width)
+}
+
+///|
+pub fn composer_block_height(width : Double) -> Double {
+  @ai.composer_block_height(width)
+}
+
+///|
 fn dropdown_chip(
   icon : @style.IconName,
   label : String,
@@ -126,7 +104,7 @@ fn context_chips_row(
     @chrome.fill_row(cells, width, 6.0, Start),
     background=@chrome.ide_panel(),
     width~,
-    height=CHIPS_HEIGHT,
+    height=@ai.CHIPS_HEIGHT,
     padding=0.0,
   )
 }
@@ -1126,8 +1104,8 @@ fn ai_card_view(
 /// 线程卡出现时底栏还要更高（见 `ai_bar_height`）——写死一个值会在有提案
 /// 时把线程区裁掉，那正是「生成完什么都看不见」的形态。
 pub const AI_BAR_HEIGHT : Double = @chrome.PANEL_HEAD_HEIGHT +
-  COMPOSER_HEIGHT +
-  CHIPS_HEIGHT +
+  @ai.COMPOSER_HEIGHT +
+  @ai.CHIPS_HEIGHT +
   2.0 +
   AI_CARD_PAD * 2.0 +
   4.0
@@ -1339,7 +1317,7 @@ fn composer(
   }
   // 实测反馈第四轮：**输入在上，模式胶囊 + 发送在下**；输入域可见
   // **两行**（text_area 内部有 8pt×2 垂直内垫——lines=3 才可见两整行，
-  // 见 COMPOSER_HEIGHT 的注释）；整体扁平无阴影。
+  // 见 @ai.COMPOSER_HEIGHT 的注释）；整体扁平无阴影。
   // 输入域**直接作为列子项**（包定高容器或塞 row 都会让它不渲染，
   // text_area 的高度语义只在列布局下可靠，两轮实测确认）。
   let foot = @chrome.fill_row(foot_cells, inner_width, 6.0, Center)

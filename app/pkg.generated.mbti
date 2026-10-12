@@ -60,10 +60,6 @@ pub const CANVAS_MIN_WIDTH : Double = 120.0
 
 pub const CATEGORY_RAIL_WIDTH : Double = 86.0
 
-pub const CHIPS_HEIGHT : Double = 26.0
-
-pub const COMPOSER_HEIGHT : Double = 88.0
-
 pub const DRAFT_SETTINGS_KEY : String = "studio.draft"
 
 pub const FOLD_BAR_HEIGHT : Double = 27.0
