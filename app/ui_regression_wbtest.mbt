@@ -100,10 +100,12 @@ test "chip widths grow with their labels" {
   // 「写死宽度」缺陷族的守门断言：内容宽的芯片必须随文案变宽，
   // 且中英文都能装下自己的标签。
   assert_true(
-    @chrome.chip_label_width("确认") < @chrome.chip_label_width("确认全部副作用"),
+    @chrome.chip_label_width("确认") <
+    @chrome.chip_label_width("确认全部副作用"),
   )
   assert_true(
-    @chrome.topbar_chip_bound("Run", 0.0) < @chrome.topbar_chip_bound("编译 MoonBit", 0.0),
+    @chrome.topbar_chip_bound("Run", 0.0) <
+    @chrome.topbar_chip_bound("编译 MoonBit", 0.0),
   )
 }
 

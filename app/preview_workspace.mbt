@@ -460,7 +460,11 @@ fn mode_strip_button(
       width=96.0,
       height=24.0,
     ),
-    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
+    background=if selected {
+      @chrome.ide_selection()
+    } else {
+      @chrome.ide_panel()
+    },
     corner_radius=4.0,
     width=96.0,
     height=24.0,

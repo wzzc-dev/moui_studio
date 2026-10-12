@@ -271,9 +271,12 @@ fn ai_group_bar(
           align=TextStart,
         ).foreground(@chrome.ide_text_faint()),
         @views.spacer(min_length=4.0, weight=1.0),
-        @views.text("\{count}", theme=@chrome.studio_theme(), width=24.0, height=16.0).foreground(
-          @chrome.ide_text_faint(),
-        ),
+        @views.text(
+          "\{count}",
+          theme=@chrome.studio_theme(),
+          width=24.0,
+          height=16.0,
+        ).foreground(@chrome.ide_text_faint()),
       ],
       (width - 8.0).max(80.0),
       4.0,
@@ -355,7 +358,11 @@ fn ai_session_row(
   let title_w = (line_w - 15.0).max(24.0)
   let title = @chrome.fit_label(session.title, title_w)
   let time_w = (line_w - 12.0).max(30.0)
-  let accent = if active { @chrome.ide_accent() } else { @chrome.ide_text_faint() }
+  let accent = if active {
+    @chrome.ide_accent()
+  } else {
+    @chrome.ide_text_faint()
+  }
   // 来源：有已采纳提案的会话 = Gear（Agent 干过活），否则 Chat（纯聊天）
   let source_icon : @style.IconName = if session.proposal_history.any(record => {
       record.accepted
@@ -376,7 +383,13 @@ fn ai_session_row(
         width=title_w,
         height=15.0,
         align=TextStart,
-      ).foreground(if active { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
+      ).foreground(
+        if active {
+          @chrome.ide_text()
+        } else {
+          @chrome.ide_text_muted()
+        },
+      ),
     ],
     spacing=4.0,
     align=Start,
@@ -403,9 +416,12 @@ fn ai_session_row(
     cells.push(
       @views.container(
         @views.center(
-          @views.text("✎", theme=@chrome.studio_theme(), width=12.0, height=14.0).foreground(
-            @chrome.ide_text_muted(),
-          ),
+          @views.text(
+            "✎",
+            theme=@chrome.studio_theme(),
+            width=12.0,
+            height=14.0,
+          ).foreground(@chrome.ide_text_muted()),
           width=18.0,
           height=16.0,
         ),
@@ -420,7 +436,11 @@ fn ai_session_row(
           @views.icon(
             Pin,
             size=11.0,
-            color=if session.pinned { @chrome.ide_accent() } else { @chrome.ide_text_faint() },
+            color=if session.pinned {
+              @chrome.ide_accent()
+            } else {
+              @chrome.ide_text_faint()
+            },
           ),
           width=18.0,
           height=16.0,
@@ -433,9 +453,12 @@ fn ai_session_row(
     cells.push(
       @views.container(
         @views.center(
-          @views.text("✕", theme=@chrome.studio_theme(), width=10.0, height=14.0).foreground(
-            @chrome.ide_text_faint(),
-          ),
+          @views.text(
+            "✕",
+            theme=@chrome.studio_theme(),
+            width=10.0,
+            height=14.0,
+          ).foreground(@chrome.ide_text_faint()),
           width=18.0,
           height=16.0,
         ),

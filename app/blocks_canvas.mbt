@@ -258,7 +258,8 @@ pub fn blocks_item_rects(
     // 估宽偏窄 ~2%（见 `@chrome.fit_label` 的注释），除以安全系数后实渲必然放得下。
     let prefix = if item.kind is @blocks.BkReturn { "↩ " } else { "" }
     let content = lead_pad +
-      @chrome.text_estimate_width("\{prefix}\{display}") / @chrome.LABEL_WIDTH_SAFETY +
+      @chrome.text_estimate_width("\{prefix}\{display}") /
+      @chrome.LABEL_WIDTH_SAFETY +
       12.0
     let max_width = (budget - item.depth.to_double() * block_indent).max(64.0)
     let width = content.min(max_width).max(64.0)

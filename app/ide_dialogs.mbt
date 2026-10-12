@@ -198,7 +198,12 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
       spacing=8.0,
     ),
     // 提示按可用宽折行——英文版这句话 766pt，392pt 的单行必然溢出。
-    @chrome.hint_lines_view(text(t, "app.ai.key_hint"), 392.0, @chrome.ide_warning(), 3),
+    @chrome.hint_lines_view(
+      text(t, "app.ai.key_hint"),
+      392.0,
+      @chrome.ide_warning(),
+      3,
+    ),
     @views.divider(color=@chrome.ide_border()),
     @chrome.hint_lines_view(
       text(t, "app.settings.draft_hint"),
@@ -462,7 +467,11 @@ fn toast_view(label : String, warning : Bool) -> @moui.View[Msg] {
       [
         @views.container(
           @views.text("", width=3.0, height=1.0),
-          background=if warning { @chrome.ide_warning() } else { @chrome.ide_success() },
+          background=if warning {
+            @chrome.ide_warning()
+          } else {
+            @chrome.ide_success()
+          },
           width=3.0,
           padding=0.0,
         ),

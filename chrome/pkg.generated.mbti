@@ -1,0 +1,228 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/chrome"
+
+import {
+  "moonbitlang/core/debug",
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/views/style",
+  "wzzc-dev/moui_studio/domain/blocks",
+}
+
+// Values
+pub const FIELD_HEIGHT : Double = 26.0
+
+pub const ICONBAR_WIDTH : Double = 34.0
+
+pub const LABEL_WIDTH_SAFETY : Double = 0.95
+
+pub const LEFTBAR_MAX_WIDTH : Double = 480.0
+
+pub const LEFTBAR_MIN_WIDTH : Double = 200.0
+
+pub const LEFTBAR_WIDTH : Double = 232.0
+
+pub const PANEL_HEAD_HEIGHT : Double = 30.0
+
+pub const RECENT_STRIP_ROWS : Int = 3
+
+pub const RIGHTBAR_MAX_WIDTH : Double = 560.0
+
+pub const RIGHTBAR_MIN_WIDTH : Double = 200.0
+
+pub const RIGHTBAR_WIDTH : Double = 272.0
+
+pub const SASH_WIDTH : Double = 4.0
+
+pub const STATUSBAR_HEIGHT : Double = 22.0
+
+pub const TOPBAR_ACTION_HEIGHT : Double = 24.0
+
+pub const TOPBAR_HEIGHT : Double = 40.0
+
+pub const TRAFFIC_LIGHT_CENTER_Y : Double = 15.8
+
+pub const TRAFFIC_LIGHT_INSET : Double = 78.0
+
+pub const TREE_META_WIDTH : Double = 68.0
+
+pub const TREE_ROW_HEIGHT : Double = 24.0
+
+pub const WINDOW_CHROME_HEIGHT : Double = 32.0
+
+pub fn[Msg] action_chip(String, Msg, ChipTone, Double) -> @core.View[Msg]
+
+pub fn block_badge_color(@blocks.BlockKind) -> @core.Color
+
+pub fn block_category_fill(@blocks.BlockCategory) -> @core.Color
+
+pub fn block_category_text() -> @core.Color
+
+pub fn block_corner_radius(@blocks.BlockKind) -> Double
+
+pub fn block_fill(@blocks.BlockKind) -> @core.Color
+
+pub fn block_notch_color() -> @core.Color
+
+pub fn block_outline_stroke() -> @core.Color
+
+pub fn block_text_color() -> @core.Color
+
+pub fn blocks_canvas_background() -> @core.Color
+
+pub fn blocks_note_background() -> @core.Color
+
+pub fn blocks_note_text() -> @core.Color
+
+pub fn blocks_slot_empty() -> @core.Color
+
+pub fn blocks_slot_filled() -> @core.Color
+
+pub fn chip_label_width(String) -> Double
+
+pub fn code_comment_color() -> @core.Color
+
+pub fn code_error_line_tint() -> @core.Color
+
+pub fn code_function_color() -> @core.Color
+
+pub fn code_keyword_color() -> @core.Color
+
+pub fn code_number_color() -> @core.Color
+
+pub fn code_plain_color() -> @core.Color
+
+pub fn code_string_color() -> @core.Color
+
+pub fn code_type_color() -> @core.Color
+
+pub fn[Msg] count_badge(String, Int) -> @core.View[Msg]
+
+pub fn[Msg] diff_row(String, String, Double) -> @core.View[Msg]
+
+pub fn[Msg] empty_hint(String, Double, Double) -> @core.View[Msg]
+
+pub fn[Msg] fill_row(Array[@core.View[Msg]], Double, Double, @style.CrossAlign) -> @core.View[Msg]
+
+pub fn fit_label(String, Double) -> String
+
+pub fn[Msg] hairline() -> @core.View[Msg]
+
+pub fn[Msg] hint_lines_view(String, Double, @core.Color, Int) -> @core.View[Msg]
+
+pub fn ide_accent() -> @core.Color
+
+pub fn ide_accent_soft() -> @core.Color
+
+pub fn ide_border() -> @core.Color
+
+pub fn ide_border_soft() -> @core.Color
+
+pub fn ide_danger() -> @core.Color
+
+pub fn ide_danger_soft() -> @core.Color
+
+pub fn ide_editor_background() -> @core.Color
+
+pub fn ide_elevated() -> @core.Color
+
+pub fn ide_file_color(IconTint) -> @core.Color
+
+pub fn ide_hover() -> @core.Color
+
+pub fn ide_hover_strong() -> @core.Color
+
+pub fn ide_ir_highlight() -> @core.Color
+
+pub fn ide_ir_hover() -> @core.Color
+
+pub fn ide_panel() -> @core.Color
+
+pub fn ide_panel_alt() -> @core.Color
+
+pub fn ide_selection() -> @core.Color
+
+pub fn ide_success() -> @core.Color
+
+pub fn ide_success_soft() -> @core.Color
+
+pub fn ide_text() -> @core.Color
+
+pub fn ide_text_faint() -> @core.Color
+
+pub fn ide_text_muted() -> @core.Color
+
+pub fn ide_warning() -> @core.Color
+
+pub fn ide_warning_soft() -> @core.Color
+
+pub fn[Msg] inline_card(@core.Color, @core.View[Msg], Double, Bool) -> @core.View[Msg]
+
+pub fn[Msg] kv_row(String, String, Double, Bool) -> @core.View[Msg]
+
+pub fn[Msg] panel_head(String, String, Array[@core.View[Msg]], Double, trailing_widths? : Array[Double]) -> @core.View[Msg]
+
+pub fn[Msg] pill(String, @core.Color, Double) -> @core.View[Msg]
+
+pub fn[Msg] progress_bar(Int, Double) -> @core.View[Msg]
+
+pub fn set_ui_dark(Bool) -> Unit
+
+pub fn[Msg] status_cells(Array[(String, Int)], Double, Bool) -> @core.View[Msg]
+
+pub fn studio_console_background() -> @core.Color
+
+pub fn studio_grid_line() -> @core.Color
+
+pub fn studio_product_theme() -> @core.Theme
+
+pub fn studio_stage_background() -> @core.Color
+
+pub fn studio_stage_outline() -> @core.Color
+
+pub fn studio_stage_title_bar() -> @core.Color
+
+pub fn studio_theme() -> @core.Theme
+
+pub fn studio_typography() -> @core.TypographyScale
+
+pub fn studio_window_background() -> @core.Color
+
+pub fn[Msg] text_chip(String, Msg, Double, Bool) -> @core.View[Msg]
+
+pub fn text_estimate_width(String) -> Double
+
+pub fn[Msg] topbar_brand(String, Bool, String) -> @core.View[Msg]
+
+pub fn topbar_chip_bound(String, Double) -> Double
+
+pub fn[Msg] tree_row(String, String, Int, Bool, Bool, Bool, Msg?, Msg?, Double, trailing? : @core.View[Msg]?, trailing_width? : Double) -> @core.View[Msg]
+
+pub fn ui_is_dark() -> Bool
+
+pub fn wrap_text_lines(String, Double) -> Array[String]
+
+pub fn wrapped_line_count(String, Double) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) enum ChipTone {
+  Quiet
+  Primary
+  Ghost
+}
+
+pub(all) enum IconTint {
+  TintCode
+  TintDoc
+  TintConfig
+  TintAsset
+  TintPlain
+} derive(Eq, @debug.Debug)
+pub fn IconTint::equal(Self, Self) -> Bool
+pub fn IconTint::not_equal(Self, Self) -> Bool
+pub fn IconTint::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

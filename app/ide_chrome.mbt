@@ -8,6 +8,7 @@
 // ============================================================================
 // 尺寸常量（设计稿口径，集中一处便于比对）
 // ============================================================================
+
 ///|
 /// 图标按钮：图标栏与工具条共用。选中态用强调色弱底 + 强调色图标。
 /// 无 hover 回调（core 只暴露 hovered 状态给节点），所以只有「选中/未选中」
@@ -29,14 +30,22 @@ pub fn icon_button(
   // ——蓝色块连排是「不协调」的主因）；未选中 = 灰字形裸露（底色与所在
   // 表面同色，即视觉透明）。`tile=false` 时选中也不画底块（颜色两态保留：
   // 亮字 = 活动态）。
-  let tint = if selected { @chrome.ide_text() } else { @chrome.ide_text_muted() }
+  let tint = if selected {
+    @chrome.ide_text()
+  } else {
+    @chrome.ide_text_muted()
+  }
   let button = @views.container(
       @views.center(
         @views.icon(icon, size=icon_size, color=tint),
         width=width - 8.0,
         height=height - 8.0,
       ),
-      background=if selected && tile { @chrome.ide_hover() } else { @chrome.ide_panel() },
+      background=if selected && tile {
+        @chrome.ide_hover()
+      } else {
+        @chrome.ide_panel()
+      },
       corner_radius=4.0,
       width~,
       height~,
@@ -50,6 +59,7 @@ pub fn icon_button(
     .on_tap(on_click)
   @views.tooltip(button, tip, visible=tip != "" && hovered == tip)
 }
+
 ///|
 /// Ghost 图标按钮：透明底（融入所在表面），选中态才点亮——现代 AI 面板
 /// 的头部口径（Codex/ZCode）：标题行不留一排「小方块」，操作都在安静处。
@@ -94,6 +104,7 @@ pub fn ghost_icon_button(
     .on_tap(on_click)
   @views.tooltip(button, tip, visible=tip != "" && hovered == tip)
 }
+
 ///|
 /// 带键盘快捷键的图标按钮（撤销/重做这类「必须有键位」的动作）。
 ///
@@ -134,6 +145,7 @@ pub fn shortcut_icon_button(
     shortcut_button_shell(on_click, shortcut, alt_shortcut, width, height),
   ]).accessibility_label(tip)
 }
+
 ///|
 /// 快捷键按钮的载体：`@views.button`（唯一对合成 Enter 有反应的控件）+
 /// 一条或两条 shortcut 链。两条覆盖 meta（macOS）与 control（Windows/Linux）。
@@ -157,6 +169,7 @@ fn shortcut_button_shell(
     None => base
   }
 }
+
 ///|
 /// 圆形主行动按钮（发送）：实心强调色圆 + 箭头图标——Codex/ZCode 输入盒
 /// 的收尾形态。`enabled=false` 时降为面板色 + 弱图标（忙碌态）。
@@ -180,7 +193,11 @@ pub fn round_send_button(
       width=size,
       height=size,
     ),
-    background=if enabled { @chrome.ide_accent() } else { @chrome.ide_elevated() },
+    background=if enabled {
+      @chrome.ide_accent()
+    } else {
+      @chrome.ide_elevated()
+    },
     corner_radius=size / 2.0,
     width=size,
     height=size,
@@ -189,6 +206,7 @@ pub fn round_send_button(
   .accessibility_label(tip)
   .on_tap(on_click)
 }
+
 ///|
 /// 顶栏动作芯片：24pt 高、13pt 字。`primary` 是唯一主行动作（运行）——
 /// 强调色填充；其余保持安静的面板二档底。`on_click` 为 None 时是禁用态
@@ -220,7 +238,11 @@ pub fn topbar_action(
       width~,
       height=@chrome.TOPBAR_ACTION_HEIGHT,
     ),
-    background=if primary && enabled { @chrome.ide_accent() } else { @chrome.ide_panel_alt() },
+    background=if primary && enabled {
+      @chrome.ide_accent()
+    } else {
+      @chrome.ide_panel_alt()
+    },
     corner_radius=4.0,
     width~,
     height=@chrome.TOPBAR_ACTION_HEIGHT,

@@ -2,7 +2,6 @@
 package "wzzc-dev/moui_studio/app"
 
 import {
-  "moonbitlang/core/debug",
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/services",
   "wzzc-dev/moui/views/common",
@@ -10,6 +9,7 @@ import {
   "wzzc-dev/moui_i18n",
   "wzzc-dev/moui_richtext",
   "wzzc-dev/moui_richtext/code_editor",
+  "wzzc-dev/moui_studio/chrome",
   "wzzc-dev/moui_studio/domain/blocks",
   "wzzc-dev/moui_studio/domain/ir",
   "wzzc-dev/moui_studio/domain/proposals",
@@ -23,7 +23,6 @@ import {
   "wzzc-dev/moui_studio/services/export",
   "wzzc-dev/moui_studio/services/form_designer",
   "wzzc-dev/moui_studio/services/markdown",
-  "wzzc-dev/moui_studio/services/project",
   "wzzc-dev/moui_webview/host",
 }
 
@@ -66,25 +65,11 @@ pub const COMPOSER_HEIGHT : Double = 88.0
 
 pub const DRAFT_SETTINGS_KEY : String = "studio.draft"
 
-pub const EXPLORER_SECTION_FOLDERS : String = "folders"
-
-pub const FIELD_HEIGHT : Double = 26.0
-
 pub const FOLD_BAR_HEIGHT : Double = 27.0
-
-pub const ICONBAR_WIDTH : Double = 34.0
 
 pub const IR_RAIL_WIDTH : Double = 30.0
 
-pub const LABEL_WIDTH_SAFETY : Double = 0.95
-
 pub const LANGUAGE_SETTINGS_KEY : String = "studio.language"
-
-pub const LEFTBAR_MAX_WIDTH : Double = 480.0
-
-pub const LEFTBAR_MIN_WIDTH : Double = 200.0
-
-pub const LEFTBAR_WIDTH : Double = 232.0
 
 pub const LIVE_PANE_HEAD_FOOT : Double = 62.
 
@@ -93,8 +78,6 @@ pub const LIVE_STAGE_INSET_H : Double = 16.0
 pub const LIVE_STAGE_INSET_V : Double = 14.0
 
 pub const LOG_LIMIT : Int = 400
-
-pub const PANEL_HEAD_HEIGHT : Double = 30.0
 
 pub const PANE_HEAD_GAP : Double = 6.0
 
@@ -108,21 +91,9 @@ pub const PROGRAM_SNAPSHOT_REL : String = ".studio/program.json"
 
 pub const RECENT_LIMIT : Int = 24
 
-pub const RECENT_STRIP_ROWS : Int = 3
-
-pub const RIGHTBAR_MAX_WIDTH : Double = 560.0
-
-pub const RIGHTBAR_MIN_WIDTH : Double = 200.0
-
-pub const RIGHTBAR_WIDTH : Double = 272.0
-
-pub const SASH_WIDTH : Double = 4.0
-
 pub const SEE_ALL_HEIGHT : Double = 20.0
 
 pub const STATEMENT_PALETTE_MIN_WIDTH : Double = 132.0
-
-pub const STATUSBAR_HEIGHT : Double = 22.0
 
 pub const TOAST_LIMIT : Int = 3
 
@@ -132,35 +103,17 @@ pub const TOPBAR_ACTIONS_SAFETY : Double = 8.0
 
 pub const TOPBAR_ACTION_GAP : Double = 6.0
 
-pub const TOPBAR_ACTION_HEIGHT : Double = 24.0
-
-pub const TOPBAR_HEIGHT : Double = 40.0
-
 pub const TOPBAR_ICON_BUTTON_WIDTH : Double = 32.0
 
 pub const TOPBAR_LEFT_TOGGLE_ZONE : Double = 34.0
-
-pub const TRAFFIC_LIGHT_CENTER_Y : Double = 15.8
-
-pub const TRAFFIC_LIGHT_INSET : Double = 78.0
-
-pub const TREE_META_WIDTH : Double = 68.0
-
-pub const TREE_ROW_HEIGHT : Double = 24.0
 
 pub const UI_DARK_SETTINGS_KEY : String = "studio.ui_dark"
 
 pub const UNDO_DEPTH : Int = 50
 
-pub const WINDOW_CHROME_HEIGHT : Double = 32.0
+pub fn active_project_file(Model) -> @wzzc-dev/moui_studio/plugins/project.OpenProjectFile?
 
-pub const WORKSPACE_ROOT_INDEX : Int = -1
-
-pub fn action_chip(String, Msg, ChipTone, Double) -> @core.View[Msg]
-
-pub fn active_project_file(Model) -> OpenProjectFile?
-
-pub fn active_project_of(Model) -> ProjectRecord?
+pub fn active_project_of(Model) -> @wzzc-dev/moui_studio/plugins/project.ProjectRecord?
 
 pub fn ai_bar_composer(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -198,45 +151,27 @@ pub fn audit_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Ms
 
 pub fn auto_build_after_save(Model, String) -> (Model, @core.Effect[Msg])
 
-pub fn block_badge_color(@blocks.BlockKind) -> @core.Color
-
 pub fn block_category(@blocks.BlockKind) -> @blocks.BlockCategory
 
 pub fn block_category_entries(Model) -> Array[BlockCategoryEntry]
-
-pub fn block_category_fill(@blocks.BlockCategory) -> @core.Color
 
 pub fn block_category_first(Array[BlockCategoryEntry], Int) -> Int
 
 pub fn block_category_label_key(@blocks.BlockCategory) -> String
 
-pub fn block_category_text() -> @core.Color
-
 pub fn block_chain_of(Model) -> Array[@blocks.BlockItem]
 
 pub fn block_context_menu(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
-pub fn block_corner_radius(@blocks.BlockKind) -> Double
-
-pub fn block_fill(@blocks.BlockKind) -> @core.Color
-
-pub fn block_notch_color() -> @core.Color
-
 pub fn block_outline_path(Double, Double, Double, Double, Bool, Bool) -> Array[@core.PathVerb]
 
-pub fn block_outline_stroke() -> @core.Color
-
 pub fn block_row_texts(@moui_i18n.Translator, Array[@blocks.BlockItem]) -> (Array[String], Array[String])
-
-pub fn block_text_color() -> @core.Color
 
 pub fn blocks_body_height(Model, Double) -> Double
 
 pub fn blocks_c_arms(Array[@blocks.BlockItem], Array[@core.Rect]) -> Map[Int, Double]
 
 pub fn blocks_canvas(Array[@blocks.BlockItem], Array[String], Int, String, (Double, Double, Bool)?, Double, Double, String, y_offset? : Double, palette_drag? : Bool, expr_drag? : Bool, script_note? : String, note_height? : Double, lead_texts? : Array[String]) -> @core.View[Msg]
-
-pub fn blocks_canvas_background() -> @core.Color
 
 pub fn blocks_chain_y(Double, Double, Double) -> Double
 
@@ -254,10 +189,6 @@ pub fn blocks_insert_mark(Array[@blocks.BlockItem], Array[@core.Rect], BlocksDra
 
 pub fn blocks_item_rects(Array[@blocks.BlockItem], avail_width? : Double, display_texts? : Array[String]) -> Array[@core.Rect]
 
-pub fn blocks_note_background() -> @core.Color
-
-pub fn blocks_note_text() -> @core.Color
-
 pub fn blocks_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn blocks_pane_wanted(Model) -> Bool
@@ -265,10 +196,6 @@ pub fn blocks_pane_wanted(Model) -> Bool
 pub fn blocks_parent_of(Array[Int]) -> Array[Int]
 
 pub fn blocks_same_path(Array[Int], Array[Int]) -> Bool
-
-pub fn blocks_slot_empty() -> @core.Color
-
-pub fn blocks_slot_filled() -> @core.Color
 
 pub fn blocks_slot_hit(Array[@blocks.BlockItem], Array[@core.Rect], Double, Double, (String) -> Double, y_offset? : Double, lead_texts? : Array[String]) -> SlotHit?
 
@@ -280,7 +207,7 @@ pub fn blocks_visual_rects(Array[@blocks.BlockItem], Array[@core.Rect]) -> Array
 
 pub fn bottom_strip_height(Model) -> Double
 
-pub fn build_entry_rel(@build.BuildKind, ProjectRecord) -> String
+pub fn build_entry_rel(@build.BuildKind, @wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> String
 
 pub fn builtin_words(@studio_lang.Language) -> Array[String]
 
@@ -300,8 +227,6 @@ pub fn chat_history(Model) -> Array[(String, String)]
 
 pub fn chat_system_prompt() -> String
 
-pub fn chip_label_width(String) -> Double
-
 pub fn civil_seconds(StudioClock) -> Int
 
 pub fn clamp_bottom_height(Double) -> Double
@@ -312,33 +237,17 @@ pub fn clone_path(Array[Int]) -> Array[Int]
 
 pub fn close_open_file_at(Model, Int) -> Model
 
-pub fn code_comment_color() -> @core.Color
-
-pub fn code_error_line_tint() -> @core.Color
-
-pub fn code_function_color() -> @core.Color
-
-pub fn code_keyword_color() -> @core.Color
-
 pub fn code_lines(Model) -> Array[CodeLine]
-
-pub fn code_number_color() -> @core.Color
-
-pub fn code_plain_color() -> @core.Color
 
 pub fn code_project_files(@ir.StudioProgram) -> CodeProjectFiles
 
-pub fn code_project_target(ProjectRecord) -> String?
+pub fn code_project_target(@wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> String?
 
 pub fn code_project_text(@ir.StudioProgram) -> String
 
 pub fn code_project_write_effect(@services.FileServices, dir~ : String, form_mbt~ : String, handlers_mbt~ : String, project_data~ : String) -> @core.Effect[Msg]
 
-pub fn code_string_color() -> @core.Color
-
 pub fn code_text_diff(String, String) -> Array[(String, String)]
-
-pub fn code_type_color() -> @core.Color
 
 pub fn code_workspace(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -380,8 +289,6 @@ pub fn control_kind_key(@ir.ControlKind) -> String
 
 pub fn control_rect(@ir.Control) -> @core.Rect
 
-pub fn count_badge(String, Int) -> @core.View[Msg]
-
 pub fn current_handler(Model) -> @ir.Handler?
 
 pub fn current_target(Model) -> EditTarget?
@@ -410,11 +317,9 @@ pub fn design_stage(@ir.StudioProgram, String, String?, Array[@core.View[Msg]], 
 
 pub let design_total_height : Double
 
-pub fn diff_row(String, String, Double) -> @core.View[Msg]
-
 pub fn dir_is_writable(String) -> Result[Unit, String]
 
-pub fn direct_scan(String, on_progress? : (@project.WalkProgress) -> Unit) -> Result[@project.ProjectScanOutput, String]
+pub fn direct_scan(String, on_progress? : (@wzzc-dev/moui_studio/services/project.WalkProgress) -> Unit) -> Result[@wzzc-dev/moui_studio/services/project.ProjectScanOutput, String]
 
 pub fn dirname_of(String) -> String
 
@@ -423,8 +328,6 @@ pub fn draw_command_from_json(Json) -> Result[@core.DrawCommand, String]
 pub fn emit_code_project_write(Model) -> Model
 
 pub fn emit_program_snapshot(Model) -> Model
-
-pub fn empty_hint(String, Double, Double) -> @core.View[Msg]
 
 pub fn empty_program() -> @ir.StudioProgram
 
@@ -444,7 +347,7 @@ pub fn error_message(@moui_i18n.Translator, @studio_lang.LangError) -> String
 
 pub fn explanation_system_prompt() -> String
 
-pub fn explorer_child_dirs_for_test(Array[@project.ScannedDir], String) -> Array[@project.ScannedDir]
+pub fn explorer_child_dirs_for_test(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
 
 pub fn explorer_clamp_scroll_y(Int, Double, Double) -> Double
 
@@ -460,11 +363,9 @@ pub fn expression_templates() -> Array[ExpressionTemplate]
 
 pub fn file_icon_for_test(String) -> @style.IconName
 
-pub fn file_is_dirty(OpenProjectFile) -> Bool
+pub fn file_is_dirty(@wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> Bool
 
-pub fn file_tint_for_test(String) -> IconTint
-
-pub fn fill_row(Array[@core.View[Msg]], Double, Double, @style.CrossAlign) -> @core.View[Msg]
+pub fn file_tint_for_test(String) -> @chrome.IconTint
 
 pub fn filter_studio_commands(Array[StudioCommand], String) -> Array[StudioCommand]
 
@@ -475,8 +376,6 @@ pub fn finish_restore_active(Model) -> Model
 pub fn first_control_name(Array[@ir.Control]) -> String
 
 pub fn first_handler_key(Array[@ir.Handler]) -> String
-
-pub fn fit_label(String, Double) -> String
 
 pub fn fit_scale(Double, Double, Double, Double) -> Double
 
@@ -492,7 +391,7 @@ pub fn form_design_canvas(FormDesignerSession, Int?, Double, Double) -> @core.Vi
 
 pub fn form_design_load_task(@services.FileServices, String, String) -> @services.ServiceTask[String]
 
-pub fn form_design_rel(ProjectRecord) -> String?
+pub fn form_design_rel(@wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> String?
 
 pub fn form_design_rel_of(Model) -> String?
 
@@ -510,13 +409,9 @@ pub fn group_can_create(String) -> Bool
 
 pub fn group_children(Array[TreeNode], String) -> Array[TreeNode]
 
-pub fn hairline() -> @core.View[Msg]
-
 pub fn handler_key(String, String) -> String
 
 pub fn hhmm_of_stamp(Int) -> String
-
-pub fn hint_lines_view(String, Double, @core.Color, Int) -> @core.View[Msg]
 
 pub fn hit_test_control(Array[@ir.Control], Double, Double) -> @ir.Control?
 
@@ -524,71 +419,23 @@ pub fn hit_test_handle(@ir.Control, Double, Double) -> @ir.DragCorner?
 
 pub fn icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, tile? : Bool, hovered? : String) -> @core.View[Msg]
 
-pub fn ide_accent() -> @core.Color
-
-pub fn ide_accent_soft() -> @core.Color
-
-pub fn ide_border() -> @core.Color
-
-pub fn ide_border_soft() -> @core.Color
-
 pub fn ide_bottom_bar(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
-
-pub fn ide_danger() -> @core.Color
-
-pub fn ide_danger_soft() -> @core.Color
-
-pub fn ide_editor_background() -> @core.Color
-
-pub fn ide_elevated() -> @core.Color
-
-pub fn ide_file_color(IconTint) -> @core.Color
-
-pub fn ide_hover() -> @core.Color
-
-pub fn ide_hover_strong() -> @core.Color
 
 pub fn ide_icon_bar(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
-pub fn ide_ir_highlight() -> @core.Color
-
-pub fn ide_ir_hover() -> @core.Color
-
 pub fn ide_left_panel(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
-
-pub fn ide_panel() -> @core.Color
-
-pub fn ide_panel_alt() -> @core.Color
 
 pub fn ide_right_panel(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
-pub fn ide_selection() -> @core.Color
-
 pub fn ide_status_bar(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
-
-pub fn ide_success() -> @core.Color
-
-pub fn ide_success_soft() -> @core.Color
-
-pub fn ide_text() -> @core.Color
-
-pub fn ide_text_faint() -> @core.Color
-
-pub fn ide_text_muted() -> @core.Color
 
 pub fn ide_top_bar(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
-pub fn ide_warning() -> @core.Color
+pub fn import_single_source(Model, @services.FileServices, @wzzc-dev/moui_studio/services/project.ProjectSource) -> (Model, @core.Effect[Msg])
 
-pub fn ide_warning_soft() -> @core.Color
-
-pub fn import_single_source(Model, @services.FileServices, @project.ProjectSource) -> (Model, @core.Effect[Msg])
-
-pub fn import_workspace_scan(Model, @project.WorkspaceScan, silent? : Bool) -> (Model, @core.Effect[Msg])
+pub fn import_workspace_scan(Model, @wzzc-dev/moui_studio/services/project.WorkspaceScan, silent? : Bool) -> (Model, @core.Effect[Msg])
 
 pub fn initial_model(provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty_available? : Bool, profile? : StudioProfile, ai_available? : Bool) -> Model
-
-pub fn inline_card(@core.Color, @core.View[Msg], Double, Bool) -> @core.View[Msg]
 
 pub fn install_preview_web(@host.WebViewController?, @kernel.PreviewWebControls[Msg]?) -> Unit
 
@@ -600,11 +447,9 @@ pub fn ir_span_at(Array[IrLineSpan], Array[Int]) -> IrLineSpan?
 
 pub fn ir_span_for_line(Array[IrLineSpan], Int) -> IrLineSpan?
 
-pub fn is_studio_app_bundle(ProjectRecord) -> Bool
+pub fn is_studio_app_bundle(@wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> Bool
 
 pub fn join_rel(String, String) -> String
-
-pub fn kv_row(String, String, Double, Bool) -> @core.View[Msg]
 
 pub fn live_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -634,9 +479,9 @@ pub fn new_project_skeleton_files(String, String, @ir.StudioProgram) -> Array[(S
 
 pub fn no_text_measure(String) -> Double
 
-pub fn open_file_index_of(Array[OpenProjectFile], String) -> Int?
+pub fn open_file_index_of(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String) -> Int?
 
-pub fn outline_symbols(String, String) -> Array[OutlineSymbol]
+pub fn outline_symbols(String, String) -> Array[@wzzc-dev/moui_studio/plugins/project.OutlineSymbol]
 
 pub fn paint_block_outline(@common.PaintContext, Double, Double, Double, Double, @blocks.BlockKind, Bool, Bool) -> Unit
 
@@ -645,8 +490,6 @@ pub fn pane_foot(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 pub fn pane_head(String, String, Double, Array[@core.View[Msg]], tail? : String, actions_width? : Double) -> @core.View[Msg]
 
 pub fn pane_head_layout(String, String, String, Double, Int, actions_width? : Double) -> PaneHeadLayout
-
-pub fn panel_head(String, String, Array[@core.View[Msg]], Double, trailing_widths? : Array[Double]) -> @core.View[Msg]
 
 pub fn parent_of(String) -> String
 
@@ -657,8 +500,6 @@ pub fn parse_preview_frame(String) -> Result[PreviewFrame, String]
 pub fn pending_ai_cards(Model) -> Int
 
 pub fn pending_side_effects(Model) -> Int
-
-pub fn pill(String, @core.Color, Double) -> @core.View[Msg]
 
 pub fn plugin_active(Model, String) -> Bool
 
@@ -672,7 +513,7 @@ pub fn preview_workspace(Model, @moui_i18n.Translator, Double, Double) -> @core.
 
 pub fn preview_write_current(PreviewWriteState) -> (String, String)?
 
-pub fn preview_write_state_for(ProjectRecord) -> PreviewWriteState?
+pub fn preview_write_state_for(@wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> PreviewWriteState?
 
 pub fn problem_rows(Model, @moui_i18n.Translator) -> Array[ProblemRow]
 
@@ -681,8 +522,6 @@ pub fn problems_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View
 pub fn program(environment? : @services.AppEnvironment, provider_submit? : (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit, compile_submit? : (String, String, (@export.CompileProgress) -> Unit, (Result[@export.CompileReport, String]) -> Unit) -> Unit, launch_submit? : (String, (Result[Unit, String]) -> Unit) -> Unit, runtime_snapshot? : () -> RuntimeInspectSample?, compile_cancel? : () -> Unit, build_submit? : (@build.BuildKind, String, String, (Result[@build.BuildReport, String]) -> Unit) -> Unit, build_cancel? : () -> Unit, webview_controller? : @host.WebViewController?, preview_web? : @kernel.PreviewWebControls[Msg], provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty? : @kernel.PtyService[Msg], focus_terminal? : () -> Unit, profile? : StudioProfile, apply_locale? : (String) -> Unit, wall_clock? : (() -> StudioClock)?, sessions_store_path? : String, projects_store_path? : String, ai_available? : Bool) -> @core.Program[Model, Msg]
 
 pub fn program_tree(Model) -> Array[TreeNode]
-
-pub fn progress_bar(Int, Double) -> @core.View[Msg]
 
 pub fn project_explorer(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -694,7 +533,7 @@ pub fn project_index_of_root(Model, String) -> Int
 
 pub fn project_index_of_tree_rel(Model, String) -> Int?
 
-pub fn project_record_from_source(@project.ProjectSource) -> Result[ProjectRecord, String]
+pub fn project_record_from_source(@wzzc-dev/moui_studio/services/project.ProjectSource) -> Result[@wzzc-dev/moui_studio/plugins/project.ProjectRecord, String]
 
 pub fn project_search_task(@services.FileServices, String, Array[String], query~ : String) -> @services.ServiceTask[Array[SearchHit]]
 
@@ -722,9 +561,9 @@ pub fn rel_path_last_segment(String) -> String
 
 pub fn relative_time_bucket(Int, Int) -> (String, Int)
 
-pub fn rename_open_file(Array[OpenProjectFile], String, String) -> Array[OpenProjectFile]
+pub fn rename_open_file(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String, String) -> Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
 
-pub fn replace_open_file_at(Array[OpenProjectFile], Int, OpenProjectFile) -> Array[OpenProjectFile]
+pub fn replace_open_file_at(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], Int, @wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
 
 pub fn replace_target_body(Model, String, Array[@ir.Stmt]) -> Model
 
@@ -770,8 +609,6 @@ pub fn semantic_label_patch_task(@services.FileServices, SemanticPatchRequest) -
 
 pub fn semantic_property_strip(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
-pub fn set_ui_dark(Bool) -> Unit
-
 pub fn settings_dialog(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
 pub fn shortcut_icon_button(@style.IconName, String, Msg, @core.KeyboardShortcut, Double, Double, Double, alt_shortcut? : @core.KeyboardShortcut?) -> @core.View[Msg]
@@ -796,8 +633,6 @@ pub fn statement_templates() -> Array[StatementTemplate]
 
 pub fn status_build_label(Model) -> String
 
-pub fn status_cells(Array[(String, Int)], Double, Bool) -> @core.View[Msg]
-
 pub fn status_position(Model) -> String
 
 pub fn store_error_text(@moui_i18n.Translator, @ai.AiStoreError) -> String
@@ -806,25 +641,7 @@ pub fn structural_error_text(@moui_i18n.Translator, @ir.IrError) -> String
 
 pub fn studio_commands(@moui_i18n.Translator) -> Array[StudioCommand]
 
-pub fn studio_console_background() -> @core.Color
-
-pub fn studio_grid_line() -> @core.Color
-
-pub fn studio_product_theme() -> @core.Theme
-
 pub fn studio_program_commands(Model) -> Array[@core.ProgramCommand[Msg]]
-
-pub fn studio_stage_background() -> @core.Color
-
-pub fn studio_stage_outline() -> @core.Color
-
-pub fn studio_stage_title_bar() -> @core.Color
-
-pub fn studio_theme() -> @core.Theme
-
-pub fn studio_typography() -> @core.TypographyScale
-
-pub fn studio_window_background() -> @core.Color
 
 pub fn target_note(Model) -> String
 
@@ -838,10 +655,6 @@ pub fn terminal_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View
 
 pub fn text(@moui_i18n.Translator, String) -> String
 
-pub fn text_chip(String, Msg, Double, Bool) -> @core.View[Msg]
-
-pub fn text_estimate_width(String) -> Double
-
 pub fn text_with(@moui_i18n.Translator, String, Array[(String, String)]) -> String
 
 pub let title_bar_height : Double
@@ -851,10 +664,6 @@ pub fn toast_host(@core.View[Msg], Model) -> @core.View[Msg]
 pub fn topbar_action(String, Msg?, Bool, Double) -> @core.View[Msg]
 
 pub fn topbar_actions_width(Model, @moui_i18n.Translator) -> Double
-
-pub fn topbar_brand(String, Bool, String) -> @core.View[Msg]
-
-pub fn topbar_chip_bound(String, Double) -> Double
 
 pub fn topbar_drag_width(Model, @moui_i18n.Translator, Double) -> Double
 
@@ -886,15 +695,11 @@ pub fn tree_group_window() -> String
 
 pub fn tree_node_selected(Model, TreeNodeKind, String) -> Bool
 
-pub fn tree_rel_of_project(Model, ProjectRecord) -> String
+pub fn tree_rel_of_project(Model, @wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> String
 
-pub fn tree_rel_of_project_file(Model, ProjectRecord, String) -> String
+pub fn tree_rel_of_project_file(Model, @wzzc-dev/moui_studio/plugins/project.ProjectRecord, String) -> String
 
 pub fn tree_root_of(Model) -> String?
-
-pub fn tree_row(String, String, Int, Bool, Bool, Bool, Msg?, Msg?, Double, trailing? : @core.View[Msg]?, trailing_width? : Double) -> @core.View[Msg]
-
-pub fn ui_is_dark() -> Bool
 
 pub fn ui_language_from_tag(String) -> UiLanguage
 
@@ -910,9 +715,9 @@ pub fn update_with_launch_for_test(Model, Msg, @services.AppServices, (String, (
 
 pub fn update_with_services(Model, Msg, @services.AppServices, pty? : @kernel.PtyService[Msg]) -> (Model, @core.Effect[Msg])
 
-pub fn upsert_open_file(Array[OpenProjectFile], OpenProjectFile) -> (Array[OpenProjectFile], Int)
+pub fn upsert_open_file(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], @wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> (Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], Int)
 
-pub fn upsert_project(Array[ProjectRecord], ProjectRecord) -> (Array[ProjectRecord], Int)
+pub fn upsert_project(Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], @wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> (Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], Int)
 
 pub fn valid_new_file_rel(String) -> Bool
 
@@ -933,10 +738,6 @@ pub fn with_notice(Model, String, Bool) -> Model
 pub fn word_at_caret(String, Int) -> (String, Int)
 
 pub fn workspace_display_name(String) -> String
-
-pub fn wrap_text_lines(String, Double) -> Array[String]
-
-pub fn wrapped_line_count(String, Double) -> Int
 
 // Errors
 
@@ -997,12 +798,6 @@ pub(all) enum BottomTab {
   BtSearch
   BtAi
   BtTerminal
-}
-
-pub(all) enum ChipTone {
-  Quiet
-  Primary
-  Ghost
 }
 
 pub(all) enum CodeAppearance {
@@ -1128,17 +923,6 @@ pub(all) enum GeneratedI18nMessage {
   Text(String)
   Plural(one~ : String, other~ : String)
 }
-
-pub(all) enum IconTint {
-  TintCode
-  TintDoc
-  TintConfig
-  TintAsset
-  TintPlain
-} derive(Eq, @debug.Debug)
-pub fn IconTint::equal(Self, Self) -> Bool
-pub fn IconTint::not_equal(Self, Self) -> Bool
-pub fn IconTint::to_repr(Self) -> @debug.Repr
 
 pub(all) struct IrLineSpan {
   path : Array[Int]
@@ -1271,9 +1055,9 @@ pub(all) struct Model {
   immersive : Bool
   tree_query : String
   tree_collapsed : Array[String]
-  projects : Array[ProjectRecord]
+  projects : Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord]
   active_project : Int
-  workspace_root : WorkspaceRecord?
+  workspace_root : @wzzc-dev/moui_studio/plugins/project.WorkspaceRecord?
   scan_progress : String?
   projects_restore_pending : Int
   restore_active_root : String
@@ -1283,7 +1067,7 @@ pub(all) struct Model {
   explorer_hover : String
   explorer_sections_collapsed : Array[String]
   explorer_menu_open : Bool
-  open_project_files : Array[OpenProjectFile]
+  open_project_files : Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
   open_file_index : Int
   file_create_open : Bool
   folder_create_open : Bool
@@ -1318,7 +1102,7 @@ pub(all) struct Model {
   audit_seq : Int
   log_lines : Array[LogLine]
   log_seq : Int
-  recent_changes : Array[RecentChange]
+  recent_changes : Array[@wzzc-dev/moui_studio/plugins/project.RecentChange]
   recent_seq : Int
   block_menu : (Int, Double, Double)?
   palette_drag : (Int, Int)?
@@ -1526,10 +1310,10 @@ pub(all) enum Msg {
   OpenReadCompleted(@services.ServiceTaskResult[String])
   ImportProjectRequested
   ProjectRootPicked(@services.ServiceTaskResult[String])
-  ProjectScanCompleted(@services.ServiceTaskResult[Result[@project.ProjectScanOutput, String]])
-  ProjectScanProgress(@project.WalkProgress)
+  ProjectScanCompleted(@services.ServiceTaskResult[Result[@wzzc-dev/moui_studio/services/project.ProjectScanOutput, String]])
+  ProjectScanProgress(@wzzc-dev/moui_studio/services/project.WalkProgress)
   ProjectsStoreLoaded(@services.ServiceTaskResult[String])
-  ProjectRestoreScanCompleted(@services.ServiceTaskResult[Result[@project.ProjectScanOutput, String]])
+  ProjectRestoreScanCompleted(@services.ServiceTaskResult[Result[@wzzc-dev/moui_studio/services/project.ProjectScanOutput, String]])
   ProjectsStoreWriteRequested
   ProjectsStoreSaved(@services.ServiceTaskResult[Unit])
   SetActiveProject(Int)
@@ -1649,21 +1433,6 @@ pub(all) struct NewProjectDraft {
   mut done : Int
 }
 
-pub(all) struct OpenProjectFile {
-  rel : String
-  saved_content : String
-  draft : String
-  caret : Int
-  selection : @core.TextRange?
-  md_session : @moui_richtext.MarkdownDocumentSession?
-}
-
-pub(all) struct OutlineSymbol {
-  name : String
-  line : Int
-  depth : Int
-}
-
 pub(all) struct PaneHeadLayout {
   title_width : Double
   subtitle_width : Double
@@ -1712,12 +1481,6 @@ pub(all) struct ProjectBuildRequest {
   entry_rel : String
 }
 
-pub(all) struct ProjectRecord {
-  root : String
-  module_name : String
-  scanned : @project.ScannedModule
-}
-
 pub(all) struct ProjectStorePayload {
   active_root : String
   projects : Array[(String, String)]
@@ -1734,13 +1497,6 @@ pub(all) struct RangedToken {
   start : Int
   text : String
   kind : CodeTokenKind
-}
-
-pub(all) struct RecentChange {
-  target : String
-  by_agent : Bool
-  action : String
-  seq : Int
 }
 
 pub(all) enum RightPanelTab {
@@ -1922,12 +1678,6 @@ pub(all) enum WorkSpace {
 pub fn WorkSpace::equal(Self, Self) -> Bool
 pub fn WorkSpace::not_equal(Self, Self) -> Bool
 
-pub(all) struct WorkspaceRecord {
-  root : String
-  name : String
-  dirs : Array[@project.ScannedDir]
-}
-
 // Type aliases
 pub using @ai {type AiCard}
 
@@ -1939,7 +1689,13 @@ pub type CompileSubmit = (String, String, (@export.CompileProgress) -> Unit, (Re
 
 pub type LaunchSubmit = (String, (Result[Unit, String]) -> Unit) -> Unit
 
+pub using @wzzc-dev/moui_studio/plugins/project {type OpenProjectFile}
+
+pub using @wzzc-dev/moui_studio/plugins/project {type OutlineSymbol}
+
 pub type PreviewWebControls = @kernel.PreviewWebControls[Msg]
+
+pub using @wzzc-dev/moui_studio/plugins/project {type ProjectRecord}
 
 pub using @ai {type ProposalRecord}
 
@@ -1947,6 +1703,10 @@ pub using @kernel {type ProviderRequestSpec}
 
 pub type ProviderSubmit = (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit
 
+pub using @wzzc-dev/moui_studio/plugins/project {type RecentChange}
+
 pub type RuntimeSnapshotFn = () -> RuntimeInspectSample?
+
+pub using @wzzc-dev/moui_studio/plugins/project {type WorkspaceRecord}
 
 // Traits

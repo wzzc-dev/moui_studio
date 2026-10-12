@@ -1568,7 +1568,9 @@ test "dragging the column sash resizes the left panel (e2e)" {
   )
   let _ = runtime.draw_commands()
   // 左 sash 中心：活动栏 + 左栏 + sash/2
-  let start_x = @chrome.ICONBAR_WIDTH + @chrome.LEFTBAR_WIDTH + @chrome.SASH_WIDTH / 2.0
+  let start_x = @chrome.ICONBAR_WIDTH +
+    @chrome.LEFTBAR_WIDTH +
+    @chrome.SASH_WIDTH / 2.0
   let y = 400.0
   runtime.dispatch_event(
     @core.Pointer(

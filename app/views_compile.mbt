@@ -306,8 +306,18 @@ fn compile_step_row(
 ) -> @moui.View[Msg] {
   let (dot_color, label_color, state_text) = match
     compile_step_state(progress, phase) {
-    Some(false) => (@chrome.ide_success(), @chrome.ide_text(), text(t, "app.compile.step_done"))
-    Some(true) => (@chrome.ide_accent(), @chrome.ide_text(), text(t, "app.compile.step_active"))
+    Some(false) =>
+      (
+        @chrome.ide_success(),
+        @chrome.ide_text(),
+        text(t, "app.compile.step_done"),
+      )
+    Some(true) =>
+      (
+        @chrome.ide_accent(),
+        @chrome.ide_text(),
+        text(t, "app.compile.step_active"),
+      )
     None => (@chrome.ide_border(), @chrome.ide_text_faint(), "")
   }
   @views.row(

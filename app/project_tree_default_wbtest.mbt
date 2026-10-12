@@ -61,7 +61,7 @@ test "工作区导入后根行默认折叠" {
   )
   let expanded = explorer_apply(
     imported,
-    ToggleProjectDirAt(WORKSPACE_ROOT_INDEX, ""),
+    ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, ""),
   )
   let rows = explorer_rows_for_test(expanded)
   assert_true(
@@ -106,7 +106,7 @@ test "嵌套成员:中间目录与成员行都默认折叠" {
     ).0
   let expanded = explorer_apply(
     imported,
-    ToggleProjectDirAt(WORKSPACE_ROOT_INDEX, ""),
+    ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, ""),
   )
   let rows = explorer_rows_for_test(expanded)
   assert_true(
@@ -119,7 +119,7 @@ test "嵌套成员:中间目录与成员行都默认折叠" {
   )
   let deeper = explorer_apply(
     expanded,
-    ToggleProjectDirAt(WORKSPACE_ROOT_INDEX, "examples"),
+    ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, "examples"),
   )
   assert_true(
     explorer_rows_for_test(deeper).contains("dir-0:examples/terminal"),

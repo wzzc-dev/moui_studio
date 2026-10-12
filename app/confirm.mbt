@@ -168,7 +168,8 @@ fn confirm_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
     None => ""
   }
   let ok_w = @chrome.text_estimate_width(text(t, "app.confirm.ok")) + 34.0
-  let cancel_w = @chrome.text_estimate_width(text(t, "app.confirm.cancel")) + 34.0
+  let cancel_w = @chrome.text_estimate_width(text(t, "app.confirm.cancel")) +
+    34.0
   @views.container(
     @views.column(
       [

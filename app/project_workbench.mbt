@@ -1,45 +1,9 @@
-///|
 /// 工程工作台(M0):导入的 MoonBit 工程。
 ///
 /// Studio 的主编辑上下文仍是 `.studio.json` 程序(M6 才切换真源);本文件
 /// 承载「导入的代码工程」——资源管理器(M0-6)与三模式预览(M1-M3)的
 /// 数据对象。导入 = 选目录 → `@project.walk_project_task` 走树 → 本文件的
 /// `project_record_from_source` 解析成记录,失败一路结构化报错到 toast。
-
-///|
-/// 一个导入的 MoonBit 工程(会话内,不持久化)。
-pub(all) struct ProjectRecord {
-  /// 工程根目录(用户选中的绝对路径)
-  root : String
-  /// moon.mod 的 name(如 "examples/counter")
-  module_name : String
-  /// 扫描结果:包清单 + 入口判定
-  scanned : @project.ScannedModule
-}
-
-///|
-/// 工作区根记录（资源管理器的单根行）。
-///
-/// `dirs` 是工作区根**自己**那一层的目录树（含非成员目录的递归展开），
-/// rel_path 相对工作区根;成员目录**不**在 `dirs` 里——它们各自作为子行
-/// 挂在这条根行之下（成员自己的目录树走各自 `ProjectRecord.scanned.dirs`）。
-pub(all) struct WorkspaceRecord {
-  root : String
-  /// 根行的展示名（取根目录的最后一段）
-  name : String
-  dirs : Array[@project.ScannedDir]
-}
-
-///|
-/// 工作区根的展示名（路径最后一段;空则退回全路径）。
-pub fn workspace_display_name(root : String) -> String {
-  let name = rel_path_last_segment(root)
-  if name == "" {
-    root
-  } else {
-    name
-  }
-}
 
 ///|
 /// 资源管理器里**所有 rel 的基准目录**（绝对路径;None = 还没有可寻址的根）。
@@ -74,30 +38,6 @@ pub fn tree_abs_path(model : Model, rel : String) -> String? {
     Some(root) => Some(join_rel(root, rel))
     None => None
   }
-}
-
-///|
-/// 工程在工作区里的相对路径（工作区根到工程根）;单模块导入 = ""。
-pub fn tree_rel_of_project(model : Model, project : ProjectRecord) -> String {
-  match model.workspace_root {
-    None => ""
-    Some(record) =>
-      if project.root.has_prefix(record.root + "/") {
-        project.root[record.root.length() + 1:].to_owned()
-      } else {
-        ""
-      }
-  }
-}
-
-///|
-/// 工程相对路径 → 工作区相对路径（在树上寻址用）。
-pub fn tree_rel_of_project_file(
-  model : Model,
-  project : ProjectRecord,
-  project_rel : String,
-) -> String {
-  join_rel(tree_rel_of_project(model, project), project_rel)
 }
 
 ///|
@@ -211,7 +151,10 @@ fn push_member_prefix_keys(
     if c == '/' {
       push_collapse_key(
         collapsed,
-        root_collapse_key(WORKSPACE_ROOT_INDEX, member_rel[0:i].to_owned()),
+        root_collapse_key(
+          @proj.WORKSPACE_ROOT_INDEX,
+          member_rel[0:i].to_owned(),
+        ),
       )
     }
     i = i + 1
@@ -247,12 +190,15 @@ fn seed_workspace_collapse_keys(
   projects : Array[ProjectRecord],
   workspace : WorkspaceRecord,
 ) -> Unit {
-  push_collapse_key(collapsed, root_collapse_key(WORKSPACE_ROOT_INDEX, ""))
+  push_collapse_key(
+    collapsed,
+    root_collapse_key(@proj.WORKSPACE_ROOT_INDEX, ""),
+  )
   for dir in workspace.dirs {
     if dir.rel_path != "" {
       push_collapse_key(
         collapsed,
-        root_collapse_key(WORKSPACE_ROOT_INDEX, dir.rel_path),
+        root_collapse_key(@proj.WORKSPACE_ROOT_INDEX, dir.rel_path),
       )
     }
   }
@@ -782,23 +728,6 @@ pub fn preview_write_current(state : PreviewWriteState) -> (String, String)? {
 /// 预览 web 控制束的类型定义与 noop 已收编进内核
 /// （`kernel/services.mbt` 的 `PreviewWebControls[Msg]`，M1 插件化）；
 /// app 侧别名见本文件顶部。
-
-///|
-/// active tab（G4 多标签;下标越界 = None）。
-pub fn active_project_file(model : Model) -> OpenProjectFile? {
-  if model.open_file_index >= 0 &&
-    model.open_file_index < model.open_project_files.length() {
-    Some(model.open_project_files[model.open_file_index])
-  } else {
-    None
-  }
-}
-
-///|
-/// tab 脏标记：草稿偏离落盘基准。
-pub fn file_is_dirty(open : OpenProjectFile) -> Bool {
-  open.draft != open.saved_content
-}
 
 ///|
 /// `.md` tab 的会话字段构造：md 文件建/换源重建 MoMark 文档会话,

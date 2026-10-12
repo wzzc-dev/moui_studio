@@ -1,4 +1,3 @@
-///|
 /// v4 IDE 壳装配：顶栏 40 / 图标栏 48 / 左栏 / 中心工作区 / 右栏 /
 /// 底栏（审计 + Console）/ 状态栏 / AI 浮动层 / 对话框与 toast。
 ///
@@ -829,7 +828,9 @@ fn preview_height(preview : String) -> Int {
 pub fn bottom_strip_height(model : Model) -> Double {
   let rows = recent_tail(model.recent_changes, @chrome.RECENT_STRIP_ROWS).length()
   let row_count = if rows == 0 { 1 } else { rows }
-  @chrome.PANEL_HEAD_HEIGHT + row_count.to_double() * @chrome.TREE_ROW_HEIGHT + 4.0
+  @chrome.PANEL_HEAD_HEIGHT +
+  row_count.to_double() * @chrome.TREE_ROW_HEIGHT +
+  4.0
 }
 
 ///|
@@ -935,25 +936,6 @@ fn actor_label(t : @i18n.Translator, by_agent : Bool) -> String {
 }
 
 ///|
-/// 最近修改尾部 N 条（新的在下——设计稿是最近在最上，取尾部后反转）。
-fn recent_tail(
-  changes : Array[RecentChange],
-  count : Int,
-) -> Array[RecentChange] {
-  let tail : Array[RecentChange] = []
-  let mut index = changes.length() - 1
-  while index >= 0 && tail.length() < count {
-    tail.push(changes[index])
-    index = index - 1
-  }
-  tail
-}
-
-// ============================================================================
-// 底栏（审计 + Console）
-// ============================================================================
-
-///|
 /// 底栏：拖动条 + 页签头 + 面板体。收起时只剩 26pt 页签头。
 
 ///|
@@ -1057,7 +1039,12 @@ pub fn ide_bottom_bar(
   }
   if model.bottom_tab is BtConsole {
     head_cells.push(
-      @chrome.action_chip(text(t, "app.console.clear"), ClearConsole, @chrome.Ghost, 22.0),
+      @chrome.action_chip(
+        text(t, "app.console.clear"),
+        ClearConsole,
+        @chrome.Ghost,
+        22.0,
+      ),
     )
   }
   head_cells.push(
@@ -1137,7 +1124,12 @@ pub fn ide_bottom_bar(
       // 指到 BtAi（如停靠后再展开）。宿主不在底栏时诚实显示空态，
       // 绝不画第二份 composer。
       if ai_host_is_bottom(model) {
-        ai_bar_composer(model, t, width, (height - @chrome.PANEL_HEAD_HEIGHT).max(80.0))
+        ai_bar_composer(
+          model,
+          t,
+          width,
+          (height - @chrome.PANEL_HEAD_HEIGHT).max(80.0),
+        )
       } else {
         @chrome.empty_hint(
           text(t, "app.ai.elsewhere"),
@@ -1148,7 +1140,8 @@ pub fn ide_bottom_bar(
     // 真终端（M5）：可用 = 屏行滚动 + 输入行；不可用（web/无头/教学版）
     // = 显式空态
     // 真终端（M5/M8 交互式）：不可用端（web/无头/教学版）上层已降级空态
-    BtTerminal => terminal_pane(model, t, width, height - @chrome.PANEL_HEAD_HEIGHT)
+    BtTerminal =>
+      terminal_pane(model, t, width, height - @chrome.PANEL_HEAD_HEIGHT)
   }
   @views.container(
     @views.column([@chrome.hairline(), head, body], spacing=0.0),
@@ -1174,10 +1167,18 @@ fn tab_button(
       width=(@chrome.text_estimate_width(label) * 1.02 + 8.0).max(40.0),
       height=18.0,
       align=TextStart,
-    ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_faint() }),
+    ).foreground(
+      if selected {
+        @chrome.ide_text()
+      } else {
+        @chrome.ide_text_faint()
+      },
+    ),
   ]
   if count > 0 {
-    cells.push(@chrome.count_badge(count.to_string(), if selected { 4 } else { 0 }))
+    cells.push(
+      @chrome.count_badge(count.to_string(), if selected { 4 } else { 0 }),
+    )
   }
   @views.container(
     @views.padding_xy(
@@ -1185,7 +1186,11 @@ fn tab_button(
       horizontal=8.0,
       vertical=0.0,
     ),
-    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel_alt() },
+    background=if selected {
+      @chrome.ide_selection()
+    } else {
+      @chrome.ide_panel_alt()
+    },
     corner_radius=4.0,
     height=22.0,
     padding=0.0,
@@ -1295,7 +1300,10 @@ fn audit_card(
             22.0,
           ),
           @views.text(
-            @chrome.fit_label(text(t, "app.audit.gate_hint"), (width - 220.0).max(60.0)),
+            @chrome.fit_label(
+              text(t, "app.audit.gate_hint"),
+              (width - 220.0).max(60.0),
+            ),
             theme=@chrome.studio_theme(),
             width=(width - 200.0).max(60.0),
             height=16.0,
@@ -1317,9 +1325,12 @@ fn audit_card(
       ).foreground(@chrome.ide_success()),
     )
   }
-  @chrome.inline_card(accent, @views.column(body, spacing=4.0), width, entry.settled).on_tap(
-    AuditOpen(index),
-  )
+  @chrome.inline_card(
+    accent,
+    @views.column(body, spacing=4.0),
+    width,
+    entry.settled,
+  ).on_tap(AuditOpen(index))
 }
 
 ///|

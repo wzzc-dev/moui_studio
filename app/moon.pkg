@@ -18,6 +18,7 @@ import {
   "wzzc-dev/moui_studio/plugins/terminal",
   "wzzc-dev/moui_studio/services/markdown",
   "wzzc-dev/moui_studio/chrome",
+  "wzzc-dev/moui_studio/plugins/project" @proj,
   "wzzc-dev/moui_studio/domain/ir",
   "wzzc-dev/moui_studio/domain/studio_lang",
   "wzzc-dev/moui_studio/domain/codec",
@@ -37,6 +38,7 @@ import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/runtime",
   "wzzc-dev/moui_studio/chrome",
+  "wzzc-dev/moui_studio/plugins/project" @proj,
 } for "wbtest"
 
 supported_targets = "native+wasm-gc"

@@ -275,7 +275,7 @@ test "explorer 工作区根文件:归属反查不污染活动工程" {
   let before = imported.active_project
   let picked = @app.update_pure(
       imported,
-      SelectProjectFileAt(@app.WORKSPACE_ROOT_INDEX, "gradlew"),
+      SelectProjectFileAt(@proj.WORKSPACE_ROOT_INDEX, "gradlew"),
     ).0
   assert_eq(picked.selected_project_file, Some("gradlew"))
   assert_eq(
@@ -383,7 +383,7 @@ test "explorer 分区折叠默认态与翻转" {
   let model = @app.initial_model()
   let folders = @app.explorer_section_expanded(
     model,
-    @app.EXPLORER_SECTION_FOLDERS,
+    @proj.EXPLORER_SECTION_FOLDERS,
   )
   assert_true(folders, msg="文件夹分区默认展开")
   assert_false(
@@ -399,10 +399,10 @@ test "explorer 分区折叠默认态与翻转" {
   assert_true(@app.explorer_section_expanded(toggled, "outline"))
   let closed = @app.update_pure(
       toggled,
-      ToggleExplorerSection(@app.EXPLORER_SECTION_FOLDERS),
+      ToggleExplorerSection(@proj.EXPLORER_SECTION_FOLDERS),
     ).0
   assert_false(
-    @app.explorer_section_expanded(closed, @app.EXPLORER_SECTION_FOLDERS),
+    @app.explorer_section_expanded(closed, @proj.EXPLORER_SECTION_FOLDERS),
   )
 }
 

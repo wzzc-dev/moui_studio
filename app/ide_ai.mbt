@@ -74,9 +74,12 @@ fn dropdown_chip(
       @views.row(
         [
           @views.icon(icon, size=11.0, color=@chrome.ide_text_muted()),
-          @views.text(label, theme=@chrome.studio_theme(), width=label_w, height=16.0).foreground(
-            @chrome.ide_text_muted(),
-          ),
+          @views.text(
+            label,
+            theme=@chrome.studio_theme(),
+            width=label_w,
+            height=16.0,
+          ).foreground(@chrome.ide_text_muted()),
           @views.icon(ChevronDown, size=10.0, color=@chrome.ide_text_faint()),
         ],
         spacing=4.0,
@@ -1045,7 +1048,13 @@ fn ai_card_view(
           width=(width - 16.0).max(60.0),
           height=16.0,
           align=TextStart,
-        ).foreground(if done { @chrome.ide_success() } else { @chrome.ide_text_faint() }),
+        ).foreground(
+          if done {
+            @chrome.ide_success()
+          } else {
+            @chrome.ide_text_faint()
+          },
+        ),
       )
       step_index = step_index + 1
     }
@@ -1060,8 +1069,18 @@ fn ai_card_view(
     rows.push(
       @views.row(
         [
-          @chrome.action_chip(text(t, "app.ai.accept"), AcceptProposal, @chrome.Primary, 22.0),
-          @chrome.action_chip(text(t, "app.ai.reject"), RejectProposal, @chrome.Quiet, 22.0),
+          @chrome.action_chip(
+            text(t, "app.ai.accept"),
+            AcceptProposal,
+            @chrome.Primary,
+            22.0,
+          ),
+          @chrome.action_chip(
+            text(t, "app.ai.reject"),
+            RejectProposal,
+            @chrome.Quiet,
+            22.0,
+          ),
           @views.text(
             "\{index + 1}",
             theme=@chrome.studio_theme(),
@@ -1086,7 +1105,12 @@ fn ai_card_view(
     )
   }
   ignore(model)
-  @chrome.inline_card(accent, @views.column(rows, spacing=4.0), width, card.settled)
+  @chrome.inline_card(
+    accent,
+    @views.column(rows, spacing=4.0),
+    width,
+    card.settled,
+  )
 }
 
 ///|
@@ -1301,7 +1325,12 @@ fn composer(
   // 流式生成进行中：发送换**停止**（截断入口，M4）——同一槽位两个互斥动作。
   if model.ai_streaming {
     foot_cells.push(
-      @chrome.action_chip(text(t, "app.ai.stop"), StopGeneration, @chrome.Quiet, 24.0),
+      @chrome.action_chip(
+        text(t, "app.ai.stop"),
+        StopGeneration,
+        @chrome.Quiet,
+        24.0,
+      ),
     )
   } else {
     foot_cells.push(
@@ -1382,7 +1411,12 @@ fn composer_mode_dropdown(
     @views.center(
       @views.row(
         [
-          @views.text(label, theme=@chrome.studio_theme(), width=label_w, height=16.0).foreground(
+          @views.text(
+            label,
+            theme=@chrome.studio_theme(),
+            width=label_w,
+            height=16.0,
+          ).foreground(
             if open {
               @chrome.ide_accent()
             } else {
@@ -1493,11 +1527,21 @@ fn composer_mode_chip(
         theme=@chrome.studio_theme(),
         width=(chip_width - 14.0).max(20.0),
         height=16.0,
-      ).foreground(if selected { @chrome.ide_accent() } else { @chrome.ide_text_muted() }),
+      ).foreground(
+        if selected {
+          @chrome.ide_accent()
+        } else {
+          @chrome.ide_text_muted()
+        },
+      ),
       width=chip_width,
       height=20.0,
     ),
-    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
+    background=if selected {
+      @chrome.ide_selection()
+    } else {
+      @chrome.ide_panel()
+    },
     corner_radius=10.0,
     width=chip_width,
     height=20.0,
@@ -1540,7 +1584,13 @@ fn decision_bar(
           width=(width - 16.0).max(60.0),
           height=18.0,
           align=TextStart,
-        ).foreground(if pending.valid { @chrome.ide_success() } else { @chrome.ide_danger() }),
+        ).foreground(
+          if pending.valid {
+            @chrome.ide_success()
+          } else {
+            @chrome.ide_danger()
+          },
+        ),
       )
       // 校验失败时逐条列出原因（不静默丢弃，也不允许采纳）。
       // 错误文案是长句（英文 400pt+），按行宽截断——决策条高度是单点预算，
@@ -1561,9 +1611,24 @@ fn decision_bar(
       rows.push(
         @chrome.fill_row(
           [
-            @chrome.action_chip(text(t, "app.ai.accept"), AcceptProposal, @chrome.Primary, 24.0),
-            @chrome.action_chip(text(t, "app.ai.reject"), RejectProposal, @chrome.Quiet, 24.0),
-            @chrome.action_chip(text(t, "app.ai.history"), ToggleAiHistory, @chrome.Ghost, 24.0),
+            @chrome.action_chip(
+              text(t, "app.ai.accept"),
+              AcceptProposal,
+              @chrome.Primary,
+              24.0,
+            ),
+            @chrome.action_chip(
+              text(t, "app.ai.reject"),
+              RejectProposal,
+              @chrome.Quiet,
+              24.0,
+            ),
+            @chrome.action_chip(
+              text(t, "app.ai.history"),
+              ToggleAiHistory,
+              @chrome.Ghost,
+              24.0,
+            ),
           ],
           (width - 16.0).max(80.0),
           6.0,

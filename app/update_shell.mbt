@@ -76,7 +76,11 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       // 「展开」要登记成 `open:<id>` 标记,「折叠」才是裸 id。
       let toggled : Array[String] = []
       let open_key = "open:" + id
-      let track_key = if id == EXPLORER_SECTION_FOLDERS { id } else { open_key }
+      let track_key = if id == @proj.EXPLORER_SECTION_FOLDERS {
+        id
+      } else {
+        open_key
+      }
       let mut removed = false
       for item in model.explorer_sections_collapsed {
         if item == track_key {
@@ -396,7 +400,7 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       // 点某个文件 = 选中它,并把**活动工程**切到它归属的那一个。
       //
       // 归属不直接用行上的 index:工作区导入时树的根是工作区根
-      // （WORKSPACE_ROOT_INDEX）,而根上的 `gradlew` 不属于任何成员——
+      // （@proj.WORKSPACE_ROOT_INDEX）,而根上的 `gradlew` 不属于任何成员——
       // 把 -1 写进 active_project 会让「当前工程」这个语义失效。归属改成
       // 由**路径**反查（`project_index_of_tree_rel`）:成员目录下的文件归属
       // 该成员,根上的文件保持原活动工程不变。

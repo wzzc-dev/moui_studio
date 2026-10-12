@@ -1,4 +1,3 @@
-///|
 /// MoUI Studio TEA 模型：程序 IR + 界面语言 + 三模式 + 运行态 +
 /// 待采纳提案 + provider 会话内存。纯数据，无服务无视图。
 
@@ -377,17 +376,6 @@ pub(all) struct LogLine {
 }
 
 ///|
-/// 最近修改条目：谁在什么时候动了哪个对象（改属性/插控件/AI diff）。
-/// 会话内 UI 事实，不进 IR、不持久化——它是「人做过什么」的教学材料。
-pub(all) struct RecentChange {
-  target : String
-  // 作者标签（"你" / "Agent"）：i18n 在渲染层解析
-  by_agent : Bool
-  action : String
-  seq : Int
-}
-
-///|
 /// 被监视的运行时值：变量名 + 文本值 + 类型标签。
 pub(all) struct WatchRow {
   name : String
@@ -472,22 +460,6 @@ pub(all) struct StudioCommand {
   label : String
   group : String
   hint : String
-}
-
-///|
-/// 打开的工程文件 tab（G4 多标签:数组承载,随 tab 携带光标状态）。
-/// saved_content 是脏标记的基准;draft 是编辑中的内容。
-pub(all) struct OpenProjectFile {
-  rel : String
-  saved_content : String
-  draft : String
-  /// 该 tab 的光标/选区（受控编辑器回传,切换 tab 恢复,不串台）
-  caret : Int
-  selection : @core.TextRange?
-  /// `.md` tab 的 MoMark 文档会话（块级结构 + 选区 reveal 的真编辑面）;
-  /// 非 md tab 恒为 None。用 `with_md_session` 惰性重建,避免每个构造点
-  /// 都要判后缀。
-  md_session : @moui_richtext.MarkdownDocumentSession?
 }
 
 ///|

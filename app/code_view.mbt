@@ -706,7 +706,10 @@ fn code_hint_bar(t : @i18n.Translator, width : Double) -> @moui.View[Msg] {
         [
           @views.icon(Info, size=12.0, color=@chrome.ide_text_faint()),
           @views.text(
-            @chrome.fit_label(text(t, "app.code.foot_hint"), (width - 44.0).max(80.0)),
+            @chrome.fit_label(
+              text(t, "app.code.foot_hint"),
+              (width - 44.0).max(80.0),
+            ),
             theme=@chrome.studio_theme(),
             width=(width - 40.0).max(80.0),
             height=16.0,
@@ -739,8 +742,10 @@ fn code_foot_row(
   // 「按 IR 重渲染」「编译 MoonBit」截成「按 IR 重渲」「编译 MoonB」。
   // 内垫取 34：`@chrome.text_estimate_width` 是估算，中文 + 拉丁混排的真实字形
   // 比估算宽 5-8px，取值要把这段差额也盖住（实测 26 仍差 2.7px）。
-  let restore_w = @chrome.text_estimate_width(text(t, "app.code.restore")) + 34.0
-  let compile_w = @chrome.text_estimate_width(text(t, "app.code.compile")) + 34.0
+  let restore_w = @chrome.text_estimate_width(text(t, "app.code.restore")) +
+    34.0
+  let compile_w = @chrome.text_estimate_width(text(t, "app.code.compile")) +
+    34.0
   let gap = 6.0
   let caret = @code_editor.code_editor_caret_position(
     model.code_draft,
@@ -835,11 +840,21 @@ fn foot_chip(
         theme=@chrome.studio_theme(),
         width=(width - 6.0).max(20.0),
         height=16.0,
-      ).foreground(if primary { @chrome.ide_accent() } else { @chrome.ide_text_muted() }),
+      ).foreground(
+        if primary {
+          @chrome.ide_accent()
+        } else {
+          @chrome.ide_text_muted()
+        },
+      ),
       width~,
       height=24.0,
     ),
-    background=if primary { @chrome.ide_accent_soft() } else { @chrome.ide_panel_alt() },
+    background=if primary {
+      @chrome.ide_accent_soft()
+    } else {
+      @chrome.ide_panel_alt()
+    },
     corner_radius=4.0,
     width~,
     height=24.0,
@@ -943,13 +958,17 @@ pub fn empty_stage(
       @views.text(
         text(t, "app.empty.title"),
         theme=@chrome.studio_theme(),
-        width=(@chrome.text_estimate_width(text(t, "app.empty.title")) * 1.02 + 8.0).min(
-          460.0,
-        ),
+        width=(@chrome.text_estimate_width(text(t, "app.empty.title")) * 1.02 +
+        8.0).min(460.0),
         height=30.0,
       ).foreground(@chrome.ide_text()),
       // 长引导句按宽折行（英文版 766pt，460pt 单行必溢出）。
-      @chrome.hint_lines_view(text(t, "app.empty.body"), 460.0, @chrome.ide_text_faint(), 2),
+      @chrome.hint_lines_view(
+        text(t, "app.empty.body"),
+        460.0,
+        @chrome.ide_text_faint(),
+        2,
+      ),
       @views.column(button_rows, spacing=8.0, align=Center),
     ],
     spacing=12.0,
@@ -1075,7 +1094,9 @@ fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
     let active = i == model.open_file_index
     let label = file_tab_label(file.rel) +
       (if file_is_dirty(file) { " ●" } else { "" })
-    let cell_width = (@chrome.text_estimate_width(label) + 40.0).min(150.0).max(64.0)
+    let cell_width = (@chrome.text_estimate_width(label) + 40.0)
+      .min(150.0)
+      .max(64.0)
     cells.push(
       @views.container(
         @views.row(
@@ -1087,7 +1108,13 @@ fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
               width=cell_width - 20.0,
               height=14.0,
               align=TextStart,
-            ).foreground(if active { @chrome.ide_text() } else { @chrome.ide_text_faint() }),
+            ).foreground(
+              if active {
+                @chrome.ide_text()
+              } else {
+                @chrome.ide_text_faint()
+              },
+            ),
             @views.text(
               "×",
               theme=@chrome.studio_theme(),
@@ -1101,7 +1128,11 @@ fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
           spacing=2.0,
           align=Center,
         ),
-        background=if active { @chrome.ide_panel() } else { @chrome.ide_editor_background() },
+        background=if active {
+          @chrome.ide_panel()
+        } else {
+          @chrome.ide_editor_background()
+        },
         width=cell_width,
         height=22.0,
         padding=0.0,

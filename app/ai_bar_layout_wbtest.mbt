@@ -224,7 +224,8 @@ test "reporter slots reach the real draw pipeline" {
       @core.DrawCommand::FillRoundedRectBrush(_, brush) =>
         match brush {
           @core.Brush::Solid(color) =>
-            if color == @chrome.blocks_slot_filled() || color == @chrome.blocks_slot_empty() {
+            if color == @chrome.blocks_slot_filled() ||
+              color == @chrome.blocks_slot_empty() {
               slot_fills = slot_fills + 1
             }
           _ => ()

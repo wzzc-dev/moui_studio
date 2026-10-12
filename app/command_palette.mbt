@@ -124,7 +124,11 @@ fn command_palette_row(
       horizontal=8.0,
       vertical=0.0,
     ),
-    background=if hovered { @chrome.ide_selection() } else { @chrome.ide_panel() },
+    background=if hovered {
+      @chrome.ide_selection()
+    } else {
+      @chrome.ide_panel()
+    },
     height=30.0,
     width=row_width,
     padding=0.0,

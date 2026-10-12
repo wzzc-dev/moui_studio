@@ -51,7 +51,8 @@ test "hiding panes funnels into the empty stage with restore entries" {
   guard shell_find_text(commands, "实时应用") is Some(head) else {
     fail("live pane head missing")
   }
-  if head.frame.origin.y > @chrome.TOPBAR_HEIGHT + @chrome.PANEL_HEAD_HEIGHT + 1.0 {
+  if head.frame.origin.y >
+    @chrome.TOPBAR_HEIGHT + @chrome.PANEL_HEAD_HEIGHT + 1.0 {
     fail(
       "live pane is pushed down by a restore strip: head y=" +
       head.frame.origin.y.to_string(),
@@ -594,7 +595,11 @@ test "the right panel head closes the panel, not the selection" {
   // 头的右上角那个 ✕ 是「关闭面板」，它必须比「清空选中」的 ✕ 更靠右。
   // 两个 ✕ 都是 20/18pt 的小按钮，用图标盒位置区分。
   let commands = shell_draw(model, 1280.0, 800.0)
-  let right_edge = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0 + widths.center
+  let right_edge = @chrome.ICONBAR_WIDTH +
+    2.0 +
+    @chrome.LEFTBAR_WIDTH +
+    1.0 +
+    widths.center
   let close_boxes : Array[Double] = []
   for rect in shell_rects(commands) {
     let in_head = rect.origin.y >= @chrome.TOPBAR_HEIGHT - 1.0 &&

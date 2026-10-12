@@ -434,11 +434,21 @@ fn context_tabs(
             theme=@chrome.studio_theme(),
             width=cell_width - 4.0,
             height=16.0,
-          ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_faint() }),
+          ).foreground(
+            if selected {
+              @chrome.ide_text()
+            } else {
+              @chrome.ide_text_faint()
+            },
+          ),
           width=cell_width,
           height=22.0,
         ),
-        background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel_alt() },
+        background=if selected {
+          @chrome.ide_selection()
+        } else {
+          @chrome.ide_panel_alt()
+        },
         corner_radius=3.0,
         width=cell_width,
         height=22.0,
@@ -872,7 +882,12 @@ fn context_actions(
     None =>
       match current_handler(model) {
         Some(handler) => handler.control_name
-        None => return @chrome.empty_hint(text(t, "app.ctx.actions.none"), width, 120.0)
+        None =>
+          return @chrome.empty_hint(
+            text(t, "app.ctx.actions.none"),
+            width,
+            120.0,
+          )
       }
   }
   // 事件集合由控件种类决定（按钮只有 onClick、输入框还有 onChange）——
@@ -913,12 +928,26 @@ fn context_actions(
                 width=(width - 100.0).max(60.0),
                 height=18.0,
                 align=TextStart,
-              ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
+              ).foreground(
+                if selected {
+                  @chrome.ide_text()
+                } else {
+                  @chrome.ide_text_muted()
+                },
+              ),
               @views.spacer(min_length=4.0, weight=1.0),
               if exists {
-                @chrome.pill(text(t, "app.ctx.actions.ready"), @chrome.ide_success(), 48.0)
+                @chrome.pill(
+                  text(t, "app.ctx.actions.ready"),
+                  @chrome.ide_success(),
+                  48.0,
+                )
               } else {
-                @chrome.pill(text(t, "app.ctx.actions.create"), @chrome.ide_text_faint(), 48.0)
+                @chrome.pill(
+                  text(t, "app.ctx.actions.create"),
+                  @chrome.ide_text_faint(),
+                  48.0,
+                )
               },
             ],
             (width - 16.0).max(80.0),
@@ -928,7 +957,11 @@ fn context_actions(
           horizontal=8.0,
           vertical=0.0,
         ),
-        background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
+        background=if selected {
+          @chrome.ide_selection()
+        } else {
+          @chrome.ide_panel()
+        },
         height=@chrome.TREE_ROW_HEIGHT,
         width~,
         padding=0.0,
@@ -957,7 +990,8 @@ fn context_deps(
     None =>
       match current_handler(model) {
         Some(handler) => handler.control_name
-        None => return @chrome.empty_hint(text(t, "app.ctx.deps.none"), width, 120.0)
+        None =>
+          return @chrome.empty_hint(text(t, "app.ctx.deps.none"), width, 120.0)
       }
   }
   let rows : Array[@moui.View[Msg]] = []
@@ -1171,8 +1205,12 @@ fn watch_pane(
     for row in rows {
       // 名称/类型按内容算宽（变量允许中文语义命名，写死 72 会截断），
       // 值列拿剩余；类型标签用 TextEnd 贴齐。
-      let name_w = (@chrome.text_estimate_width(row.name) * 1.02 + 8.0).max(48.0)
-      let type_w = (@chrome.text_estimate_width(row.type_label) * 1.02 + 8.0).max(36.0)
+      let name_w = (@chrome.text_estimate_width(row.name) * 1.02 + 8.0).max(
+        48.0,
+      )
+      let type_w = (@chrome.text_estimate_width(row.type_label) * 1.02 + 8.0).max(
+        36.0,
+      )
       body.push(
         @views.container(
           @views.padding_xy(
@@ -1351,7 +1389,13 @@ fn window_event_rows(
                 width=(width - action_w - 40.0).max(60.0),
                 height=18.0,
                 align=TextStart,
-              ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
+              ).foreground(
+                if selected {
+                  @chrome.ide_text()
+                } else {
+                  @chrome.ide_text_muted()
+                },
+              ),
               foot_chip_like(
                 text(
                   t,
@@ -1372,7 +1416,11 @@ fn window_event_rows(
           horizontal=8.0,
           vertical=2.0,
         ),
-        background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
+        background=if selected {
+          @chrome.ide_selection()
+        } else {
+          @chrome.ide_panel()
+        },
         width~,
         height=26.0,
         padding=0.0,
@@ -1392,7 +1440,8 @@ fn variable_props(
 ) -> @moui.View[Msg] {
   let variable = match selected_variable(model) {
     Some(variable) => variable
-    None => return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
+    None =>
+      return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
   }
   let field_width = (width - 90.0).max(80.0)
   @views.column(
@@ -1450,7 +1499,8 @@ fn function_props(
 ) -> @moui.View[Msg] {
   let func = match selected_function(model) {
     Some(func) => func
-    None => return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
+    None =>
+      return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
   }
   let field_width = (width - 90.0).max(80.0)
   let rows : Array[@moui.View[Msg]] = [
@@ -1493,13 +1543,19 @@ fn data_props(
 ) -> @moui.View[Msg] {
   let entry = match selected_data_file(model) {
     Some(entry) => entry
-    None => return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
+    None =>
+      return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
   }
   @views.column(
     [
       field_label(t, "app.inspector.data_source", width),
       @chrome.kv_row(text(t, "app.inspector.name"), entry.name, width, false),
-      @chrome.kv_row(text(t, "app.inspector.data_meta"), entry.meta, width, true),
+      @chrome.kv_row(
+        text(t, "app.inspector.data_meta"),
+        entry.meta,
+        width,
+        true,
+      ),
       @chrome.kv_row(
         text(t, "app.inspector.data_access"),
         if entry.locked {
@@ -1555,7 +1611,8 @@ fn context_runtime(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let refresh_w = @chrome.text_estimate_width(text(t, "app.runtime.refresh")) + 34.0
+  let refresh_w = @chrome.text_estimate_width(text(t, "app.runtime.refresh")) +
+    34.0
   let head = @chrome.fill_row(
     [
       @views.text(

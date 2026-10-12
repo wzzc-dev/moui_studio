@@ -502,7 +502,13 @@ fn category_rail_row(
         width=(CATEGORY_RAIL_WIDTH - 20.0 - 12.0).max(20.0),
         height=16.0,
         align=TextStart,
-      ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
+      ).foreground(
+        if selected {
+          @chrome.ide_text()
+        } else {
+          @chrome.ide_text_muted()
+        },
+      ),
     ],
     (CATEGORY_RAIL_WIDTH - 14.0).max(40.0),
     7.0,
@@ -518,7 +524,11 @@ fn category_rail_row(
       [
         @views.container(
           @views.text("", width=1.0, height=1.0),
-          background=if selected { @chrome.ide_accent() } else { @chrome.ide_panel() },
+          background=if selected {
+            @chrome.ide_accent()
+          } else {
+            @chrome.ide_panel()
+          },
           width=2.0,
           height=24.0,
           padding=0.0,
@@ -528,7 +538,11 @@ fn category_rail_row(
       spacing=0.0,
       align=Center,
     ),
-    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
+    background=if selected {
+      @chrome.ide_selection()
+    } else {
+      @chrome.ide_panel()
+    },
     height=24.0,
     width=CATEGORY_RAIL_WIDTH,
     padding=0.0,
@@ -721,7 +735,11 @@ fn onstart_hat_row(
             spacing=4.0,
             align=Center,
           ),
-          background=if is_active { @chrome.ide_selection() } else { @chrome.ide_panel() },
+          background=if is_active {
+            @chrome.ide_selection()
+          } else {
+            @chrome.ide_panel()
+          },
           width=chip_width,
           height=24.0,
           padding=0.0,

@@ -1119,7 +1119,7 @@ test "explorer 嵌套成员:中间目录可折叠" {
   // ② 折叠 examples → 该成员所有行消失
   let collapsed = explorer_updates(
     imported,
-    ToggleProjectDirAt(WORKSPACE_ROOT_INDEX, "examples"),
+    ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, "examples"),
   )
   let after = explorer_rows_for_test(collapsed)
   let mut nested_rows_after = 0

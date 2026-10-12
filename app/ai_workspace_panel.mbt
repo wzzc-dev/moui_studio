@@ -81,11 +81,11 @@ fn ai_ws_tab_header(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let changes_w = (@chrome.text_estimate_width(text(t, "app.ai.ws.changes")) * 1.05 +
+  let changes_w = (@chrome.text_estimate_width(text(t, "app.ai.ws.changes")) *
+  1.05 +
   30.0).max(56.0)
-  let files_w = (@chrome.text_estimate_width(text(t, "app.ai.ws.files")) * 1.05 + 16.0).max(
-    48.0,
-  )
+  let files_w = (@chrome.text_estimate_width(text(t, "app.ai.ws.files")) * 1.05 +
+  16.0).max(48.0)
   let changes_active = model.right_panel_tab is RpChanges
   let files_active = model.right_panel_tab is RpFiles
   let count = model.ai_sessions.current().proposal_history.length()
@@ -109,7 +109,14 @@ fn ai_ws_tab_header(
                       @chrome.ide_text_muted()
                     },
                   ),
-                  @chrome.count_badge(count.to_string(), if count > 0 { 1 } else { 0 }),
+                  @chrome.count_badge(
+                    count.to_string(),
+                    if count > 0 {
+                      1
+                    } else {
+                      0
+                    },
+                  ),
                 ],
                 spacing=4.0,
                 align=Center,
@@ -144,7 +151,11 @@ fn ai_ws_tab_header(
               width=files_w,
               height=22.0,
             ),
-            background=if files_active { @chrome.ide_selection() } else { @chrome.ide_panel() },
+            background=if files_active {
+              @chrome.ide_selection()
+            } else {
+              @chrome.ide_panel()
+            },
             corner_radius=4.0,
             width=files_w,
             height=22.0,
@@ -230,7 +241,11 @@ fn ai_ws_changes_tab(
           ],
           spacing=3.0,
         ),
-        background=if index % 2 == 1 { @chrome.ide_panel() } else { @chrome.ide_panel_alt() },
+        background=if index % 2 == 1 {
+          @chrome.ide_panel()
+        } else {
+          @chrome.ide_panel_alt()
+        },
         width~,
         height=AI_WS_ENTRY_HEIGHT,
         padding=0.0,
@@ -285,8 +300,18 @@ fn ai_ws_pending_card(
     file_chips_row(files, width),
     @views.row(
       [
-        @chrome.action_chip(text(t, "app.ai.accept"), AcceptProposal, @chrome.Primary, 22.0),
-        @chrome.action_chip(text(t, "app.ai.reject"), RejectProposal, @chrome.Quiet, 22.0),
+        @chrome.action_chip(
+          text(t, "app.ai.accept"),
+          AcceptProposal,
+          @chrome.Primary,
+          22.0,
+        ),
+        @chrome.action_chip(
+          text(t, "app.ai.reject"),
+          RejectProposal,
+          @chrome.Quiet,
+          22.0,
+        ),
       ],
       spacing=6.0,
       align=Center,
