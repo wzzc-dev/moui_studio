@@ -37,3 +37,19 @@ pub fn context_chips_height(width : Double) -> Double {
 pub fn composer_block_height(width : Double) -> Double {
   composer_height(width) + context_chips_height(width)
 }
+
+///|
+/// 线程区高度(卡片数驱动,280 上限;折叠 = 0)。S4② 出壳。
+
+///|
+/// 线程区高度：`ai_card_body` 的 scroll_view 用它，`ai_card_height` 也用它。
+/// **只能有一处算**——视图层和高度预算各算一份，卡片就会裁掉自己的内容
+/// （或反过来留一块空白）。
+pub fn thread_area_height(sessions : AiSessions, cards_folded : Bool) -> Double {
+  if sessions.current().cards.length() == 0 || cards_folded {
+    0.0
+  } else {
+    // 线程区有 280 的上限（见 ai_card_body 的 scroll_view）
+    (6.0 * sessions.current().cards.length().to_double() + 40.0).min(280.0)
+  }
+}

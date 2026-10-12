@@ -27,6 +27,8 @@ pub fn decode_ai_sessions(String) -> Result[AiSessions, AiStoreError]
 
 pub fn encode_ai_sessions(AiSessions) -> String
 
+pub fn thread_area_height(AiSessions, Bool) -> Double
+
 // Errors
 
 // Types and methods

@@ -684,18 +684,8 @@ pub fn ai_card_height(model : Model, card_width : Double) -> Double {
 }
 
 ///|
-/// 线程区高度：`ai_card_body` 的 scroll_view 用它，`ai_card_height` 也用它。
-/// **只能有一处算**——视图层和高度预算各算一份，卡片就会裁掉自己的内容
-/// （或反过来留一块空白）。
 fn thread_area_height(model : Model) -> Double {
-  if model.ai_sessions.current().cards.length() == 0 || model.ai_cards_folded {
-    0.0
-  } else {
-    // 线程区有 280 的上限（见 ai_card_body 的 scroll_view）
-    (6.0 * model.ai_sessions.current().cards.length().to_double() + 40.0).min(
-      280.0,
-    )
-  }
+  @ai.thread_area_height(model.ai_sessions, model.ai_cards_folded)
 }
 
 ///|
