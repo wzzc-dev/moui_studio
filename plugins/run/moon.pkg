@@ -4,4 +4,6 @@ import {
   "wzzc-dev/moui/services",
   "moonbitlang/core/json",
   "wzzc-dev/moui_studio/services/project",
+  "wzzc-dev/moui_studio/domain/studio_lang",
+  "wzzc-dev/moui_studio/services/compiled_runtime",
 }

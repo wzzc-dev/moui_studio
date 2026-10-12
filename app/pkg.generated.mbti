@@ -818,12 +818,6 @@ pub(all) enum CodeTokenKind {
   TokPlain
 }
 
-pub(all) struct CompiledRun {
-  handler_label : String
-  runtime : @compiled_runtime.Runtime
-  checks : Map[String, Bool]
-}
-
 pub(all) enum ComposerMode {
   ComposeEdit
   ComposeGenerate
@@ -987,8 +981,8 @@ pub(all) struct Model {
   runtime_history : Array[String]
   run_track : RunTrack
   compile_track_available : Bool
-  run : RunModel?
-  compiled_run : CompiledRun?
+  run : @run.RunModel?
+  compiled_run : @run.CompiledRun?
   compile_report : @export.CompileReport?
   compile_busy : Bool
   compile_progress : Array[@export.CompileProgress]
@@ -1466,13 +1460,6 @@ pub(all) enum RightView {
 pub fn RightView::equal(Self, Self) -> Bool
 pub fn RightView::not_equal(Self, Self) -> Bool
 
-pub(all) struct RunModel {
-  handler_label : String
-  state : @studio_lang.RunState
-  checks : Map[String, Bool]
-  single_step : Bool
-}
-
 pub(all) enum RunTrack {
   Interpret
   Compile
@@ -1626,6 +1613,8 @@ pub type BuildSubmit = (@build.BuildKind, String, String, (Result[@build.BuildRe
 
 pub type CompileSubmit = (String, String, (@export.CompileProgress) -> Unit, (Result[@export.CompileReport, String]) -> Unit) -> Unit
 
+pub using @run {type CompiledRun}
+
 pub type LaunchSubmit = (String, (Result[Unit, String]) -> Unit) -> Unit
 
 pub using @wzzc-dev/moui_studio/plugins/project {type OpenProjectFile}
@@ -1645,6 +1634,8 @@ pub using @kernel {type ProviderRequestSpec}
 pub type ProviderSubmit = (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit
 
 pub using @wzzc-dev/moui_studio/plugins/project {type RecentChange}
+
+pub using @run {type RunModel}
 
 pub type RuntimeSnapshotFn = () -> RuntimeInspectSample?
 

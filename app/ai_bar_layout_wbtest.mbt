@@ -284,7 +284,7 @@ test "the ask gate renders an answer input but submit does not" {
   let gated = {
     ..base,
     mode: ModeRun,
-    run: Some(RunModel::{
+    run: Some(@run.RunModel::{
       handler_label: "test@on_click",
       state: gate_state,
       checks: Map([], capacity=2),
@@ -321,7 +321,7 @@ test "the ask gate renders an answer input but submit does not" {
   let submit_model = {
     ..base,
     mode: ModeRun,
-    run: Some(RunModel::{
+    run: Some(@run.RunModel::{
       handler_label: "test@on_click",
       state: submit_state,
       checks: Map([], capacity=2),

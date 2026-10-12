@@ -4,6 +4,8 @@ package "wzzc-dev/moui_studio/plugins/run"
 import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/services",
+  "wzzc-dev/moui_studio/domain/studio_lang",
+  "wzzc-dev/moui_studio/services/compiled_runtime",
 }
 
 // Values
@@ -22,6 +24,12 @@ pub fn semantic_label_patch_task(@services.FileServices, SemanticPatchRequest) -
 // Errors
 
 // Types and methods
+pub(all) struct CompiledRun {
+  handler_label : String
+  runtime : @compiled_runtime.Runtime
+  checks : Map[String, Bool]
+}
+
 pub(all) struct PreviewFrame {
   version : Int
   width : Double
@@ -29,6 +37,13 @@ pub(all) struct PreviewFrame {
   commands : Array[@core.DrawCommand]
   semantics : Array[Json]
   unknown_ops : Array[String]
+}
+
+pub(all) struct RunModel {
+  handler_label : String
+  state : @studio_lang.RunState
+  checks : Map[String, Bool]
+  single_step : Bool
 }
 
 pub(all) struct SemanticHitNode {

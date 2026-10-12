@@ -65,7 +65,7 @@ fn run_single_block(model : Model) -> Model {
     functions=committed.program.functions,
   )
   @studio_lang.run_to_end(state)
-  let run = RunModel::{
+  let run = @run.RunModel::{
     handler_label: "\{handler.control_name}@\{handler.event.tag()} · 单块",
     state,
     checks: Map([], capacity=8),
@@ -121,7 +121,7 @@ fn start_run(model : Model) -> Model {
   // 启动事件（G7.1）：装填后立即执行 OnStart 子程序——「程序开机」语义
   fire_onstart_interp(committed.program, state)
   let t = translator(committed)
-  let run = RunModel::{
+  let run = @run.RunModel::{
     handler_label: text(t, "app.run.armed"),
     state,
     checks: Map([], capacity=8),
@@ -191,7 +191,7 @@ fn start_compiled_run(model : Model) -> Model {
   }
   {
     ..committed,
-    compiled_run: Some(CompiledRun::{
+    compiled_run: Some(@run.CompiledRun::{
       handler_label: text(translator(committed), "app.run.armed"),
       runtime,
       checks,
@@ -556,7 +556,7 @@ fn run_handler(
           (
             {
               ..model,
-              run: Some(RunModel::{
+              run: Some(@run.RunModel::{
                 handler_label: handler_key(control, event_tag),
                 state,
                 checks,
@@ -1165,7 +1165,7 @@ fn dispatch_compiled_event(
           ignore(@compiled_runtime.run_handler(runtime, handler))
           {
             ..model,
-            compiled_run: Some(CompiledRun::{
+            compiled_run: Some(@run.CompiledRun::{
               handler_label: handler_key(control, event_tag),
               runtime,
               checks,
