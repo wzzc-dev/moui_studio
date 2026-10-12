@@ -1,4 +1,3 @@
-///|
 /// 积木画布：语句链的 Scratch 式投影——拼图块外形（榫头/卯口）+ 分类配色 +
 /// 同层拖拽重排。绘制计划是纯数据（可快照测试）；命中/落槽/拖拽在
 /// update 里转 typed Msg。与设计画布同契约：paint 命令是窗口全局坐标、
@@ -59,46 +58,6 @@ pub const BLOCKS_NOTE_HEIGHT : Double = 22.0
 ///|
 /// 拖拽时触发自动滚动的边缘带高度：指针进入画布上/下 24pt 内即开始滚动。
 pub const BLOCKS_EDGE_ZONE : Double = 24.0
-
-///|
-/// 按可用宽度把标签截成「…」结尾（设计稿 `.blk` 的 `text-overflow: ellipsis`）。
-///
-/// 逐字符累加而不是按平均字宽估算：块标签是中英混排
-/// （`命令 set_text(显示, "你好，MoUI Studio！")`），中英字宽差近一倍，
-/// 用平均值会算出「刚好放下」然后仍然溢出几个字符。
-/// 口径与 `text_estimate_width` 一致（ASCII 7.9 / 全角 13.0），并留
-/// `WIDTH_SAFETY` 的余量：实测估算比实渲**偏窄约 2%**（「…悬停积木…」
-/// 估算 294.4、实渲 300.8）。曾按 98% 截断——2% 余量被估算误差吃穿后
-/// 仍会越界（1100 宽窗格实测超出裁剪区 5px），收紧到 95%：宁可早切
-/// 一到两个字，也不要越界半个字。
-///
-/// 两个已踩过的坑：
-/// ① 曾按 `12/13` 折算字号（以为文字按 12pt 渲染）——实际主题正文是
-///    16pt，凭空折算让预算**虚高 8%**，截断了却仍然溢出；
-/// ② 只截断不预留余量，2% 的估算误差在长句上就是 5-6pt 的越界。
-pub const LABEL_WIDTH_SAFETY : Double = 0.95
-
-///|
-pub fn fit_label(label : String, max_width : Double) -> String {
-  let budget = max_width * LABEL_WIDTH_SAFETY
-  let full = text_estimate_width(label)
-  if full <= budget {
-    return label
-  }
-  // 省略号本身也要占位（全角，13.0 @13pt）
-  let ellipsis_cost = text_estimate_width("…")
-  let mut used = 0.0
-  let mut kept = ""
-  for c in label {
-    let cost = if c.to_int() < 0x80 { 7.9 } else { 13.0 }
-    if used + cost + ellipsis_cost > budget {
-      break
-    }
-    used = used + cost
-    kept = kept + c.to_string()
-  }
-  kept + "…"
-}
 
 ///|
 /// C 形块（控制流「包裹」形态）的几何：哪一行是 C 的**顶**，它的弧要拉多高。
@@ -261,9 +220,9 @@ pub fn blocks_in_c_body(blocks : Array[@blocks.BlockItem], index : Int) -> Bool 
 /// 只在没有视口信息的纯逻辑测试里用）。
 ///
 /// **块宽随内容**（Scratch 口径）：每行的宽度由展示文本估宽决定，不再
-/// 撑满画布（用户报的「积木左右撑满了」）。估宽与 `fit_label` 同一把尺
-/// （`text_estimate_width`），除以 `LABEL_WIDTH_SAFETY` 抵消 fit_label 的
-/// 安全系数——否则「按估宽定的块」会被 fit_label 再截一次（估宽刚好等于
+/// 撑满画布（用户报的「积木左右撑满了」）。估宽与 `@chrome.fit_label` 同一把尺
+/// （`@chrome.text_estimate_width`），除以 `@chrome.LABEL_WIDTH_SAFETY` 抵消 @chrome.fit_label 的
+/// 安全系数——否则「按估宽定的块」会被 @chrome.fit_label 再截一次（估宽刚好等于
 /// 预算时省略号照样出现）。上限仍是画布预算：超长语句照旧截成省略号，
 /// 下限 64 保证小积木（如「结束」帽）仍有可点的命中区。
 ///
@@ -296,10 +255,10 @@ pub fn blocks_item_rects(
       _ => 10.0
     }
     // 内容宽 = 内边距 + 展示文本估宽（含返回箭头前缀）÷安全系数 + 右缘余量。
-    // 估宽偏窄 ~2%（见 `fit_label` 的注释），除以安全系数后实渲必然放得下。
+    // 估宽偏窄 ~2%（见 `@chrome.fit_label` 的注释），除以安全系数后实渲必然放得下。
     let prefix = if item.kind is @blocks.BkReturn { "↩ " } else { "" }
     let content = lead_pad +
-      text_estimate_width("\{prefix}\{display}") / LABEL_WIDTH_SAFETY +
+      @chrome.text_estimate_width("\{prefix}\{display}") / @chrome.LABEL_WIDTH_SAFETY +
       12.0
     let max_width = (budget - item.depth.to_double() * block_indent).max(64.0)
     let width = content.min(max_width).max(64.0)
@@ -671,7 +630,7 @@ pub fn blocks_draw_plan(
     // 反过来洞会把字形盖掉（「洞里有字」读成「字被黑洞吃了」）。
     let measured_label = measure(label_text)
     let not_truncated = measured_label <= 0.0 ||
-      measured_label <= label_max * LABEL_WIDTH_SAFETY
+      measured_label <= label_max * @chrome.LABEL_WIDTH_SAFETY
     if not_truncated {
       push_slot_holes(
         ops,
@@ -697,7 +656,7 @@ pub fn blocks_draw_plan(
         label_x,
         y + 8.0,
         label_max,
-        fit_label(label_text, label_max),
+        @chrome.fit_label(label_text, label_max),
       ),
     )
     if is_selected || is_spotlight {
@@ -898,7 +857,7 @@ pub fn blocks_canvas(
         if script_note != "" {
           ops.push(
             ScriptNote(
-              fit_label(script_note, (width - 24.0).max(60.0)),
+              @chrome.fit_label(script_note, (width - 24.0).max(60.0)),
               dx + 10.0,
               dy + 2.0,
               (width - 24.0).max(60.0),
@@ -917,7 +876,7 @@ pub fn blocks_canvas(
                   rect=@geometry.Rect::new(x~, y~, width=w, height=h),
                   radius=2.0,
                 ),
-                @graphics.Brush::solid(block_fill(kind)),
+                @graphics.Brush::solid(@chrome.block_fill(kind)),
               )
             BlockBadge(x, y, kind) =>
               fill_rounded_rect(
@@ -926,7 +885,7 @@ pub fn blocks_canvas(
                   rect=@geometry.Rect::new(x~, y~, width=14.0, height=14.0),
                   radius=4.0,
                 ),
-                @graphics.Brush::solid(block_badge_color(kind)),
+                @graphics.Brush::solid(@chrome.block_badge_color(kind)),
               )
             BlockLabel(_text, x, y, maxw, fitted) =>
               // **左对齐**：插槽洞的游标从 frame.x 起按段宽累加，文字居中
@@ -938,7 +897,7 @@ pub fn blocks_canvas(
                   text=fitted,
                   frame=@geometry.Rect::new(x~, y~, width=maxw, height=20.0),
                   font=@text.FontSpec::new(size=12.0),
-                  color=block_text_color(),
+                  color=@chrome.block_text_color(),
                   align=TextStart,
                 ),
               )
@@ -954,7 +913,7 @@ pub fn blocks_canvas(
                   ),
                   radius=8.0,
                 ),
-                @graphics.Brush::solid(ide_accent()),
+                @graphics.Brush::solid(@chrome.ide_accent()),
                 2.0,
               )
             InsertMark(x, y, w, valid) =>
@@ -971,9 +930,9 @@ pub fn blocks_canvas(
                 ),
                 @graphics.Brush::solid(
                   if valid {
-                    ide_accent()
+                    @chrome.ide_accent()
                   } else {
-                    ide_danger()
+                    @chrome.ide_danger()
                   },
                 ),
               )
@@ -986,7 +945,7 @@ pub fn blocks_canvas(
                   rect=@geometry.Rect::new(x~, y~, width=w, height=16.0),
                   radius=3.0,
                 ),
-                @graphics.Brush::solid(blocks_note_background()),
+                @graphics.Brush::solid(@chrome.blocks_note_background()),
               )
               draw_text(
                 ctx,
@@ -994,7 +953,7 @@ pub fn blocks_canvas(
                   text=text_value,
                   frame=@geometry.Rect::new(x~, y~, width=w, height=16.0),
                   font=@text.FontSpec::new(size=11.0),
-                  color=blocks_note_text(),
+                  color=@chrome.blocks_note_text(),
                 ),
               )
             }
@@ -1012,9 +971,9 @@ pub fn blocks_canvas(
                 ),
                 @graphics.Brush::solid(
                   if filled {
-                    blocks_slot_filled()
+                    @chrome.blocks_slot_filled()
                   } else {
-                    blocks_slot_empty()
+                    @chrome.blocks_slot_empty()
                   },
                 ),
               )
@@ -1171,10 +1130,10 @@ pub fn blocks_canvas(
     // 画布底板**显式钉住**：这个容器此前没有 background，回落到环境 Base →
     // `palette.surface`，于是画布底与相邻的 AI 保留带完全同色（实测同为
     // `#22262C`），两段之间的边界整个消失——同一条水平结构线，左半（窗格
-    // 脚注 → 带）看得见、右半（画布 → 带）看不见。`blocks_canvas_background`
+    // 脚注 → 带）看得见、右半（画布 → 带）看不见。`@chrome.blocks_canvas_background`
     // 因此曾经是一个零调用者的死函数，这里把它激活：积木画布与壳面板是两套
     // 配色纪律，画布底由积木域自己钉，不借邻居的回落色。
-    background=blocks_canvas_background(),
+    background=@chrome.blocks_canvas_background(),
     padding=0.0,
   )
 }
@@ -1259,8 +1218,8 @@ pub fn paint_block_outline(
   ctx.commands.push(
     @core.DrawPath(@core.PathSpec::{
       verbs: block_outline_path(x, y, w, h, tab, notch),
-      fill: Some(@graphics.Brush::solid(block_fill(kind))),
-      stroke: Some(@graphics.Brush::solid(block_outline_stroke())),
+      fill: Some(@graphics.Brush::solid(@chrome.block_fill(kind))),
+      stroke: Some(@graphics.Brush::solid(@chrome.block_outline_stroke())),
       stroke_width: 1.0,
     }),
   )

@@ -62,7 +62,7 @@ pub fn compile_report_card(
     None => @views.text("")
     Some(report) => {
       let badge = @views.badge(
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         if report.ok {
           text(t, "app.compile.ok")
         } else {
@@ -111,7 +111,7 @@ pub fn compile_report_card(
           [
             @views.text(text(t, "app.compile.artifacts"), role=Subtitle),
             @views.badge(
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               report.artifacts.length().to_string(),
               tone=if report.artifacts.length() > 0 {
                 @style.BadgeTone::Success
@@ -161,7 +161,7 @@ pub fn compile_report_card(
                 28.0,
                 22.0,
                 13.0,
-                ide_elevated(),
+                @chrome.ide_elevated(),
                 hovered=model.hover_hint,
               ),
               ghost_icon_button(
@@ -172,7 +172,7 @@ pub fn compile_report_card(
                 28.0,
                 22.0,
                 13.0,
-                ide_elevated(),
+                @chrome.ide_elevated(),
                 hovered=model.hover_hint,
               ),
             ],
@@ -202,7 +202,7 @@ pub fn compile_report_card(
               height=156.0,
               shows_indicator=true,
             ),
-            background=studio_console_background(),
+            background=@chrome.studio_console_background(),
             corner_radius=4.0,
             padding=8.0,
           ),
@@ -221,7 +221,7 @@ pub fn compile_report_card(
                   width=140.0,
                 ),
                 @views.badge(
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   report.output.split("\n").length().to_string(),
                   tone=@style.BadgeTone::Neutral,
                   width=48.0,
@@ -273,7 +273,7 @@ fn compile_progress_card(
         @views.row(
           [
             @views.badge(
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               text_with(t, "app.compile.step", [
                 ("done", done.to_string()),
                 ("total", total.to_string()),
@@ -306,9 +306,9 @@ fn compile_step_row(
 ) -> @moui.View[Msg] {
   let (dot_color, label_color, state_text) = match
     compile_step_state(progress, phase) {
-    Some(false) => (ide_success(), ide_text(), text(t, "app.compile.step_done"))
-    Some(true) => (ide_accent(), ide_text(), text(t, "app.compile.step_active"))
-    None => (ide_border(), ide_text_faint(), "")
+    Some(false) => (@chrome.ide_success(), @chrome.ide_text(), text(t, "app.compile.step_done"))
+    Some(true) => (@chrome.ide_accent(), @chrome.ide_text(), text(t, "app.compile.step_active"))
+    None => (@chrome.ide_border(), @chrome.ide_text_faint(), "")
   }
   @views.row(
     [
@@ -322,22 +322,22 @@ fn compile_step_row(
       ),
       @views.text(
         text(t, "app.compile.phase.\{phase.tag()}"),
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=380.0,
         height=18.0,
         align=TextStart,
       ).foreground(label_color),
       @views.text(
         state_text,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=80.0,
         height=18.0,
         align=TextEnd,
       ).foreground(
-        if dot_color == ide_success() {
-          ide_success()
+        if dot_color == @chrome.ide_success() {
+          @chrome.ide_success()
         } else {
-          ide_accent()
+          @chrome.ide_accent()
         },
       ),
     ],
@@ -412,7 +412,7 @@ fn artifact_row(
       28.0,
       22.0,
       13.0,
-      ide_elevated(),
+      @chrome.ide_elevated(),
       hovered=hover_hint,
     ),
   )
@@ -425,7 +425,7 @@ fn artifact_row(
       28.0,
       22.0,
       13.0,
-      ide_elevated(),
+      @chrome.ide_elevated(),
       hovered=hover_hint,
     ),
   )
@@ -434,7 +434,7 @@ fn artifact_row(
       @views.row(
         [
           @views.badge(
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             badge_label,
             tone=if is_gui {
               @style.BadgeTone::Success
@@ -468,7 +468,7 @@ fn artifact_row(
               width=72.0,
               height=18.0,
               align=TextStart,
-            ).foreground(ide_text_faint()),
+            ).foreground(@chrome.ide_text_faint()),
             @views.spacer(min_length=4.0, weight=1.0),
           ]
           for action in actions {
@@ -491,17 +491,17 @@ fn artifact_row(
 /// 文件）」，中段是 TMPDIR 那一长串随机目录名。尾部省略会把最关键的
 /// 文件名切掉，留下最没信息量的随机串——正好读反。
 ///
-/// 宽度口径走 `text_estimate_width`（ASCII 7.9 / 全角 13.0），与壳里
+/// 宽度口径走 `@chrome.text_estimate_width`（ASCII 7.9 / 全角 13.0），与壳里
 /// 其他「按文字实测算宽」的地方同一把尺子。
 pub fn middle_ellipsis(label : String, max_width : Double) -> String {
-  if text_estimate_width(label) <= max_width {
+  if @chrome.text_estimate_width(label) <= max_width {
     return label
   }
   let chars : Array[Char] = []
   for c in label {
     chars.push(c)
   }
-  let ellipsis_cost = text_estimate_width("…")
+  let ellipsis_cost = @chrome.text_estimate_width("…")
   // 预算连省略号都放不下时输出空串：这是唯一不撒谎的读数（「这里什么都
   // 显示不了」比硬塞一个必然被裁的串诚实）。
   if max_width < ellipsis_cost {
@@ -574,7 +574,7 @@ fn diagnostic_row(
   let row = @views.row(
     [
       @views.badge(
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         diagnostic.severity,
         tone=if diagnostic.severity == "error" {
           @style.BadgeTone::Danger

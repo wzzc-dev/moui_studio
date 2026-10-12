@@ -18,27 +18,27 @@
 /// 本该是「留白」的一圈被刷成一块异色。
 ///
 /// 判据：底栏带内不得出现 `palette.surface`（回落色）——底栏的合法底色
-/// 只有 `ide_panel()` / `ide_panel_alt()`（页签头）与 AI 卡片的
-/// `ide_elevated()`，不含回落色。
+/// 只有 `@chrome.ide_panel()` / `@chrome.ide_panel_alt()`（页签头）与 AI 卡片的
+/// `@chrome.ide_elevated()`，不含回落色。
 test "the AI bottom bar shows no ambient-fallback surface" {
   let model = initial_model()
   let commands = shell_draw(model, 1280.0, 800.0)
   // 底栏纵向范围：状态栏之上、工作区段之下
-  let bottom_bar_top = TOPBAR_HEIGHT +
+  let bottom_bar_top = @chrome.TOPBAR_HEIGHT +
     1.0 +
     (
       800.0 -
-      TOPBAR_HEIGHT -
-      STATUSBAR_HEIGHT -
-      PANEL_HEAD_HEIGHT -
+      @chrome.TOPBAR_HEIGHT -
+      @chrome.STATUSBAR_HEIGHT -
+      @chrome.PANEL_HEAD_HEIGHT -
       2.0 -
       ai_bar_height(model, center_width_of(model, 1280.0), 800.0)
     )
-  let bottom_bar_bottom = 800.0 - STATUSBAR_HEIGHT
-  let center_left = ICONBAR_WIDTH + 2.0 + LEFTBAR_WIDTH + 1.0
+  let bottom_bar_bottom = 800.0 - @chrome.STATUSBAR_HEIGHT
+  let center_left = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0
   let center_width = center_width_of(model, 1280.0)
-  // 回落色 = studio_theme 的 palette.surface
-  let fallback = studio_theme().palette.surface
+  // 回落色 = @chrome.studio_theme 的 palette.surface
+  let fallback = @chrome.studio_theme().palette.surface
   for command in commands {
     let (rect, color) = match command {
       @core.FillRect(r, c) => (r, c)
@@ -88,9 +88,9 @@ test "the AI bottom bar shows no ambient-fallback surface" {
 test "the AI input bar never overflows the centre column" {
   let model = initial_model()
   let commands = shell_draw(model, 1280.0, 800.0)
-  let center_left = ICONBAR_WIDTH + 2.0 + LEFTBAR_WIDTH + 1.0
+  let center_left = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0
   let center_right = center_left +
-    center_width_of(model, 1280.0 - ICONBAR_WIDTH)
+    center_width_of(model, 1280.0 - @chrome.ICONBAR_WIDTH)
   guard shell_find_send_button(commands) is Some(send) else {
     fail("round send button missing")
   }
@@ -113,7 +113,7 @@ test "the AI input bar never overflows the centre column" {
   // 只按 y >= 610 会把右栏（同一水平带但在列右）与状态栏（y=780）都算进来
   // ——它们本来就该在列外，误报三次都是这个原因。
   let bar_top = 610.0
-  let bar_bottom = 800.0 - STATUSBAR_HEIGHT
+  let bar_bottom = 800.0 - @chrome.STATUSBAR_HEIGHT
   for run in shell_texts(commands) {
     let in_bar_y = run.frame.origin.y >= bar_top &&
       run.frame.origin.y + run.frame.size.height <= bar_bottom + 0.5
@@ -224,7 +224,7 @@ test "reporter slots reach the real draw pipeline" {
       @core.DrawCommand::FillRoundedRectBrush(_, brush) =>
         match brush {
           @core.Brush::Solid(color) =>
-            if color == blocks_slot_filled() || color == blocks_slot_empty() {
+            if color == @chrome.blocks_slot_filled() || color == @chrome.blocks_slot_empty() {
               slot_fills = slot_fills + 1
             }
           _ => ()

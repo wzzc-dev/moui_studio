@@ -167,25 +167,25 @@ fn confirm_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
     Some(kind) => confirm_copy(kind, t)
     None => ""
   }
-  let ok_w = text_estimate_width(text(t, "app.confirm.ok")) + 34.0
-  let cancel_w = text_estimate_width(text(t, "app.confirm.cancel")) + 34.0
+  let ok_w = @chrome.text_estimate_width(text(t, "app.confirm.ok")) + 34.0
+  let cancel_w = @chrome.text_estimate_width(text(t, "app.confirm.cancel")) + 34.0
   @views.container(
     @views.column(
       [
         @views.text(
           text(t, "app.confirm.title"),
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=320.0,
           height=22.0,
           align=TextStart,
-        ).foreground(ide_text()),
+        ).foreground(@chrome.ide_text()),
         @views.text(
           message,
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=320.0,
           height=36.0,
           align=TextStart,
-        ).foreground(ide_text_muted()),
+        ).foreground(@chrome.ide_text_muted()),
         @views.row(
           [
             @views.spacer(min_length=0.0, weight=1.0),
@@ -210,7 +210,7 @@ fn confirm_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
       ],
       spacing=10.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     corner_radius=6.0,
     width=352.0,
     padding=16.0,

@@ -528,8 +528,8 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           {
             ..model,
             left_width: width.clamp(
-              min=LEFTBAR_MIN_WIDTH,
-              max=LEFTBAR_MAX_WIDTH,
+              min=@chrome.LEFTBAR_MIN_WIDTH,
+              max=@chrome.LEFTBAR_MAX_WIDTH,
             ),
           },
           @moui.Effect::none(),
@@ -541,8 +541,8 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           {
             ..model,
             right_width: width.clamp(
-              min=RIGHTBAR_MIN_WIDTH,
-              max=RIGHTBAR_MAX_WIDTH,
+              min=@chrome.RIGHTBAR_MIN_WIDTH,
+              max=@chrome.RIGHTBAR_MAX_WIDTH,
             ),
           },
           @moui.Effect::none(),
@@ -1271,7 +1271,7 @@ pub fn with_notice(model : Model, notice : String, warning : Bool) -> Model {
   if notice == "" {
     return { ..model, notice: "", }
   }
-  push_toast({ ..model, notice, }, fit_label(notice, 280.0), warning)
+  push_toast({ ..model, notice, }, @chrome.fit_label(notice, 280.0), warning)
 }
 
 ///|

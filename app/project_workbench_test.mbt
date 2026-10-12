@@ -1376,15 +1376,15 @@ test "插件管理:禁用终端归一页签并持久化" {
 /// 文件类型色系与图标形状**同源**:两处各写一遍后缀列表迟早会出现
 /// 「形状是 JSON、颜色是文档」这种自相矛盾的行。这条锁定两者一一对应。
 test "explorer 文件类型:图标与颜色同源" {
-  let pairs : Array[(String, @style.IconName, @app.IconTint)] = [
-    ("main.mbt", @style.FileCode, @app.TintCode),
-    ("pkg.generated.mbti", @style.FileCode, @app.TintCode),
-    ("README.md", @style.FileMarkdown, @app.TintDoc),
-    ("docs-catalog.json", @style.FileJson, @app.TintConfig),
-    ("moon.mod", @style.FileJson, @app.TintConfig),
-    ("moon.work", @style.FileJson, @app.TintConfig),
-    ("logo.png", @style.FileImage, @app.TintAsset),
-    ("LICENSE", @style.File, @app.TintPlain),
+  let pairs : Array[(String, @style.IconName, @chrome.IconTint)] = [
+    ("main.mbt", @style.FileCode, @chrome.TintCode),
+    ("pkg.generated.mbti", @style.FileCode, @chrome.TintCode),
+    ("README.md", @style.FileMarkdown, @chrome.TintDoc),
+    ("docs-catalog.json", @style.FileJson, @chrome.TintConfig),
+    ("moon.mod", @style.FileJson, @chrome.TintConfig),
+    ("moon.work", @style.FileJson, @chrome.TintConfig),
+    ("logo.png", @style.FileImage, @chrome.TintAsset),
+    ("LICENSE", @style.File, @chrome.TintPlain),
   ]
   for pair in pairs {
     let (name, icon, tint) = pair

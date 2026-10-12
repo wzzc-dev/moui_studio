@@ -67,17 +67,17 @@ fn dropdown_chip(
   label : String,
   on_click : Msg,
 ) -> @moui.View[Msg] {
-  let label_w = (text_estimate_width(label) * 1.05 + 8.0).max(24.0)
+  let label_w = (@chrome.text_estimate_width(label) * 1.05 + 8.0).max(24.0)
   let chip_w = label_w + 44.0
   @views.container(
     @views.center(
       @views.row(
         [
-          @views.icon(icon, size=11.0, color=ide_text_muted()),
-          @views.text(label, theme=studio_theme(), width=label_w, height=16.0).foreground(
-            ide_text_muted(),
+          @views.icon(icon, size=11.0, color=@chrome.ide_text_muted()),
+          @views.text(label, theme=@chrome.studio_theme(), width=label_w, height=16.0).foreground(
+            @chrome.ide_text_muted(),
           ),
-          @views.icon(ChevronDown, size=10.0, color=ide_text_faint()),
+          @views.icon(ChevronDown, size=10.0, color=@chrome.ide_text_faint()),
         ],
         spacing=4.0,
         align=Center,
@@ -85,7 +85,7 @@ fn dropdown_chip(
       width=chip_w,
       height=22.0,
     ),
-    background=ide_panel_alt(),
+    background=@chrome.ide_panel_alt(),
     corner_radius=11.0,
     width=chip_w,
     height=22.0,
@@ -102,7 +102,7 @@ fn context_chips_row(
 ) -> @moui.View[Msg] {
   let cells : Array[@moui.View[Msg]] = []
   let project_label = match active_project_of(model) {
-    Some(record) => fit_label(record.module_name, 160.0)
+    Some(record) => @chrome.fit_label(record.module_name, 160.0)
     None => text(t, "app.ai.group.default_project")
   }
   // 工程 → 打开资源管理器（切换工程上下文的既有通道）
@@ -112,7 +112,7 @@ fn context_chips_row(
   } else if model.provider_key == "" {
     text(t, "app.ai.disconnected")
   } else {
-    fit_label(model.provider_model, 160.0)
+    @chrome.fit_label(model.provider_model, 160.0)
   }
   cells.push(
     dropdown_chip(Gear, model_label, StudioCommandRun("studio.settings")),
@@ -120,8 +120,8 @@ fn context_chips_row(
   // 外层容器必须显式给底色：无背景 container 在 paint 期回落到环境
   // Base 刷子（实测抓到的 ambient 回落缺陷），与输入盒同色读作一块。
   @views.container(
-    fill_row(cells, width, 6.0, Start),
-    background=ide_panel(),
+    @chrome.fill_row(cells, width, 6.0, Start),
+    background=@chrome.ide_panel(),
     width~,
     height=CHIPS_HEIGHT,
     padding=0.0,
@@ -130,7 +130,7 @@ fn context_chips_row(
 
 ///|
 /// 提示头条：「提示: 」+ 着色关键词 + 其余；整行可点 = 打开提案历史
-/// （给着色词真实行为,不做死链接）。带 hairline 下边与输入区分隔。
+/// （给着色词真实行为,不做死链接）。带 @chrome.hairline 下边与输入区分隔。
 
 ///|
 /// 信息芯片：小圆角读数。`on_click` 为 None = 纯信息展示（不可点）。
@@ -140,12 +140,12 @@ fn info_chip(
   foreground : @core.Color,
   on_click : Msg?,
 ) -> @moui.View[Msg] {
-  let chip_w = (text_estimate_width(label) * 1.05 + 16.0).max(36.0)
+  let chip_w = (@chrome.text_estimate_width(label) * 1.05 + 16.0).max(36.0)
   let chip = @views.container(
     @views.center(
       @views.text(
         label,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(chip_w - 12.0).max(20.0),
         height=16.0,
       ).foreground(foreground),
@@ -217,7 +217,7 @@ pub fn ai_center(
         top=4.0,
         bottom=4.0,
       ),
-      background=ide_editor_background(),
+      background=@chrome.ide_editor_background(),
       width~,
       height~,
       padding=0.0,
@@ -239,7 +239,7 @@ pub fn ai_center(
         ],
         spacing=0.0,
       ).frame(height~),
-      background=ide_editor_background(),
+      background=@chrome.ide_editor_background(),
       width~,
       height~,
       padding=0.0,
@@ -266,7 +266,7 @@ pub fn ai_center(
         ],
         spacing=0.0,
       ),
-      background=ide_editor_background(),
+      background=@chrome.ide_editor_background(),
       width~,
       height~,
       padding=0.0,
@@ -283,8 +283,8 @@ fn ai_session_header(
 ) -> @moui.View[Msg] {
   let session = model.ai_sessions.current()
   let index = model.ai_sessions.active_index()
-  let title = fit_label(session.title, (width - 200.0).max(60.0))
-  let title_w = (text_estimate_width(title) * 1.02 + 8.0)
+  let title = @chrome.fit_label(session.title, (width - 200.0).max(60.0))
+  let title_w = (@chrome.text_estimate_width(title) * 1.02 + 8.0)
     .min(width - 200.0)
     .max(40.0)
   let pin_label = if session.pinned {
@@ -293,26 +293,26 @@ fn ai_session_header(
     text(t, "app.ai.pin")
   }
   @views.container(
-    fill_row(
+    @chrome.fill_row(
       [
         @views.text(
           title,
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=title_w,
           height=18.0,
           align=TextStart,
-        ).foreground(ide_text()),
+        ).foreground(@chrome.ide_text()),
         @views.spacer(min_length=6.0, weight=1.0),
-        action_chip(
+        @chrome.action_chip(
           pin_label,
           AiSessionOp(AiSessionPin(index, !session.pinned)),
-          Ghost,
+          @chrome.Ghost,
           22.0,
         ),
-        action_chip(
+        @chrome.action_chip(
           text(t, "app.ai.session.delete"),
           AiSessionOp(AiSessionRemove(index)),
-          Ghost,
+          @chrome.Ghost,
           22.0,
         ),
       ],
@@ -343,13 +343,13 @@ fn ai_scroll_to_bottom_row(
     )
   }
   @views.container(
-    fill_row(
+    @chrome.fill_row(
       [
         @views.spacer(min_length=0.0, weight=1.0),
-        action_chip(
+        @chrome.action_chip(
           text(t, "app.ai.scroll_bottom"),
           TranscriptScrollToBottom,
-          Quiet,
+          @chrome.Quiet,
           20.0,
         ),
       ],
@@ -506,19 +506,19 @@ fn work_group_bar(
               ChevronDown
             },
             size=12.0,
-            color=ide_text_muted(),
+            color=@chrome.ide_text_muted(),
           ),
           @views.text(
             label,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 60.0).max(60.0),
             height=16.0,
             align=TextStart,
           ).foreground(
             if has_pending {
-              ide_warning()
+              @chrome.ide_warning()
             } else {
-              ide_text_faint()
+              @chrome.ide_text_faint()
             },
           ),
         ],
@@ -544,8 +544,8 @@ fn user_bubble_row(
 ) -> @moui.View[Msg] {
   let inner = (width - 24.0).max(120.0)
   let max_w = (inner * 0.7).max(160.0)
-  let est = (text_estimate_width(card.body) + 20.0).min(max_w)
-  let lines = wrap_text_lines(card.body, est - 16.0)
+  let est = (@chrome.text_estimate_width(card.body) + 20.0).min(max_w)
+  let lines = @chrome.wrap_text_lines(card.body, est - 16.0)
   let line_h = 18.0
   let bubble_w = est
   let bubble_h = lines.length().to_double() * line_h + 16.0
@@ -554,16 +554,16 @@ fn user_bubble_row(
     lines_view.push(
       @views.text(
         line,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=bubble_w - 16.0,
         height=line_h,
         align=TextStart,
-      ).foreground(ide_text()),
+      ).foreground(@chrome.ide_text()),
     )
   }
   let bubble = @views.container(
     @views.column(lines_view, spacing=0.0).frame(width=bubble_w - 16.0),
-    background=ide_selection(),
+    background=@chrome.ide_selection(),
     corner_radius=10.0,
     width=bubble_w,
     height=bubble_h,
@@ -572,23 +572,23 @@ fn user_bubble_row(
   @views.container(
     @views.column(
       [
-        fill_row(
+        @chrome.fill_row(
           [@views.spacer(min_length=0.0, weight=1.0), bubble],
           inner,
           0.0,
           Center,
         ),
         message_actions_row(card, inner, [
-          action_chip(
+          @chrome.action_chip(
             text(t, "app.ai.action.copy"),
             CopyAiMessage(card.seq),
-            Ghost,
+            @chrome.Ghost,
             18.0,
           ),
-          action_chip(
+          @chrome.action_chip(
             text(t, "app.ai.action.edit"),
             EditUserPrompt(card.seq),
-            Ghost,
+            @chrome.Ghost,
             18.0,
           ),
         ]),
@@ -617,16 +617,16 @@ fn ai_message_row(
       [
         markdown_blocks_view(blocks, inner),
         message_actions_row(card, inner, [
-          action_chip(
+          @chrome.action_chip(
             text(t, "app.ai.action.copy"),
             CopyAiMessage(card.seq),
-            Ghost,
+            @chrome.Ghost,
             18.0,
           ),
-          action_chip(
+          @chrome.action_chip(
             text(t, "app.ai.action.retry"),
             RetryUserPrompt(card.seq),
-            Ghost,
+            @chrome.Ghost,
             18.0,
           ),
         ]),
@@ -652,14 +652,14 @@ fn message_actions_row(
   cells.push(
     @views.text(
       hhmm_of_stamp(card.at),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       role=Mono,
       width=44.0,
       height=14.0,
-    ).foreground(ide_text_faint()),
+    ).foreground(@chrome.ide_text_faint()),
   )
   @views.container(
-    fill_row(cells, width, 4.0, Start),
+    @chrome.fill_row(cells, width, 4.0, Start),
     width~,
     height=20.0,
     padding=0.0,
@@ -739,7 +739,7 @@ fn ai_docked(
   // 同 ai_floating：纯定位的外层用 center，避免无背景 container 回落到
   // 不透明面板刷子把右栏其余内容糊掉。
   @views.center(
-    ai_card_body(model, t, width, height - PANEL_HEAD_HEIGHT - 8.0),
+    ai_card_body(model, t, width, height - @chrome.PANEL_HEAD_HEIGHT - 8.0),
     width~,
     height~,
   )
@@ -831,8 +831,8 @@ fn ai_card_body(
   // 输入盒是卡内唯一的实体（线程区/决策行都在它之上/之下），所以
   // **它自己就是那道边界**：卡片只出填充，不再描边。
   //
-  // 此前卡与外盒各画一圈、两圈又同为 `#414449`（`ide_border` 与
-  // `ide_elevated` 在主题里一度是同一个 rgba），左右只隔 8pt、垂直相距 0，
+  // 此前卡与外盒各画一圈、两圈又同为 `#414449`（`@chrome.ide_border` 与
+  // `@chrome.ide_elevated` 在主题里一度是同一个 rgba），左右只隔 8pt、垂直相距 0，
   // 读起来像「画错的边框」而不是「抬起的卡片」。收敛成一道环之后，
   // 「这是输入区」由**填充 + 单环**表达，层级更少也更干净。
   //
@@ -852,7 +852,7 @@ fn ai_card_body(
       @views.column(body, spacing=0.0).frame(height=thread_height),
       AI_CARD_PAD,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     corner_radius=0.0,
     width~,
     padding=0.0,
@@ -864,24 +864,24 @@ fn ai_card_body(
 /// AI 历史对话框的出口（设计稿 `#seeAll`）。宽度按内容算（中英文案差近半）。
 fn see_all_row(t : @i18n.Translator, width : Double) -> @moui.View[Msg] {
   let label = text(t, "app.ai.see_all")
-  let label_width = (text_estimate_width(label) * 1.05 + 20.0).max(64.0)
+  let label_width = (@chrome.text_estimate_width(label) * 1.05 + 20.0).max(64.0)
   @views.container(
     @views.padding_xy(
-      fill_row(
+      @chrome.fill_row(
         [
           @views.spacer(min_length=0.0, weight=1.0),
           @views.container(
             @views.center(
               @views.text(
                 label,
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=(label_width - 20.0).max(40.0),
                 height=16.0,
-              ).foreground(ide_accent()),
+              ).foreground(@chrome.ide_accent()),
               width=label_width,
               height=18.0,
             ),
-            background=ide_panel_alt(),
+            background=@chrome.ide_panel_alt(),
             corner_radius=4.0,
             width=label_width,
             height=18.0,
@@ -925,7 +925,7 @@ fn fold_bar(
               ChevronDown
             },
             size=12.0,
-            color=ide_text_muted(),
+            color=@chrome.ide_text_muted(),
           ),
           @views.text(
             if pending > 0 {
@@ -935,15 +935,15 @@ fn fold_bar(
             } else {
               text(t, "app.ai.fold_idle")
             },
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 60.0).max(60.0),
             height=16.0,
             align=TextStart,
           ).foreground(
             if pending > 0 {
-              ide_warning()
+              @chrome.ide_warning()
             } else {
-              ide_text_faint()
+              @chrome.ide_text_faint()
             },
           ),
         ],
@@ -985,25 +985,25 @@ fn ai_card_view(
   width : Double,
 ) -> @moui.View[Msg] {
   let accent = match card.kind {
-    CardUserPrompt => ide_accent()
-    CardPlan => ide_accent()
-    CardDiff => ide_success()
-    CardSideEffect => ide_warning()
-    CardExplanation => ide_text_muted()
-    CardError => ide_danger()
+    CardUserPrompt => @chrome.ide_accent()
+    CardPlan => @chrome.ide_accent()
+    CardDiff => @chrome.ide_success()
+    CardSideEffect => @chrome.ide_warning()
+    CardExplanation => @chrome.ide_text_muted()
+    CardError => @chrome.ide_danger()
   }
   let rows : Array[@moui.View[Msg]] = [
-    fill_row(
+    @chrome.fill_row(
       [
         @views.text(
           text(t, card.title),
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=(width - 70.0).max(60.0),
           height=18.0,
           align=TextStart,
-        ).foreground(ide_text()),
+        ).foreground(@chrome.ide_text()),
         if card.settled {
-          count_badge(text(t, "app.ai.settled"), 1)
+          @chrome.count_badge(text(t, "app.ai.settled"), 1)
         } else {
           @views.text("", width=1.0, height=1.0)
         },
@@ -1024,35 +1024,35 @@ fn ai_card_view(
       rows.push(
         @views.text(
           card.body,
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=(width - 16.0).max(60.0),
           height=18.0,
           align=TextStart,
-        ).foreground(ide_text_muted()),
+        ).foreground(@chrome.ide_text_muted()),
       )
     }
   }
   // 计划卡：进度条 + 步骤清单
   if card.kind is CardPlan {
-    rows.push(progress_bar(card.progress, width - 16.0))
+    rows.push(@chrome.progress_bar(card.progress, width - 16.0))
     let mut step_index = 0
     for step in card.steps {
       let done = step_index < card.steps_done
       rows.push(
         @views.text(
           (if done { "✓ " } else { "○ " }) + step,
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=(width - 16.0).max(60.0),
           height=16.0,
           align=TextStart,
-        ).foreground(if done { ide_success() } else { ide_text_faint() }),
+        ).foreground(if done { @chrome.ide_success() } else { @chrome.ide_text_faint() }),
       )
       step_index = step_index + 1
     }
   }
   // diff 卡：逐行 ±
   for line in card.diff_lines {
-    rows.push(diff_row(line.0, line.1, width))
+    rows.push(@chrome.diff_row(line.0, line.1, width))
   }
   // 副作用卡 / diff 卡：待审计时给采纳/拒绝。
   // 芯片严格 22 高——线程区预算按内容行算，36pt 的 @views.button 会撑爆。
@@ -1060,15 +1060,15 @@ fn ai_card_view(
     rows.push(
       @views.row(
         [
-          action_chip(text(t, "app.ai.accept"), AcceptProposal, Primary, 22.0),
-          action_chip(text(t, "app.ai.reject"), RejectProposal, Quiet, 22.0),
+          @chrome.action_chip(text(t, "app.ai.accept"), AcceptProposal, @chrome.Primary, 22.0),
+          @chrome.action_chip(text(t, "app.ai.reject"), RejectProposal, @chrome.Quiet, 22.0),
           @views.text(
             "\{index + 1}",
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Mono,
             width=20.0,
             height=16.0,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
         ],
         spacing=6.0,
         align=Center,
@@ -1078,15 +1078,15 @@ fn ai_card_view(
     rows.push(
       @views.text(
         text(t, card.settled_note),
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(width - 16.0).max(60.0),
         height=16.0,
         align=TextStart,
-      ).foreground(ide_success()),
+      ).foreground(@chrome.ide_success()),
     )
   }
   ignore(model)
-  inline_card(accent, @views.column(rows, spacing=4.0), width, card.settled)
+  @chrome.inline_card(accent, @views.column(rows, spacing=4.0), width, card.settled)
 }
 
 ///|
@@ -1101,7 +1101,7 @@ fn ai_card_view(
 ///
 /// 线程卡出现时底栏还要更高（见 `ai_bar_height`）——写死一个值会在有提案
 /// 时把线程区裁掉，那正是「生成完什么都看不见」的形态。
-pub const AI_BAR_HEIGHT : Double = PANEL_HEAD_HEIGHT +
+pub const AI_BAR_HEIGHT : Double = @chrome.PANEL_HEAD_HEIGHT +
   COMPOSER_HEIGHT +
   CHIPS_HEIGHT +
   2.0 +
@@ -1122,7 +1122,7 @@ pub fn ai_bar_height(
   let inner = (width - AI_CARD_PAD * 2.0).max(120.0)
   // ai_card_height **已含**卡片四周内衬（AI_CARD_PAD*2）——这里再计一次
   // 会让底栏比内容高出一截，页签头和输入盒之间留出一条空白带（实测缺陷）。
-  let content = PANEL_HEAD_HEIGHT + ai_card_height(model, inner) + 4.0
+  let content = @chrome.PANEL_HEAD_HEIGHT + ai_card_height(model, inner) + 4.0
   content.max(AI_BAR_HEIGHT).min((viewport_height * 0.5).max(AI_BAR_HEIGHT))
 }
 
@@ -1155,7 +1155,7 @@ pub fn ai_bar_composer(
   // 所以外层只给底色，不再加横向内衬。
   // **外层容器必须显式给底色**：无背景的 container 在 paint 期回落到环境
   // Base → `palette.surface`（`#1F2227`），于是卡片上下那两圈内衬被刷成
-  // 另一个颜色，在底栏里读成「两段脏边」。底栏的底色是 `ide_panel()`，
+  // 另一个颜色，在底栏里读成「两段脏边」。底栏的底色是 `@chrome.ide_panel()`，
   // 这里跟它对齐——回落色与宿主面板不同色，是同一个坑的第二次。
   @views.container(
     // 横向内衬 8:卡片按 inner(宽−16)建,两侧各 8 补齐整宽。**纵向不能再垫**:
@@ -1166,7 +1166,7 @@ pub fn ai_bar_composer(
       horizontal=AI_CARD_PAD,
       vertical=0.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height~,
     padding=0.0,
@@ -1188,14 +1188,14 @@ fn composer(
       @views.center(
         @views.text(
           text(t, "app.ai.unavailable"),
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=(box_width - 24.0).max(80.0),
           height=16.0,
-        ).foreground(ide_text_muted()),
+        ).foreground(@chrome.ide_text_muted()),
         width=box_width,
         height=composer_height(width),
       ),
-      background=ide_panel(),
+      background=@chrome.ide_panel(),
       width=box_width,
       height=total,
       padding=0.0,
@@ -1230,7 +1230,7 @@ fn composer(
   // （那会让脚注变成一排图标，而它本该只有两个动作）。
   //
   // 历史/锚点循环/provider 设置走命令面板（⌘K），不占盒内空间。
-  let ghost_surface = ide_panel()
+  let ghost_surface = @chrome.ide_panel()
   let foot_cells : Array[@moui.View[Msg]] = [
     @views.row(mode_cells, spacing=3.0, align=Center),
     @views.spacer(min_length=6.0, weight=1.0),
@@ -1286,13 +1286,13 @@ fn composer(
     } else if model.provider_key == "" {
       text(t, "app.ai.disconnected")
     } else {
-      fit_label(model.provider_model, 140.0)
+      @chrome.fit_label(model.provider_model, 140.0)
     }
     foot_cells.push(
       info_chip(
         model_label,
-        ide_panel(),
-        ide_text_muted(),
+        @chrome.ide_panel(),
+        @chrome.ide_text_muted(),
         Some(StudioCommandRun("studio.settings")),
       ),
     )
@@ -1301,7 +1301,7 @@ fn composer(
   // 流式生成进行中：发送换**停止**（截断入口，M4）——同一槽位两个互斥动作。
   if model.ai_streaming {
     foot_cells.push(
-      action_chip(text(t, "app.ai.stop"), StopGeneration, Quiet, 24.0),
+      @chrome.action_chip(text(t, "app.ai.stop"), StopGeneration, @chrome.Quiet, 24.0),
     )
   } else {
     foot_cells.push(
@@ -1313,7 +1313,7 @@ fn composer(
   // 见 COMPOSER_HEIGHT 的注释）；整体扁平无阴影。
   // 输入域**直接作为列子项**（包定高容器或塞 row 都会让它不渲染，
   // text_area 的高度语义只在列布局下可靠，两轮实测确认）。
-  let foot = fill_row(foot_cells, inner_width, 6.0, Center)
+  let foot = @chrome.fill_row(foot_cells, inner_width, 6.0, Center)
   let field = @views.text_area(
     model.ai_sessions.current().prompt_draft,
     on_input=value => SetPrompt(value),
@@ -1332,13 +1332,13 @@ fn composer(
       top=2.0,
       bottom=3.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     // 中心态（AI 模式大画布）圆角浮起 + 1px 描边；右栏/底栏嵌入宿主
     // 维持扁平无描边（「与面板融为一体」的实测口径只适用于嵌入面板）。
     corner_radius=if model.perspective is PsAi { 10.0 } else { 0.0 },
     border=if model.perspective is PsAi {
       Some(@core.BorderStyle::{
-        brush: @core.Brush::Solid(ide_border()),
+        brush: @core.Brush::Solid(@chrome.ide_border()),
         width: 1.0,
       })
     } else {
@@ -1375,21 +1375,21 @@ fn composer_mode_dropdown(
     ComposeRepair => text(t, "app.ai.mode.repair")
     ComposeChat => text(t, "app.ai.mode.chat")
   }
-  let label_w = (text_estimate_width(label) * 1.05 + 8.0).max(30.0)
+  let label_w = (@chrome.text_estimate_width(label) * 1.05 + 8.0).max(30.0)
   let chip_w = label_w + 26.0
   let open = model.composer_mode_picker_open
   @views.container(
     @views.center(
       @views.row(
         [
-          @views.text(label, theme=studio_theme(), width=label_w, height=16.0).foreground(
+          @views.text(label, theme=@chrome.studio_theme(), width=label_w, height=16.0).foreground(
             if open {
-              ide_accent()
+              @chrome.ide_accent()
             } else {
-              ide_text_muted()
+              @chrome.ide_text_muted()
             },
           ),
-          @views.icon(ChevronDown, size=10.0, color=ide_text_muted()),
+          @views.icon(ChevronDown, size=10.0, color=@chrome.ide_text_muted()),
         ],
         spacing=3.0,
         align=Center,
@@ -1397,7 +1397,7 @@ fn composer_mode_dropdown(
       width=chip_w,
       height=20.0,
     ),
-    background=if open { ide_selection() } else { ide_panel() },
+    background=if open { @chrome.ide_selection() } else { @chrome.ide_panel() },
     corner_radius=10.0,
     width=chip_w,
     height=20.0,
@@ -1425,19 +1425,19 @@ fn ai_posture_row(
   }
   @views.container(
     @views.padding_edges(
-      fill_row(
+      @chrome.fill_row(
         [
           @views.text(
             label,
-            theme=studio_theme(),
-            width=(text_estimate_width(label) + 4.0).max(40.0),
+            theme=@chrome.studio_theme(),
+            width=(@chrome.text_estimate_width(label) + 4.0).max(40.0),
             height=14.0,
             align=TextStart,
           ).foreground(
             if pending > 0 {
-              ide_warning()
+              @chrome.ide_warning()
             } else {
-              ide_text_faint()
+              @chrome.ide_text_faint()
             },
           ),
           @views.spacer(min_length=6.0, weight=1.0),
@@ -1472,7 +1472,7 @@ pub fn ai_host_hint_key(model : Model) -> String {
 /// 段宽合计（composer）与芯片自身宽必须走同一函数——两处各算一份，
 /// 输入框的剩余宽就会算错。
 fn composer_chip_width(label : String) -> Double {
-  (text_estimate_width(label) * 1.05 + 14.0).max(36.0)
+  (@chrome.text_estimate_width(label) * 1.05 + 14.0).max(36.0)
 }
 
 ///|
@@ -1490,14 +1490,14 @@ fn composer_mode_chip(
     @views.center(
       @views.text(
         label,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(chip_width - 14.0).max(20.0),
         height=16.0,
-      ).foreground(if selected { ide_accent() } else { ide_text_muted() }),
+      ).foreground(if selected { @chrome.ide_accent() } else { @chrome.ide_text_muted() }),
       width=chip_width,
       height=20.0,
     ),
-    background=if selected { ide_selection() } else { ide_panel() },
+    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
     corner_radius=10.0,
     width=chip_width,
     height=20.0,
@@ -1536,11 +1536,11 @@ fn decision_bar(
       rows.push(
         @views.text(
           pending.summary,
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=(width - 16.0).max(60.0),
           height=18.0,
           align=TextStart,
-        ).foreground(if pending.valid { ide_success() } else { ide_danger() }),
+        ).foreground(if pending.valid { @chrome.ide_success() } else { @chrome.ide_danger() }),
       )
       // 校验失败时逐条列出原因（不静默丢弃，也不允许采纳）。
       // 错误文案是长句（英文 400pt+），按行宽截断——决策条高度是单点预算，
@@ -1549,21 +1549,21 @@ fn decision_bar(
         for error in pending.errors {
           rows.push(
             @views.text(
-              fit_label("· \{error}", (width - 24.0).max(60.0)),
-              theme=studio_theme(),
+              @chrome.fit_label("· \{error}", (width - 24.0).max(60.0)),
+              theme=@chrome.studio_theme(),
               width=(width - 16.0).max(60.0),
               height=16.0,
               align=TextStart,
-            ).foreground(ide_danger()),
+            ).foreground(@chrome.ide_danger()),
           )
         }
       }
       rows.push(
-        fill_row(
+        @chrome.fill_row(
           [
-            action_chip(text(t, "app.ai.accept"), AcceptProposal, Primary, 24.0),
-            action_chip(text(t, "app.ai.reject"), RejectProposal, Quiet, 24.0),
-            action_chip(text(t, "app.ai.history"), ToggleAiHistory, Ghost, 24.0),
+            @chrome.action_chip(text(t, "app.ai.accept"), AcceptProposal, @chrome.Primary, 24.0),
+            @chrome.action_chip(text(t, "app.ai.reject"), RejectProposal, @chrome.Quiet, 24.0),
+            @chrome.action_chip(text(t, "app.ai.history"), ToggleAiHistory, @chrome.Ghost, 24.0),
           ],
           (width - 16.0).max(80.0),
           6.0,
@@ -1576,22 +1576,22 @@ fn decision_bar(
         rows.push(
           @views.text(
             model.explanation,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 16.0).max(60.0),
             height=54.0,
             align=TextStart,
-          ).foreground(ide_text_muted()),
+          ).foreground(@chrome.ide_text_muted()),
         )
       }
       if model.prompt_error != "" {
         rows.push(
           @views.text(
             model.prompt_error,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 16.0).max(60.0),
             height=16.0,
             align=TextStart,
-          ).foreground(ide_danger()),
+          ).foreground(@chrome.ide_danger()),
         )
       }
     }
@@ -1605,7 +1605,7 @@ fn decision_bar(
       horizontal=8.0,
       vertical=6.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height=decision_bar_height(model) + 12.0,
     padding=0.0,

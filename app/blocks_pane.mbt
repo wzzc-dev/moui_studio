@@ -116,7 +116,7 @@ pub fn blocks_pane(
   let canvas = match current_handler(model) {
     None =>
       @views.container(
-        empty_hint(
+        @chrome.empty_hint(
           text(t, "app.handler.none"),
           canvas_width,
           body_height - 20.0,
@@ -198,9 +198,9 @@ pub fn blocks_pane(
     @views.row(
       [
         catbar,
-        @views.divider(axis=Vertical, color=ide_border()),
+        @views.divider(axis=Vertical, color=@chrome.ide_border()),
         statement_palette_panel(model, t, palette_width, body_height),
-        @views.divider(axis=Vertical, color=ide_border()),
+        @views.divider(axis=Vertical, color=@chrome.ide_border()),
         canvas,
       ],
       spacing=0.0,
@@ -218,7 +218,7 @@ pub fn blocks_pane(
       [head, hat_row, declaration_strip(model, width), body],
       spacing=0.0,
     ).frame(width~, height~),
-    background=ide_editor_background(),
+    background=@chrome.ide_editor_background(),
     width~,
     height~,
     padding=0.0,
@@ -229,7 +229,7 @@ pub fn blocks_pane(
 /// 积木画布可用高度：头 + 画布（编辑卡嵌在链条里，不再占窗格高度）。
 pub fn blocks_body_height(model : Model, height : Double) -> Double {
   let _ = model
-  (height - PANEL_HEAD_HEIGHT - 2.0).max(80.0)
+  (height - @chrome.PANEL_HEAD_HEIGHT - 2.0).max(80.0)
 }
 
 ///|
@@ -251,7 +251,7 @@ pub fn category_rail(
   let rows : Array[@moui.View[Msg]] = [
     category_rail_row(
       text(t, "app.blocks.cat.all"),
-      ide_text_muted(),
+      @chrome.ide_text_muted(),
       model.selected_category < 0,
       SelectBlockCategory(-1),
     ),
@@ -264,9 +264,9 @@ pub fn category_rail(
       category_rail_row(
         text(t, block_category_label_key(entry.category)),
         if has_blocks {
-          block_category_fill(entry.category)
+          @chrome.block_category_fill(entry.category)
         } else {
-          ide_border()
+          @chrome.ide_border()
         },
         selected,
         // 点分类 = 打开该分类的**语句插入面板**（此前只改一个高亮标志位，
@@ -283,7 +283,7 @@ pub fn category_rail(
   )
   @views.container(
     rail,
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width=CATEGORY_RAIL_WIDTH,
     height~,
     padding=0.0,
@@ -310,12 +310,12 @@ pub fn statement_palette_panel(
   let rows : Array[@moui.View[Msg]] = [
     @views.padding_xy(
       @views.text(
-        fit_label(statement_palette_title(t), width - 28.0),
-        theme=studio_theme(),
+        @chrome.fit_label(statement_palette_title(t), width - 28.0),
+        theme=@chrome.studio_theme(),
         width=(width - 24.0).max(60.0),
         height=18.0,
         align=TextStart,
-      ).foreground(ide_text()),
+      ).foreground(@chrome.ide_text()),
       horizontal=8.0,
       vertical=0.0,
     ),
@@ -331,16 +331,16 @@ pub fn statement_palette_panel(
       @views.container(
         @views.padding_xy(
           @views.text(
-            fit_label(text(t, "app.variable.new"), width - 24.0),
-            theme=studio_theme(),
+            @chrome.fit_label(text(t, "app.variable.new"), width - 24.0),
+            theme=@chrome.studio_theme(),
             width=(width - 20.0).max(60.0),
             height=18.0,
             align=TextStart,
-          ).foreground(ide_accent()),
+          ).foreground(@chrome.ide_accent()),
           horizontal=8.0,
           vertical=0.0,
         ),
-        background=ide_panel_alt(),
+        background=@chrome.ide_panel_alt(),
         corner_radius=4.0,
         width=(width - 12.0).max(60.0),
         height=28.0,
@@ -358,10 +358,10 @@ pub fn statement_palette_panel(
   if category is Some(@blocks.CatExpression) {
     rows.push(
       @views.padding_xy(
-        hint_lines_view(
+        @chrome.hint_lines_view(
           text(t, "app.expr.palette.hint"),
           width - 24.0,
-          ide_text_faint(),
+          @chrome.ide_text_faint(),
           2,
         ),
         horizontal=8.0,
@@ -375,16 +375,16 @@ pub fn statement_palette_panel(
         @views.container(
           @views.padding_xy(
             @views.text(
-              fit_label(label, width - 24.0),
-              theme=studio_theme(),
+              @chrome.fit_label(label, width - 24.0),
+              theme=@chrome.studio_theme(),
               width=(width - 20.0).max(60.0),
               height=18.0,
               align=TextStart,
-            ).foreground(ide_text()),
+            ).foreground(@chrome.ide_text()),
             horizontal=8.0,
             vertical=0.0,
           ),
-          background=ide_panel_alt(),
+          background=@chrome.ide_panel_alt(),
           corner_radius=4.0,
           width=(width - 12.0).max(60.0),
           height=28.0,
@@ -401,10 +401,10 @@ pub fn statement_palette_panel(
   if templates.length() == 0 {
     rows.push(
       @views.padding_xy(
-        hint_lines_view(
+        @chrome.hint_lines_view(
           text(t, "app.stmt.palette.empty"),
           width - 24.0,
-          ide_text_faint(),
+          @chrome.ide_text_faint(),
           2,
         ),
         horizontal=8.0,
@@ -419,16 +419,16 @@ pub fn statement_palette_panel(
         @views.container(
           @views.padding_xy(
             @views.text(
-              fit_label(label, width - 24.0),
-              theme=studio_theme(),
+              @chrome.fit_label(label, width - 24.0),
+              theme=@chrome.studio_theme(),
               width=(width - 20.0).max(60.0),
               height=18.0,
               align=TextStart,
-            ).foreground(ide_text()),
+            ).foreground(@chrome.ide_text()),
             horizontal=8.0,
             vertical=0.0,
           ),
-          background=ide_panel_alt(),
+          background=@chrome.ide_panel_alt(),
           corner_radius=4.0,
           width=(width - 12.0).max(60.0),
           height=28.0,
@@ -444,10 +444,10 @@ pub fn statement_palette_panel(
     }
     rows.push(
       @views.padding_xy(
-        hint_lines_view(
+        @chrome.hint_lines_view(
           text(t, "app.stmt.palette.hint"),
           width - 24.0,
-          ide_text_faint(),
+          @chrome.ide_text_faint(),
           2,
         ),
         horizontal=8.0,
@@ -457,7 +457,7 @@ pub fn statement_palette_panel(
   }
   @views.container(
     @views.column(rows, spacing=6.0).frame(width~, height~),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height~,
     padding=0.0,
@@ -486,7 +486,7 @@ fn category_rail_row(
   selected : Bool,
   on_click : Msg,
 ) -> @moui.View[Msg] {
-  let content = fill_row(
+  let content = @chrome.fill_row(
     [
       @views.container(
         @views.text("", width=1.0, height=1.0),
@@ -498,11 +498,11 @@ fn category_rail_row(
       ),
       @views.text(
         label,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(CATEGORY_RAIL_WIDTH - 20.0 - 12.0).max(20.0),
         height=16.0,
         align=TextStart,
-      ).foreground(if selected { ide_text() } else { ide_text_muted() }),
+      ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
     ],
     (CATEGORY_RAIL_WIDTH - 14.0).max(40.0),
     7.0,
@@ -518,7 +518,7 @@ fn category_rail_row(
       [
         @views.container(
           @views.text("", width=1.0, height=1.0),
-          background=if selected { ide_accent() } else { ide_panel() },
+          background=if selected { @chrome.ide_accent() } else { @chrome.ide_panel() },
           width=2.0,
           height=24.0,
           padding=0.0,
@@ -528,7 +528,7 @@ fn category_rail_row(
       spacing=0.0,
       align=Center,
     ),
-    background=if selected { ide_selection() } else { ide_panel() },
+    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
     height=24.0,
     width=CATEGORY_RAIL_WIDTH,
     padding=0.0,
@@ -555,7 +555,7 @@ pub fn block_context_menu(
     rows.push(
       menu_action_row(
         text(t, "app.run.single"),
-        ide_success(),
+        @chrome.ide_success(),
         RunSingleBlock,
         true,
       ),
@@ -563,7 +563,7 @@ pub fn block_context_menu(
     rows.push(
       menu_action_row(
         text(t, "app.block.duplicate"),
-        ide_text(),
+        @chrome.ide_text(),
         DuplicateBlock,
         true,
       ),
@@ -571,7 +571,7 @@ pub fn block_context_menu(
     rows.push(
       menu_action_row(
         text(t, "app.block.delete"),
-        ide_danger(),
+        @chrome.ide_danger(),
         DeleteBlock,
         true,
       ),
@@ -581,7 +581,7 @@ pub fn block_context_menu(
     rows.push(
       menu_action_row(
         text(t, "app.blocks.rail.hint"),
-        ide_text_muted(),
+        @chrome.ide_text_muted(),
         ToggleStatementPalette(model.selected_category),
         true,
       ),
@@ -589,7 +589,7 @@ pub fn block_context_menu(
   }
   @views.container(
     @views.column(rows, spacing=0.0),
-    background=ide_panel_alt(),
+    background=@chrome.ide_panel_alt(),
     corner_radius=6.0,
     width=168.0,
     padding=0.0,
@@ -608,12 +608,12 @@ fn menu_action_row(
   @views.container(
     @views.padding_xy(
       @views.text(
-        fit_label(label, 140.0),
-        theme=studio_theme(),
+        @chrome.fit_label(label, 140.0),
+        theme=@chrome.studio_theme(),
         width=140.0,
         height=18.0,
         align=TextStart,
-      ).foreground(if enabled { color } else { ide_text_faint() }),
+      ).foreground(if enabled { color } else { @chrome.ide_text_faint() }),
       horizontal=12.0,
       vertical=0.0,
     ),
@@ -650,12 +650,12 @@ pub fn declaration_strip(model : Model, width : Double) -> @moui.View[Msg] {
         @views.container(
           @views.text(
             item.text,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 34.0).max(80.0),
             height=22.0,
-          ).foreground(block_text_color()),
-          background=block_fill(item.kind),
-          corner_radius=block_corner_radius(item.kind),
+          ).foreground(@chrome.block_text_color()),
+          background=@chrome.block_fill(item.kind),
+          corner_radius=@chrome.block_corner_radius(item.kind),
           width=(width - 24.0).max(80.0),
           height=26.0,
           padding=0.0,
@@ -684,7 +684,7 @@ fn onstart_hat_row(
   let exists = @ir.find_handler(model.program, "", @ir.OnStart) is Some(_)
   let is_active = model.selected_handler == handler_key("", @ir.OnStart.tag())
   let label = text(t, "app.blocks.hat.onstart")
-  let chip_width = text_estimate_width(label) + 32.0
+  let chip_width = @chrome.text_estimate_width(label) + 32.0
   @views.container(
     @views.row(
       [
@@ -693,35 +693,35 @@ fn onstart_hat_row(
             [
               @views.text(
                 "⚡",
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=16.0,
                 height=18.0,
                 align=TextCenter,
               ).foreground(
                 if is_active {
-                  ide_text()
+                  @chrome.ide_text()
                 } else {
-                  ide_text_faint()
+                  @chrome.ide_text_faint()
                 },
               ),
               @views.text(
                 label,
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=chip_width - 36.0,
                 height=18.0,
                 align=TextStart,
               ).foreground(
                 if is_active {
-                  ide_text()
+                  @chrome.ide_text()
                 } else {
-                  ide_text_faint()
+                  @chrome.ide_text_faint()
                 },
               ),
             ],
             spacing=4.0,
             align=Center,
           ),
-          background=if is_active { ide_selection() } else { ide_panel() },
+          background=if is_active { @chrome.ide_selection() } else { @chrome.ide_panel() },
           width=chip_width,
           height=24.0,
           padding=0.0,

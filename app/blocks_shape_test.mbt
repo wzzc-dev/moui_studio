@@ -3,11 +3,11 @@
 /// 条件块带徽标、返回块带箭头前缀。
 test "block shapes encode semantics" {
   // 变量族 = 胶囊圆角；控制流/命令 = 小圆角
-  assert_eq(@app.block_corner_radius(@blocks.BkDeclare), 14.0)
-  assert_eq(@app.block_corner_radius(@blocks.BkAssign), 14.0)
-  assert_eq(@app.block_corner_radius(@blocks.BkSetIndex), 14.0)
-  assert_eq(@app.block_corner_radius(@blocks.BkIf), 6.0)
-  assert_eq(@app.block_corner_radius(@blocks.BkCall), 6.0)
+  assert_eq(@chrome.block_corner_radius(@blocks.BkDeclare), 14.0)
+  assert_eq(@chrome.block_corner_radius(@blocks.BkAssign), 14.0)
+  assert_eq(@chrome.block_corner_radius(@blocks.BkSetIndex), 14.0)
+  assert_eq(@chrome.block_corner_radius(@blocks.BkIf), 6.0)
+  assert_eq(@chrome.block_corner_radius(@blocks.BkCall), 6.0)
   // 绘制计划：条件块产生徽标 op
   let blocks = @blocks.block_chain([
     @ir.If(
@@ -285,8 +285,8 @@ test "declaration blocks project as read-only rows" {
 
 ///|
 /// M7② headless 帧验收：单轮廓 PathSpec（一次 fill+stroke，榫头/卯口
-/// 在轮廓动词里）与字段访问胶囊（pill 洞）走真实绘制指令流。
-test "headless acceptance: outline path and field access pill" {
+/// 在轮廓动词里）与字段访问胶囊（@chrome.pill 洞）走真实绘制指令流。
+test "headless acceptance: outline path and field access @chrome.pill" {
   // 1) 单轮廓几何：榫头凸起（y-5）与卯口凹口（y+h+5）都在路径动词里
   let verbs = @app.block_outline_path(10.0, 20.0, 200.0, 30.0, true, true)
   let mut has_tab_bump = false
@@ -339,7 +339,7 @@ test "headless acceptance: outline path and field access pill" {
     }
     _ => fail("块体应为单轮廓路径")
   }
-  // 3) 字段访问胶囊：FieldAccess 槽 pill=true，普通运算槽 pill=false
+  // 3) 字段访问胶囊：FieldAccess 槽 @chrome.pill=true，普通运算槽 @chrome.pill=false
   let blocks = @blocks.block_chain([
     @ir.Assign("y", @ir.FieldAccess(@ir.Var("person"), "名字")),
     @ir.Assign("z", @ir.Binary(@ir.Add, @ir.Var("a"), @ir.Var("b"))),
@@ -359,8 +359,8 @@ test "headless acceptance: outline path and field access pill" {
   let mut plain_hole = false
   for op in ops {
     match op {
-      @app.SlotHole(_, _, _, _, _, pill) =>
-        if pill {
+      @app.SlotHole(_, _, _, _, _, is_pill) =>
+        if is_pill {
           field_pill = true
         } else {
           plain_hole = true

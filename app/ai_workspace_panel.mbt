@@ -81,9 +81,9 @@ fn ai_ws_tab_header(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let changes_w = (text_estimate_width(text(t, "app.ai.ws.changes")) * 1.05 +
+  let changes_w = (@chrome.text_estimate_width(text(t, "app.ai.ws.changes")) * 1.05 +
   30.0).max(56.0)
-  let files_w = (text_estimate_width(text(t, "app.ai.ws.files")) * 1.05 + 16.0).max(
+  let files_w = (@chrome.text_estimate_width(text(t, "app.ai.ws.files")) * 1.05 + 16.0).max(
     48.0,
   )
   let changes_active = model.right_panel_tab is RpChanges
@@ -99,17 +99,17 @@ fn ai_ws_tab_header(
                 [
                   @views.text(
                     text(t, "app.ai.ws.changes"),
-                    theme=studio_theme(),
+                    theme=@chrome.studio_theme(),
                     width=changes_w - 30.0,
                     height=16.0,
                   ).foreground(
                     if changes_active {
-                      ide_text()
+                      @chrome.ide_text()
                     } else {
-                      ide_text_muted()
+                      @chrome.ide_text_muted()
                     },
                   ),
-                  count_badge(count.to_string(), if count > 0 { 1 } else { 0 }),
+                  @chrome.count_badge(count.to_string(), if count > 0 { 1 } else { 0 }),
                 ],
                 spacing=4.0,
                 align=Center,
@@ -118,9 +118,9 @@ fn ai_ws_tab_header(
               height=22.0,
             ),
             background=if changes_active {
-              ide_selection()
+              @chrome.ide_selection()
             } else {
-              ide_panel()
+              @chrome.ide_panel()
             },
             corner_radius=4.0,
             width=changes_w,
@@ -131,20 +131,20 @@ fn ai_ws_tab_header(
             @views.center(
               @views.text(
                 text(t, "app.ai.ws.files"),
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=files_w - 8.0,
                 height=16.0,
               ).foreground(
                 if files_active {
-                  ide_text()
+                  @chrome.ide_text()
                 } else {
-                  ide_text_muted()
+                  @chrome.ide_text_muted()
                 },
               ),
               width=files_w,
               height=22.0,
             ),
-            background=if files_active { ide_selection() } else { ide_panel() },
+            background=if files_active { @chrome.ide_selection() } else { @chrome.ide_panel() },
             corner_radius=4.0,
             width=files_w,
             height=22.0,
@@ -158,7 +158,7 @@ fn ai_ws_tab_header(
       left=8.0,
       right=8.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height=AI_WS_HEAD_HEIGHT,
     padding=0.0,
@@ -199,26 +199,26 @@ fn ai_ws_changes_tab(
       @views.container(
         @views.column(
           [
-            fill_row(
+            @chrome.fill_row(
               [
                 @views.text(
-                  fit_label(record.summary, (width - 70.0).max(40.0)),
-                  theme=studio_theme(),
+                  @chrome.fit_label(record.summary, (width - 70.0).max(40.0)),
+                  theme=@chrome.studio_theme(),
                   width=(width - 74.0).max(40.0),
                   height=15.0,
                   align=TextStart,
-                ).foreground(ide_text()),
+                ).foreground(@chrome.ide_text()),
                 @views.spacer(min_length=4.0, weight=1.0),
                 @views.text(
                   state_label,
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   width=40.0,
                   height=14.0,
                 ).foreground(
                   if record.accepted {
-                    ide_success()
+                    @chrome.ide_success()
                   } else {
-                    ide_text_faint()
+                    @chrome.ide_text_faint()
                   },
                 ),
               ],
@@ -230,7 +230,7 @@ fn ai_ws_changes_tab(
           ],
           spacing=3.0,
         ),
-        background=if index % 2 == 1 { ide_panel() } else { ide_panel_alt() },
+        background=if index % 2 == 1 { @chrome.ide_panel() } else { @chrome.ide_panel_alt() },
         width~,
         height=AI_WS_ENTRY_HEIGHT,
         padding=0.0,
@@ -243,10 +243,10 @@ fn ai_ws_changes_tab(
         @views.center(
           @views.text(
             text(t, "app.ai.ws.empty"),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 40.0).max(40.0),
             height=15.0,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
           width~,
           height=60.0,
         ),
@@ -276,17 +276,17 @@ fn ai_ws_pending_card(
   let files = ai_ws_changed_files(diff)
   let rows : Array[@moui.View[Msg]] = [
     @views.text(
-      fit_label(summary, (width - 32.0).max(40.0)),
-      theme=studio_theme(),
+      @chrome.fit_label(summary, (width - 32.0).max(40.0)),
+      theme=@chrome.studio_theme(),
       width=(width - 32.0).max(40.0),
       height=15.0,
       align=TextStart,
-    ).foreground(ide_accent()),
+    ).foreground(@chrome.ide_accent()),
     file_chips_row(files, width),
     @views.row(
       [
-        action_chip(text(t, "app.ai.accept"), AcceptProposal, Primary, 22.0),
-        action_chip(text(t, "app.ai.reject"), RejectProposal, Quiet, 22.0),
+        @chrome.action_chip(text(t, "app.ai.accept"), AcceptProposal, @chrome.Primary, 22.0),
+        @chrome.action_chip(text(t, "app.ai.reject"), RejectProposal, @chrome.Quiet, 22.0),
       ],
       spacing=6.0,
       align=Center,
@@ -300,7 +300,7 @@ fn ai_ws_pending_card(
       top=6.0,
       bottom=6.0,
     ),
-    background=ide_panel_alt(),
+    background=@chrome.ide_panel_alt(),
     corner_radius=6.0,
     width~,
     padding=0.0,
@@ -320,21 +320,21 @@ fn file_chips_row(files : Array[String], width : Double) -> @moui.View[Msg] {
   }
   let cells : Array[@moui.View[Msg]] = []
   for file in files {
-    let chip_w = (text_estimate_width(file) * 1.05 + 14.0).max(36.0)
+    let chip_w = (@chrome.text_estimate_width(file) * 1.05 + 14.0).max(36.0)
     cells.push(
       @views.container(
         @views.center(
           @views.text(
             file,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Mono,
             width=chip_w - 10.0,
             height=14.0,
-          ).foreground(ide_text_muted()),
+          ).foreground(@chrome.ide_text_muted()),
           width=chip_w,
           height=18.0,
         ),
-        background=ide_panel(),
+        background=@chrome.ide_panel(),
         corner_radius=4.0,
         width=chip_w,
         height=18.0,

@@ -204,7 +204,7 @@ fn code_panel(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
     @views.text("")
   } else {
     @views.inline_error(
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       "\{text(t, "app.code.error")}：\{model.code_error}",
       width=440.0,
     )
@@ -407,7 +407,7 @@ fn form_widget(
   let view = match control.kind {
     @ir.Label =>
       // 仅在属性定制（字号/加粗）时传主题覆盖——默认沿用环境主题
-      // （舞台继承产品浅色主题，显式传 studio_theme 会打回 IDE 暗色）
+      // （舞台继承产品浅色主题，显式传 @chrome.studio_theme 会打回 IDE 暗色）
       match theme {
         Some(t) => @views.text(value, align=prop_align(props.align), theme=t)
         None => @views.text(value, align=prop_align(props.align))
@@ -538,7 +538,7 @@ fn prop_theme(props : @ir.ControlProps) -> @core.Theme? {
   if props.font_size <= 0 && !props.bold {
     return None
   }
-  let base = studio_theme()
+  let base = @chrome.studio_theme()
   let ty = base.typography
   let size = if props.font_size > 0 {
     props.font_size.to_double()
@@ -709,11 +709,11 @@ fn run_stage(
     height=@ir.DESIGN_HEIGHT.to_double() * fit,
     // 运行舞台与设计画布同一底板：运行的就是设计出来的那一块，
     // 两轨共用，不因「运行」切成另一套外观（技术风深色画板）。
-    background=studio_stage_background(),
+    background=@chrome.studio_stage_background(),
     corner_radius=6.0,
     border=Some(
       @graphics.BorderStyle::new(
-        brush=@graphics.Brush::solid(studio_stage_outline()),
+        brush=@graphics.Brush::solid(@chrome.studio_stage_outline()),
         width=1.0,
       ),
     ),
@@ -757,7 +757,7 @@ fn compiled_run_form(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
           match runtime.gate {
             Some(_) =>
               @views.badge(
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 text(t, "app.run.gate_pending"),
                 tone=@style.BadgeTone::Warning,
                 width=64.0,
@@ -811,7 +811,7 @@ fn compiled_run_form(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
           gate_card.push(
             @views.column([
               @views.callout(
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 text(t, "app.run.gate.title"),
                 prompt,
                 tone=@style.Warning,
@@ -882,7 +882,7 @@ fn compiled_run_form(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
             @views.inline_error(
               compiled_error_message(t, error),
               width=440.0,
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
             ),
           )
         None => ()
@@ -988,7 +988,7 @@ fn interpret_run_form(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
           match run.state.gate {
             Some(_) =>
               @views.badge(
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 text(t, "app.run.gate_pending"),
                 tone=@style.BadgeTone::Warning,
                 width=64.0,
@@ -1044,7 +1044,7 @@ fn interpret_run_form(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
           }
           let rows : Array[@moui.View[Msg]] = [
             @views.callout(
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               text(t, "app.run.gate.title"),
               prompt,
               tone=@style.Warning,
@@ -1137,7 +1137,7 @@ fn interpret_run_form(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
             @views.inline_error(
               error_message(t, error),
               width=440.0,
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
             ),
           )
         None => ()

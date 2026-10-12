@@ -112,7 +112,7 @@ pub fn live_pane(
             horizontal=LIVE_STAGE_INSET_H,
             vertical=LIVE_STAGE_INSET_V,
           ),
-          background=ide_editor_background(),
+          background=@chrome.ide_editor_background(),
           height=stage_area_height,
           width~,
           padding=0.0,
@@ -121,7 +121,7 @@ pub fn live_pane(
       ],
       spacing=0.0,
     ).frame(width~, height~),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height~,
     padding=0.0,
@@ -130,9 +130,9 @@ pub fn live_pane(
 
 ///|
 /// Live App 窗格的「头 + 脚」合计高度（舞台盒从这里扣）。
-/// 头 `PANEL_HEAD_HEIGHT`(30) + 脚 24 + 发丝线 2 + 余量 6 = 62。
+/// 头 `@chrome.PANEL_HEAD_HEIGHT`(30) + 脚 24 + 发丝线 2 + 余量 6 = 62。
 /// 单独成常量：舞台盒的计算与 `fit_scale` 读数必须同源。
-pub const LIVE_PANE_HEAD_FOOT : Double = PANEL_HEAD_HEIGHT + 24.0 + 8.0
+pub const LIVE_PANE_HEAD_FOOT : Double = @chrome.PANEL_HEAD_HEIGHT + 24.0 + 8.0
 
 ///|
 /// 舞台四周的呼吸缝（设计稿口径的「画布留白」）。
@@ -222,7 +222,7 @@ pub const BUTTON_LABEL_PADDING : Double = 32.0
 /// 控制字号（`typography.control` = label = 16pt semibold）下每类字符的**上界**
 /// 宽：ASCII 8.4、全角 16.0。
 ///
-/// 为什么不复用 `text_estimate_width`（ASCII 7.9 / 全角 13.0）：那个口径是给
+/// 为什么不复用 `@chrome.text_estimate_width`（ASCII 7.9 / 全角 13.0）：那个口径是给
 /// **正文字号**标定的，用在加粗 16pt 的按钮标签上会明显偏窄。实测：
 /// 「应用修改」估 52.0、实际绘制 60.8（窄 17%）；「编译 MoonBit」估 89.2、
 /// 实际 97.6（窄 9%）。按它算出的删除按钮盒是 920.72..1013.52，而窗格右缘
@@ -317,13 +317,13 @@ pub fn pane_head_layout(
     action_count.to_double() * PANE_HEAD_ACTION_WIDTH
   }
   let pool = (content - gaps - actions).max(0.0)
-  let title_want = (text_estimate_width(title) * 1.02).max(20.0)
+  let title_want = (@chrome.text_estimate_width(title) * 1.02).max(20.0)
   let title_width = title_want.min(pool * 0.35)
   let mut left = (pool - title_width).max(0.0)
   let mut subtitle_width = 0.0
   if has_subtitle && left >= PANE_HEAD_SUBTITLE_MIN + PANE_HEAD_GAP {
     left = left - PANE_HEAD_GAP
-    let want = (text_estimate_width(subtitle) * 1.02).min(left * 0.5)
+    let want = (@chrome.text_estimate_width(subtitle) * 1.02).min(left * 0.5)
     if want < PANE_HEAD_SUBTITLE_MIN {
       // 放不下就整格不画，并把预扣的间隙还回去
       left = left + PANE_HEAD_GAP
@@ -364,33 +364,33 @@ pub fn pane_head(
   let cells : Array[@moui.View[Msg]] = [
     @views.text(
       title,
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=layout.title_width,
       height=18.0,
       align=TextStart,
-    ).foreground(ide_text()),
+    ).foreground(@chrome.ide_text()),
   ]
   if layout.subtitle_width > 0.0 {
     cells.push(
       @views.text(
-        fit_label(subtitle, layout.subtitle_width),
-        theme=studio_theme(),
+        @chrome.fit_label(subtitle, layout.subtitle_width),
+        theme=@chrome.studio_theme(),
         width=layout.subtitle_width,
         height=16.0,
         align=TextStart,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
     )
   }
   cells.push(@views.spacer(min_length=0.0, weight=1.0))
   if layout.tail_width > 0.0 {
     cells.push(
       @views.text(
-        fit_label(tail, layout.tail_width),
-        theme=studio_theme(),
+        @chrome.fit_label(tail, layout.tail_width),
+        theme=@chrome.studio_theme(),
         width=layout.tail_width,
         height=16.0,
         align=TextStart,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
     )
   }
   for item in actions {
@@ -398,7 +398,7 @@ pub fn pane_head(
   }
   @views.container(
     @views.padding_xy(
-      fill_row(
+      @chrome.fill_row(
         cells,
         (width - PANE_HEAD_INSET * 2.0).max(40.0),
         PANE_HEAD_GAP,
@@ -407,8 +407,8 @@ pub fn pane_head(
       horizontal=PANE_HEAD_INSET,
       vertical=0.0,
     ),
-    background=ide_panel_alt(),
-    height=PANEL_HEAD_HEIGHT,
+    background=@chrome.ide_panel_alt(),
+    height=@chrome.PANEL_HEAD_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -443,7 +443,7 @@ fn run_badge(
         [
           @views.container(
             @views.text("", width=1.0, height=1.0),
-            background=ide_success(),
+            background=@chrome.ide_success(),
             corner_radius=3.0,
             width=6.0,
             height=6.0,
@@ -453,12 +453,12 @@ fn run_badge(
             text_with(t, "app.pane.live.badge", [
               ("percent", percent.to_int().to_string()),
             ]),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Mono,
             width=84.0,
             height=16.0,
             align=TextStart,
-          ).foreground(ide_success()),
+          ).foreground(@chrome.ide_success()),
         ],
         spacing=5.0,
         align=Center,
@@ -466,7 +466,7 @@ fn run_badge(
       horizontal=8.0,
       vertical=0.0,
     ),
-    background=ide_success_soft(),
+    background=@chrome.ide_success_soft(),
     corner_radius=9.0,
     height=18.0,
     padding=0.0,
@@ -489,27 +489,27 @@ pub fn pane_foot(
   let count_label = text_with(t, "app.pane.foot_controls", [
     ("count", model.program.controls.length().to_string()),
   ])
-  let count_w = text_estimate_width(count_label) + 6.0
+  let count_w = @chrome.text_estimate_width(count_label) + 6.0
   @views.container(
     @views.padding_xy(
-      fill_row(
+      @chrome.fill_row(
         [
           @views.text(
             label,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - count_w - 30.0).max(60.0),
             height=16.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
           @views.spacer(min_length=4.0, weight=1.0),
           @views.text(
             count_label,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Mono,
             width=count_w,
             height=16.0,
             align=TextEnd,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
         ],
         (width - 16.0).max(80.0),
         6.0,
@@ -518,7 +518,7 @@ pub fn pane_foot(
       horizontal=8.0,
       vertical=0.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     height=24.0,
     width~,
     padding=0.0,
@@ -605,7 +605,7 @@ pub fn splitter(live_width : Double, total_width : Double) -> @moui.View[Msg] {
       width=5.0,
       height=24.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width=5.0,
     height=600.0,
     padding=0.0,

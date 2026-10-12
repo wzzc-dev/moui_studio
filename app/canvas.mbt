@@ -595,7 +595,7 @@ pub fn design_stage(
               ),
               radius=dot / 2.0,
             ),
-            @graphics.Brush::solid(studio_stage_outline()),
+            @graphics.Brush::solid(@chrome.studio_stage_outline()),
           )
           ny = ny + 1.0
         }
@@ -619,7 +619,7 @@ pub fn design_stage(
               @graphics.Brush::solid(
                 match prop_color(program.window.back_color) {
                   Some(color) => color
-                  None => studio_stage_background()
+                  None => @chrome.studio_stage_background()
                 },
               ),
             )
@@ -627,13 +627,13 @@ pub fn design_stage(
             fill_rounded_rect(
               ctx,
               @graphics.RoundedRect::new(rect=place(rect), radius=1.0 * scale),
-              @graphics.Brush::solid(studio_grid_line()),
+              @graphics.Brush::solid(@chrome.studio_grid_line()),
             )
           WindowTitleBar(rect) =>
             fill_rounded_rect(
               ctx,
               @graphics.RoundedRect::new(rect=place(rect), radius=6.0 * scale),
-              @graphics.Brush::solid(studio_stage_title_bar()),
+              @graphics.Brush::solid(@chrome.studio_stage_title_bar()),
             )
           TrafficLight(rect, index) =>
             fill_rounded_rect(
@@ -657,7 +657,7 @@ pub fn design_stage(
             stroke_rounded_rect(
               ctx,
               @graphics.RoundedRect::new(rect=place(rect), radius=6.0 * scale),
-              @graphics.Brush::solid(studio_stage_outline()),
+              @graphics.Brush::solid(@chrome.studio_stage_outline()),
               1.0,
             )
           _ => ()
@@ -762,7 +762,7 @@ pub fn design_stage(
                 ),
                 radius=8.0 * scale,
               ),
-              @graphics.Brush::solid(ide_accent()),
+              @graphics.Brush::solid(@chrome.ide_accent()),
               2.5,
             )
           }
@@ -770,7 +770,7 @@ pub fn design_stage(
             fill_rounded_rect(
               ctx,
               @graphics.RoundedRect::new(rect=place(rect), radius=4.0 * scale),
-              @graphics.Brush::solid(ide_accent()),
+              @graphics.Brush::solid(@chrome.ide_accent()),
             )
             draw_text(
               ctx,
@@ -794,7 +794,7 @@ pub fn design_stage(
             fill_rounded_rect(
               ctx,
               @graphics.RoundedRect::new(rect=place(rect), radius=2.0 * scale),
-              @graphics.Brush::solid(ide_accent()),
+              @graphics.Brush::solid(@chrome.ide_accent()),
             )
           GuideV(x) =>
             stroke_rounded_rect(

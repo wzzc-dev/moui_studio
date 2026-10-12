@@ -38,11 +38,11 @@ pub fn command_palette_dialog(
       spacing=8.0,
     ),
     width=444.0,
-    background=studio_console_background(),
+    background=@chrome.studio_console_background(),
     corner_radius=6.0,
     border=Some(
       @graphics.BorderStyle::new(
-        brush=@graphics.Brush::solid(studio_stage_outline()),
+        brush=@graphics.Brush::solid(@chrome.studio_stage_outline()),
         width=1.0,
       ),
     ),
@@ -64,11 +64,11 @@ fn command_palette_list(
       @views.container(
         @views.text(
           text(t, "app.command.empty"),
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=396.0,
           height=24.0,
           align=TextStart,
-        ).foreground(ide_text_faint()),
+        ).foreground(@chrome.ide_text_faint()),
         width=420.0,
         height=36.0,
         padding=0.0,
@@ -93,29 +93,29 @@ fn command_palette_row(
   command : StudioCommand,
   hovered_id : String,
 ) -> @moui.View[Msg] {
-  // 悬停反馈：与左栏树行同一口径（ide_selection 底）。
+  // 悬停反馈：与左栏树行同一口径（@chrome.ide_selection 底）。
   let hovered = hovered_id != "" && hovered_id == command.id
   let row_width = 420.0
   let group_width = 96.0
   @views.container(
     @views.padding_xy(
-      fill_row(
+      @chrome.fill_row(
         [
           @views.text(
-            fit_label(command.label, row_width - group_width - 28.0),
-            theme=studio_theme(),
+            @chrome.fit_label(command.label, row_width - group_width - 28.0),
+            theme=@chrome.studio_theme(),
             width=(row_width - group_width - 24.0).max(80.0),
             height=20.0,
             align=TextStart,
-          ).foreground(ide_text()),
+          ).foreground(@chrome.ide_text()),
           @views.spacer(min_length=4.0, weight=1.0),
           @views.text(
-            fit_label(command.group, group_width - 4.0),
-            theme=studio_theme(),
+            @chrome.fit_label(command.group, group_width - 4.0),
+            theme=@chrome.studio_theme(),
             width=group_width,
             height=18.0,
             align=TextEnd,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
         ],
         row_width - 16.0,
         6.0,
@@ -124,7 +124,7 @@ fn command_palette_row(
       horizontal=8.0,
       vertical=0.0,
     ),
-    background=if hovered { ide_selection() } else { ide_panel() },
+    background=if hovered { @chrome.ide_selection() } else { @chrome.ide_panel() },
     height=30.0,
     width=row_width,
     padding=0.0,

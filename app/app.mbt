@@ -2044,7 +2044,7 @@ pub fn program(
       )
     },
     update=(model, msg) => {
-      set_ui_dark(model.ui_dark)
+      @chrome.set_ui_dark(model.ui_dark)
       let (next0, effect0) = match msg {
         // 事件驱动消息（M1 内核化）：由事件总线从 outbox 翻译而来，副作用
         // 经服务容器执行——监听器保持纯函数，这里才是副作用的家。
@@ -2285,7 +2285,7 @@ pub fn program(
     // 顶栏/状态栏按窗口宽铺满、中心列吃剩余宽度、底栏按视口宽铺。
     view=(model, env) => {
       let viewport = env.viewport_size()
-      // 沉浸式标题栏：把顶部那一条 `WINDOW_CHROME_HEIGHT` 声明成「按住可拖窗」
+      // 沉浸式标题栏：把顶部那一条 `@chrome.WINDOW_CHROME_HEIGHT` 声明成「按住可拖窗」
       // 的区域。无边框窗口没有系统标题栏，不声明这块就**完全没法移动窗口**。
       //
       // 这里是唯一同时拿得到 `services`（组合根闭包）与真实视口（`env`）的
@@ -2315,7 +2315,7 @@ pub fn program(
               x=topbar_drag_x(model),
               y=0.0,
               width=__drag_w,
-              height=WINDOW_CHROME_HEIGHT,
+              height=@chrome.WINDOW_CHROME_HEIGHT,
             ),
           ),
         )

@@ -284,7 +284,7 @@ test "AI input bar lives in the two inline placements and never covers the statu
   }
   assert_true(
     bar_run.frame.origin.y + bar_run.frame.size.height <
-    800.0 - STATUSBAR_HEIGHT,
+    800.0 - @chrome.STATUSBAR_HEIGHT,
   )
   // 停靠档：并入右栏（输入盒仍在），且同样不越状态栏
   let docked = apply_shell(model, SetRightView(RvAi))
@@ -649,7 +649,7 @@ test "no AI band: the workspace content is adjacent to the panel below it" {
   for view in [RvContext, RvAi] {
     let anchored = apply_shell(model, SetRightView(view))
     let commands = shell_draw(anchored, 1280.0, 800.0)
-    let widths = shell_chrome_widths(anchored, 1280.0 - ICONBAR_WIDTH)
+    let widths = shell_chrome_widths(anchored, 1280.0 - @chrome.ICONBAR_WIDTH)
     // 收集所有中心列宽的段，按顶边排序
     let slabs : Array[@core.Rect] = []
     for command in commands {
@@ -700,14 +700,14 @@ test "no AI band: the workspace content is adjacent to the panel below it" {
 /// 曾经的 bug：标签宽度写死 `width - 44`，而 meta 单元格固定 52 又装不下
 /// 「640×480」（实测 68），两者叠加让整行溢出到面板外，被裁成「64」。
 ///
-/// 注意坐标系：左栏从 x=ICONBAR_WIDTH 起，右边缘是
-/// ICONBAR_WIDTH + LEFTBAR_WIDTH（不是 LEFTBAR_WIDTH）。
+/// 注意坐标系：左栏从 x=@chrome.ICONBAR_WIDTH 起，右边缘是
+/// @chrome.ICONBAR_WIDTH + @chrome.LEFTBAR_WIDTH（不是 @chrome.LEFTBAR_WIDTH）。
 test "tree row meta stays inside the panel" {
   let model = initial_model()
   let commands = shell_draw(model, 1280.0, 800.0)
   let cell = shell_find_text(commands, "640×480")
   guard cell is Some(run) else { fail("window meta missing from the tree") }
-  let panel_right = ICONBAR_WIDTH + LEFTBAR_WIDTH
+  let panel_right = @chrome.ICONBAR_WIDTH + @chrome.LEFTBAR_WIDTH
   if run.frame.origin.x + run.frame.size.width > panel_right {
     fail(
       "meta overflows panel: right=" +
@@ -716,7 +716,7 @@ test "tree row meta stays inside the panel" {
       panel_right.to_string(),
     )
   }
-  assert_eq(run.frame.size.width, TREE_META_WIDTH)
+  assert_eq(run.frame.size.width, @chrome.TREE_META_WIDTH)
 }
 
 ///|
@@ -738,10 +738,10 @@ test "group create menu lists every control kind inside the panel" {
     assert_true(shell_has_text(commands, "+ " + text(t, key)))
   }
   // 候选行不得越出左栏右缘。左栏的**绝对**范围是
-  // [ICONBAR_WIDTH, ICONBAR_WIDTH + LEFTBAR_WIDTH]——`LEFTBAR_WIDTH` 是宽度
+  // [@chrome.ICONBAR_WIDTH, @chrome.ICONBAR_WIDTH + @chrome.LEFTBAR_WIDTH]——`@chrome.LEFTBAR_WIDTH` 是宽度
   // 不是坐标，直接拿 x 与它比会把正确布局判成溢出（实测文字右缘 265 对
   // 面板右缘 280，是合法的）。这个陷阱在本仓已有先例（面板头/树行）。
-  let panel_right = ICONBAR_WIDTH + LEFTBAR_WIDTH
+  let panel_right = @chrome.ICONBAR_WIDTH + @chrome.LEFTBAR_WIDTH
   for command in commands {
     match command {
       @core.DrawCommand::DrawText(run) =>
@@ -1012,7 +1012,7 @@ test "ai composer box stays inside its host panel" {
   guard shell_find_send_button(commands) is Some(send) else {
     fail("round send button missing")
   }
-  let chrome = shell_chrome_widths(model, 1280.0 - ICONBAR_WIDTH)
+  let chrome = shell_chrome_widths(model, 1280.0 - @chrome.ICONBAR_WIDTH)
   let panel_left = 1280.0 - chrome.right
   let panel_right = 1280.0
   let send_right = send.origin.x + send.size.width
@@ -1102,7 +1102,7 @@ test "see all sessions appears only with a long thread list" {
 ///|
 /// 待审计读数：药丸删除后，`pending_ai_cards` 仍然是唯一来源，
 /// 由底栏 AI 页签的计数徽标承载（页签按钮的 count）。
-test "pending review count still surfaces after the pill removal" {
+test "pending review count still surfaces after the @chrome.pill removal" {
   let model = with_pending_roll_call(initial_model())
   if pending_ai_cards(model) == 0 {
     fail("proposal did not create a pending thread card")
@@ -1151,7 +1151,7 @@ test "proposal threads produce visible, settleable cards" {
 /// 圆形发送钮的绘制指纹：强调色实心圆（宽=高≈24、圆角=半径）。
 /// 发送改为图标后没有「发送」文字，这是它唯一的可观测形态。
 fn shell_find_send_button(commands : Array[@core.DrawCommand]) -> @core.Rect? {
-  let accent = ide_accent()
+  let accent = @chrome.ide_accent()
   let mut found : @core.Rect? = None
   for command in commands {
     match command {
@@ -1247,11 +1247,11 @@ test "blocks canvas renders hugging rows with lead-aligned slot holes" {
   let base = load_template_program(initial_model(), 2)
   let model = apply_shell(base, InsertStatement(2, 0))
   let commands = shell_draw(model, 1280.0, 800.0)
-  // 块体 = FillRoundedRectBrush + 实心画笔，颜色取自 block_fill 色阶。
+  // 块体 = FillRoundedRectBrush + 实心画笔，颜色取自 @chrome.block_fill 色阶。
   // 画布行的标签是「如果␣␣(…)」（两个空格）——速查表/帮助面板的「如果」
   // 都不带这个形态，用它锁定积木行，不被同色 end 帽或右栏文本干扰。
-  let if_fill = block_fill(@blocks.BkIf)
-  let call_fill = block_fill(@blocks.BkCall)
+  let if_fill = @chrome.block_fill(@blocks.BkIf)
+  let call_fill = @chrome.block_fill(@blocks.BkCall)
   let mut if_label : @core.TextRun? = None
   let call_bodies : Array[@core.Rect] = []
   for run in shell_texts(commands) {
@@ -1267,7 +1267,7 @@ test "blocks canvas renders hugging rows with lead-aligned slot holes" {
   // M7②：块体 = 单轮廓 DrawPath（fill+stroke 一体），不再是贴片填充。
   let mut if_body : @core.Rect? = None
   let mut hole_x : Double? = None
-  let hole_fill = blocks_slot_filled()
+  let hole_fill = @chrome.blocks_slot_filled()
   for command in commands {
     match command {
       @core.DrawPath(path) =>
@@ -1390,10 +1390,10 @@ test "blocks canvas renders hugging rows with lead-aligned slot holes" {
 test "activity bar uses the compact spec with bare-glyph selection" {
   let model = initial_model()
   let commands = shell_draw(model, 1280.0, 800.0)
-  let panel = ide_panel()
-  let accent = ide_accent()
-  let hover = ide_hover()
-  // 1) 栏底色从 x=0 铺开、宽度 = ICONBAR_WIDTH（左栏同色但起点在栏右）
+  let panel = @chrome.ide_panel()
+  let accent = @chrome.ide_accent()
+  let hover = @chrome.ide_hover()
+  // 1) 栏底色从 x=0 铺开、宽度 = @chrome.ICONBAR_WIDTH（左栏同色但起点在栏右）
   let mut bar_width = 0.0
   for command in commands {
     match command {
@@ -1412,8 +1412,8 @@ test "activity bar uses the compact spec with bare-glyph selection" {
     }
   }
   assert_true(
-    bar_width > 0.0 && (bar_width - ICONBAR_WIDTH).abs() < 0.6,
-    msg="icon bar width=\{bar_width} should equal ICONBAR_WIDTH=\{ICONBAR_WIDTH}",
+    bar_width > 0.0 && (bar_width - @chrome.ICONBAR_WIDTH).abs() < 0.6,
+    msg="icon bar width=\{bar_width} should equal @chrome.ICONBAR_WIDTH=\{@chrome.ICONBAR_WIDTH}",
   )
   // 2) **无条纹**：选中态只靠字形亮度，栏内不得出现强调色色块（条纹方案
   //    试过被否掉——这条反断言防止它悄悄回来）
@@ -1424,7 +1424,7 @@ test "activity bar uses the compact spec with bare-glyph selection" {
         if color.r == accent.r &&
           color.g == accent.g &&
           color.b == accent.b &&
-          rect.origin.x < ICONBAR_WIDTH {
+          rect.origin.x < @chrome.ICONBAR_WIDTH {
           fail("activity bar must not paint an accent stripe/tile")
         }
       }
@@ -1439,7 +1439,7 @@ test "activity bar uses the compact spec with bare-glyph selection" {
         if color.r == hover.r &&
           color.g == hover.g &&
           color.b == hover.b &&
-          rect.origin.x < ICONBAR_WIDTH &&
+          rect.origin.x < @chrome.ICONBAR_WIDTH &&
           rect.size.width <= 30.0 &&
           rect.size.height <= 30.0 {
           fail("activity bar items must not paint persistent tiles")
@@ -1481,7 +1481,7 @@ test "activity bar uses the compact spec with bare-glyph selection" {
           }
         }
         // 栏内的图标路径（x 在栏宽内、排除分隔线之类的细条）
-        if max_x <= ICONBAR_WIDTH && max_x > 4.0 && max_y - min_y > 5.0 {
+        if max_x <= @chrome.ICONBAR_WIDTH && max_x > 4.0 && max_y - min_y > 5.0 {
           centers.push((min_y + max_y) / 2.0)
         }
       }
@@ -1517,12 +1517,12 @@ test "activity bar uses the compact spec with bare-glyph selection" {
 /// 按用户宽度分配三列；静态界限兜底夹取。
 test "sash resize messages drive the three-column widths" {
   let base = initial_model()
-  let usable = 1280.0 - ICONBAR_WIDTH
+  let usable = 1280.0 - @chrome.ICONBAR_WIDTH
   // 拖宽左栏 → 左栏变宽、中心让位、右栏不动
   let widened = apply_shell(base, ResizeLeftPanel(300.0))
   let chrome = shell_chrome_widths(widened, usable)
   assert_eq(chrome.left.unwrap(), 300.0)
-  assert_eq(chrome.right, RIGHTBAR_WIDTH)
+  assert_eq(chrome.right, @chrome.RIGHTBAR_WIDTH)
   assert_true(
     chrome.center < shell_chrome_widths(base, usable).center,
     msg="the center column must yield when the left panel widens",
@@ -1531,22 +1531,22 @@ test "sash resize messages drive the three-column widths" {
   let clamped_low = apply_shell(base, ResizeLeftPanel(40.0))
   assert_eq(
     shell_chrome_widths(clamped_low, usable).left.unwrap(),
-    LEFTBAR_MIN_WIDTH,
+    @chrome.LEFTBAR_MIN_WIDTH,
   )
   // 拖宽过上限 → 夹到上限
   let clamped_high = apply_shell(base, ResizeLeftPanel(900.0))
   assert_eq(
     shell_chrome_widths(clamped_high, usable).left.unwrap(),
-    LEFTBAR_MAX_WIDTH,
+    @chrome.LEFTBAR_MAX_WIDTH,
   )
   // 右栏同理
   let right_wide = apply_shell(base, ResizeRightPanel(340.0))
   assert_eq(shell_chrome_widths(right_wide, usable).right, 340.0)
   // 宽度合计 = 可用宽（无死区、无重叠）
   let total = chrome.left.unwrap() +
-    SASH_WIDTH +
+    @chrome.SASH_WIDTH +
     chrome.center +
-    SASH_WIDTH +
+    @chrome.SASH_WIDTH +
     chrome.right
   assert_true((total - usable).abs() < 0.6, msg="columns must fill the row")
 }
@@ -1568,7 +1568,7 @@ test "dragging the column sash resizes the left panel (e2e)" {
   )
   let _ = runtime.draw_commands()
   // 左 sash 中心：活动栏 + 左栏 + sash/2
-  let start_x = ICONBAR_WIDTH + LEFTBAR_WIDTH + SASH_WIDTH / 2.0
+  let start_x = @chrome.ICONBAR_WIDTH + @chrome.LEFTBAR_WIDTH + @chrome.SASH_WIDTH / 2.0
   let y = 400.0
   runtime.dispatch_event(
     @core.Pointer(
@@ -1594,9 +1594,9 @@ test "dragging the column sash resizes the left panel (e2e)" {
       ),
     ),
   )
-  // 重渲：左栏面板（ide_panel 底色、起点 = 活动栏宽）应变宽 60
-  let panel = ide_panel()
-  let sash_color = ide_border_soft()
+  // 重渲：左栏面板（@chrome.ide_panel 底色、起点 = 活动栏宽）应变宽 60
+  let panel = @chrome.ide_panel()
+  let sash_color = @chrome.ide_border_soft()
   let mut left_width = 0.0
   let mut sash_x = -1.0
   for command in runtime.draw_commands() {
@@ -1607,13 +1607,13 @@ test "dragging the column sash resizes the left panel (e2e)" {
           rect.origin.y < 100.0 &&
           color.r == panel.r &&
           color.g == panel.g &&
-          rect.origin.x == ICONBAR_WIDTH {
+          rect.origin.x == @chrome.ICONBAR_WIDTH {
           left_width = rect.size.width
         }
         if color.r == sash_color.r &&
           color.g == sash_color.g &&
           rect.size.height > 500.0 &&
-          rect.origin.x > ICONBAR_WIDTH &&
+          rect.origin.x > @chrome.ICONBAR_WIDTH &&
           rect.origin.x < 500.0 &&
           sash_x < 0.0 {
           sash_x = rect.origin.x
@@ -1622,13 +1622,13 @@ test "dragging the column sash resizes the left panel (e2e)" {
       _ => ()
     }
   }
-  let expected = LEFTBAR_WIDTH + 60.0
+  let expected = @chrome.LEFTBAR_WIDTH + 60.0
   assert_true(
     (left_width - expected).abs() < 0.6,
     msg="left panel width=\{left_width} should be \{expected} after dragging +60",
   )
   assert_true(
-    (sash_x - (ICONBAR_WIDTH + expected)).abs() < 0.6,
+    (sash_x - (@chrome.ICONBAR_WIDTH + expected)).abs() < 0.6,
     msg="sash x=\{sash_x} should follow the panel edge",
   )
 }

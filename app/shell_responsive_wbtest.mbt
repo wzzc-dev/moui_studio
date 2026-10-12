@@ -148,7 +148,7 @@ fn rail_paint_signature(commands : Array[@core.DrawCommand]) -> String {
 }
 
 ///|
-/// 右栏页签行必须整行塞进右栏：`5×cell + 4×gap + 2×padding <= RIGHTBAR_WIDTH`。
+/// 右栏页签行必须整行塞进右栏：`5×cell + 4×gap + 2×padding <= @chrome.RIGHTBAR_WIDTH`。
 ///
 /// 回归意义：原来只从可用宽度里减了内垫、忘了 4 个间隙，「依赖」页签正好
 /// 顶到右栏边缘被切掉半个字（实际截图可见）。裁剪检查抓不到这种贴边
@@ -192,7 +192,7 @@ test "context tab row fits inside the right panel" {
 /// 沉浸式无边框：顶栏**合并成一条窗口标题栏**，不再是「窗控带 + 顶栏」两条。
 ///
 /// 回归意义（来自真实截图对照）：旧实现是 26pt 窗控带 + 40pt 顶栏，上一条
-/// 只放一句居中提示文字、底色 `studio_window_background()` 比顶栏更深，交界
+/// 只放一句居中提示文字、底色 `@chrome.studio_window_background()` 比顶栏更深，交界
 /// 处一条两截色缝加半条空带——看起来就是「顶上的边框没沉浸」。
 ///
 /// 判据是**结构**而不是文案：动作簇按顶栏的垂直中心对齐，且整条带子只有
@@ -215,7 +215,7 @@ test "immersive mode merges the title bar into one band" {
   // 固定在窗口顶往下 ~15.8pt，且不给移动能力（自绘/挪动系统按钮都是死路）
   // ——所以带高取 2×15.8=32，内容垂直居中即对齐。旧值 56 时内容中心在
   // 28，比灯低 12pt（截图里「信号灯和图标两条线」）。
-  let light_line = TRAFFIC_LIGHT_CENTER_Y
+  let light_line = @chrome.TRAFFIC_LIGHT_CENTER_Y
   let run_center = run.frame.origin.y + run.frame.size.height / 2.0
   if (run_center - light_line).abs() > 2.5 {
     fail(
@@ -236,7 +236,7 @@ test "immersive mode merges the title bar into one band" {
       brand_center.to_string(),
     )
   }
-  if brand.frame.origin.x < TRAFFIC_LIGHT_INSET - 1.0 {
+  if brand.frame.origin.x < @chrome.TRAFFIC_LIGHT_INSET - 1.0 {
     fail(
       "immersive brand overlaps the traffic lights: x=" +
       brand.frame.origin.x.to_string(),
@@ -352,11 +352,11 @@ test "chrome chips are wide enough for their labels" {
     let label = text(t, key)
     // 代码页脚在代码区（x 落在中心列）且**不是**顶栏那颗同名按钮。
     // 阈值用非沉浸态的顶栏高（这个 model 不开沉浸）：别再叠加
-    // `WINDOW_CHROME_HEIGHT`——那个常量现在是「沉浸标题栏总高」（32），
+    // `@chrome.WINDOW_CHROME_HEIGHT`——那个常量现在是「沉浸标题栏总高」（32），
     // 加起来会变成 96 这种既不对应任何真实带子、又可能把页脚误排除的下界。
     let mut run_box : @core.TextRun? = None
     for run in shell_texts(commands) {
-      if run.text.contains(label) && run.frame.origin.y > TOPBAR_HEIGHT {
+      if run.text.contains(label) && run.frame.origin.y > @chrome.TOPBAR_HEIGHT {
         run_box = Some(run)
       }
     }
@@ -401,7 +401,7 @@ test "chrome chips are wide enough for their labels" {
 /// 缺陷在本项目已复发多次（状态栏 112pt/格、页脚 90pt 计数、代码页脚
 /// 62/68pt 按钮、右栏 tab `(width-12)/5`），逐点补宽治不了根。
 ///
-/// 判据用 `text_estimate_width` 的 1.0 倍：估算比真实字形略窄，所以这里
+/// 判据用 `@chrome.text_estimate_width` 的 1.0 倍：估算比真实字形略窄，所以这里
 /// 只会漏报不会误报（宁可漏，也不要让测试因为 1-2px 字距抖动变红）。
 test "no drawn label is clipped by its own container" {
   // 判据必须用**裁剪区**，不能用「声明宽 vs 估算宽」。
@@ -497,8 +497,8 @@ test "no drawn label is clipped by its own container" {
     for run in shell_texts(shell_draw(visual, width, 800.0)) {
       if run.text.contains("避让通道") ||
         run.text.contains("clearance lane") {
-        // 积木窗格右缘 = 右栏左缘；右栏固定 RIGHTBAR_WIDTH 贴在窗口右边。
-        let pane_right = width - RIGHTBAR_WIDTH
+        // 积木窗格右缘 = 右栏左缘；右栏固定 @chrome.RIGHTBAR_WIDTH 贴在窗口右边。
+        let pane_right = width - @chrome.RIGHTBAR_WIDTH
         let right = run.frame.origin.x + run.frame.size.width
         // 截断本身是**允许**的（窄窗格里省略号正是设计意图），越界才是缺陷。
         if right > pane_right + 1.0 {

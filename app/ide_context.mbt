@@ -39,7 +39,7 @@ pub fn ide_right_panel(
       ],
       spacing=0.0,
     ).frame(width~, height~),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height~,
     padding=0.0,
@@ -79,7 +79,7 @@ fn context_body(
       height~,
       shows_indicator=true,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height~,
     padding=0.0,
@@ -118,14 +118,14 @@ fn context_block_editor(
         @views.center(
           @views.text(
             label,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=chip_w - 10.0,
             height=16.0,
-          ).foreground(block_text_color()),
+          ).foreground(@chrome.block_text_color()),
           width=chip_w,
           height=22.0,
         ),
-        background=block_fill(kind),
+        background=@chrome.block_fill(kind),
         corner_radius=4.0,
         width=chip_w,
         height=22.0,
@@ -141,7 +141,7 @@ fn context_block_editor(
         icon_size,
         22.0,
         13.0,
-        ide_elevated(),
+        @chrome.ide_elevated(),
         hovered=model.hover_hint,
       ),
       ghost_icon_button(
@@ -152,7 +152,7 @@ fn context_block_editor(
         icon_size,
         22.0,
         13.0,
-        ide_elevated(),
+        @chrome.ide_elevated(),
         hovered=model.hover_hint,
       ),
       ghost_icon_button(
@@ -163,7 +163,7 @@ fn context_block_editor(
         icon_size,
         22.0,
         13.0,
-        ide_elevated(),
+        @chrome.ide_elevated(),
         hovered=model.hover_hint,
       ),
     ],
@@ -178,11 +178,11 @@ fn context_block_editor(
             @views.padding_xy(
               @views.text(
                 text(t, "app.block.edit_title"),
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=inner,
                 height=18.0,
                 align=TextStart,
-              ).foreground(ide_text()),
+              ).foreground(@chrome.ide_text()),
               horizontal=8.0,
               vertical=0.0,
             ),
@@ -220,7 +220,7 @@ fn context_block_editor(
                 ),
                 variant=Outline,
                 width=inner,
-                height=FIELD_HEIGHT,
+                height=@chrome.FIELD_HEIGHT,
               ),
               horizontal=8.0,
               vertical=0.0,
@@ -228,11 +228,11 @@ fn context_block_editor(
             @views.padding_xy(
               @views.text(
                 text(t, "app.block.edit_hint"),
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=inner,
                 height=16.0,
                 align=TextStart,
-              ).foreground(ide_text_faint()),
+              ).foreground(@chrome.ide_text_faint()),
               horizontal=8.0,
               vertical=0.0,
             ),
@@ -244,11 +244,11 @@ fn context_block_editor(
             @views.padding_xy(
               @views.text(
                 text(t, "app.block.note_label"),
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=inner,
                 height=16.0,
                 align=TextStart,
-              ).foreground(ide_text_faint()),
+              ).foreground(@chrome.ide_text_faint()),
               horizontal=8.0,
               vertical=0.0,
             ),
@@ -259,7 +259,7 @@ fn context_block_editor(
                 placeholder=text(t, "app.block.note_hint"),
                 variant=Outline,
                 width=inner,
-                height=FIELD_HEIGHT,
+                height=@chrome.FIELD_HEIGHT,
               ),
               horizontal=8.0,
               vertical=0.0,
@@ -270,7 +270,7 @@ fn context_block_editor(
         horizontal=0.0,
         vertical=6.0,
       ),
-      background=ide_elevated(),
+      background=@chrome.ide_elevated(),
       corner_radius=6.0,
       width~,
       padding=0.0,
@@ -344,11 +344,11 @@ fn context_head(
   let lead : Array[@moui.View[Msg]] = [
     @views.text(
       name,
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=(width - 130.0).max(60.0),
       height=18.0,
       align=TextStart,
-    ).foreground(ide_text()),
+    ).foreground(@chrome.ide_text()),
   ]
   if has_selection {
     lead.push(
@@ -366,7 +366,7 @@ fn context_head(
   }
   let trail : Array[@moui.View[Msg]] = []
   if kind != "" {
-    trail.push(count_badge(kind, 4))
+    trail.push(@chrome.count_badge(kind, 4))
   }
   trail.push(
     icon_button(
@@ -382,7 +382,7 @@ fn context_head(
   )
   @views.container(
     @views.padding_xy(
-      fill_row(
+      @chrome.fill_row(
         [
           @views.row(lead, spacing=4.0, align=Center),
           @views.spacer(min_length=4.0, weight=1.0),
@@ -395,8 +395,8 @@ fn context_head(
       horizontal=8.0,
       vertical=0.0,
     ),
-    background=ide_panel_alt(),
-    height=PANEL_HEAD_HEIGHT,
+    background=@chrome.ide_panel_alt(),
+    height=@chrome.PANEL_HEAD_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -431,14 +431,14 @@ fn context_tabs(
         @views.center(
           @views.text(
             label,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=cell_width - 4.0,
             height=16.0,
-          ).foreground(if selected { ide_text() } else { ide_text_faint() }),
+          ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_faint() }),
           width=cell_width,
           height=22.0,
         ),
-        background=if selected { ide_selection() } else { ide_panel_alt() },
+        background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel_alt() },
         corner_radius=3.0,
         width=cell_width,
         height=22.0,
@@ -450,12 +450,12 @@ fn context_tabs(
   }
   @views.container(
     @views.padding_xy(
-      fill_row(tabs, (width - 12.0).max(80.0), 3.0, Center),
+      @chrome.fill_row(tabs, (width - 12.0).max(80.0), 3.0, Center),
       horizontal=6.0,
       vertical=0.0,
     ),
-    background=ide_panel(),
-    height=PANEL_HEAD_HEIGHT,
+    background=@chrome.ide_panel(),
+    height=@chrome.PANEL_HEAD_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -492,7 +492,7 @@ fn context_props(
     None => ()
   }
   match find_selected_control(model) {
-    None => empty_hint(text(t, "app.inspector.none"), width, 120.0)
+    None => @chrome.empty_hint(text(t, "app.inspector.none"), width, 120.0)
     Some(control) => {
       let field_width = (width - 90.0).max(80.0)
       let rows : Array[@moui.View[Msg]] = [
@@ -501,14 +501,14 @@ fn context_props(
           control.name,
           on_input=new_value => SetControlName(control.name, new_value),
           width=field_width,
-          height=FIELD_HEIGHT,
+          height=@chrome.FIELD_HEIGHT,
         ),
         field_label(t, "app.inspector.text", width),
         @views.text_field(
           control.text,
           on_input=new_value => SetControlText(control.name, new_value),
           width=field_width,
-          height=FIELD_HEIGHT,
+          height=@chrome.FIELD_HEIGHT,
         ),
         field_label(t, "app.inspector.position", width),
         @views.row(
@@ -517,13 +517,13 @@ fn context_props(
               control.x.to_string(),
               on_input=raw => SetControlRect(control.name, @ir.RectX, raw),
               width=(field_width - 6.0) / 2.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
             @views.text_field(
               control.y.to_string(),
               on_input=raw => SetControlRect(control.name, @ir.RectY, raw),
               width=(field_width - 6.0) / 2.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
           ],
           spacing=6.0,
@@ -535,13 +535,13 @@ fn context_props(
               control.width.to_string(),
               on_input=raw => SetControlRect(control.name, @ir.RectWidth, raw),
               width=(field_width - 6.0) / 2.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
             @views.text_field(
               control.height.to_string(),
               on_input=raw => SetControlRect(control.name, @ir.RectHeight, raw),
               width=(field_width - 6.0) / 2.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
           ],
           spacing=6.0,
@@ -560,14 +560,14 @@ fn context_props(
               on_input=raw => SetControlPropText(control.name, "font_size", raw),
               placeholder="字号",
               width=(field_width - 6.0) / 2.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
             @views.button(
               text(t, "app.props.bold"),
               on_click=ToggleControlProp(control.name, "bold"),
               variant=if control.props.bold { Primary } else { Outline },
               width=(field_width - 6.0) / 2.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
           ],
           spacing=6.0,
@@ -583,7 +583,7 @@ fn context_props(
                     SetControlPropText(control.name, "text_color", raw)
                   },
                   width=(field_width - 6.0) / 2.0 - 26.0,
-                  height=FIELD_HEIGHT,
+                  height=@chrome.FIELD_HEIGHT,
                 ),
                 color_swatch(control.props.text_color),
               ],
@@ -599,7 +599,7 @@ fn context_props(
                     SetControlPropText(control.name, "back_color", raw)
                   },
                   width=(field_width - 6.0) / 2.0 - 26.0,
-                  height=FIELD_HEIGHT,
+                  height=@chrome.FIELD_HEIGHT,
                 ),
                 color_swatch(control.props.back_color),
               ],
@@ -621,7 +621,7 @@ fn context_props(
                 Outline
               },
               width=(field_width - 12.0) / 3.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
             @views.button(
               text(t, "app.props.align_center"),
@@ -632,7 +632,7 @@ fn context_props(
                 Outline
               },
               width=(field_width - 12.0) / 3.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
             @views.button(
               text(t, "app.props.align_end"),
@@ -643,7 +643,7 @@ fn context_props(
                 Outline
               },
               width=(field_width - 12.0) / 3.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
           ],
           spacing=6.0,
@@ -655,14 +655,14 @@ fn context_props(
               on_click=ToggleControlProp(control.name, "visible"),
               variant=if control.props.visible { Primary } else { Outline },
               width=(field_width - 6.0) / 2.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
             @views.button(
               text(t, "app.props.disabled"),
               on_click=ToggleControlProp(control.name, "disabled"),
               variant=if control.props.disabled { Primary } else { Outline },
               width=(field_width - 6.0) / 2.0,
-              height=FIELD_HEIGHT,
+              height=@chrome.FIELD_HEIGHT,
             ),
           ],
           spacing=6.0,
@@ -694,7 +694,7 @@ fn context_props(
             },
             on_input=new_value => SetControlItems(control.name, new_value),
             width=field_width,
-            height=FIELD_HEIGHT,
+            height=@chrome.FIELD_HEIGHT,
           ),
         )
       }
@@ -708,7 +708,7 @@ fn context_props(
             },
             on_input=new_value => SetControlItems(control.name, new_value),
             width=field_width,
-            height=FIELD_HEIGHT,
+            height=@chrome.FIELD_HEIGHT,
           ),
         )
       }
@@ -730,11 +730,11 @@ fn field_label(
 ) -> @moui.View[Msg] {
   @views.text(
     text(t, key),
-    theme=studio_theme(),
+    theme=@chrome.studio_theme(),
     width=(width - 16.0).max(60.0),
     height=16.0,
     align=TextStart,
-  ).foreground(ide_text_faint())
+  ).foreground(@chrome.ide_text_faint())
 }
 
 ///|
@@ -745,7 +745,7 @@ fn context_state(
   width : Double,
 ) -> @moui.View[Msg] {
   let rows : Array[@moui.View[Msg]] = [
-    kv_row(
+    @chrome.kv_row(
       text(t, "app.ctx.state.running"),
       if app_running(model) {
         text(t, "app.yes")
@@ -755,7 +755,7 @@ fn context_state(
       width - 16.0,
       false,
     ),
-    kv_row(
+    @chrome.kv_row(
       text(t, "app.ctx.state.track"),
       match current_track(model) {
         Interpret => text(t, "app.track.interpret")
@@ -764,7 +764,7 @@ fn context_state(
       width - 16.0,
       false,
     ),
-    kv_row(
+    @chrome.kv_row(
       text(t, "app.ctx.state.gate"),
       if gate_pending(model) {
         text(t, "app.run.gate_pending")
@@ -774,13 +774,13 @@ fn context_state(
       width - 16.0,
       false,
     ),
-    kv_row(
+    @chrome.kv_row(
       text(t, "app.ctx.state.steps"),
       audit_step_count(model).to_string(),
       width - 16.0,
       true,
     ),
-    kv_row(
+    @chrome.kv_row(
       text(t, "app.ctx.state.edited"),
       if model.dirty {
         text(t, "app.ctx.state.dirty")
@@ -826,7 +826,7 @@ fn context_data(
 ) -> @moui.View[Msg] {
   let rows : Array[@moui.View[Msg]] = []
   for variable in model.program.variables {
-    rows.push(kv_row(variable.name, variable.init, width - 16.0, true))
+    rows.push(@chrome.kv_row(variable.name, variable.init, width - 16.0, true))
   }
   match current_handler(model) {
     None => ()
@@ -838,7 +838,7 @@ fn context_data(
       for variable in model.program.variables {
         if rendered.contains(variable.name) {
           rows.push(
-            kv_row(
+            @chrome.kv_row(
               "\{variable.name} · \{text(t, "app.ctx.data.used")}",
               variable.init,
               width - 16.0,
@@ -850,7 +850,7 @@ fn context_data(
     }
   }
   if rows.length() == 0 {
-    return empty_hint(text(t, "app.ctx.data.none"), width, 120.0)
+    return @chrome.empty_hint(text(t, "app.ctx.data.none"), width, 120.0)
   }
   @views.padding_xy(
     @views.column(rows, spacing=2.0),
@@ -872,7 +872,7 @@ fn context_actions(
     None =>
       match current_handler(model) {
         Some(handler) => handler.control_name
-        None => return empty_hint(text(t, "app.ctx.actions.none"), width, 120.0)
+        None => return @chrome.empty_hint(text(t, "app.ctx.actions.none"), width, 120.0)
       }
   }
   // 事件集合由控件种类决定（按钮只有 onClick、输入框还有 onChange）——
@@ -905,20 +905,20 @@ fn context_actions(
     rows.push(
       @views.container(
         @views.padding_xy(
-          fill_row(
+          @chrome.fill_row(
             [
               @views.text(
                 text(t, "event.\{event.tag()}"),
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=(width - 100.0).max(60.0),
                 height=18.0,
                 align=TextStart,
-              ).foreground(if selected { ide_text() } else { ide_text_muted() }),
+              ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
               @views.spacer(min_length=4.0, weight=1.0),
               if exists {
-                pill(text(t, "app.ctx.actions.ready"), ide_success(), 48.0)
+                @chrome.pill(text(t, "app.ctx.actions.ready"), @chrome.ide_success(), 48.0)
               } else {
-                pill(text(t, "app.ctx.actions.create"), ide_text_faint(), 48.0)
+                @chrome.pill(text(t, "app.ctx.actions.create"), @chrome.ide_text_faint(), 48.0)
               },
             ],
             (width - 16.0).max(80.0),
@@ -928,8 +928,8 @@ fn context_actions(
           horizontal=8.0,
           vertical=0.0,
         ),
-        background=if selected { ide_selection() } else { ide_panel() },
-        height=TREE_ROW_HEIGHT,
+        background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
+        height=@chrome.TREE_ROW_HEIGHT,
         width~,
         padding=0.0,
       ).on_tap(
@@ -957,7 +957,7 @@ fn context_deps(
     None =>
       match current_handler(model) {
         Some(handler) => handler.control_name
-        None => return empty_hint(text(t, "app.ctx.deps.none"), width, 120.0)
+        None => return @chrome.empty_hint(text(t, "app.ctx.deps.none"), width, 120.0)
       }
   }
   let rows : Array[@moui.View[Msg]] = []
@@ -965,7 +965,7 @@ fn context_deps(
   for handler in model.program.handlers {
     if handler.control_name == target {
       rows.push(
-        kv_row(
+        @chrome.kv_row(
           "\{text(t, "app.ctx.deps.bound")} · \{text(t, "event.\{handler.event.tag()}")}",
           "×\{handler.body.length()}",
           width - 16.0,
@@ -986,11 +986,11 @@ fn context_deps(
       }
     }
     if users > 0 {
-      rows.push(kv_row(variable.name, "×\{users}", width - 16.0, true))
+      rows.push(@chrome.kv_row(variable.name, "×\{users}", width - 16.0, true))
     }
   }
   if rows.length() == 0 {
-    return empty_hint(text(t, "app.ctx.deps.empty"), width, 120.0)
+    return @chrome.empty_hint(text(t, "app.ctx.deps.empty"), width, 120.0)
   }
   @views.padding_xy(
     @views.column(rows, spacing=2.0),
@@ -1011,7 +1011,7 @@ fn quick_actions(
     Some(control) => Some(control.name)
     None => None
   }
-  let head = panel_head(text(t, "app.qa.title"), "", [], width)
+  let head = @chrome.panel_head(text(t, "app.qa.title"), "", [], width)
   let buttons : Array[@moui.View[Msg]] = []
   match target {
     None =>
@@ -1020,15 +1020,15 @@ fn quick_actions(
           @views.padding_xy(
             @views.text(
               text(t, "app.qa.none"),
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               width=(width - 20.0).max(60.0),
               height=18.0,
               align=TextStart,
-            ).foreground(ide_text_faint()),
+            ).foreground(@chrome.ide_text_faint()),
             horizontal=8.0,
             vertical=0.0,
           ),
-          height=TREE_ROW_HEIGHT,
+          height=@chrome.TREE_ROW_HEIGHT,
           width~,
           padding=0.0,
         ),
@@ -1055,8 +1055,8 @@ fn quick_actions(
       buttons.push(
         @views.padding_xy(
           // 行必须定宽：不定宽的 row 量不到 slack，六个按钮会挤成一段
-          // 并被容器居中（见 fill_row 注释）。
-          fill_row(
+          // 并被容器居中（见 @chrome.fill_row 注释）。
+          @chrome.fill_row(
             [
               icon_button(
                 ChevronLeft,
@@ -1127,7 +1127,7 @@ fn quick_actions(
     @views.column([head, @views.column(buttons, spacing=0.0)], spacing=0.0).frame(
       width~,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     padding=0.0,
   )
@@ -1140,10 +1140,10 @@ fn watch_pane(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let head = panel_head(
+  let head = @chrome.panel_head(
     text(t, "app.watch.title"),
     "",
-    [count_badge(watch_rows(model).length().to_string(), 0)],
+    [@chrome.count_badge(watch_rows(model).length().to_string(), 0)],
     width,
     trailing_widths=[56.0],
   )
@@ -1155,11 +1155,11 @@ fn watch_pane(
         @views.padding_xy(
           @views.text(
             text(t, "app.watch.empty"),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 20.0).max(60.0),
             height=18.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
           horizontal=8.0,
           vertical=4.0,
         ),
@@ -1171,8 +1171,8 @@ fn watch_pane(
     for row in rows {
       // 名称/类型按内容算宽（变量允许中文语义命名，写死 72 会截断），
       // 值列拿剩余；类型标签用 TextEnd 贴齐。
-      let name_w = (text_estimate_width(row.name) * 1.02 + 8.0).max(48.0)
-      let type_w = (text_estimate_width(row.type_label) * 1.02 + 8.0).max(36.0)
+      let name_w = (@chrome.text_estimate_width(row.name) * 1.02 + 8.0).max(48.0)
+      let type_w = (@chrome.text_estimate_width(row.type_label) * 1.02 + 8.0).max(36.0)
       body.push(
         @views.container(
           @views.padding_xy(
@@ -1180,26 +1180,26 @@ fn watch_pane(
               [
                 @views.text(
                   row.name,
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   width=name_w,
                   height=18.0,
                   align=TextStart,
-                ).foreground(ide_text_muted()),
+                ).foreground(@chrome.ide_text_muted()),
                 @views.text(
                   row.value,
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   role=Mono,
                   width=(width - 32.0 - name_w - type_w).max(40.0),
                   height=18.0,
                   align=TextStart,
-                ).foreground(ide_text()),
+                ).foreground(@chrome.ide_text()),
                 @views.text(
                   row.type_label,
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   width=type_w,
                   height=16.0,
                   align=TextEnd,
-                ).foreground(ide_text_faint()),
+                ).foreground(@chrome.ide_text_faint()),
               ],
               spacing=4.0,
               align=Center,
@@ -1207,7 +1207,7 @@ fn watch_pane(
             horizontal=8.0,
             vertical=0.0,
           ),
-          height=TREE_ROW_HEIGHT,
+          height=@chrome.TREE_ROW_HEIGHT,
           width~,
           padding=0.0,
         ),
@@ -1216,7 +1216,7 @@ fn watch_pane(
   }
   @views.container(
     @views.column([head, @views.column(body, spacing=0.0)], spacing=0.0),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     padding=0.0,
   )
@@ -1238,14 +1238,14 @@ fn ai_action_chip(
     @views.center(
       @views.text(
         label,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(width - 10.0).max(20.0),
         height=16.0,
-      ).foreground(ide_accent()),
+      ).foreground(@chrome.ide_accent()),
       width~,
       height~,
     ),
-    background=ide_accent_soft(),
+    background=@chrome.ide_accent_soft(),
     corner_radius=4.0,
     width~,
     height~,
@@ -1275,10 +1275,10 @@ fn window_props(
         model.program.window.title,
         on_input=value => SetWindowTitle(value),
         width=field_width,
-        height=FIELD_HEIGHT,
+        height=@chrome.FIELD_HEIGHT,
       ),
       field_label(t, "app.inspector.window_size", width),
-      kv_row(
+      @chrome.kv_row(
         text(t, "app.inspector.design_size"),
         "\{@ir.DESIGN_WIDTH} × \{@ir.DESIGN_HEIGHT}",
         width,
@@ -1289,18 +1289,18 @@ fn window_props(
         model.program.window.timer_interval.to_string(),
         on_input=value => SetTimerInterval(value),
         width=field_width,
-        height=FIELD_HEIGHT,
+        height=@chrome.FIELD_HEIGHT,
       ),
-      hint_lines_view(
+      @chrome.hint_lines_view(
         text(t, "app.inspector.window_size_hint"),
         width,
-        ide_text_faint(),
+        @chrome.ide_text_faint(),
         3,
       ),
-      hint_lines_view(
+      @chrome.hint_lines_view(
         text(t, "app.inspector.timer_hint"),
         width,
-        ide_text_faint(),
+        @chrome.ide_text_faint(),
         2,
       ),
       // 窗体级处理器（切片 G）：定时器 / 广播——不属于任何控件
@@ -1329,7 +1329,7 @@ fn window_event_rows(
       CreateHandler("", event)
     }
     let label = text(t, "event.\{event.tag()}")
-    let action_w = text_estimate_width(
+    let action_w = @chrome.text_estimate_width(
         text(
           t,
           if exists {
@@ -1343,15 +1343,15 @@ fn window_event_rows(
     rows.push(
       @views.container(
         @views.padding_xy(
-          fill_row(
+          @chrome.fill_row(
             [
               @views.text(
                 label,
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=(width - action_w - 40.0).max(60.0),
                 height=18.0,
                 align=TextStart,
-              ).foreground(if selected { ide_text() } else { ide_text_muted() }),
+              ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
               foot_chip_like(
                 text(
                   t,
@@ -1372,7 +1372,7 @@ fn window_event_rows(
           horizontal=8.0,
           vertical=2.0,
         ),
-        background=if selected { ide_selection() } else { ide_panel() },
+        background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
         width~,
         height=26.0,
         padding=0.0,
@@ -1392,7 +1392,7 @@ fn variable_props(
 ) -> @moui.View[Msg] {
   let variable = match selected_variable(model) {
     Some(variable) => variable
-    None => return empty_hint(text(t, "app.inspector.gone"), width, 120.0)
+    None => return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
   }
   let field_width = (width - 90.0).max(80.0)
   @views.column(
@@ -1402,25 +1402,25 @@ fn variable_props(
         variable.name,
         on_input=value => RenameVariable(variable.name, value),
         width=field_width,
-        height=FIELD_HEIGHT,
+        height=@chrome.FIELD_HEIGHT,
       ),
       field_label(t, "app.inspector.init", width),
       @views.text_field(
         variable.init,
         on_input=value => SetVariableInit(variable.name, value),
         width=field_width,
-        height=FIELD_HEIGHT,
+        height=@chrome.FIELD_HEIGHT,
       ),
-      hint_lines_view(
+      @chrome.hint_lines_view(
         text(t, "app.inspector.variable_hint"),
         width,
-        ide_text_faint(),
+        @chrome.ide_text_faint(),
         2,
       ),
-      action_chip(
+      @chrome.action_chip(
         text(t, "app.inspector.delete_variable"),
         DeleteVariable(variable.name),
-        Quiet,
+        @chrome.Quiet,
         28.0,
       ),
     ],
@@ -1450,7 +1450,7 @@ fn function_props(
 ) -> @moui.View[Msg] {
   let func = match selected_function(model) {
     Some(func) => func
-    None => return empty_hint(text(t, "app.inspector.gone"), width, 120.0)
+    None => return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
   }
   let field_width = (width - 90.0).max(80.0)
   let rows : Array[@moui.View[Msg]] = [
@@ -1459,28 +1459,28 @@ fn function_props(
       func.name,
       on_input=new_value => RenameFunction(func.name, new_value),
       width=field_width,
-      height=FIELD_HEIGHT,
+      height=@chrome.FIELD_HEIGHT,
     ),
     field_label(t, "app.inspector.function_params", width),
     @views.text(
       text_with(t, "app.inspector.function_param_count", [
         ("count", func.params.length().to_string()),
       ]),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=field_width,
       height=20.0,
       align=TextStart,
-    ).foreground(ide_text_muted()),
+    ).foreground(@chrome.ide_text_muted()),
     field_label(t, "app.inspector.function_body", width),
     @views.text(
       text_with(t, "app.inspector.function_body_hint", [
         ("count", func.body.length().to_string()),
       ]),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=field_width,
       height=20.0,
       align=TextStart,
-    ).foreground(ide_text_muted()),
+    ).foreground(@chrome.ide_text_muted()),
   ]
   @views.column(rows, spacing=6.0)
 }
@@ -1493,14 +1493,14 @@ fn data_props(
 ) -> @moui.View[Msg] {
   let entry = match selected_data_file(model) {
     Some(entry) => entry
-    None => return empty_hint(text(t, "app.inspector.gone"), width, 120.0)
+    None => return @chrome.empty_hint(text(t, "app.inspector.gone"), width, 120.0)
   }
   @views.column(
     [
       field_label(t, "app.inspector.data_source", width),
-      kv_row(text(t, "app.inspector.name"), entry.name, width, false),
-      kv_row(text(t, "app.inspector.data_meta"), entry.meta, width, true),
-      kv_row(
+      @chrome.kv_row(text(t, "app.inspector.name"), entry.name, width, false),
+      @chrome.kv_row(text(t, "app.inspector.data_meta"), entry.meta, width, true),
+      @chrome.kv_row(
         text(t, "app.inspector.data_access"),
         if entry.locked {
           text(t, "app.data.readonly")
@@ -1519,24 +1519,24 @@ fn data_props(
             } else {
               entry.preview
             },
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Mono,
             width=(width - 12.0).max(60.0),
             height=120.0,
             align=TextStart,
-          ).foreground(ide_text_muted()),
+          ).foreground(@chrome.ide_text_muted()),
           horizontal=4.0,
           vertical=4.0,
         ),
-        background=ide_editor_background(),
+        background=@chrome.ide_editor_background(),
         corner_radius=4.0,
         width~,
         padding=0.0,
       ),
-      hint_lines_view(
+      @chrome.hint_lines_view(
         text(t, "app.inspector.data_hint"),
         width,
-        ide_text_faint(),
+        @chrome.ide_text_faint(),
         3,
       ),
     ],
@@ -1555,16 +1555,16 @@ fn context_runtime(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let refresh_w = text_estimate_width(text(t, "app.runtime.refresh")) + 34.0
-  let head = fill_row(
+  let refresh_w = @chrome.text_estimate_width(text(t, "app.runtime.refresh")) + 34.0
+  let head = @chrome.fill_row(
     [
       @views.text(
         text(t, "app.runtime.title"),
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(width - refresh_w - 30.0).max(60.0),
         height=18.0,
         align=TextStart,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
       foot_chip_like(text(t, "app.runtime.refresh"), refresh_w, RuntimeRefresh),
     ],
     (width - 16.0).max(80.0),
@@ -1579,16 +1579,16 @@ fn context_runtime(
           @views.padding_xy(
             @views.text(
               sample.summary,
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               role=Mono,
               width=(width - 24.0).max(80.0),
               height=16.0,
               align=TextStart,
-            ).foreground(ide_ir_highlight()),
+            ).foreground(@chrome.ide_ir_highlight()),
             horizontal=8.0,
             vertical=4.0,
           ),
-          background=ide_panel_alt(),
+          background=@chrome.ide_panel_alt(),
           width~,
           padding=0.0,
         ),
@@ -1603,16 +1603,16 @@ fn context_runtime(
                 } else {
                   line.to_owned()
                 },
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 role=Mono,
                 width=(width - 24.0).max(80.0),
                 height=16.0,
                 align=TextStart,
-              ).foreground(ide_text_muted()),
+              ).foreground(@chrome.ide_text_muted()),
               horizontal=8.0,
               vertical=1.0,
             ),
-            background=ide_panel(),
+            background=@chrome.ide_panel(),
             width~,
             padding=0.0,
           ),
@@ -1632,15 +1632,15 @@ fn context_runtime(
                   "app.runtime.hint"
                 },
               ),
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               width=(width - 24.0).max(80.0),
               height=16.0,
               align=TextStart,
-            ).foreground(ide_text_faint()),
+            ).foreground(@chrome.ide_text_faint()),
             horizontal=8.0,
             vertical=6.0,
           ),
-          background=ide_panel(),
+          background=@chrome.ide_panel(),
           width~,
           padding=0.0,
         ),
@@ -1653,15 +1653,15 @@ fn context_runtime(
         @views.padding_xy(
           @views.text(
             text(t, "app.runtime.history"),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 24.0).max(80.0),
             height=16.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
           horizontal=8.0,
           vertical=4.0,
         ),
-        background=ide_panel(),
+        background=@chrome.ide_panel(),
         width~,
         padding=0.0,
       ),
@@ -1672,16 +1672,16 @@ fn context_runtime(
           @views.padding_xy(
             @views.text(
               summary,
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               role=Mono,
               width=(width - 24.0).max(80.0),
               height=16.0,
               align=TextStart,
-            ).foreground(ide_text_faint()),
+            ).foreground(@chrome.ide_text_faint()),
             horizontal=8.0,
             vertical=1.0,
           ),
-          background=ide_panel(),
+          background=@chrome.ide_panel(),
           width~,
           padding=0.0,
         ),
@@ -1703,14 +1703,14 @@ fn foot_chip_like(
     @views.center(
       @views.text(
         label,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(width - 6.0).max(20.0),
         height=16.0,
-      ).foreground(ide_accent()),
+      ).foreground(@chrome.ide_accent()),
       width~,
       height=22.0,
     ),
-    background=ide_accent_soft(),
+    background=@chrome.ide_accent_soft(),
     corner_radius=4.0,
     width~,
     height=22.0,
@@ -1730,23 +1730,23 @@ fn color_swatch(hex : String) -> @moui.View[Msg] {
         @views.text("", width=1.0, height=1.0),
         background=color,
         corner_radius=10.0,
-        width=FIELD_HEIGHT - 4.0,
-        height=FIELD_HEIGHT - 4.0,
+        width=@chrome.FIELD_HEIGHT - 4.0,
+        height=@chrome.FIELD_HEIGHT - 4.0,
         padding=0.0,
       )
     None =>
       @views.container(
         @views.text("", width=1.0, height=1.0),
-        background=ide_panel_alt(),
+        background=@chrome.ide_panel_alt(),
         border=Some(
           @graphics.BorderStyle::new(
-            brush=@graphics.Brush::solid(ide_border()),
+            brush=@graphics.Brush::solid(@chrome.ide_border()),
             width=1.0,
           ),
         ),
         corner_radius=10.0,
-        width=FIELD_HEIGHT - 4.0,
-        height=FIELD_HEIGHT - 4.0,
+        width=@chrome.FIELD_HEIGHT - 4.0,
+        height=@chrome.FIELD_HEIGHT - 4.0,
         padding=0.0,
       )
   }

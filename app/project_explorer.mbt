@@ -24,7 +24,7 @@
 
 ///|
 /// 资源管理器扁平行（虚拟化列表的数据项）：树形结构展平成行序列,
-/// 行类型决定渲染分支。树行固定 24pt 高（TREE_ROW_HEIGHT）,与
+/// 行类型决定渲染分支。树行固定 24pt 高（@chrome.TREE_ROW_HEIGHT）,与
 /// `virtual_list` 的固定步长窗口化契合——大目录只实例化可见行,
 /// 展开/滚动不再整树重建（卡顿根因）。
 ///
@@ -74,12 +74,12 @@ pub fn project_explorer(
       progress.push(
         @views.padding_xy(
           @views.text(
-            fit_label(line, (width - 24.0).max(60.0)),
-            theme=studio_theme(),
+            @chrome.fit_label(line, (width - 24.0).max(60.0)),
+            theme=@chrome.studio_theme(),
             width=(width - 24.0).max(60.0),
             height=16.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
           horizontal=12.0,
           vertical=2.0,
         ),
@@ -94,7 +94,7 @@ pub fn project_explorer(
   // 「滚动后行消失」。
   let rows : Array[ExplorerRow] = explorer_rows(model, t)
   let toolbar_height = explorer_toolbar_height(model)
-  let viewport_height = (height - toolbar_height - 4.0).max(TREE_ROW_HEIGHT)
+  let viewport_height = (height - toolbar_height - 4.0).max(@chrome.TREE_ROW_HEIGHT)
   let clamped_y = explorer_clamp_scroll_y(
     rows.length(),
     viewport_height,
@@ -104,7 +104,7 @@ pub fn project_explorer(
     rows,
     row => explorer_row_key(row),
     explorer_row_view(model, t, width~),
-    item_height=TREE_ROW_HEIGHT,
+    item_height=@chrome.TREE_ROW_HEIGHT,
     viewport_height~,
     spacing=0.0,
     overscan=8,
@@ -137,7 +137,7 @@ fn explorer_toolbar_height(model : Model) -> Double {
   // 溢出菜单展开时按行数加高（不变量:菜单行数与 `explorer_overflow_menu`
   // 实际产出的行数必须一致,否则视口会多算/少算一屏）。
   let menu = if model.explorer_menu_open {
-    EXPLORER_MENU_ROWS.to_double() * TREE_ROW_HEIGHT
+    EXPLORER_MENU_ROWS.to_double() * @chrome.TREE_ROW_HEIGHT
   } else {
     0.0
   }
@@ -174,14 +174,14 @@ fn explorer_toolbar(
         @views.padding_edges(
           @views.row(
             [
-              @views.icon(FolderOpen, size=13.0, color=ide_accent()),
+              @views.icon(FolderOpen, size=13.0, color=@chrome.ide_accent()),
               @views.text(
                 text(t, "app.project.import"),
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=(width - 60.0).max(60.0),
                 height=18.0,
                 align=TextStart,
-              ).foreground(ide_accent()),
+              ).foreground(@chrome.ide_accent()),
             ],
             spacing=6.0,
             align=Center,
@@ -239,15 +239,15 @@ fn explorer_toolbar(
       ToggleExplorerMenu,
     ).background(
       if model.explorer_menu_open {
-        ide_hover()
+        @chrome.ide_hover()
       } else {
-        ide_panel()
+        @chrome.ide_panel()
       },
     ),
   )
   let action_row = @views.container(
     @views.padding_edges(
-      fill_row(actions_row, width, 2.0, Center),
+      @chrome.fill_row(actions_row, width, 2.0, Center),
       left=8.0,
       right=8.0,
     ),
@@ -288,16 +288,16 @@ fn explorer_overflow_menu(
         @views.padding_edges(
           @views.text(
             label,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 32.0).max(60.0),
             height=18.0,
             align=TextStart,
-          ).foreground(if enabled { ide_text() } else { ide_text_faint() }),
+          ).foreground(if enabled { @chrome.ide_text() } else { @chrome.ide_text_faint() }),
           left=14.0,
           right=8.0,
         ),
-        background=ide_panel_alt(),
-        height=TREE_ROW_HEIGHT,
+        background=@chrome.ide_panel_alt(),
+        height=@chrome.TREE_ROW_HEIGHT,
         width~,
         padding=0.0,
       ).on_tap(if enabled { message } else { Msg::Noop }),
@@ -327,7 +327,7 @@ fn explorer_tool_icon(
       @views.icon(
         icon,
         size=13.0,
-        color=if enabled { ide_text_muted() } else { ide_text_faint() },
+        color=if enabled { @chrome.ide_text_muted() } else { @chrome.ide_text_faint() },
       ),
       width=22.0,
       height=18.0,
@@ -1227,22 +1227,22 @@ fn project_dir_meta(
 /// 文件类型图标（VS Code 的 Seti 口径:一眼看出这是什么文件）。
 fn file_icon(name : String) -> @style.IconName {
   match file_tint(name) {
-    TintCode => FileCode
-    TintDoc => FileMarkdown
-    TintConfig => FileJson
-    TintAsset => FileImage
-    TintPlain => File
+    @chrome.TintCode => FileCode
+    @chrome.TintDoc => FileMarkdown
+    @chrome.TintConfig => FileJson
+    @chrome.TintAsset => FileImage
+    @chrome.TintPlain => File
   }
 }
 
 ///|
 /// 文件名的类型色系（图标形状与颜色共用同一个判据——两处各写一遍后缀
 /// 列表,迟早会出现「形状是 JSON、颜色是文档」这种自相矛盾的行）。
-fn file_tint(name : String) -> IconTint {
+fn file_tint(name : String) -> @chrome.IconTint {
   if name.has_suffix(".mbt") || name.has_suffix(".mbti") {
-    TintCode
+    @chrome.TintCode
   } else if name.has_suffix(".md") || name.has_suffix(".markdown") {
-    TintDoc
+    @chrome.TintDoc
   } else if name.has_suffix(".json") ||
     name.has_suffix(".mod") ||
     name.has_suffix(".work") ||
@@ -1250,7 +1250,7 @@ fn file_tint(name : String) -> IconTint {
     name.has_suffix(".toml") ||
     name.has_suffix(".yaml") ||
     name.has_suffix(".yml") {
-    TintConfig
+    @chrome.TintConfig
   } else if name.has_suffix(".png") ||
     name.has_suffix(".jpg") ||
     name.has_suffix(".jpeg") ||
@@ -1258,9 +1258,9 @@ fn file_tint(name : String) -> IconTint {
     name.has_suffix(".webp") ||
     name.has_suffix(".svg") ||
     name.has_suffix(".ico") {
-    TintAsset
+    @chrome.TintAsset
   } else {
-    TintPlain
+    @chrome.TintPlain
   }
 }
 
@@ -1278,7 +1278,7 @@ pub fn explorer_clamp_scroll_y(
   viewport_height : Double,
   scroll_y : Double,
 ) -> Double {
-  let max_scroll = (row_count.to_double() * TREE_ROW_HEIGHT - viewport_height).max(
+  let max_scroll = (row_count.to_double() * @chrome.TREE_ROW_HEIGHT - viewport_height).max(
     0.0,
   )
   if scroll_y < 0.0 {
@@ -1300,7 +1300,7 @@ pub fn explorer_dir_scroll_target(
   rel : String,
 ) -> @core.Point {
   let target = explorer_find_dir_row(model, index, rel)
-  @core.Point::new(x=0.0, y=target.to_double() * TREE_ROW_HEIGHT)
+  @core.Point::new(x=0.0, y=target.to_double() * @chrome.TREE_ROW_HEIGHT)
 }
 
 ///|
@@ -1369,7 +1369,7 @@ fn explorer_input_action(
 ) -> @moui.View[Msg] {
   @views.text(
     glyph,
-    theme=studio_theme(),
+    theme=@chrome.studio_theme(),
     width=20.0,
     height=16.0,
     align=TextCenter,
@@ -1403,10 +1403,10 @@ fn explorer_guides(depth : Int) -> @moui.View[Msg] {
         @views.divider(
           axis=@core.Axis::Vertical,
           thickness=1.0,
-          color=ide_border_soft(),
+          color=@chrome.ide_border_soft(),
         ),
         width=EXPLORER_INDENT_STEP,
-        height=TREE_ROW_HEIGHT - 8.0,
+        height=@chrome.TREE_ROW_HEIGHT - 8.0,
         background=@core.Color::rgba(r=0.0, g=0.0, b=0.0, a=0.0),
       ),
     )
@@ -1474,7 +1474,7 @@ fn explorer_section_row(
             ChevronRight
           },
           size=12.0,
-          color=ide_text_muted(),
+          color=@chrome.ide_text_muted(),
         ),
         width=14.0,
         height=16.0,
@@ -1485,32 +1485,32 @@ fn explorer_section_row(
     ),
     @views.text(
       label,
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=(width - 74.0).max(48.0),
       height=18.0,
       align=TextStart,
-    ).foreground(ide_text()),
+    ).foreground(@chrome.ide_text()),
   ]
   if count > 0 {
     cells.push(
       @views.text(
         count.to_string(),
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         role=Caption,
         width=24.0,
         height=16.0,
         align=TextEnd,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
     )
   }
   @views.container(
     @views.padding_edges(
-      fill_row(cells, (width - 8.0).max(80.0), 4.0, Center),
+      @chrome.fill_row(cells, (width - 8.0).max(80.0), 4.0, Center),
       left=8.0,
       right=12.0,
     ),
-    background=ide_panel(),
-    height=TREE_ROW_HEIGHT,
+    background=@chrome.ide_panel(),
+    height=@chrome.TREE_ROW_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -1528,16 +1528,16 @@ fn explorer_empty_row(
   @views.container(
     @views.padding_edges(
       @views.text(
-        fit_label(line, (width - explorer_indent(depth) - 20.0).max(60.0)),
-        theme=studio_theme(),
+        @chrome.fit_label(line, (width - explorer_indent(depth) - 20.0).max(60.0)),
+        theme=@chrome.studio_theme(),
         width=(width - explorer_indent(depth) - 20.0).max(60.0),
         height=18.0,
         align=TextStart,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
       left=explorer_indent(depth),
       right=12.0,
     ),
-    height=TREE_ROW_HEIGHT,
+    height=@chrome.TREE_ROW_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -1562,18 +1562,18 @@ fn explorer_input_row(
   let placeholder = if renaming { "" } else { "name" }
   let indent = explorer_indent(depth)
   let commit_view = if renaming {
-    explorer_input_action("✓", ide_accent(), FileRenameCommit)
+    explorer_input_action("✓", @chrome.ide_accent(), FileRenameCommit)
   } else if creating_folder {
-    explorer_input_action("✓", ide_accent(), FolderCreateCommit)
+    explorer_input_action("✓", @chrome.ide_accent(), FolderCreateCommit)
   } else {
-    explorer_input_action("✓", ide_accent(), FileCreateCommit)
+    explorer_input_action("✓", @chrome.ide_accent(), FileCreateCommit)
   }
   let dismiss_view = if renaming {
-    explorer_input_action("×", ide_text_faint(), FileRenameDismiss)
+    explorer_input_action("×", @chrome.ide_text_faint(), FileRenameDismiss)
   } else if creating_folder {
-    explorer_input_action("×", ide_text_faint(), FolderCreateDismiss)
+    explorer_input_action("×", @chrome.ide_text_faint(), FolderCreateDismiss)
   } else {
-    explorer_input_action("×", ide_text_faint(), FileCreateDismiss)
+    explorer_input_action("×", @chrome.ide_text_faint(), FileCreateDismiss)
   }
   let on_input = value => {
     if renaming {
@@ -1606,8 +1606,8 @@ fn explorer_input_row(
       left=indent - EXPLORER_INDENT_STEP,
       right=10.0,
     ),
-    background=ide_panel(),
-    height=TREE_ROW_HEIGHT,
+    background=@chrome.ide_panel(),
+    height=@chrome.TREE_ROW_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -1635,14 +1635,14 @@ fn explorer_root_row(
     twisty=Some(ToggleProjectDirAt(index, "")),
     expanded~,
     icon=if expanded { FolderOpened } else { Folder },
-    icon_color=if active { ide_accent() } else { ide_text_muted() },
+    icon_color=if active { @chrome.ide_accent() } else { @chrome.ide_text_muted() },
     label=name,
     meta=project_entry_meta_of(model, index),
     selected=active,
     width~,
     on_click=Some(SetActiveProject(index)),
     trailing=Some(
-      @views.icon(Trash, size=12.0, color=ide_text()).on_tap(
+      @views.icon(Trash, size=12.0, color=@chrome.ide_text()).on_tap(
         RemoveProject(index),
       ),
     ),
@@ -1672,7 +1672,7 @@ fn explorer_dir_row(
     twisty=Some(ToggleProjectDirAt(index, rel)),
     expanded~,
     icon=if expanded { FolderOpened } else { Folder },
-    icon_color=ide_text_muted(),
+    icon_color=@chrome.ide_text_muted(),
     label~,
     meta~,
     selected=false,
@@ -1731,7 +1731,7 @@ fn explorer_row_action(
 ) -> @moui.View[Msg] {
   @views.container(
     @views.center(
-      @views.icon(icon, size=12.0, color=ide_text()),
+      @views.icon(icon, size=12.0, color=@chrome.ide_text()),
       width=16.0,
       height=16.0,
     ),
@@ -1764,7 +1764,7 @@ fn explorer_file_row(
     expanded=false,
     icon=file_icon(name),
     // 类型色（Seti 口径）:颜色是「这是什么文件」的第一眼线索
-    icon_color=ide_file_color(file_tint(name)),
+    icon_color=@chrome.ide_file_color(file_tint(name)),
     label=name,
     meta="",
     selected~,
@@ -1811,9 +1811,9 @@ fn explorer_editor_row(
     expanded=false,
     icon=file_icon(name),
     icon_color=if active {
-      ide_accent()
+      @chrome.ide_accent()
     } else {
-      ide_file_color(file_tint(name))
+      @chrome.ide_file_color(file_tint(name))
     },
     label=name,
     meta=if dirty { "●" } else { "" },
@@ -1823,12 +1823,12 @@ fn explorer_editor_row(
     trailing=Some(
       @views.text(
         "×",
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=14.0,
         height=16.0,
         align=TextCenter,
       )
-      .foreground(ide_text_faint())
+      .foreground(@chrome.ide_text_faint())
       .on_tap(CloseFileTab(index)),
     ),
     trailing_width=18.0,
@@ -1850,19 +1850,19 @@ fn explorer_outline_row(
           explorer_guides(EXPLORER_SECTION_INDENT + depth),
           @views.text(
             name,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 96.0 - depth.to_double() * 8.0).max(48.0),
             height=18.0,
             align=TextStart,
-          ).foreground(ide_text()),
+          ).foreground(@chrome.ide_text()),
           @views.text(
             line.to_string(),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Caption,
             width=32.0,
             height=16.0,
             align=TextEnd,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
         ],
         spacing=4.0,
         align=Center,
@@ -1870,7 +1870,7 @@ fn explorer_outline_row(
       left=explorer_indent(EXPLORER_SECTION_INDENT),
       right=12.0,
     ),
-    height=TREE_ROW_HEIGHT,
+    height=@chrome.TREE_ROW_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -1890,30 +1890,30 @@ fn explorer_timeline_row(
         [
           @views.text(
             target,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=64.0,
             height=18.0,
             align=TextStart,
-          ).foreground(ide_text()),
+          ).foreground(@chrome.ide_text()),
           @views.text(
             if by_agent {
               "AI"
             } else {
               "·"
             },
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Caption,
             width=20.0,
             height=16.0,
             align=TextStart,
-          ).foreground(if by_agent { ide_accent() } else { ide_text_faint() }),
+          ).foreground(if by_agent { @chrome.ide_accent() } else { @chrome.ide_text_faint() }),
           @views.text(
             action,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 128.0).max(40.0),
             height=18.0,
             align=TextStart,
-          ).foreground(ide_text_muted()),
+          ).foreground(@chrome.ide_text_muted()),
         ],
         spacing=6.0,
         align=Center,
@@ -1921,7 +1921,7 @@ fn explorer_timeline_row(
       left=explorer_indent(EXPLORER_SECTION_INDENT),
       right=12.0,
     ),
-    height=TREE_ROW_HEIGHT,
+    height=@chrome.TREE_ROW_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -1972,21 +1972,21 @@ fn explorer_tree_row(
               ChevronRight
             },
             size=11.0,
-            color=ide_text_muted(),
+            color=@chrome.ide_text_muted(),
           ),
           width=14.0,
           height=16.0,
           background=@core.Color::rgba(r=0.0, g=0.0, b=0.0, a=0.0),
         ).on_tap(message)
       // 叶子占位:**透明空文本**——裸 container 会回落环境面板色,
-      // 在选中行(ide_selection 蓝)上读成黑方块(实测缺陷)。
+      // 在选中行(@chrome.ide_selection 蓝)上读成黑方块(实测缺陷)。
       None => @views.text("", width=14.0, height=16.0)
     },
     @views.icon(icon, size=13.0, color=icon_color),
   ]
   // 标签宽度必须**从剩余空间反推**,不能写死:有 meta 时会多出一个单元格
   // 加一条间距,写死的宽度会让整行溢出,行尾的 meta 被裁成「64」。
-  let meta_width = TREE_META_WIDTH
+  let meta_width = @chrome.TREE_META_WIDTH
   let reserved = 14.0 +
     13.0 +
     (if meta != "" { meta_width + 2.0 } else { 0.0 }) +
@@ -1997,22 +1997,22 @@ fn explorer_tree_row(
   cells.push(
     @views.text(
       label,
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=label_width,
       height=18.0,
       align=TextStart,
-    ).foreground(if selected { ide_text() } else { ide_text_muted() }),
+    ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
   )
   if meta != "" {
     cells.push(
       @views.text(
-        fit_label(meta, meta_width),
-        theme=studio_theme(),
+        @chrome.fit_label(meta, meta_width),
+        theme=@chrome.studio_theme(),
         role=Caption,
         width=meta_width,
         height=16.0,
         align=TextEnd,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
     )
   }
   // 尾部动作格:悬停才画,但**宽度始终占用**（占位见函数注释）。
@@ -2029,12 +2029,12 @@ fn explorer_tree_row(
   }
   let row = @views.container(
     @views.padding_edges(
-      fill_row(cells, (width - 8.0).max(80.0), 4.0, Center),
+      @chrome.fill_row(cells, (width - 8.0).max(80.0), 4.0, Center),
       left=indent - 4.0,
       right=12.0,
     ),
-    background=if selected { ide_selection() } else { ide_panel() },
-    height=TREE_ROW_HEIGHT,
+    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
+    height=@chrome.TREE_ROW_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -2133,7 +2133,7 @@ pub fn file_icon_for_test(name : String) -> @style.IconName {
 
 ///|
 /// 文件类型色系探针（形状与颜色必须同源）。
-pub fn file_tint_for_test(name : String) -> IconTint {
+pub fn file_tint_for_test(name : String) -> @chrome.IconTint {
   file_tint(name)
 }
 

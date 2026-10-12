@@ -162,7 +162,7 @@ test "run arms the stage with empty label; bottom bar spans the full width (e2e)
     msg="the greeting must not appear before the button is clicked",
   )
   // ② 底栏铺满整行：底栏条带里有面板底色的矩形横贯（宽 ≥ 内容行的 95%）
-  let panel = ide_panel()
+  let panel = @chrome.ide_panel()
   let commands = runtime.draw_commands()
   let mut bar_width = 0.0
   for command in commands {

@@ -652,7 +652,7 @@ pub(all) struct Model {
   split_ratio : Double
   // 左栏视图（图标栏切换；收起时不占宽度）
   left_view : LeftView
-  // 左/右栏宽度（列间 sash 拖拽改宽；默认 = LEFTBAR/RIGHTBAR_WIDTH，
+  // 左/右栏宽度（列间 sash 拖拽改宽；默认 = LEFTBAR/@chrome.RIGHTBAR_WIDTH，
   // `shell_chrome_widths` 按它们分配三列，中心列吃剩余）
   left_width : Double
   right_width : Double
@@ -1516,8 +1516,8 @@ pub fn initial_model(
     pane_blocks: true,
     split_ratio: 0.55,
     left_view: LeftTree,
-    left_width: LEFTBAR_WIDTH,
-    right_width: RIGHTBAR_WIDTH,
+    left_width: @chrome.LEFTBAR_WIDTH,
+    right_width: @chrome.RIGHTBAR_WIDTH,
     perspective: PsVisual,
     right_view: RvContext,
     immersive,

@@ -253,7 +253,7 @@ test "画布交互:命令门控与 z-order" {
 }
 
 ///|
-/// G7.4:主题切换——ToggleUiDark 翻转模型;Ref 同步后 ide_text 走亮色档;
+/// G7.4:主题切换——ToggleUiDark 翻转模型;Ref 同步后 @chrome.ide_text 走亮色档;
 /// settings 持久化写 "0"/"1"。
 test "主题切换:翻转模型与 Ref 同步" {
   let services = @services.AppServices::new()
@@ -261,14 +261,14 @@ test "主题切换:翻转模型与 Ref 同步" {
   let toggled = update_with_services(initial_model(), ToggleUiDark, services).0
   assert_false(toggled.ui_dark)
   // 持久化值写盘(事件进 outbox 由组合根监听——这里断言模型翻转即可)
-  // Ref 同步:程序包装层每条消息做,测试直接调 set_ui_dark 验证两档
-  set_ui_dark(toggled.ui_dark)
-  assert_false(ui_is_dark())
-  // 亮色档下 ide_text 应为深色
-  let light_text = ide_text()
+  // Ref 同步:程序包装层每条消息做,测试直接调 @chrome.set_ui_dark 验证两档
+  @chrome.set_ui_dark(toggled.ui_dark)
+  assert_false(@chrome.ui_is_dark())
+  // 亮色档下 @chrome.ide_text 应为深色
+  let light_text = @chrome.ide_text()
   assert_true(light_text.r < 0.5, msg="亮色档文字应为深色")
-  set_ui_dark(true)
-  assert_true(ide_text().r > 0.5, msg="暗色档文字应为浅色")
+  @chrome.set_ui_dark(true)
+  assert_true(@chrome.ide_text().r > 0.5, msg="暗色档文字应为浅色")
 }
 
 ///|

@@ -19,7 +19,7 @@ pub fn search_pane(
       ),
       foot_chip(
         text(t, "app.search.run"),
-        text_estimate_width(text(t, "app.search.run")) + 24.0,
+        @chrome.text_estimate_width(text(t, "app.search.run")) + 24.0,
         model.search_busy,
         SearchRun,
       ),
@@ -36,20 +36,20 @@ pub fn search_pane(
         @views.column(
           [
             @views.text(
-              fit_label(label, (width - 40.0).max(60.0)),
-              theme=studio_theme(),
+              @chrome.fit_label(label, (width - 40.0).max(60.0)),
+              theme=@chrome.studio_theme(),
               role=Mono,
               width=(width - 40.0).max(60.0),
               height=14.0,
               align=TextStart,
-            ).foreground(ide_accent()),
+            ).foreground(@chrome.ide_accent()),
             @views.text(
-              fit_label(hit.preview, (width - 40.0).max(60.0)),
-              theme=studio_theme(),
+              @chrome.fit_label(hit.preview, (width - 40.0).max(60.0)),
+              theme=@chrome.studio_theme(),
               width=(width - 40.0).max(60.0),
               height=14.0,
               align=TextStart,
-            ).foreground(ide_text()),
+            ).foreground(@chrome.ide_text()),
           ],
           spacing=1.0,
         ),
@@ -62,19 +62,19 @@ pub fn search_pane(
   let body : @moui.View[Msg] = if model.search_busy {
     @views.text(
       text(t, "app.search.running"),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=(width - 24.0).max(60.0),
       height=18.0,
       align=TextStart,
-    ).foreground(ide_text_faint())
+    ).foreground(@chrome.ide_text_faint())
   } else if model.search_hits.is_empty() {
     @views.text(
       text(t, "app.search.empty"),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=(width - 24.0).max(60.0),
       height=18.0,
       align=TextStart,
-    ).foreground(ide_text_faint())
+    ).foreground(@chrome.ide_text_faint())
   } else {
     @views.scroll_view(
       @views.column(hit_rows, spacing=0.0),
@@ -85,7 +85,7 @@ pub fn search_pane(
   }
   @views.container(
     @views.column([input_row, body], spacing=6.0),
-    background=ide_editor_background(),
+    background=@chrome.ide_editor_background(),
     width~,
     height~,
     padding=0.0,

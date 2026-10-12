@@ -79,7 +79,7 @@ test "long artifact paths keep head and tail inside the budget" {
   let budget = 300.0
   let fitted = @app.middle_ellipsis(long, budget)
   // 一定进预算（否则仍会被父容器裁掉）
-  assert_true(@app.text_estimate_width(fitted) <= budget)
+  assert_true(@chrome.text_estimate_width(fitted) <= budget)
   // 省略号在场，且头尾都是原文的保真片段
   assert_true(fitted.contains("…"))
   assert_true(fitted.has_prefix("/var/folders"))
@@ -99,7 +99,7 @@ test "middle ellipsis stays within budget at extreme widths" {
   for budget in [40.0, 80.0, 120.0, 200.0] {
     let fitted = @app.middle_ellipsis(long, budget)
     // 硬约束：任何预算下都不得超宽（超了就会被父容器硬裁，又回到老问题）
-    assert_true(@app.text_estimate_width(fitted) <= budget)
+    assert_true(@chrome.text_estimate_width(fitted) <= budget)
     assert_true(fitted.contains("…"))
   }
   // 预算宽裕时头尾都在（这是尾部省略做不到的：它会把 .wasm 这个文件名切掉）

@@ -14,13 +14,13 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
   let rows : Array[@moui.View[Msg]] = [
     @views.text(
       text(t, "app.settings.title"),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       role=Subtitle,
       width=392.0,
       height=26.0,
       align=TextStart,
-    ).foreground(ide_text()),
-    @views.divider(color=ide_border()),
+    ).foreground(@chrome.ide_text()),
+    @views.divider(color=@chrome.ide_border()),
     group_label(t, "app.settings.group.workspace"),
     @views.row(
       [
@@ -101,14 +101,14 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
       spacing=8.0,
     ),
     // 编译轨可达性说明：英文版 687/893pt，同样折行。
-    hint_lines_view(
+    @chrome.hint_lines_view(
       if model.compile_track_available {
         text(t, "app.settings.compile.available")
       } else {
         text(t, "app.settings.compile.unavailable")
       },
       392.0,
-      ide_text_faint(),
+      @chrome.ide_text_faint(),
       3,
     ),
     group_label(t, "app.settings.group.appearance"),
@@ -155,25 +155,25 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
     plugin_row(model, t, "markdown"),
     @views.text(
       text(t, "app.plugin.static_note"),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=392.0,
       height=16.0,
       align=TextStart,
-    ).foreground(ide_text_faint()),
+    ).foreground(@chrome.ide_text_faint()),
     group_label(t, "app.settings.group.provider"),
     field_label(t, "app.ai.endpoint", 392.0),
     @views.text_field(
       model.provider_endpoint,
       on_input=value => SetProviderEndpoint(value),
       width=392.0,
-      height=FIELD_HEIGHT,
+      height=@chrome.FIELD_HEIGHT,
     ),
     field_label(t, "app.ai.model", 392.0),
     @views.text_field(
       model.provider_model,
       on_input=value => SetProviderModel(value),
       width=392.0,
-      height=FIELD_HEIGHT,
+      height=@chrome.FIELD_HEIGHT,
     ),
     field_label(t, "app.ai.key", 392.0),
     @views.row(
@@ -186,33 +186,33 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
           },
           on_input=value => SetProviderKey(value),
           width=320.0,
-          height=FIELD_HEIGHT,
+          height=@chrome.FIELD_HEIGHT,
         ),
-        action_chip(
+        @chrome.action_chip(
           text(t, "app.ai.reveal"),
           ToggleProviderKeyReveal,
-          Quiet,
-          FIELD_HEIGHT,
+          @chrome.Quiet,
+          @chrome.FIELD_HEIGHT,
         ),
       ],
       spacing=8.0,
     ),
     // 提示按可用宽折行——英文版这句话 766pt，392pt 的单行必然溢出。
-    hint_lines_view(text(t, "app.ai.key_hint"), 392.0, ide_warning(), 3),
-    @views.divider(color=ide_border()),
-    hint_lines_view(
+    @chrome.hint_lines_view(text(t, "app.ai.key_hint"), 392.0, @chrome.ide_warning(), 3),
+    @views.divider(color=@chrome.ide_border()),
+    @chrome.hint_lines_view(
       text(t, "app.settings.draft_hint"),
       392.0,
-      ide_text_faint(),
+      @chrome.ide_text_faint(),
       2,
     ),
-    fill_row(
+    @chrome.fill_row(
       [
         @views.spacer(min_length=4.0, weight=1.0),
-        action_chip(
+        @chrome.action_chip(
           text(t, "app.settings.close"),
           ToggleSettings,
-          Primary,
+          @chrome.Primary,
           28.0,
         ),
       ],
@@ -229,11 +229,11 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
       shows_indicator=true,
     ),
     width=432.0,
-    background=ide_elevated(),
+    background=@chrome.ide_elevated(),
     corner_radius=8.0,
     border=Some(
       @graphics.BorderStyle::new(
-        brush=@graphics.Brush::solid(ide_border()),
+        brush=@graphics.Brush::solid(@chrome.ide_border()),
         width=1.0,
       ),
     ),
@@ -256,11 +256,11 @@ fn mask_key(key : String) -> String {
 fn group_label(t : @i18n.Translator, key : String) -> @moui.View[Msg] {
   @views.text(
     text(t, key),
-    theme=studio_theme(),
+    theme=@chrome.studio_theme(),
     width=392.0,
     height=20.0,
     align=TextStart,
-  ).foreground(ide_accent())
+  ).foreground(@chrome.ide_accent())
 }
 
 // ============================================================================
@@ -276,23 +276,23 @@ pub fn ai_history_dialog(
   let rows : Array[@moui.View[Msg]] = [
     @views.text(
       text(t, "app.ai.history"),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       role=Subtitle,
       width=520.0,
       height=26.0,
       align=TextStart,
-    ).foreground(ide_text()),
-    @views.divider(color=ide_border()),
+    ).foreground(@chrome.ide_text()),
+    @views.divider(color=@chrome.ide_border()),
   ]
   if model.ai_sessions.current().proposal_history.length() == 0 {
     rows.push(
       @views.text(
         text(t, "app.ai.history.empty"),
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=520.0,
         height=24.0,
         align=TextStart,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
     )
   } else {
     // 新的在上（回放先看最近一次）
@@ -305,7 +305,7 @@ pub fn ai_history_dialog(
             [
               @views.row(
                 [
-                  count_badge(
+                  @chrome.count_badge(
                     "\{record.seq}",
                     if record.accepted {
                       1
@@ -319,24 +319,24 @@ pub fn ai_history_dialog(
                     } else {
                       text(t, "app.ai.hist_rejected")
                     },
-                    theme=studio_theme(),
+                    theme=@chrome.studio_theme(),
                     width=72.0,
                     height=18.0,
                     align=TextStart,
                   ).foreground(
                     if record.accepted {
-                      ide_success()
+                      @chrome.ide_success()
                     } else {
-                      ide_danger()
+                      @chrome.ide_danger()
                     },
                   ),
                   @views.text(
                     record.summary,
-                    theme=studio_theme(),
+                    theme=@chrome.studio_theme(),
                     width=380.0,
                     height=18.0,
                     align=TextStart,
-                  ).foreground(ide_text()),
+                  ).foreground(@chrome.ide_text()),
                 ],
                 spacing=6.0,
                 align=Center,
@@ -345,7 +345,7 @@ pub fn ai_history_dialog(
             ],
             spacing=4.0,
           ),
-          background=ide_panel(),
+          background=@chrome.ide_panel(),
           corner_radius=4.0,
           width=552.0,
           padding=8.0,
@@ -358,10 +358,10 @@ pub fn ai_history_dialog(
     @views.row(
       [
         @views.spacer(min_length=4.0, weight=1.0),
-        action_chip(
+        @chrome.action_chip(
           text(t, "app.settings.close"),
           ToggleAiHistory,
-          Primary,
+          @chrome.Primary,
           28.0,
         ),
       ],
@@ -371,11 +371,11 @@ pub fn ai_history_dialog(
   @views.container(
     @views.column(rows, spacing=6.0),
     width=520.0,
-    background=ide_elevated(),
+    background=@chrome.ide_elevated(),
     corner_radius=8.0,
     border=Some(
       @graphics.BorderStyle::new(
-        brush=@graphics.Brush::solid(ide_border()),
+        brush=@graphics.Brush::solid(@chrome.ide_border()),
         width=1.0,
       ),
     ),
@@ -400,7 +400,7 @@ fn diff_line_views(
       @proposals.Removed => ("-", entry.old_text)
       @proposals.Changed => ("-", entry.old_text)
     }
-    views.push(diff_row(marker, label, width))
+    views.push(@chrome.diff_row(marker, label, width))
     shown = shown + 1
   }
   views
@@ -462,18 +462,18 @@ fn toast_view(label : String, warning : Bool) -> @moui.View[Msg] {
       [
         @views.container(
           @views.text("", width=3.0, height=1.0),
-          background=if warning { ide_warning() } else { ide_success() },
+          background=if warning { @chrome.ide_warning() } else { @chrome.ide_success() },
           width=3.0,
           padding=0.0,
         ),
         @views.padding_xy(
           @views.text(
             label,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=300.0,
             height=20.0,
             align=TextStart,
-          ).foreground(ide_text()),
+          ).foreground(@chrome.ide_text()),
           horizontal=10.0,
           vertical=0.0,
         ),
@@ -481,11 +481,11 @@ fn toast_view(label : String, warning : Bool) -> @moui.View[Msg] {
       spacing=0.0,
       align=Center,
     ),
-    background=ide_elevated(),
+    background=@chrome.ide_elevated(),
     corner_radius=4.0,
     border=Some(
       @graphics.BorderStyle::new(
-        brush=@graphics.Brush::solid(ide_border()),
+        brush=@graphics.Brush::solid(@chrome.ide_border()),
         width=1.0,
       ),
     ),
@@ -581,15 +581,15 @@ pub fn ide_status_bar(
   @views.container(
     @views.row(
       [
-        status_cells(left_cells, left_width, false),
+        @chrome.status_cells(left_cells, left_width, false),
         @views.spacer(min_length=8.0, weight=1.0),
-        status_cells(right_cells, right_width, true),
+        @chrome.status_cells(right_cells, right_width, true),
       ],
       spacing=0.0,
       align=Center,
     ).frame(width~),
-    background=ide_panel_alt(),
-    height=STATUSBAR_HEIGHT,
+    background=@chrome.ide_panel_alt(),
+    height=@chrome.STATUSBAR_HEIGHT,
     padding=0.0,
   )
 }
@@ -915,18 +915,18 @@ fn plugin_row(
         [
           @views.text(
             text(t, name_key),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=220.0,
             height=16.0,
             align=TextStart,
-          ).foreground(ide_text()),
+          ).foreground(@chrome.ide_text()),
           @views.text(
             text(t, summary_key),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=220.0,
             height=14.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
         ],
         spacing=1.0,
       ),
@@ -955,22 +955,22 @@ fn shortcut_row(
     [
       @views.text(
         text(t, label_key),
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=180.0,
         height=16.0,
         align=TextStart,
-      ).foreground(ide_text()),
+      ).foreground(@chrome.ide_text()),
       @views.spacer(min_length=6.0, weight=1.0),
       @views.container(
         @views.text(
           keys,
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           role=Mono,
           width=120.0,
           height=16.0,
           align=TextCenter,
-        ).foreground(ide_text_faint()),
-        background=ide_panel(),
+        ).foreground(@chrome.ide_text_faint()),
+        background=@chrome.ide_panel(),
         width=128.0,
         height=20.0,
         padding=0.0,

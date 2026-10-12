@@ -37,7 +37,7 @@ pub fn view_with_viewport(
   let base = shell_view(model, t, width, height)
   // 命令面板 / 设置 / AI 历史三个模态共用一个 overlay_host（顶层唯一宿主）：
   // 多个宿主会各自维护 layer_stack，Escape 的「最上层优先」就失效了。
-  studio_overlay_host(base, model, t).theme(studio_theme())
+  studio_overlay_host(base, model, t).theme(@chrome.studio_theme())
 }
 
 ///|
@@ -69,21 +69,21 @@ fn shell_view(
     0.0
   }
   let window_bar = if model.immersive {
-    WINDOW_CHROME_HEIGHT - TOPBAR_HEIGHT
+    @chrome.WINDOW_CHROME_HEIGHT - @chrome.TOPBAR_HEIGHT
   } else {
     0.0
   }
   // VS Code 骨架：**活动栏全高贯通左侧**（从窗口顶到状态栏），状态栏
   // 横贯整个底边。右列（顶栏+内容+底栏面板）在活动栏右侧。
-  let body_height = (height - STATUSBAR_HEIGHT - 1.0).max(200.0)
-  let chrome = TOPBAR_HEIGHT + bottom_height + window_bar + 2.0
+  let body_height = (height - @chrome.STATUSBAR_HEIGHT - 1.0).max(200.0)
+  let chrome = @chrome.TOPBAR_HEIGHT + bottom_height + window_bar + 2.0
   let content_height = (body_height - chrome).max(200.0)
   let content = if fullscreen {
     // 全屏页（预览/帮助/运行）：两侧栏收起，内容居中占满
     @views.container(
       center_panel(model, t),
-      background=ide_editor_background(),
-      width=(width - ICONBAR_WIDTH).max(120.0),
+      background=@chrome.ide_editor_background(),
+      width=(width - @chrome.ICONBAR_WIDTH).max(120.0),
       height=content_height,
       padding=0.0,
     )
@@ -97,11 +97,11 @@ fn shell_view(
   // 实测它会撑到外层 body 高，把底栏面板推出窗口（「点运行没反应」轮次
   // 的 12 个布局回归全是它）。
   let topbar_height = if model.immersive {
-    WINDOW_CHROME_HEIGHT
+    @chrome.WINDOW_CHROME_HEIGHT
   } else {
-    TOPBAR_HEIGHT
+    @chrome.TOPBAR_HEIGHT
   }
-  let side_width = (width - ICONBAR_WIDTH).max(120.0)
+  let side_width = (width - @chrome.ICONBAR_WIDTH).max(120.0)
   let lower_height = (body_height - topbar_height - 1.0).max(200.0)
   let pane_height = (lower_height - bottom_height).max(200.0)
   // VS Code 骨架第三轮：**左栏也全高**（顶栏之下直抵状态栏），底栏面板
@@ -115,7 +115,7 @@ fn shell_view(
   } else {
     @views.container(
       center_workspace(model, t, center_width, pane_height),
-      background=ide_editor_background(),
+      background=@chrome.ide_editor_background(),
       width=center_width,
       height=pane_height,
       padding=0.0,
@@ -127,9 +127,9 @@ fn shell_view(
   let bottom_sash = if model.bottom_open {
     @views.container(
       @views.empty(),
-      background=ide_border_soft(),
+      background=@chrome.ide_border_soft(),
       width~,
-      height=SASH_WIDTH,
+      height=@chrome.SASH_WIDTH,
       padding=0.0,
     ).on_drag_with_frame(fn(event, _frame) {
       match event.phase {
@@ -173,21 +173,21 @@ fn shell_view(
   // 是常量），update 只兜底夹静态界限。
   let left_drag_max = (side_width -
     (if chrome_widths.right > 0.0 {
-      chrome_widths.right + SASH_WIDTH
+      chrome_widths.right + @chrome.SASH_WIDTH
     } else {
       0.0
     }) -
     320.0)
-    .max(LEFTBAR_MIN_WIDTH)
-    .min(LEFTBAR_MAX_WIDTH)
+    .max(@chrome.LEFTBAR_MIN_WIDTH)
+    .min(@chrome.LEFTBAR_MAX_WIDTH)
   let right_drag_max = (side_width -
     (match chrome_widths.left {
-      Some(left_width) => left_width + SASH_WIDTH
+      Some(left_width) => left_width + @chrome.SASH_WIDTH
       None => 0.0
     }) -
     320.0)
-    .max(RIGHTBAR_MIN_WIDTH)
-    .min(RIGHTBAR_MAX_WIDTH)
+    .max(@chrome.RIGHTBAR_MIN_WIDTH)
+    .min(@chrome.RIGHTBAR_MAX_WIDTH)
   if !fullscreen {
     match chrome_widths.left {
       Some(left_width) => {
@@ -196,8 +196,8 @@ fn shell_view(
           v_sash(
             fn(x) {
               ResizeLeftPanel(
-                (x - ICONBAR_WIDTH - SASH_WIDTH / 2.0).clamp(
-                  min=LEFTBAR_MIN_WIDTH,
+                (x - @chrome.ICONBAR_WIDTH - @chrome.SASH_WIDTH / 2.0).clamp(
+                  min=@chrome.LEFTBAR_MIN_WIDTH,
                   max=left_drag_max,
                 ),
               )
@@ -215,8 +215,8 @@ fn shell_view(
       v_sash(
         fn(x) {
           ResizeRightPanel(
-            (width - x - SASH_WIDTH / 2.0).clamp(
-              min=RIGHTBAR_MIN_WIDTH,
+            (width - x - @chrome.SASH_WIDTH / 2.0).clamp(
+              min=@chrome.RIGHTBAR_MIN_WIDTH,
               max=right_drag_max,
             ),
           )
@@ -234,7 +234,7 @@ fn shell_view(
       // 之下），卡片按内容自适应——线程空时只占输入盒一条，不再固定
       // 340 顶在右栏上部留一大块空白。
       let ai_card_h = ai_card_height(model, chrome_widths.right)
-      let ai_slice = (ai_card_h + PANEL_HEAD_HEIGHT + 8.0).min(
+      let ai_slice = (ai_card_h + @chrome.PANEL_HEAD_HEIGHT + 8.0).min(
         (lower_height - 200.0).max(0.0),
       )
       lower_cells.push(
@@ -270,7 +270,7 @@ fn shell_view(
     height=lower_height,
   )
   let right_side = @views.column(
-    [ide_top_bar(model, t, side_width), hairline(), lower_row],
+    [ide_top_bar(model, t, side_width), @chrome.hairline(), lower_row],
     spacing=0.0,
   ).frame(width=side_width, height=body_height)
   // VS Code 骨架终稿：**活动栏通到窗口最底边**（状态栏不再从它下方穿过，
@@ -281,14 +281,14 @@ fn shell_view(
       [
         ide_icon_bar(model, t, height),
         @views.column(
-          [right_side, hairline(), ide_status_bar(model, t, side_width)],
+          [right_side, @chrome.hairline(), ide_status_bar(model, t, side_width)],
           spacing=0.0,
         ).frame(width=side_width, height~),
       ],
       spacing=0.0,
       align=Stretch,
     ).frame(width~, height~),
-    background=studio_window_background(),
+    background=@chrome.studio_window_background(),
     width~,
     height~,
     padding=0.0,
@@ -298,7 +298,7 @@ fn shell_view(
 ///|
 /// 竖直 sash：三列之间**可拖拽的分隔区**（VS Code 口径）。
 ///
-/// - 视觉：`SASH_WIDTH`（4pt）的竖带，底色 `ide_border_soft`——比两侧
+/// - 视觉：`@chrome.SASH_WIDTH`（4pt）的竖带，底色 `@chrome.ide_border_soft`——比两侧
 ///   面板略亮一档，读作「这里是分隔」，又不抢过发丝线的克制。
 /// - 交互：拖拽把指针 x 经 `on_drag_x` 换算成目标宽度（界限由调用方
 ///   闭包夹取）。**绝对映射**——指针在哪面板就到哪，不需要拖拽起点状态，
@@ -309,8 +309,8 @@ fn shell_view(
 fn v_sash(on_drag_x : (Double) -> Msg, height : Double) -> @moui.View[Msg] {
   @views.container(
     @views.empty(),
-    background=ide_border_soft(),
-    width=SASH_WIDTH,
+    background=@chrome.ide_border_soft(),
+    width=@chrome.SASH_WIDTH,
     height~,
     padding=0.0,
   ).on_drag_with_frame(fn(event, _frame) {
@@ -351,8 +351,8 @@ pub(all) struct ShellChromeWidths {
 
 ///|
 /// 三列宽度分配。**左/右栏宽度是用户可调的**（列间 sash 拖拽，存
-/// `model.left_width`/`right_width`，默认 = LEFTBAR/RIGHTBAR_WIDTH）；
-/// 中心列吃剩余。分隔区是 4pt 的 sash（`SASH_WIDTH`），预算按它显式扣。
+/// `model.left_width`/`right_width`，默认 = LEFTBAR/@chrome.RIGHTBAR_WIDTH）；
+/// 中心列吃剩余。分隔区是 4pt 的 sash（`@chrome.SASH_WIDTH`），预算按它显式扣。
 ///
 /// 中心列有 320 的下限（三工作区都在这个宽度下仍然可用）。当用户宽度
 /// + 中心下限放不下时（窗口太小），**右栏紧急收缩到 232**、仍不够则
@@ -361,18 +361,18 @@ pub(all) struct ShellChromeWidths {
 /// 调用方不必区分。
 fn shell_chrome_widths(model : Model, width : Double) -> ShellChromeWidths {
   // `width` = 活动栏右侧的可用宽（调用方已扣除活动栏）。
-  let sash = SASH_WIDTH
+  let sash = @chrome.SASH_WIDTH
   let usable = width.max(120.0)
   let center_min = 320.0
   let wants_left = !(model.left_view is LeftHidden)
   let wants_right = !(model.right_view is RvHidden)
   let left_want = model.left_width.clamp(
-    min=LEFTBAR_MIN_WIDTH,
-    max=LEFTBAR_MAX_WIDTH,
+    min=@chrome.LEFTBAR_MIN_WIDTH,
+    max=@chrome.LEFTBAR_MAX_WIDTH,
   )
   let right_want = model.right_width.clamp(
-    min=RIGHTBAR_MIN_WIDTH,
-    max=RIGHTBAR_MAX_WIDTH,
+    min=@chrome.RIGHTBAR_MIN_WIDTH,
+    max=@chrome.RIGHTBAR_MAX_WIDTH,
   )
   if !wants_right {
     // 右栏收起：中心吃满「可用 − 左栏 − 左 sash」

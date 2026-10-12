@@ -63,38 +63,38 @@ pub fn code_workspace(
             [
               @views.text(
                 open.rel + (if dirty { " ●" } else { "" }),
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 role=Mono,
                 width=(width - 220.0).max(60.0),
                 height=16.0,
                 align=TextStart,
-              ).foreground(ide_text()),
+              ).foreground(@chrome.ide_text()),
               @views.spacer(min_length=6.0, weight=1.0),
               foot_chip(
                 "保存",
-                text_estimate_width("保存") + 24.0,
+                @chrome.text_estimate_width("保存") + 24.0,
                 dirty,
                 SaveProjectFile,
               ),
               foot_chip(
                 "保存全部",
-                text_estimate_width("保存全部") + 24.0,
+                @chrome.text_estimate_width("保存全部") + 24.0,
                 any_file_dirty(model),
                 SaveAllFiles,
               ),
               @views.text(
                 "关闭",
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 width=36.0,
                 height=16.0,
               )
-              .foreground(ide_accent())
+              .foreground(@chrome.ide_accent())
               .on_tap(CloseFileTab(model.open_file_index)),
             ],
             spacing=6.0,
             align=Center,
           ),
-          background=ide_panel(),
+          background=@chrome.ide_panel(),
           width~,
           height=26.0,
           padding=0.0,
@@ -146,7 +146,7 @@ pub fn code_workspace(
           ],
           spacing=0.0,
         ).frame(width~, height~),
-        background=ide_editor_background(),
+        background=@chrome.ide_editor_background(),
         width~,
         height~,
         padding=0.0,
@@ -155,7 +155,7 @@ pub fn code_workspace(
   }
   @views.container(
     body_view,
-    background=ide_editor_background(),
+    background=@chrome.ide_editor_background(),
     width~,
     height~,
     padding=0.0,
@@ -179,12 +179,12 @@ fn code_error_bar(
     @views.container(
       @views.text(
         text(t, "app.code.error") + "：" + model.code_error,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(width - 20.0).max(80.0),
         height=20.0,
         align=TextStart,
-      ).foreground(ide_danger()),
-      background=ide_panel(),
+      ).foreground(@chrome.ide_danger()),
+      background=@chrome.ide_panel(),
       height=24.0,
       width=width - 2.0,
       padding=0.0,
@@ -222,7 +222,7 @@ fn code_gutter(
           width=6.0,
           height=6.0,
         ),
-        background=ide_danger(),
+        background=@chrome.ide_danger(),
         corner_radius=3.0,
         width=6.0,
         height=6.0,
@@ -232,9 +232,9 @@ fn code_gutter(
       @views.container(
         @views.text("", width=1.0, height=1.0),
         background=if has_diagnostic {
-          ide_danger()
+          @chrome.ide_danger()
         } else {
-          ide_editor_background()
+          @chrome.ide_editor_background()
         },
         corner_radius=2.0,
         width=5.0,
@@ -254,18 +254,18 @@ fn code_gutter(
             ),
             @views.text(
               "\{line.number}",
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               role=Mono,
               width=(width - 16.0).max(20.0),
               height=CODE_LINE_HEIGHT,
               align=TextEnd,
             ).foreground(
               if has_diagnostic {
-                ide_danger()
+                @chrome.ide_danger()
               } else if is_active {
-                ide_text()
+                @chrome.ide_text()
               } else {
-                ide_text_faint()
+                @chrome.ide_text_faint()
               },
             ),
           ],
@@ -273,9 +273,9 @@ fn code_gutter(
           align=Center,
         ).frame(width~, height=CODE_LINE_HEIGHT),
         background=if is_active {
-          ide_panel_alt()
+          @chrome.ide_panel_alt()
         } else {
-          ide_editor_background()
+          @chrome.ide_editor_background()
         },
         width~,
         height=CODE_LINE_HEIGHT,
@@ -318,10 +318,10 @@ fn code_editor_surface(
     size=@geometry.Size::new(width~, height~),
     format=source => code_document(model, source, font),
     font~,
-    foreground=code_plain_color(),
-    placeholder_color=ide_text_faint(),
-    background=@graphics.Brush::solid(ide_editor_background()),
-    cursor_color=ide_accent(),
+    foreground=@chrome.code_plain_color(),
+    placeholder_color=@chrome.ide_text_faint(),
+    background=@graphics.Brush::solid(@chrome.ide_editor_background()),
+    cursor_color=@chrome.ide_accent(),
     corner_radius=0.0,
     on_selection_change=Some((caret, selection) => {
       EditorCaretMoved(caret, selection)
@@ -428,7 +428,7 @@ fn code_line_block(
         font=Some(font),
         color=Some(code_token_color(token.kind)),
         background=if flagged {
-          Some(@graphics.Brush::solid(code_error_line_tint()))
+          Some(@graphics.Brush::solid(@chrome.code_error_line_tint()))
         } else {
           None
         },
@@ -543,12 +543,12 @@ fn dsl_indent_for_newline(
 /// token 配色：模型只带语义分类，取色在渲染层。
 fn code_token_color(kind : CodeTokenKind) -> @graphics.Color {
   match kind {
-    TokKeyword => code_keyword_color()
-    TokString => code_string_color()
-    TokNumber => code_number_color()
-    TokBuiltin => code_function_color()
-    TokComment => code_comment_color()
-    TokPlain => code_plain_color()
+    TokKeyword => @chrome.code_keyword_color()
+    TokString => @chrome.code_string_color()
+    TokNumber => @chrome.code_number_color()
+    TokBuiltin => @chrome.code_function_color()
+    TokComment => @chrome.code_comment_color()
+    TokPlain => @chrome.code_plain_color()
   }
 }
 
@@ -584,7 +584,7 @@ pub fn ir_ruler(
         // 无映射的行：留空白单元占位，保证与代码行不错位
         @views.container(
           @views.text("", width=1.0, height=1.0),
-          background=ide_panel(),
+          background=@chrome.ide_panel(),
           width=IR_RAIL_WIDTH,
           height=IR_RAIL_LINE_HEIGHT,
           padding=0.0,
@@ -621,11 +621,11 @@ pub fn ir_ruler(
         let bar = @views.container(
           @views.text("", width=1.0, height=1.0),
           background=if pinned {
-            ide_ir_highlight()
+            @chrome.ide_ir_highlight()
           } else if hovered_bar {
-            ide_ir_hover()
+            @chrome.ide_ir_hover()
           } else {
-            block_category_fill(block_category(span.kind))
+            @chrome.block_category_fill(block_category(span.kind))
           },
           corner_radius=radius,
           width=14.0,
@@ -642,7 +642,7 @@ pub fn ir_ruler(
             spacing=0.0,
             align=Center,
           ).frame(width=IR_RAIL_WIDTH, height=IR_RAIL_LINE_HEIGHT),
-          background=ide_panel(),
+          background=@chrome.ide_panel(),
           width=IR_RAIL_WIDTH,
           height=IR_RAIL_LINE_HEIGHT,
           padding=0.0,
@@ -689,7 +689,7 @@ fn code_foot(
       horizontal=8.0,
       vertical=6.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     padding=0.0,
   )
@@ -702,16 +702,16 @@ fn code_foot(
 fn code_hint_bar(t : @i18n.Translator, width : Double) -> @moui.View[Msg] {
   @views.container(
     @views.padding_xy(
-      fill_row(
+      @chrome.fill_row(
         [
-          @views.icon(Info, size=12.0, color=ide_text_faint()),
+          @views.icon(Info, size=12.0, color=@chrome.ide_text_faint()),
           @views.text(
-            fit_label(text(t, "app.code.foot_hint"), (width - 44.0).max(80.0)),
-            theme=studio_theme(),
+            @chrome.fit_label(text(t, "app.code.foot_hint"), (width - 44.0).max(80.0)),
+            theme=@chrome.studio_theme(),
             width=(width - 40.0).max(80.0),
             height=16.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
         ],
         (width - 20.0).max(80.0),
         8.0,
@@ -720,7 +720,7 @@ fn code_hint_bar(t : @i18n.Translator, width : Double) -> @moui.View[Msg] {
       horizontal=10.0,
       vertical=0.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     height=30.0,
     width~,
     padding=0.0,
@@ -737,10 +737,10 @@ fn code_foot_row(
 ) -> @moui.View[Msg] {
   // 按钮宽**按标签实测宽**给（+左右各 10 内垫）：写死 62/68 会把
   // 「按 IR 重渲染」「编译 MoonBit」截成「按 IR 重渲」「编译 MoonB」。
-  // 内垫取 34：`text_estimate_width` 是估算，中文 + 拉丁混排的真实字形
+  // 内垫取 34：`@chrome.text_estimate_width` 是估算，中文 + 拉丁混排的真实字形
   // 比估算宽 5-8px，取值要把这段差额也盖住（实测 26 仍差 2.7px）。
-  let restore_w = text_estimate_width(text(t, "app.code.restore")) + 34.0
-  let compile_w = text_estimate_width(text(t, "app.code.compile")) + 34.0
+  let restore_w = @chrome.text_estimate_width(text(t, "app.code.restore")) + 34.0
+  let compile_w = @chrome.text_estimate_width(text(t, "app.code.compile")) + 34.0
   let gap = 6.0
   let caret = @code_editor.code_editor_caret_position(
     model.code_draft,
@@ -753,11 +753,11 @@ fn code_foot_row(
   let appearance_w = match model.code_appearance {
     AppMoonBit => {
       let label = text(t, "app.code.switch_dsl")
-      text_estimate_width(label) * 1.05 + 28.0
+      @chrome.text_estimate_width(label) * 1.05 + 28.0
     }
     AppDsl => {
       let label = text(t, "app.code.switch_moonbit")
-      text_estimate_width(label) * 1.05 + 28.0
+      @chrome.text_estimate_width(label) * 1.05 + 28.0
     }
   }
   // 「按 IR 重渲染」只在 DSL 外观有意义（MoonBit 外观下恢复 = 原样重生成,
@@ -774,7 +774,7 @@ fn code_foot_row(
       let label = text(t, "app.code.switch_dsl")
       foot_chip(
         label,
-        text_estimate_width(label) * 1.05 + 28.0,
+        @chrome.text_estimate_width(label) * 1.05 + 28.0,
         false,
         SetCodeAppearance(AppDsl),
       )
@@ -783,22 +783,22 @@ fn code_foot_row(
       let label = text(t, "app.code.switch_moonbit")
       foot_chip(
         label,
-        text_estimate_width(label) * 1.05 + 28.0,
+        @chrome.text_estimate_width(label) * 1.05 + 28.0,
         false,
         SetCodeAppearance(AppMoonBit),
       )
     }
   }
-  fill_row(
+  @chrome.fill_row(
     [
       @views.text(
         caret_label,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         role=Mono,
         width=hint_w,
         height=16.0,
         align=TextStart,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
       appearance_chip,
       if show_restore {
         foot_chip(
@@ -832,14 +832,14 @@ fn foot_chip(
       // 再叠上字形比估算宽，长标签会被截。
       @views.text(
         label,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(width - 6.0).max(20.0),
         height=16.0,
-      ).foreground(if primary { ide_accent() } else { ide_text_muted() }),
+      ).foreground(if primary { @chrome.ide_accent() } else { @chrome.ide_text_muted() }),
       width~,
       height=24.0,
     ),
-    background=if primary { ide_accent_soft() } else { ide_panel_alt() },
+    background=if primary { @chrome.ide_accent_soft() } else { @chrome.ide_panel_alt() },
     corner_radius=4.0,
     width~,
     height=24.0,
@@ -942,14 +942,14 @@ pub fn empty_stage(
     [
       @views.text(
         text(t, "app.empty.title"),
-        theme=studio_theme(),
-        width=(text_estimate_width(text(t, "app.empty.title")) * 1.02 + 8.0).min(
+        theme=@chrome.studio_theme(),
+        width=(@chrome.text_estimate_width(text(t, "app.empty.title")) * 1.02 + 8.0).min(
           460.0,
         ),
         height=30.0,
-      ).foreground(ide_text()),
+      ).foreground(@chrome.ide_text()),
       // 长引导句按宽折行（英文版 766pt，460pt 单行必溢出）。
-      hint_lines_view(text(t, "app.empty.body"), 460.0, ide_text_faint(), 2),
+      @chrome.hint_lines_view(text(t, "app.empty.body"), 460.0, @chrome.ide_text_faint(), 2),
       @views.column(button_rows, spacing=8.0, align=Center),
     ],
     spacing=12.0,
@@ -961,7 +961,7 @@ pub fn empty_stage(
   // 输入卡撞在一起。输入卡离开中心列后这段分支失去意义。）
   @views.container(
     @views.center(words, width~, height~),
-    background=ide_editor_background(),
+    background=@chrome.ide_editor_background(),
     width~,
     height~,
     padding=0.0,
@@ -1009,21 +1009,21 @@ fn completion_popup(model : Model, width : Double) -> @moui.View[Msg] {
   }
   let chips : Array[@moui.View[Msg]] = []
   for word in model.completions {
-    let chip_width = (text_estimate_width(word) + 12.0).max(28.0)
+    let chip_width = (@chrome.text_estimate_width(word) + 12.0).max(28.0)
     chips.push(
       @views.container(
         @views.center(
           @views.text(
             word,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Mono,
             width=(chip_width - 4.0).max(20.0),
             height=16.0,
-          ).foreground(ide_text()),
+          ).foreground(@chrome.ide_text()),
           width=chip_width,
           height=20.0,
         ),
-        background=ide_accent_soft(),
+        background=@chrome.ide_accent_soft(),
         corner_radius=4.0,
         width=chip_width,
         height=22.0,
@@ -1044,7 +1044,7 @@ fn completion_popup(model : Model, width : Double) -> @moui.View[Msg] {
       horizontal=8.0,
       vertical=3.0,
     ),
-    background=ide_panel_alt(),
+    background=@chrome.ide_panel_alt(),
     width~,
     padding=0.0,
   )
@@ -1075,33 +1075,33 @@ fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
     let active = i == model.open_file_index
     let label = file_tab_label(file.rel) +
       (if file_is_dirty(file) { " ●" } else { "" })
-    let cell_width = (text_estimate_width(label) + 40.0).min(150.0).max(64.0)
+    let cell_width = (@chrome.text_estimate_width(label) + 40.0).min(150.0).max(64.0)
     cells.push(
       @views.container(
         @views.row(
           [
             @views.text(
-              fit_label(label, cell_width - 20.0),
-              theme=studio_theme(),
+              @chrome.fit_label(label, cell_width - 20.0),
+              theme=@chrome.studio_theme(),
               role=Mono,
               width=cell_width - 20.0,
               height=14.0,
               align=TextStart,
-            ).foreground(if active { ide_text() } else { ide_text_faint() }),
+            ).foreground(if active { @chrome.ide_text() } else { @chrome.ide_text_faint() }),
             @views.text(
               "×",
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               width=14.0,
               height=14.0,
               align=TextCenter,
             )
-            .foreground(ide_text_faint())
+            .foreground(@chrome.ide_text_faint())
             .on_tap(CloseFileTab(i)),
           ],
           spacing=2.0,
           align=Center,
         ),
-        background=if active { ide_panel() } else { ide_editor_background() },
+        background=if active { @chrome.ide_panel() } else { @chrome.ide_editor_background() },
         width=cell_width,
         height=22.0,
         padding=0.0,
@@ -1145,10 +1145,10 @@ fn project_file_body(
           width=editor_width,
           height=content_height,
           font=@text.FontSpec::new(size=13.0),
-          foreground=ide_text(),
-          placeholder_color=ide_text_faint(),
-          background=@graphics.Brush::solid(ide_editor_background()),
-          cursor_color=ide_accent(),
+          foreground=@chrome.ide_text(),
+          placeholder_color=@chrome.ide_text_faint(),
+          background=@graphics.Brush::solid(@chrome.ide_editor_background()),
+          cursor_color=@chrome.ide_accent(),
         )
       // 无会话（异常路径兜底）：退回一次性格式化渲染,仍可编辑
       None =>
@@ -1158,10 +1158,10 @@ fn project_file_body(
           width=editor_width,
           height=content_height,
           font=@text.FontSpec::new(size=13.0),
-          foreground=ide_text(),
-          placeholder_color=ide_text_faint(),
-          background=@graphics.Brush::solid(ide_editor_background()),
-          cursor_color=ide_accent(),
+          foreground=@chrome.ide_text(),
+          placeholder_color=@chrome.ide_text_faint(),
+          background=@graphics.Brush::solid(@chrome.ide_editor_background()),
+          cursor_color=@chrome.ide_accent(),
         )
     }
   } else {
@@ -1179,10 +1179,10 @@ fn project_file_body(
             plain_code_document(source, mono_code_font(), moonbit=true)
           },
           font=mono_code_font(),
-          foreground=ide_text(),
-          placeholder_color=ide_text_faint(),
-          background=@graphics.Brush::solid(ide_editor_background()),
-          cursor_color=ide_accent(),
+          foreground=@chrome.ide_text(),
+          placeholder_color=@chrome.ide_text_faint(),
+          background=@graphics.Brush::solid(@chrome.ide_editor_background()),
+          cursor_color=@chrome.ide_accent(),
           corner_radius=0.0,
           on_selection_change=Some((caret, selection) => {
             ProjectFileCaretMoved(caret, selection)
@@ -1328,12 +1328,12 @@ fn project_file_gutter(open : OpenProjectFile) -> @moui.View[Msg] {
     rows.push(
       @views.text(
         "\{number}",
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         role=Mono,
         width=36.0,
         height=CODE_LINE_HEIGHT,
         align=TextEnd,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
     )
     number = number + 1
   }

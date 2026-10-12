@@ -51,7 +51,7 @@ test "hiding panes funnels into the empty stage with restore entries" {
   guard shell_find_text(commands, "实时应用") is Some(head) else {
     fail("live pane head missing")
   }
-  if head.frame.origin.y > TOPBAR_HEIGHT + PANEL_HEAD_HEIGHT + 1.0 {
+  if head.frame.origin.y > @chrome.TOPBAR_HEIGHT + @chrome.PANEL_HEAD_HEIGHT + 1.0 {
     fail(
       "live pane is pushed down by a restore strip: head y=" +
       head.frame.origin.y.to_string(),
@@ -107,8 +107,8 @@ test "hiding panes funnels into the empty stage with restore entries" {
 /// 误判成「铺在中心列上」（这正是第一版的错误）。
 test "AI input lives only inside its host panel" {
   let model = initial_model()
-  let widths = shell_chrome_widths(model, 1280.0 - ICONBAR_WIDTH)
-  let center_left = ICONBAR_WIDTH + 2.0 + LEFTBAR_WIDTH + 1.0
+  let widths = shell_chrome_widths(model, 1280.0 - @chrome.ICONBAR_WIDTH)
+  let center_left = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0
   let center_right = center_left + widths.center
   // 每档断言「输入条在它自己的宿主里」，而不是「不在工作区里」——
   // 后者需要一个「工作区到哪结束」的中间量（= 行高 − 底栏高），
@@ -121,13 +121,13 @@ test "AI input lives only inside its host panel" {
     fail("bar AI composer missing")
   }
   // 底栏档：底栏在中心列的下方（顶边 = 顶栏 + 1 + 工作区段高）。
-  let bar_top = TOPBAR_HEIGHT +
+  let bar_top = @chrome.TOPBAR_HEIGHT +
     1.0 +
     (
       800.0 -
-      TOPBAR_HEIGHT -
-      STATUSBAR_HEIGHT -
-      PANEL_HEAD_HEIGHT -
+      @chrome.TOPBAR_HEIGHT -
+      @chrome.STATUSBAR_HEIGHT -
+      @chrome.PANEL_HEAD_HEIGHT -
       2.0 -
       ai_bar_height(bar, widths.center, 800.0)
     )
@@ -238,10 +238,10 @@ test "drag region clears the top bar actions in both locales" {
 test "pane head text stays inside its own pane" {
   let base = initial_model()
   for width in [1440.0, 1280.0, 1100.0, 1000.0] {
-    let chrome = shell_chrome_widths(base, width - ICONBAR_WIDTH)
-    let iconbar = ICONBAR_WIDTH
+    let chrome = shell_chrome_widths(base, width - @chrome.ICONBAR_WIDTH)
+    let iconbar = @chrome.ICONBAR_WIDTH
     let left_edge = iconbar + 1.0
-    let left_right = left_edge + LEFTBAR_WIDTH
+    let left_right = left_edge + @chrome.LEFTBAR_WIDTH
     let centre_left = left_right + 1.0
     let centre_right = centre_left + chrome.center
     let right_left = centre_right + 1.0
@@ -258,8 +258,8 @@ test "pane head text stays inside its own pane" {
       let commands = shell_draw(model, width, 800.0)
       for run in shell_texts(commands) {
         // 只看窗格头那一行（顶栏之下、内容之上）
-        let in_head_band = run.frame.origin.y > TOPBAR_HEIGHT - 1.0 &&
-          run.frame.origin.y < TOPBAR_HEIGHT + PANEL_HEAD_HEIGHT
+        let in_head_band = run.frame.origin.y > @chrome.TOPBAR_HEIGHT - 1.0 &&
+          run.frame.origin.y < @chrome.TOPBAR_HEIGHT + @chrome.PANEL_HEAD_HEIGHT
         if !in_head_band {
           continue
         }
@@ -401,11 +401,11 @@ test "block editor lives in the right panel and fits it" {
   // 卡标题 + 输入框占位提示。两者都只在右栏编辑卡里出现。
   let title_label = text(translator(cleared), "app.block.edit_title")
   let placeholder = text(translator(cleared), "app.block.editor_hint")
-  let chrome = shell_chrome_widths(cleared, 1280.0 - ICONBAR_WIDTH)
+  let chrome = shell_chrome_widths(cleared, 1280.0 - @chrome.ICONBAR_WIDTH)
   // 右栏左缘 = 图标栏 + 左栏 + 中心列 + 两条发丝线；右缘 = 窗口右缘。
-  let right_left = ICONBAR_WIDTH +
+  let right_left = @chrome.ICONBAR_WIDTH +
     1.0 +
-    LEFTBAR_WIDTH +
+    @chrome.LEFTBAR_WIDTH +
     1.0 +
     chrome.center +
     1.0
@@ -455,21 +455,21 @@ test "block editor lives in the right panel and fits it" {
 ///|
 /// 面板头的**尾部动作必须贴住面板右缘**。
 ///
-/// 回归意义：`panel_head` 里权重 spacer 曾写成 `weight=0.0`——它分不到
+/// 回归意义：`@chrome.panel_head` 里权重 spacer 曾写成 `weight=0.0`——它分不到
 /// slack，右端剩下的 40pt 空白就堆在动作**之后**。左栏的关闭 ✕ 因此停在离
 /// 右缘 40pt 的地方（实测 ✕ 中心 css x 221.8，面板右缘 281），看起来
 /// 「位置不对」。这正是用户报的那条。
 test "panel head trailing actions hug the panel right edge" {
   let model = initial_model()
-  let _chrome = shell_chrome_widths(model, 1280.0 - ICONBAR_WIDTH)
-  let left_edge = ICONBAR_WIDTH + 1.0
-  let left_right = left_edge + LEFTBAR_WIDTH
+  let _chrome = shell_chrome_widths(model, 1280.0 - @chrome.ICONBAR_WIDTH)
+  let left_edge = @chrome.ICONBAR_WIDTH + 1.0
+  let left_right = left_edge + @chrome.LEFTBAR_WIDTH
   let commands = shell_draw(model, 1280.0, 800.0)
   // 左栏头行的关闭图标：在头行带内、落在左栏 x 范围里
   let mut rightmost = 0.0
   for rect in shell_rects(commands) {
-    let in_head = rect.origin.y >= TOPBAR_HEIGHT - 1.0 &&
-      rect.origin.y < TOPBAR_HEIGHT + PANEL_HEAD_HEIGHT
+    let in_head = rect.origin.y >= @chrome.TOPBAR_HEIGHT - 1.0 &&
+      rect.origin.y < @chrome.TOPBAR_HEIGHT + @chrome.PANEL_HEAD_HEIGHT
     let in_left = rect.origin.x >= left_edge - 1.0 && rect.origin.x < left_right
     // 关闭按钮是 22 宽的小方块（20 宽图标盒 + 圆角底）
     if in_head && in_left && rect.size.width >= 16.0 && rect.size.width <= 30.0 {
@@ -523,7 +523,7 @@ test "blocks pane appears only while an event handler is selected" {
   // 判据用积木窗格**独有**的副标题，不能用「积木」两个字：积木分类轨里
   // 也有一个叫「积木」的分类项，`shell_has_text` 会撞上（本会话踩过
   // 「同名字符串出现在多个面板」这个坑）。
-  // 用前缀而不是整串：`fit_label` 会按窗格宽截断成「IR 映射 · …」，
+  // 用前缀而不是整串：`@chrome.fit_label` 会按窗格宽截断成「IR 映射 · …」，
   // 断言整串会在窄窗格下误报。
   let pane_marker = "IR 映射"
   let commands = shell_draw(model, 1280.0, 800.0)
@@ -566,7 +566,7 @@ test "the right panel head closes the panel, not the selection" {
   // 收起：右栏宽度归零，中心列吃掉这份宽度
   let hidden = apply_shell(model, SetRightView(RvHidden))
   assert_true(hidden.right_view is RvHidden)
-  let widths = shell_chrome_widths(model, 1280.0 - ICONBAR_WIDTH)
+  let widths = shell_chrome_widths(model, 1280.0 - @chrome.ICONBAR_WIDTH)
   let hidden_widths = shell_chrome_widths(hidden, 1280.0)
   assert_eq(hidden_widths.right, 0.0)
   if hidden_widths.center <= widths.center {
@@ -594,11 +594,11 @@ test "the right panel head closes the panel, not the selection" {
   // 头的右上角那个 ✕ 是「关闭面板」，它必须比「清空选中」的 ✕ 更靠右。
   // 两个 ✕ 都是 20/18pt 的小按钮，用图标盒位置区分。
   let commands = shell_draw(model, 1280.0, 800.0)
-  let right_edge = ICONBAR_WIDTH + 2.0 + LEFTBAR_WIDTH + 1.0 + widths.center
+  let right_edge = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0 + widths.center
   let close_boxes : Array[Double] = []
   for rect in shell_rects(commands) {
-    let in_head = rect.origin.y >= TOPBAR_HEIGHT - 1.0 &&
-      rect.origin.y < TOPBAR_HEIGHT + PANEL_HEAD_HEIGHT
+    let in_head = rect.origin.y >= @chrome.TOPBAR_HEIGHT - 1.0 &&
+      rect.origin.y < @chrome.TOPBAR_HEIGHT + @chrome.PANEL_HEAD_HEIGHT
     if in_head &&
       rect.origin.x > right_edge &&
       rect.size.width >= 14.0 &&

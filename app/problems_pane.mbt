@@ -110,14 +110,14 @@ pub fn problems_pane(
       @views.center(
         @views.text(
           text(t, "app.problems.empty"),
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=(width - 40.0).max(80.0),
           height=20.0,
-        ).foreground(ide_text_faint()),
+        ).foreground(@chrome.ide_text_faint()),
         width~,
         height~,
       ),
-      background=ide_panel(),
+      background=@chrome.ide_panel(),
       width~,
       height~,
       padding=0.0,
@@ -129,7 +129,7 @@ pub fn problems_pane(
     let row_cells : Array[@moui.View[Msg]] = [
       @views.container(
         @views.text("", width=1.0, height=1.0),
-        background=ide_danger(),
+        background=@chrome.ide_danger(),
         corner_radius=2.0,
         width=6.0,
         height=6.0,
@@ -137,29 +137,29 @@ pub fn problems_pane(
       ),
       @views.text(
         row.label,
-        theme=studio_theme(),
-        width=(text_estimate_width(row.label) * 1.02 + 8.0).min(120.0),
+        theme=@chrome.studio_theme(),
+        width=(@chrome.text_estimate_width(row.label) * 1.02 + 8.0).min(120.0),
         height=18.0,
         align=TextStart,
-      ).foreground(ide_text_muted()),
+      ).foreground(@chrome.ide_text_muted()),
       @views.text(
         row.message,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(width - 150.0).max(120.0),
         height=18.0,
         align=TextStart,
-      ).foreground(ide_text()),
+      ).foreground(@chrome.ide_text()),
     ]
     if row.line > 0 {
       row_cells.push(
         @views.text(
           text_with(t, "err.line", [("line", "\{row.line}")]),
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           role=Mono,
           width=76.0,
           height=18.0,
           align=TextEnd,
-        ).foreground(ide_text_faint()),
+        ).foreground(@chrome.ide_text_faint()),
       )
     }
     let action = if jumpable {
@@ -176,7 +176,7 @@ pub fn problems_pane(
           left=8.0,
           right=8.0,
         ),
-        background=ide_panel(),
+        background=@chrome.ide_panel(),
         height=26.0,
         width~,
         padding=0.0,

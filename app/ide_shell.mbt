@@ -23,7 +23,7 @@ pub const TOPBAR_ACTION_GAP : Double = 6.0
 ///
 /// 不能用更小的声明值：`@views.button` 的 `content_width` 是
 /// `max(declared, measured_text + padding_horizontal × 2)`，而
-/// `studio_theme` 的 `spacing_scale.lg = 16`，所以空标签按钮的**硬下限是
+/// `@chrome.studio_theme` 的 `spacing_scale.lg = 16`，所以空标签按钮的**硬下限是
 /// 32**（实测：声明 26 渲染 32）。拖拽区预算按 26 算就会少算 6pt/个，
 /// 三个按钮少算 16pt，拖拽区直接盖住最左侧的运行按钮——只在原生无框窗口
 /// 复现，点运行变成拖窗口。这条正是既有回归测试抓到的。
@@ -62,9 +62,9 @@ fn run_label(model : Model, t : @i18n.Translator) -> String {
 /// 盖住」的漂移——本仓已经为同类「两处各算一份」付出过代价（浮动卡高度、
 /// 树行元信息宽度），所以这里只留一个计算源。
 pub fn topbar_actions_width(model : Model, t : @i18n.Translator) -> Double {
-  topbar_chip_bound(run_label(model, t), 56.0) +
-  topbar_chip_bound(text(t, "app.run.step"), 48.0) +
-  topbar_chip_bound(text(t, "app.topbar.compile"), 72.0) +
+  @chrome.topbar_chip_bound(run_label(model, t), 56.0) +
+  @chrome.topbar_chip_bound(text(t, "app.run.step"), 48.0) +
+  @chrome.topbar_chip_bound(text(t, "app.topbar.compile"), 72.0) +
   // 图标簇：撤销/重做/搜索（32）+ 底栏/右栏开关（28）+ 设置（28）
   TOPBAR_ICON_BUTTON_WIDTH * 3.0 +
   28.0 * 3.0 +
@@ -80,7 +80,7 @@ pub const TOPBAR_LEFT_TOGGLE_ZONE : Double = 34.0
 ///|
 /// 拖拽区起点（绝对 x）：顶栏行起点 + 左栏开关带宽。
 pub fn topbar_drag_x(model : Model) -> Double {
-  (if model.immersive { TRAFFIC_LIGHT_INSET } else { 10.0 }) +
+  (if model.immersive { @chrome.TRAFFIC_LIGHT_INSET } else { 10.0 }) +
   TOPBAR_LEFT_TOGGLE_ZONE
 }
 
@@ -113,8 +113,8 @@ pub fn topbar_drag_width(
 /// **沉浸式下这一条就是窗口标题栏本身**：不再有额外的窗控带。旧实现是
 /// 「26pt 窗控带（只有一句居中提示文字、底色更深）+ 40pt 顶栏」两条，交界处
 /// 一条两截色缝加半条空带，看起来就是「顶上的边框没沉浸」。合并后：
-/// 左侧让出 `TRAFFIC_LIGHT_INSET` 给原生信号灯，其余照常放品牌与动作，
-/// 底色与内容区一致（`ide_panel()`），整条读起来是一个窗口头。
+/// 左侧让出 `@chrome.TRAFFIC_LIGHT_INSET` 给原生信号灯，其余照常放品牌与动作，
+/// 底色与内容区一致（`@chrome.ide_panel()`），整条读起来是一个窗口头。
 ///
 /// 非沉浸态（Web 入口没有窗口头可言）保持设计稿的 40pt 与 10pt 内垫。
 pub fn ide_top_bar(
@@ -142,7 +142,7 @@ pub fn ide_top_bar(
         14.0,
         hovered=model.hover_hint,
       ),
-      topbar_brand(text(t, "app.title"), model.dirty, crumb),
+      @chrome.topbar_brand(text(t, "app.title"), model.dirty, crumb),
     ],
     spacing=8.0,
     align=Center,
@@ -160,7 +160,7 @@ pub fn ide_top_bar(
         Some(RunStart)
       },
       !running,
-      topbar_chip_bound(run_label(model, t), 56.0),
+      @chrome.topbar_chip_bound(run_label(model, t), 56.0),
     ),
     topbar_action(
       text(t, "app.run.step"),
@@ -170,13 +170,13 @@ pub fn ide_top_bar(
         None
       },
       false,
-      topbar_chip_bound(text(t, "app.run.step"), 48.0),
+      @chrome.topbar_chip_bound(text(t, "app.run.step"), 48.0),
     ),
     topbar_action(
       text(t, "app.topbar.compile"),
       Some(CompileRun),
       false,
-      topbar_chip_bound(text(t, "app.topbar.compile"), 72.0),
+      @chrome.topbar_chip_bound(text(t, "app.topbar.compile"), 72.0),
     ),
     // 撤销/重做：必须有键位（Ctrl/Cmd+Z、Ctrl/Cmd+Shift+Z），且两个修饰键
     // 各注册一份——`KeyboardShortcut::matches` 是修饰键**精确相等**，
@@ -246,24 +246,24 @@ pub fn ide_top_bar(
   ]
   // 内垫：沉浸式左侧让出系统信号灯（78），否则常规 10。
   // 内部行宽 = width − 左内垫 − 右内垫；行必须显式定宽，否则权重 spacer
-  // 拿不到 slack，顶栏内容会挤在中间（见 fill_row 注释）。
+  // 拿不到 slack，顶栏内容会挤在中间（见 @chrome.fill_row 注释）。
   // 顶栏起点在活动栏（48）右侧：信号灯避让量相应收窄 48。
   let inset = if model.immersive {
-    TRAFFIC_LIGHT_INSET - ICONBAR_WIDTH
+    @chrome.TRAFFIC_LIGHT_INSET - @chrome.ICONBAR_WIDTH
   } else {
     10.0
   }
   let inner = (width - inset - 10.0).max(120.0)
-  // 沉浸态这一条同时承担窗口标题栏，所以是 `WINDOW_CHROME_HEIGHT`（32，
+  // 沉浸态这一条同时承担窗口标题栏，所以是 `@chrome.WINDOW_CHROME_HEIGHT`（32，
   // 与系统信号灯共线）；非沉浸态（Web）没有窗口头，保持设计稿的 40。
   let bar_height = if model.immersive {
-    WINDOW_CHROME_HEIGHT
+    @chrome.WINDOW_CHROME_HEIGHT
   } else {
-    TOPBAR_HEIGHT
+    @chrome.TOPBAR_HEIGHT
   }
   let bar = @views.container(
     @views.padding_edges(
-      fill_row(
+      @chrome.fill_row(
         [
           left,
           @views.spacer(min_length=8.0, weight=1.0),
@@ -276,7 +276,7 @@ pub fn ide_top_bar(
       left=inset,
       right=10.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height=bar_height,
     padding=0.0,
@@ -320,9 +320,9 @@ pub fn ide_icon_bar(
   height : Double,
 ) -> @moui.View[Msg] {
   let top_clearance = if model.immersive {
-    WINDOW_CHROME_HEIGHT
+    @chrome.WINDOW_CHROME_HEIGHT
   } else {
-    TOPBAR_HEIGHT
+    @chrome.TOPBAR_HEIGHT
   }
   let mode_button = fn(
     icon : @style.IconName,
@@ -372,7 +372,7 @@ pub fn ide_icon_bar(
     mode_items +
     [
       // 模式组与工具组分隔（组间分文的可见边界）
-      @views.container(hairline(), width=20.0, height=1.0, padding=0.0),
+      @views.container(@chrome.hairline(), width=20.0, height=1.0, padding=0.0),
       @views.spacer(min_length=4.0, weight=1.0),
       // 设置钉在最底：与整体同规格（28×28/17）——VS Code 的齿轮也是同一
       // 槽位节奏，缩小一号反而显得孤立。按钮贴窗口底边框。
@@ -391,11 +391,11 @@ pub fn ide_icon_bar(
   @views.container(
     // 列必须显式定宽高：权重 spacer 只有在确定了主轴尺寸后才拿得到 slack。
     @views.column(items, spacing=0.0, align=Center).frame(
-      width=ICONBAR_WIDTH,
+      width=@chrome.ICONBAR_WIDTH,
       height~,
     ),
-    background=ide_panel(),
-    width=ICONBAR_WIDTH,
+    background=@chrome.ide_panel(),
+    width=@chrome.ICONBAR_WIDTH,
     height~,
     padding=0.0,
   )
@@ -413,7 +413,7 @@ pub fn ide_left_panel(
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
-  let head = panel_head(
+  let head = @chrome.panel_head(
     if model.left_view is LeftData {
       text(t, "app.left.data")
     } else if model.left_view is LeftProject {
@@ -445,12 +445,12 @@ pub fn ide_left_panel(
         placeholder=text(t, "app.left.search"),
         variant=Outline,
         width=(width - 16.0).max(80.0),
-        height=FIELD_HEIGHT,
+        height=@chrome.FIELD_HEIGHT,
       ),
       horizontal=8.0,
       vertical=4.0,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     padding=0.0,
   )
@@ -466,7 +466,7 @@ pub fn ide_left_panel(
   // 搜索框只服务结构树(树查询);工程页/数据页不占这 34pt,还给正文
   let search_visible = model.left_view is LeftTree
   let body_height = (height -
-  PANEL_HEAD_HEIGHT -
+  @chrome.PANEL_HEAD_HEIGHT -
   (if search_visible { 34.0 } else { 0.0 }) -
   strip_height).max(120.0)
   let body = if model.left_view is LeftData {
@@ -498,7 +498,7 @@ pub fn ide_left_panel(
       (if search_visible { [head, search, body] } else { [head, body] }) + tail,
       spacing=0.0,
     ).frame(width~, height~),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height~,
     padding=0.0,
@@ -528,15 +528,15 @@ fn group_create_action(
       @views.center(
         @views.text(
           "+",
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           role=Caption,
           width=14.0,
           height=14.0,
-        ).foreground(ide_accent()),
+        ).foreground(@chrome.ide_accent()),
         width=18.0,
         height=16.0,
       ),
-      background=ide_panel(),
+      background=@chrome.ide_panel(),
       corner_radius=3.0,
       width=18.0,
       height=16.0,
@@ -585,16 +585,16 @@ fn group_create_menu(
         @views.padding_edges(
           @views.text(
             "+ " + label,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 44.0).max(60.0),
             height=18.0,
             align=TextStart,
-          ).foreground(ide_accent()),
+          ).foreground(@chrome.ide_accent()),
           left=20.0,
           right=8.0,
         ),
-        background=ide_panel_alt(),
-        height=TREE_ROW_HEIGHT,
+        background=@chrome.ide_panel_alt(),
+        height=@chrome.TREE_ROW_HEIGHT,
         width~,
         padding=0.0,
       ).on_tap(message),
@@ -645,7 +645,7 @@ fn tree_view_ide(
     let expanded = tree_group_expanded(model, group)
     let action = group_create_action(group, t)
     rows.push(
-      tree_row(
+      @chrome.tree_row(
         text(t, tree_group_label_key(group)),
         children.length().to_string(),
         0,
@@ -670,7 +670,7 @@ fn tree_view_ide(
     }
   }
   if rows.length() == 0 {
-    return empty_hint(text(t, "app.left.no_match"), width, height)
+    return @chrome.empty_hint(text(t, "app.left.no_match"), width, height)
   }
   // 结构树按内容自适应高度，超出交给滚动容器（避免行被压扁）
   @views.scroll_view(
@@ -701,7 +701,7 @@ fn tree_node_row(
     TnDataFile => Some(SelectSide(SideData(node.select_key)))
     TnGroup => None
   }
-  tree_row(
+  @chrome.tree_row(
     node.label,
     node.meta,
     node.depth,
@@ -725,7 +725,7 @@ fn data_view(
 ) -> @moui.View[Msg] {
   let files = data_file_entries(model)
   if files.length() == 0 {
-    return empty_hint(text(t, "app.data.none"), width, height)
+    return @chrome.empty_hint(text(t, "app.data.none"), width, height)
   }
   let rows : Array[@moui.View[Msg]] = []
   for file in files {
@@ -738,26 +738,26 @@ fn data_view(
                 [
                   @views.text(
                     file.name,
-                    theme=studio_theme(),
+                    theme=@chrome.studio_theme(),
                     width=(width - 100.0).max(60.0),
                     height=18.0,
                     align=TextStart,
-                  ).foreground(ide_text()),
+                  ).foreground(@chrome.ide_text()),
                   @views.text(
                     if file.locked {
                       text(t, "app.data.readonly")
                     } else {
                       text(t, "app.data.live")
                     },
-                    theme=studio_theme(),
+                    theme=@chrome.studio_theme(),
                     width=56.0,
                     height=16.0,
                     align=TextEnd,
                   ).foreground(
                     if file.locked {
-                      ide_warning()
+                      @chrome.ide_warning()
                     } else {
-                      ide_success()
+                      @chrome.ide_success()
                     },
                   ),
                 ],
@@ -766,26 +766,26 @@ fn data_view(
               ),
               @views.text(
                 file.meta,
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 role=Mono,
                 width=(width - 24.0).max(60.0),
                 height=16.0,
                 align=TextStart,
-              ).foreground(ide_text_faint()),
+              ).foreground(@chrome.ide_text_faint()),
               @views.text(
                 if file.preview == "app.data.empty" {
                   text(t, "app.data.empty")
                 } else {
                   file.preview
                 },
-                theme=studio_theme(),
+                theme=@chrome.studio_theme(),
                 role=Mono,
                 width=(width - 24.0).max(60.0),
                 height=(preview_height(file.preview).to_double() * 16.0).max(
                   16.0,
                 ),
                 align=TextStart,
-              ).foreground(code_plain_color()),
+              ).foreground(@chrome.code_plain_color()),
             ],
             spacing=2.0,
           ),
@@ -794,7 +794,7 @@ fn data_view(
           top=6.0,
           bottom=6.0,
         ),
-        background=ide_panel(),
+        background=@chrome.ide_panel(),
         width~,
         padding=0.0,
       ),
@@ -827,9 +827,9 @@ fn preview_height(preview : String) -> Int {
 /// 底部条的高度是**内容决定**的：最近修改行数可变，写死高度不是裁掉
 /// 最后一行就是把面板撑破。左右两条（最近修改 + 快速插入）都定高。
 pub fn bottom_strip_height(model : Model) -> Double {
-  let rows = recent_tail(model.recent_changes, RECENT_STRIP_ROWS).length()
+  let rows = recent_tail(model.recent_changes, @chrome.RECENT_STRIP_ROWS).length()
   let row_count = if rows == 0 { 1 } else { rows }
-  PANEL_HEAD_HEIGHT + row_count.to_double() * TREE_ROW_HEIGHT + 4.0
+  @chrome.PANEL_HEAD_HEIGHT + row_count.to_double() * @chrome.TREE_ROW_HEIGHT + 4.0
 }
 
 ///|
@@ -838,24 +838,24 @@ fn bottom_strip(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let header = panel_head(text(t, "app.recent.title"), "", [], width)
+  let header = @chrome.panel_head(text(t, "app.recent.title"), "", [], width)
   let rows : Array[@moui.View[Msg]] = []
-  let recent = recent_tail(model.recent_changes, RECENT_STRIP_ROWS)
+  let recent = recent_tail(model.recent_changes, @chrome.RECENT_STRIP_ROWS)
   if recent.length() == 0 {
     rows.push(
       @views.container(
         @views.padding_edges(
           @views.text(
             text(t, "app.recent.empty"),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=(width - 20.0).max(60.0),
             height=18.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
           left=8.0,
           right=8.0,
         ),
-        height=TREE_ROW_HEIGHT,
+        height=@chrome.TREE_ROW_HEIGHT,
         width~,
         padding=0.0,
       ),
@@ -869,31 +869,31 @@ fn bottom_strip(
               [
                 @views.text(
                   change.target,
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   width=64.0,
                   height=18.0,
                   align=TextStart,
-                ).foreground(ide_text()),
+                ).foreground(@chrome.ide_text()),
                 @views.text(
                   actor_label(t, change.by_agent),
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   width=38.0,
                   height=18.0,
                   align=TextStart,
                 ).foreground(
                   if change.by_agent {
-                    ide_accent()
+                    @chrome.ide_accent()
                   } else {
-                    ide_text_faint()
+                    @chrome.ide_text_faint()
                   },
                 ),
                 @views.text(
                   text(t, change.action),
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   width=(width - 128.0).max(40.0),
                   height=18.0,
                   align=TextStart,
-                ).foreground(ide_text_muted()),
+                ).foreground(@chrome.ide_text_muted()),
               ],
               spacing=4.0,
               align=Center,
@@ -901,7 +901,7 @@ fn bottom_strip(
             left=8.0,
             right=8.0,
           ),
-          height=TREE_ROW_HEIGHT,
+          height=@chrome.TREE_ROW_HEIGHT,
           width~,
           padding=0.0,
         ),
@@ -918,7 +918,7 @@ fn bottom_strip(
       width~,
       height=strip_height,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width~,
     height=strip_height,
     padding=0.0,
@@ -1047,30 +1047,30 @@ pub fn ide_bottom_bar(
   let head_cells = head_cells + terminal_tab_cells
   if model.bottom_tab is BtAudit && pending > 0 {
     head_cells.push(
-      action_chip(
+      @chrome.action_chip(
         text(t, "app.audit.confirm_all"),
         AuditSettleAll("app.audit.confirmed"),
-        Quiet,
+        @chrome.Quiet,
         22.0,
       ),
     )
   }
   if model.bottom_tab is BtConsole {
     head_cells.push(
-      action_chip(text(t, "app.console.clear"), ClearConsole, Ghost, 22.0),
+      @chrome.action_chip(text(t, "app.console.clear"), ClearConsole, @chrome.Ghost, 22.0),
     )
   }
   head_cells.push(
-    pill(
+    @chrome.pill(
       if errors > 0 {
         "\{errors}"
       } else {
         "0"
       },
       if errors > 0 {
-        ide_danger()
+        @chrome.ide_danger()
       } else {
-        ide_success()
+        @chrome.ide_success()
       },
       30.0,
     ),
@@ -1099,12 +1099,12 @@ pub fn ide_bottom_bar(
   )
   let head = @views.container(
     @views.padding_xy(
-      fill_row(head_cells, (width - 16.0).max(120.0), 6.0, Center),
+      @chrome.fill_row(head_cells, (width - 16.0).max(120.0), 6.0, Center),
       horizontal=8.0,
       vertical=0.0,
     ),
-    background=ide_panel_alt(),
-    height=PANEL_HEAD_HEIGHT,
+    background=@chrome.ide_panel_alt(),
+    height=@chrome.PANEL_HEAD_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -1114,7 +1114,7 @@ pub fn ide_bottom_bar(
     // 否则回落环境刷子在缝隙里露一条（本仓反复踩的 ambient 坑）。
     return @views.container(
       @views.text("", width=1.0, height=0.0),
-      background=ide_panel(),
+      background=@chrome.ide_panel(),
       width~,
       height=0.0,
       padding=0.0,
@@ -1137,22 +1137,22 @@ pub fn ide_bottom_bar(
       // 指到 BtAi（如停靠后再展开）。宿主不在底栏时诚实显示空态，
       // 绝不画第二份 composer。
       if ai_host_is_bottom(model) {
-        ai_bar_composer(model, t, width, (height - PANEL_HEAD_HEIGHT).max(80.0))
+        ai_bar_composer(model, t, width, (height - @chrome.PANEL_HEAD_HEIGHT).max(80.0))
       } else {
-        empty_hint(
+        @chrome.empty_hint(
           text(t, "app.ai.elsewhere"),
           width,
-          height - PANEL_HEAD_HEIGHT,
+          height - @chrome.PANEL_HEAD_HEIGHT,
         )
       }
     // 真终端（M5）：可用 = 屏行滚动 + 输入行；不可用（web/无头/教学版）
     // = 显式空态
     // 真终端（M5/M8 交互式）：不可用端（web/无头/教学版）上层已降级空态
-    BtTerminal => terminal_pane(model, t, width, height - PANEL_HEAD_HEIGHT)
+    BtTerminal => terminal_pane(model, t, width, height - @chrome.PANEL_HEAD_HEIGHT)
   }
   @views.container(
-    @views.column([hairline(), head, body], spacing=0.0),
-    background=ide_panel(),
+    @views.column([@chrome.hairline(), head, body], spacing=0.0),
+    background=@chrome.ide_panel(),
     width~,
     padding=0.0,
   )
@@ -1170,14 +1170,14 @@ fn tab_button(
   let cells : Array[@moui.View[Msg]] = [
     @views.text(
       label,
-      theme=studio_theme(),
-      width=(text_estimate_width(label) * 1.02 + 8.0).max(40.0),
+      theme=@chrome.studio_theme(),
+      width=(@chrome.text_estimate_width(label) * 1.02 + 8.0).max(40.0),
       height=18.0,
       align=TextStart,
-    ).foreground(if selected { ide_text() } else { ide_text_faint() }),
+    ).foreground(if selected { @chrome.ide_text() } else { @chrome.ide_text_faint() }),
   ]
   if count > 0 {
-    cells.push(count_badge(count.to_string(), if selected { 4 } else { 0 }))
+    cells.push(@chrome.count_badge(count.to_string(), if selected { 4 } else { 0 }))
   }
   @views.container(
     @views.padding_xy(
@@ -1185,7 +1185,7 @@ fn tab_button(
       horizontal=8.0,
       vertical=0.0,
     ),
-    background=if selected { ide_selection() } else { ide_panel_alt() },
+    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel_alt() },
     corner_radius=4.0,
     height=22.0,
     padding=0.0,
@@ -1204,7 +1204,7 @@ pub fn audit_pane(
   height : Double,
 ) -> @moui.View[Msg] {
   if model.audit_entries.length() == 0 {
-    return empty_hint(text(t, "app.audit.empty"), width, height)
+    return @chrome.empty_hint(text(t, "app.audit.empty"), width, height)
   }
   let cards : Array[@moui.View[Msg]] = []
   let mut index = 0
@@ -1219,7 +1219,7 @@ pub fn audit_pane(
       height~,
       shows_indicator=true,
     ),
-    background=ide_editor_background(),
+    background=@chrome.ide_editor_background(),
     width~,
     height~,
     padding=0.0,
@@ -1238,42 +1238,42 @@ fn audit_card(
 ) -> @moui.View[Msg] {
   ignore(model)
   let accent = match entry.kind {
-    AuditOk => ide_success()
-    AuditRun => ide_accent()
-    AuditWarn => ide_warning()
-    AuditError => ide_danger()
+    AuditOk => @chrome.ide_success()
+    AuditRun => @chrome.ide_accent()
+    AuditWarn => @chrome.ide_warning()
+    AuditError => @chrome.ide_danger()
   }
   let body : Array[@moui.View[Msg]] = [
     @views.text(
       text(t, entry.text),
-      theme=studio_theme(),
+      theme=@chrome.studio_theme(),
       width=(width - 40.0).max(80.0),
       height=18.0,
       align=TextStart,
-    ).foreground(ide_text()),
+    ).foreground(@chrome.ide_text()),
   ]
   if entry.detail != "" {
     body.push(
       @views.text(
         entry.detail,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         role=Mono,
         width=(width - 40.0).max(80.0),
         height=16.0,
         align=TextStart,
-      ).foreground(ide_text_muted()),
+      ).foreground(@chrome.ide_text_muted()),
     )
   }
   if entry.stack != "" {
     body.push(
       @views.text(
         entry.stack,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         role=Mono,
         width=(width - 40.0).max(80.0),
         height=16.0,
         align=TextStart,
-      ).foreground(code_comment_color()),
+      ).foreground(@chrome.code_comment_color()),
     )
   }
   if entry.kind is AuditWarn && !entry.settled {
@@ -1282,25 +1282,25 @@ fn audit_card(
     body.push(
       @views.row(
         [
-          action_chip(
+          @chrome.action_chip(
             text(t, "app.audit.confirm"),
             AuditSettle(index, "app.audit.confirmed"),
-            Primary,
+            @chrome.Primary,
             22.0,
           ),
-          action_chip(
+          @chrome.action_chip(
             text(t, "app.audit.reject"),
             AuditSettle(index, "app.audit.rejected"),
-            Quiet,
+            @chrome.Quiet,
             22.0,
           ),
           @views.text(
-            fit_label(text(t, "app.audit.gate_hint"), (width - 220.0).max(60.0)),
-            theme=studio_theme(),
+            @chrome.fit_label(text(t, "app.audit.gate_hint"), (width - 220.0).max(60.0)),
+            theme=@chrome.studio_theme(),
             width=(width - 200.0).max(60.0),
             height=16.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
         ],
         spacing=6.0,
         align=Center,
@@ -1310,14 +1310,14 @@ fn audit_card(
     body.push(
       @views.text(
         entry.settled_note,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=(width - 40.0).max(80.0),
         height=16.0,
         align=TextStart,
-      ).foreground(ide_success()),
+      ).foreground(@chrome.ide_success()),
     )
   }
-  inline_card(accent, @views.column(body, spacing=4.0), width, entry.settled).on_tap(
+  @chrome.inline_card(accent, @views.column(body, spacing=4.0), width, entry.settled).on_tap(
     AuditOpen(index),
   )
 }
@@ -1331,33 +1331,33 @@ pub fn console_pane(
   height : Double,
 ) -> @moui.View[Msg] {
   if model.log_lines.length() == 0 {
-    return empty_hint("", width, height)
+    return @chrome.empty_hint("", width, height)
   }
   let rows : Array[@moui.View[Msg]] = []
   for line in model.log_lines {
     let (tag, color) = match line.level {
-      LogInfo => ("INFO ", ide_text_muted())
-      LogWarn => ("WARN ", ide_warning())
-      LogError => ("ERROR", ide_danger())
+      LogInfo => ("INFO ", @chrome.ide_text_muted())
+      LogWarn => ("WARN ", @chrome.ide_warning())
+      LogError => ("ERROR", @chrome.ide_danger())
     }
     rows.push(
       @views.row(
         [
           @views.text(
             tag,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Mono,
             width=44.0,
             height=16.0,
           ).foreground(color),
           @views.text(
             text(t, line.text),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=Mono,
             width=(width - 70.0).max(80.0),
             height=16.0,
             align=TextStart,
-          ).foreground(code_plain_color()),
+          ).foreground(@chrome.code_plain_color()),
         ],
         spacing=6.0,
         align=Center,
@@ -1371,7 +1371,7 @@ pub fn console_pane(
       height~,
       shows_indicator=true,
     ),
-    background=ide_editor_background(),
+    background=@chrome.ide_editor_background(),
     width~,
     height~,
     padding=0.0,
@@ -1393,7 +1393,7 @@ pub fn terminal_pane(
   let screen_rows : Array[@moui.View[Msg]] = []
   if term.screen.length() == 0 {
     screen_rows.push(
-      empty_hint(
+      @chrome.empty_hint(
         if term.running() {
           ""
         } else {
@@ -1435,12 +1435,12 @@ pub fn terminal_pane(
           } else {
             display
           },
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           role=Mono,
           width=(width - 16.0).max(60.0),
           height=16.0,
           align=TextStart,
-        ).foreground(code_plain_color()),
+        ).foreground(@chrome.code_plain_color()),
       )
       line_index = line_index + 1
     }
@@ -1465,7 +1465,7 @@ pub fn terminal_pane(
       left=8.0,
       right=8.0,
     ),
-    background=ide_editor_background(),
+    background=@chrome.ide_editor_background(),
     width~,
     height=screen_height,
     padding=0.0,

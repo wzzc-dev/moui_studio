@@ -47,7 +47,7 @@ fn ai_session_list_header(
   width : Double,
 ) -> @moui.View[Msg] {
   @views.container(
-    fill_row(
+    @chrome.fill_row(
       [
         @views.spacer(min_length=0.0, weight=1.0),
         @views.shortcut_button(
@@ -58,17 +58,17 @@ fn ai_session_list_header(
             modifiers=@core.KeyModifiers::new(meta=true),
           ),
           variant=Ghost,
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=52.0,
           height=22.0,
         ),
         @views.container(
           @views.center(
-            @views.icon(Gear, size=13.0, color=ide_text_muted()),
+            @views.icon(Gear, size=13.0, color=@chrome.ide_text_muted()),
             width=22.0,
             height=22.0,
           ),
-          background=ide_panel_alt(),
+          background=@chrome.ide_panel_alt(),
           corner_radius=4.0,
           width=22.0,
           height=22.0,
@@ -76,14 +76,14 @@ fn ai_session_list_header(
         ).on_tap(StudioCommandRun("studio.settings")),
         @views.container(
           @views.center(
-            @views.icon(Search, size=13.0, color=ide_text_muted()),
+            @views.icon(Search, size=13.0, color=@chrome.ide_text_muted()),
             width=22.0,
             height=22.0,
           ),
           background=if model.ai_sessions_search_open {
-            ide_selection()
+            @chrome.ide_selection()
           } else {
-            ide_panel_alt()
+            @chrome.ide_panel_alt()
           },
           corner_radius=4.0,
           width=22.0,
@@ -239,7 +239,7 @@ fn ai_project_group(
   let label = if project == "" {
     text(t, "app.ai.group.default_project")
   } else {
-    fit_label(project, (width - 60.0).max(60.0))
+    @chrome.fit_label(project, (width - 60.0).max(60.0))
   }
   let rows : Array[@moui.View[Msg]] = [
     ai_group_bar(t, label, indices.length(), width),
@@ -260,19 +260,19 @@ fn ai_group_bar(
 ) -> @moui.View[Msg] {
   ignore(t)
   @views.container(
-    fill_row(
+    @chrome.fill_row(
       [
-        @views.icon(FolderOpen, size=11.0, color=ide_text_faint()),
+        @views.icon(FolderOpen, size=11.0, color=@chrome.ide_text_faint()),
         @views.text(
           label,
-          theme=studio_theme(),
+          theme=@chrome.studio_theme(),
           width=(width - 76.0).max(40.0),
           height=16.0,
           align=TextStart,
-        ).foreground(ide_text_faint()),
+        ).foreground(@chrome.ide_text_faint()),
         @views.spacer(min_length=4.0, weight=1.0),
-        @views.text("\{count}", theme=studio_theme(), width=24.0, height=16.0).foreground(
-          ide_text_faint(),
+        @views.text("\{count}", theme=@chrome.studio_theme(), width=24.0, height=16.0).foreground(
+          @chrome.ide_text_faint(),
         ),
       ],
       (width - 8.0).max(80.0),
@@ -353,9 +353,9 @@ fn ai_session_row(
   // 标题占满「行宽 − 图标 − 间距」:内容恰好填满 frame,行不会因
   // 短标题被 frame 居中而出现行首空隙（真机实测缺陷）。
   let title_w = (line_w - 15.0).max(24.0)
-  let title = fit_label(session.title, title_w)
+  let title = @chrome.fit_label(session.title, title_w)
   let time_w = (line_w - 12.0).max(30.0)
-  let accent = if active { ide_accent() } else { ide_text_faint() }
+  let accent = if active { @chrome.ide_accent() } else { @chrome.ide_text_faint() }
   // 来源：有已采纳提案的会话 = Gear（Agent 干过活），否则 Chat（纯聊天）
   let source_icon : @style.IconName = if session.proposal_history.any(record => {
       record.accepted
@@ -366,31 +366,31 @@ fn ai_session_row(
   }
   // 行内容**自然宽、左对齐**——不套 .frame(width=…):Frame 对「量出来比
   // frame 窄」的子行会做居中放置（真机实测:标题被推到行中,行首出现
-  // 一段随宽度增长的空白）。fit_label 负责超长截断。
+  // 一段随宽度增长的空白）。@chrome.fit_label 负责超长截断。
   let line1 = @views.row(
     [
       @views.icon(Chat, size=11.0, color=accent),
       @views.text(
         title,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=title_w,
         height=15.0,
         align=TextStart,
-      ).foreground(if active { ide_text() } else { ide_text_muted() }),
+      ).foreground(if active { @chrome.ide_text() } else { @chrome.ide_text_muted() }),
     ],
     spacing=4.0,
     align=Start,
   )
   let line2 = @views.row(
     [
-      @views.icon(source_icon, size=9.0, color=ide_text_faint()),
+      @views.icon(source_icon, size=9.0, color=@chrome.ide_text_faint()),
       @views.text(
         time_label,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=time_w,
         height=12.0,
         align=TextStart,
-      ).foreground(ide_text_faint()),
+      ).foreground(@chrome.ide_text_faint()),
     ],
     spacing=3.0,
     align=Start,
@@ -403,8 +403,8 @@ fn ai_session_row(
     cells.push(
       @views.container(
         @views.center(
-          @views.text("✎", theme=studio_theme(), width=12.0, height=14.0).foreground(
-            ide_text_muted(),
+          @views.text("✎", theme=@chrome.studio_theme(), width=12.0, height=14.0).foreground(
+            @chrome.ide_text_muted(),
           ),
           width=18.0,
           height=16.0,
@@ -420,7 +420,7 @@ fn ai_session_row(
           @views.icon(
             Pin,
             size=11.0,
-            color=if session.pinned { ide_accent() } else { ide_text_faint() },
+            color=if session.pinned { @chrome.ide_accent() } else { @chrome.ide_text_faint() },
           ),
           width=18.0,
           height=16.0,
@@ -433,8 +433,8 @@ fn ai_session_row(
     cells.push(
       @views.container(
         @views.center(
-          @views.text("✕", theme=studio_theme(), width=10.0, height=14.0).foreground(
-            ide_text_faint(),
+          @views.text("✕", theme=@chrome.studio_theme(), width=10.0, height=14.0).foreground(
+            @chrome.ide_text_faint(),
           ),
           width=18.0,
           height=16.0,
@@ -455,11 +455,11 @@ fn ai_session_row(
       right=8.0,
     ),
     background=if active {
-      ide_selection()
+      @chrome.ide_selection()
     } else if hovering {
-      ide_panel_alt()
+      @chrome.ide_panel_alt()
     } else {
-      ide_panel()
+      @chrome.ide_panel()
     },
     width=row_width,
     height=AI_SESSION_ROW_HEIGHT,

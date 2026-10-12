@@ -155,7 +155,7 @@ pub fn form_design_canvas(
                   width=rect.size.width + 4.0,
                   height=rect.size.height + 4.0,
                 ),
-                ide_accent(),
+                @chrome.ide_accent(),
                 2.0,
               ),
             )
@@ -167,7 +167,7 @@ pub fn form_design_canvas(
                   width=8.0,
                   height=8.0,
                 ),
-                ide_accent(),
+                @chrome.ide_accent(),
               ),
             )
           }
@@ -207,7 +207,7 @@ pub fn form_design_canvas(
         _ => Msg::Noop
       }
     }),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width=canvas_width_of(model, width),
     height=canvas_height_of(model, height),
     padding=0.0,

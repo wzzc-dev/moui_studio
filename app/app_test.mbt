@@ -1537,19 +1537,19 @@ test "blocks canvas layout, hit test and drop slot" {
 
 ///|
 /// 积木标签按块宽截断：宽够就原样，宽不够就「…」收尾且**不超宽**。
-test "fit_label truncates block labels to the block width" {
+test "@chrome.fit_label truncates block labels to the block width" {
   // 够宽：原样返回
-  assert_eq(@app.fit_label("命令", 200.0), "命令")
+  assert_eq(@chrome.fit_label("命令", 200.0), "命令")
   // 不够宽：以省略号收尾
   let long = "命令  set_text(显示, \"你好，MoUI Studio！\")"
-  let fitted = @app.fit_label(long, 200.0)
+  let fitted = @chrome.fit_label(long, 200.0)
   assert_true(fitted.contains("…"))
   assert_true(fitted.length() < long.length())
   // 截断结果必须真的放得下（按 12pt 渲染口径）
-  let rendered = @app.text_estimate_width(fitted) * (12.0 / 13.0)
+  let rendered = @chrome.text_estimate_width(fitted) * (12.0 / 13.0)
   assert_true(rendered <= 200.0)
   // 极窄也不能崩：至少给一个省略号
-  assert_eq(@app.fit_label(long, 4.0), "…")
+  assert_eq(@chrome.fit_label(long, 4.0), "…")
 }
 
 ///|
@@ -1589,7 +1589,7 @@ test "window drag region declaration is idempotent and clearable" {
     x=0.0,
     y=0.0,
     width=1280.0,
-    height=@app.WINDOW_CHROME_HEIGHT,
+    height=@chrome.WINDOW_CHROME_HEIGHT,
   )
   source.set_region(Some(band))
   // 声明的必须是**顶部整条带**：原点贴左上角，高 = 窗控带高
@@ -1599,7 +1599,7 @@ test "window drag region declaration is idempotent and clearable" {
   }
   assert_eq(declared.origin.x, 0.0)
   assert_eq(declared.origin.y, 0.0)
-  assert_eq(declared.size.height, @app.WINDOW_CHROME_HEIGHT)
+  assert_eq(declared.size.height, @chrome.WINDOW_CHROME_HEIGHT)
   // 逐帧重复声明不得推进 revision —— 宿主据此跳过原生调用，
   // 这是「声明是状态不是命令」的全部意义所在。
   let revision = source.revision()

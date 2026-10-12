@@ -24,11 +24,11 @@ pub fn markdown_blocks_view(
         rows.push(
           @views.text(
             text,
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             role=if level == 1 { Title } else { Subtitle },
             width=(width - 16.0).max(60.0),
             height~,
-          ).foreground(ide_text()),
+          ).foreground(@chrome.ide_text()),
         )
       }
       MbParagraph(pieces) => rows.push(markdown_inline_row(pieces, width))
@@ -63,23 +63,23 @@ pub fn markdown_blocks_view(
                   } else {
                     line
                   },
-                  theme=studio_theme(),
+                  theme=@chrome.studio_theme(),
                   role=Mono,
                   width=(width - 24.0).max(60.0),
                   height=16.0,
                   align=TextStart,
-                ).foreground(code_plain_color()),
+                ).foreground(@chrome.code_plain_color()),
                 left=8.0,
                 right=8.0,
               ),
-              background=ide_editor_background(),
+              background=@chrome.ide_editor_background(),
               width~,
               height=24.0,
               padding=0.0,
             ),
           )
         }
-      MbRule => rows.push(hairline())
+      MbRule => rows.push(@chrome.hairline())
     }
   }
   @views.column(rows, spacing=4.0)
@@ -100,16 +100,16 @@ fn markdown_inline_row(
       MiCode(text) => text
     }
     let color = match piece {
-      MiBold(_) => ide_text()
-      MiItalic(_) => ide_text_muted()
-      MiCode(_) => ide_accent()
-      MiText(_) => ide_text()
+      MiBold(_) => @chrome.ide_text()
+      MiItalic(_) => @chrome.ide_text_muted()
+      MiCode(_) => @chrome.ide_accent()
+      MiText(_) => @chrome.ide_text()
     }
-    let piece_width = text_estimate_width(text).max(4.0)
+    let piece_width = @chrome.text_estimate_width(text).max(4.0)
     cells.push(
       @views.text(
         text,
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         role=if piece is MiCode(_) { Mono } else { Body },
         width=piece_width,
         height=18.0,

@@ -72,7 +72,7 @@ pub fn[Msg] stage_layout(
   // 舞台外的 IDE 覆盖层（选中描边/参考线/手柄）不受影响——它们是 IDE 的
   // chrome，不是产品 UI。
   @core.View::from_node(StageLayout::{ rects, }, children=_node => children).theme(
-    studio_product_theme(),
+    @chrome.studio_product_theme(),
   )
 }
 

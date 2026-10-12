@@ -326,7 +326,7 @@ test "bottom bar host reserves room for the composer block incl chips" {
   let inner = width - AI_CARD_PAD * 2.0
   let bar = ai_bar_height(model, width, 800.0)
   // 内衬在 card_chrome_height 里已计 pad*2;外层包装只补横向,纵向不再垫
-  let needed = PANEL_HEAD_HEIGHT +
+  let needed = @chrome.PANEL_HEAD_HEIGHT +
     composer_block_height(inner) +
     decision_bar_height(model) +
     AI_CARD_PAD * 2.0 +

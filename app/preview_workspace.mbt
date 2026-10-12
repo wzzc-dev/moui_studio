@@ -20,8 +20,8 @@ pub fn preview_workspace(
   match active_project_of(model) {
     None =>
       @views.container(
-        empty_hint(text(t, "app.project.no_project"), width, height),
-        background=ide_editor_background(),
+        @chrome.empty_hint(text(t, "app.project.no_project"), width, height),
+        background=@chrome.ide_editor_background(),
         width~,
         height~,
         padding=0.0,
@@ -84,11 +84,11 @@ pub fn preview_workspace(
           [
             @views.text(
               project.module_name,
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               width=(width - 420.0).max(80.0),
               height=20.0,
               align=TextStart,
-            ).foreground(ide_text()),
+            ).foreground(@chrome.ide_text()),
             mode_strip,
             @views.text(
               if model.build_busy {
@@ -96,11 +96,11 @@ pub fn preview_workspace(
               } else {
                 text(t, "app.project.preview_rebuild_hint")
               },
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               width=(width - 260.0).max(80.0),
               height=18.0,
               align=TextEnd,
-            ).foreground(ide_text_muted()),
+            ).foreground(@chrome.ide_text_muted()),
             icon_button(
               Save,
               text(t, "app.project.preview_rebuild"),
@@ -115,7 +115,7 @@ pub fn preview_workspace(
           spacing=8.0,
           align=Center,
         ),
-        background=ide_panel(),
+        background=@chrome.ide_panel(),
         width~,
         height=40.0,
         padding=0.0,
@@ -137,11 +137,11 @@ pub fn preview_workspace(
                 [
                   @views.text(
                     text(t, "app.project.design_empty"),
-                    theme=studio_theme(),
+                    theme=@chrome.studio_theme(),
                     width=(area_width - 40.0).max(80.0),
                     height=24.0,
                     align=TextCenter,
-                  ).foreground(ide_text_muted()),
+                  ).foreground(@chrome.ide_text_muted()),
                   @views.button(
                     text(t, "app.project.design_open"),
                     on_click=FormDesignOpen,
@@ -168,11 +168,11 @@ pub fn preview_workspace(
                 [
                   @views.text(
                     text(t, "app.project.preview_empty"),
-                    theme=studio_theme(),
+                    theme=@chrome.studio_theme(),
                     width=(width - 40.0).max(80.0),
                     height=24.0,
                     align=TextCenter,
-                  ).foreground(ide_text_muted()),
+                  ).foreground(@chrome.ide_text_muted()),
                   @views.button(
                     text(t, "app.project.preview_build_now"),
                     on_click=ProjectBuildRun(BkFramePreview),
@@ -192,21 +192,21 @@ pub fn preview_workspace(
               @views.container(
                 @views.padding_xy(
                   @views.text(
-                    fit_label(
+                    @chrome.fit_label(
                       text_with(t, "app.project.preview_unknown_ops", [
                         ("a", frame.unknown_ops.length().to_string()),
                       ]),
                       (width - 260.0).max(60.0),
                     ),
-                    theme=studio_theme(),
+                    theme=@chrome.studio_theme(),
                     width=(width - 260.0).max(60.0),
                     height=18.0,
                     align=TextStart,
-                  ).foreground(ide_text_muted()),
+                  ).foreground(@chrome.ide_text_muted()),
                   horizontal=12.0,
                   vertical=4.0,
                 ),
-                background=ide_panel(),
+                background=@chrome.ide_panel(),
                 width~,
                 height=26.0,
                 padding=0.0,
@@ -226,7 +226,7 @@ pub fn preview_workspace(
                   )
                 None =>
                   @views.container(
-                    empty_hint(
+                    @chrome.empty_hint(
                       text(t, "app.project.preview_web_unavailable"),
                       canvas_width,
                       height,
@@ -256,7 +256,7 @@ pub fn preview_workspace(
       }
       @views.container(
         @views.column([head, body], spacing=0.0).frame(width~, height~),
-        background=ide_editor_background(),
+        background=@chrome.ide_editor_background(),
         width~,
         height~,
         padding=0.0,
@@ -307,7 +307,7 @@ pub fn preview_replay_canvas(
                   width=node.frame.size.width + 4.0,
                   height=node.frame.size.height + 4.0,
                 ),
-                ide_accent(),
+                @chrome.ide_accent(),
                 2.0,
               ),
             )
@@ -321,7 +321,7 @@ pub fn preview_replay_canvas(
       let y = position.y - tap_frame.origin.y
       Msg::SelectSemanticNode(semantic_hit_index(nodes, x, y))
     }),
-    background=ide_editor_background(),
+    background=@chrome.ide_editor_background(),
     width=canvas_width.min(pane_width - 2.0).max(1.0),
     height=canvas_height,
     padding=0.0,
@@ -354,11 +354,11 @@ pub fn semantic_property_strip(
     @views.padding_xy(
       @views.text(
         text(t, "app.project.props_title"),
-        theme=studio_theme(),
+        theme=@chrome.studio_theme(),
         width=196.0,
         height=18.0,
         align=TextStart,
-      ).foreground(ide_text()),
+      ).foreground(@chrome.ide_text()),
       horizontal=12.0,
       vertical=8.0,
     ),
@@ -369,11 +369,11 @@ pub fn semantic_property_strip(
         @views.padding_xy(
           @views.text(
             text(t, "app.project.props_none"),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=196.0,
             height=34.0,
             align=TextStart,
-          ).foreground(ide_text_faint()),
+          ).foreground(@chrome.ide_text_faint()),
           horizontal=12.0,
           vertical=0.0,
         ),
@@ -383,11 +383,11 @@ pub fn semantic_property_strip(
         @views.padding_xy(
           @views.text(
             text_with(t, "app.project.props_role", [("a", node.role)]),
-            theme=studio_theme(),
+            theme=@chrome.studio_theme(),
             width=196.0,
             height=16.0,
             align=TextStart,
-          ).foreground(ide_text_muted()),
+          ).foreground(@chrome.ide_text_muted()),
           horizontal=12.0,
           vertical=0.0,
         ),
@@ -400,7 +400,7 @@ pub fn semantic_property_strip(
             placeholder=text(t, "app.project.props_label_hint"),
             variant=Outline,
             width=196.0,
-            height=FIELD_HEIGHT,
+            height=@chrome.FIELD_HEIGHT,
           ),
           horizontal=12.0,
           vertical=6.0,
@@ -411,14 +411,14 @@ pub fn semantic_property_strip(
           @views.center(
             @views.text(
               text(t, "app.project.props_apply"),
-              theme=studio_theme(),
+              theme=@chrome.studio_theme(),
               width=80.0,
               height=18.0,
             ),
             width=196.0,
             height=28.0,
           ),
-          background=ide_accent(),
+          background=@chrome.ide_accent(),
           corner_radius=4.0,
           width=196.0,
           height=28.0,
@@ -434,7 +434,7 @@ pub fn semantic_property_strip(
       height~,
       shows_indicator=true,
     ),
-    background=ide_panel(),
+    background=@chrome.ide_panel(),
     width=220.0,
     height~,
     padding=0.0,
@@ -450,17 +450,17 @@ fn mode_strip_button(
 ) -> @moui.View[Msg] {
   @views.container(
     @views.center(
-      @views.text(label, theme=studio_theme(), width=88.0, height=16.0).foreground(
+      @views.text(label, theme=@chrome.studio_theme(), width=88.0, height=16.0).foreground(
         if selected {
-          ide_text()
+          @chrome.ide_text()
         } else {
-          ide_text_muted()
+          @chrome.ide_text_muted()
         },
       ),
       width=96.0,
       height=24.0,
     ),
-    background=if selected { ide_selection() } else { ide_panel() },
+    background=if selected { @chrome.ide_selection() } else { @chrome.ide_panel() },
     corner_radius=4.0,
     width=96.0,
     height=24.0,
