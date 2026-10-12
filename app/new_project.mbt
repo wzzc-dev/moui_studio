@@ -398,7 +398,7 @@ fn activate_project_with_restore(
   index : Int,
   services : @services.AppServices,
 ) -> (Model, @moui.Effect[Msg]) {
-  let (next, effect) = update_pure(model, SetActiveProject(index))
+  let (next, effect) = update_pure(model, ProjectOp(SetActiveProject(index)))
   match active_project_of(next) {
     Some(record) =>
       if record.root != next.program_root {

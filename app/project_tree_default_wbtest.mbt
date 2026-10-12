@@ -20,7 +20,7 @@ test "导入后工程根默认折叠,展开后子树可见" {
     collapsed.contains("dir-0:app"),
     msg="导入默认折叠时子目录不应可见",
   )
-  let expanded = explorer_apply(imported, ToggleProjectDirAt(0, ""))
+  let expanded = explorer_apply(imported, ProjectOp(ToggleProjectDirAt(0, "")))
   let rows = explorer_rows_for_test(expanded)
   assert_true(
     rows.contains("dir-0:app"),
@@ -30,7 +30,7 @@ test "导入后工程根默认折叠,展开后子树可见" {
     rows.contains("file-0:app/app.mbt"),
     msg="子目录未展开时它的文件不应可见（整棵树逐层折叠）",
   )
-  let deeper = explorer_apply(expanded, ToggleProjectDirAt(0, "app"))
+  let deeper = explorer_apply(expanded, ProjectOp(ToggleProjectDirAt(0, "app")))
   assert_true(
     explorer_rows_for_test(deeper).contains("file-0:app/app.mbt"),
     msg="逐层展开子目录后文件才可见",
@@ -61,7 +61,7 @@ test "工作区导入后根行默认折叠" {
   )
   let expanded = explorer_apply(
     imported,
-    ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, ""),
+    ProjectOp(ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, "")),
   )
   let rows = explorer_rows_for_test(expanded)
   assert_true(
@@ -72,7 +72,10 @@ test "工作区导入后根行默认折叠" {
     rows.contains("dir-0:app"),
     msg="成员目录未展开时它的子目录不应可见",
   )
-  let deeper = explorer_apply(expanded, ToggleProjectDirAt(0, "tools"))
+  let deeper = explorer_apply(
+    expanded,
+    ProjectOp(ToggleProjectDirAt(0, "tools")),
+  )
   assert_true(
     explorer_rows_for_test(deeper).contains("dir-0:app"),
     msg="逐层展开成员目录后它的子目录才可见",
@@ -106,7 +109,7 @@ test "嵌套成员:中间目录与成员行都默认折叠" {
     ).0
   let expanded = explorer_apply(
     imported,
-    ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, ""),
+    ProjectOp(ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, "")),
   )
   let rows = explorer_rows_for_test(expanded)
   assert_true(
@@ -119,7 +122,7 @@ test "嵌套成员:中间目录与成员行都默认折叠" {
   )
   let deeper = explorer_apply(
     expanded,
-    ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, "examples"),
+    ProjectOp(ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, "examples")),
   )
   assert_true(
     explorer_rows_for_test(deeper).contains("dir-0:examples/terminal"),
@@ -137,7 +140,7 @@ test "重扫刷新保留用户的展开态" {
       ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
       services,
     ).0
-  let expanded = explorer_apply(imported, ToggleProjectDirAt(0, ""))
+  let expanded = explorer_apply(imported, ProjectOp(ToggleProjectDirAt(0, "")))
   assert_false(
     expanded.project_state.project_tree_collapsed.contains(
       root_collapse_key(0, ""),

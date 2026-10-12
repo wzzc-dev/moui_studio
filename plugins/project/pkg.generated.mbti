@@ -20,6 +20,8 @@ pub fn active_project_file(ExplorerData) -> OpenProjectFile?
 
 pub fn child_dirs_of(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
 
+pub fn collapse_all_tree_keys(ProjectState) -> Array[String]
+
 pub fn dir_collapsed(ExplorerData, String) -> Bool
 
 pub fn explorer_child_dirs_for_test(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
@@ -48,19 +50,33 @@ pub fn project_entry_meta(ProjectRecord) -> String
 
 pub fn project_entry_meta_of(ExplorerData, Int) -> String
 
+pub fn project_feature() -> @core.Feature[ProjectState, ProjectMsg]
+
 pub fn project_kind_label(@wzzc-dev/moui_studio/services/project.PackageKind, @moui_i18n.Translator) -> String
 
 pub fn recent_tail(Array[RecentChange], Int) -> Array[RecentChange]
 
 pub fn rel_path_last_segment(String) -> String
 
+pub fn replace_open_file_at(Array[OpenProjectFile], Int, OpenProjectFile) -> Array[OpenProjectFile]
+
 pub fn root_collapse_key(Int, String) -> String
 
 pub fn section_collapsed(ExplorerData, String) -> Bool
 
+pub fn seed_all_collapse_keys(Array[String], ProjectState) -> Unit
+
+pub fn seed_project_collapse_keys(Array[String], Int, ProjectRecord, String) -> Unit
+
+pub fn seed_workspace_collapse_keys(Array[String], Array[ProjectRecord], WorkspaceRecord) -> Unit
+
 pub fn tree_rel_of_project(ExplorerData, ProjectRecord) -> String
 
 pub fn tree_rel_of_project_file(ExplorerData, ProjectRecord, String) -> String
+
+pub fn tree_rel_under_workspace(String, String) -> String
+
+pub fn update_project(ProjectState, ProjectMsg) -> (ProjectState, @core.Effect[ProjectMsg])
 
 pub fn workspace_display_name(String) -> String
 
@@ -110,6 +126,23 @@ pub(all) struct OutlineSymbol {
   depth : Int
 }
 
+pub(all) enum ProjectMsg {
+  SetActiveProject(Int)
+  ToggleProjectDirAt(Int, String)
+  ExplorerHover(String)
+  ToggleExplorerSection(String)
+  FileCreateAt(String)
+  FolderCreateAt(String)
+  ToggleExplorerMenu
+  FolderCreateDraft(String)
+  FolderCreateDismiss
+  ExplorerCollapseAll
+  ExplorerScrolled(@core.Point)
+  ProjectFileCaretMoved(Int, @core.TextRange?)
+  EditProjectFile(String)
+  ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
+}
+
 pub(all) struct ProjectRecord {
   root : String
   module_name : String
@@ -135,6 +168,7 @@ pub(all) struct ProjectState {
   folder_create_open : Bool
   file_name_draft : String
 }
+pub fn ProjectState::new() -> Self
 
 pub(all) struct RecentChange {
   target : String

@@ -281,7 +281,10 @@ test "explorer 时间线取代底部最近修改条" {
     ).0
   let seeded = push_recent(imported, "窗口1", "app.recent.align", false)
   let opened = explorer_apply(seeded, SetLeftView(LeftProject))
-  let opened = explorer_apply(opened, ToggleExplorerSection("timeline"))
+  let opened = explorer_apply(
+    opened,
+    ProjectOp(ToggleExplorerSection("timeline")),
+  )
   let runs = shell_texts(explorer_draw(opened, 1280.0, 800.0))
   let mut timeline_y = -1.0
   let mut entry_y = -1.0
@@ -380,7 +383,10 @@ test "explorer 大纲分区列出当前文件符号" {
       services,
     ).0
   let opened = explorer_apply(imported, SetLeftView(LeftProject))
-  let opened = explorer_apply(opened, ToggleExplorerSection("outline"))
+  let opened = explorer_apply(
+    opened,
+    ProjectOp(ToggleExplorerSection("outline")),
+  )
   let selected = explorer_apply(opened, SelectProjectFile("app/app.mbt"))
   let loaded = explorer_apply(
     selected,
@@ -419,7 +425,10 @@ test "explorer 打开的编辑器分区" {
       services,
     ).0
   let opened = explorer_apply(imported, SetLeftView(LeftProject))
-  let opened = explorer_apply(opened, ToggleExplorerSection("editors"))
+  let opened = explorer_apply(
+    opened,
+    ProjectOp(ToggleExplorerSection("editors")),
+  )
   let selected = explorer_apply(opened, SelectProjectFile("app/app.mbt"))
   let loaded = explorer_apply(
     selected,
@@ -440,7 +449,10 @@ test "explorer 打开的编辑器分区" {
   assert_true(seen_tab, msg="打开的编辑器应列出 app.mbt")
   assert_false(dirty_dot, msg="未编辑的 tab 不应有脏标记")
   // 编辑后出现脏标记
-  let edited = explorer_apply(loaded, EditProjectFile("pub fn main { 1 }\n"))
+  let edited = explorer_apply(
+    loaded,
+    ProjectOp(EditProjectFile("pub fn main { 1 }\n")),
+  )
   let mut dirty_after = false
   for run in shell_texts(explorer_draw(edited, 1280.0, 800.0)) {
     if run.text == "●" {
@@ -465,7 +477,7 @@ test "explorer 就地新建输入行跟随目标目录" {
     SetLeftView(LeftProject),
   )
   // 在 app/ 下新建:输入行应排在 app 目录行之后、app 的文件之前
-  let creating = explorer_apply(opened, FileCreateAt("app"))
+  let creating = explorer_apply(opened, ProjectOp(FileCreateAt("app")))
   let runs = shell_texts(explorer_draw(creating, 1280.0, 800.0))
   // 行序判据用「模块根行 → app 目录行 → 输入行 → app 的第一个文件」这条
   // 结构链,不要用绝对 y 阈值:面板内边距/搜索框一变,阈值就失效,
@@ -538,7 +550,7 @@ test "explorer 行内动作只在悬停行出现" {
   }
   // 悬停某个文件行 → 该行的 ✎ / 🗑 出现（路径数增加）
   let file_key = "file-0:app/app.mbt"
-  let hovering = explorer_apply(opened, ExplorerHover(file_key))
+  let hovering = explorer_apply(opened, ProjectOp(ExplorerHover(file_key)))
   let hovered = explorer_draw(hovering, 1280.0, 800.0)
   let mut hovered_paths = 0
   for command in hovered {
@@ -790,7 +802,7 @@ test "explorer 溢出菜单开合" {
   }
   assert_false(closed_collapse, msg="菜单收起时不应有菜单文字行")
   // 展开
-  let menu = explorer_apply(opened, ToggleExplorerMenu)
+  let menu = explorer_apply(opened, ProjectOp(ToggleExplorerMenu))
   let mut seen_collapse = false
   let mut seen_new_folder = false
   for run in shell_texts(explorer_draw(menu, 1280.0, 800.0)) {
@@ -807,7 +819,7 @@ test "explorer 溢出菜单开合" {
     msg="菜单展开后应列出「新建文件夹」",
   )
   // 再点收起
-  let closed = explorer_apply(menu, ToggleExplorerMenu)
+  let closed = explorer_apply(menu, ProjectOp(ToggleExplorerMenu))
   let mut after_close = false
   for run in shell_texts(explorer_draw(closed, 1280.0, 800.0)) {
     if run.text == "全部折叠" {
@@ -831,14 +843,14 @@ test "explorer 目录行新建:目标目录跟随所在层" {
       services,
     ).0
   // 目录行的「新建文件」
-  let file_in_app = explorer_apply(imported, FileCreateAt("app"))
+  let file_in_app = explorer_apply(imported, ProjectOp(FileCreateAt("app")))
   assert_eq(file_in_app.project_state.file_create_dir, "app")
   assert_eq(
     join_rel(file_in_app.project_state.file_create_dir, "x.mbt"),
     "app/x.mbt",
   )
   // 目录行的「新建文件夹」——必须同样落在 app/
-  let folder_in_app = explorer_apply(imported, FolderCreateAt("app"))
+  let folder_in_app = explorer_apply(imported, ProjectOp(FolderCreateAt("app")))
   assert_true(folder_in_app.project_state.folder_create_open)
   assert_eq(
     folder_in_app.project_state.file_create_dir,
@@ -850,7 +862,7 @@ test "explorer 目录行新建:目标目录跟随所在层" {
     "app/newdir",
   )
   // 工具栏（不带目录）= 工程根
-  let folder_at_root = explorer_apply(imported, FolderCreateAt(""))
+  let folder_at_root = explorer_apply(imported, ProjectOp(FolderCreateAt("")))
   assert_eq(folder_at_root.project_state.file_create_dir, "")
   assert_eq(
     join_rel(folder_at_root.project_state.file_create_dir, "newdir"),
@@ -868,15 +880,15 @@ test "explorer 新建文件与新建文件夹互斥" {
       ProjectScanCompleted(Success(Ok(Single(explorer_source())))),
       services,
     ).0
-  let file_open = explorer_apply(imported, FileCreateAt("app"))
+  let file_open = explorer_apply(imported, ProjectOp(FileCreateAt("app")))
   assert_true(file_open.project_state.file_create_open)
-  let then_folder = explorer_apply(file_open, FolderCreateAt("app"))
+  let then_folder = explorer_apply(file_open, ProjectOp(FolderCreateAt("app")))
   assert_true(then_folder.project_state.folder_create_open)
   assert_false(
     then_folder.project_state.file_create_open,
     msg="打开文件夹输入行应关掉文件输入行",
   )
-  let then_file = explorer_apply(then_folder, FileCreateAt("app"))
+  let then_file = explorer_apply(then_folder, ProjectOp(FileCreateAt("app")))
   assert_true(then_file.project_state.file_create_open)
   assert_false(
     then_file.project_state.folder_create_open,
@@ -1134,7 +1146,7 @@ test "explorer 嵌套成员:中间目录可折叠" {
   // ② 折叠 examples → 该成员所有行消失
   let collapsed = explorer_updates(
     imported,
-    ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, "examples"),
+    ProjectOp(ToggleProjectDirAt(@proj.WORKSPACE_ROOT_INDEX, "examples")),
   )
   let after = explorer_rows_for_test(collapsed)
   let mut nested_rows_after = 0

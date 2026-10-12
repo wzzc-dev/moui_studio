@@ -23,9 +23,55 @@ fn ai_sessions_scope() -> @moui.ScopedFeature[
 }
 
 ///|
+/// 工程域插件的会话切片挂载(S2b-2):lens 对 + wrap,ai_sessions 同构。
+/// 14 个纯态臂住在插件 update;跨域臂(装载/保存/扫描/导入/改名/构建/
+/// 存储)仍是壳消息,不经包装直接路由。
+fn project_scope() -> @moui.ScopedFeature[
+  Model,
+  @proj.ProjectState,
+  @proj.ProjectMsg,
+  Msg,
+] {
+  @proj.project_feature().scope(
+    read=model => model.project_state,
+    write=(state, model) => { ..model, project_state: state, },
+    wrap=message => ProjectOp(message),
+  )
+}
+
+///|
 /// 壳消息分发：未命中返回 None（链式交给其他域）。
 pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
   match msg {
+    ProjectOp(op) => {
+      // 工程域切片经 Feature::scope 委托(S2b-2):纯态臂零副作用,effect
+      // 原样丢弃(ai_sessions 先例)。折叠的「展开揭示滚动」需要行推导 +
+      // translator,切片拿不到——根臂后处理补上。
+      let scope = project_scope()
+      let (next, _) = scope.update(model, op)
+      let next = match op {
+        ToggleProjectDirAt(index, rel) => {
+          let key = @proj.root_collapse_key(index, rel)
+          let mut now_collapsed = false
+          for item in next.project_state.project_tree_collapsed {
+            if item == key {
+              now_collapsed = true
+            }
+          }
+          if !now_collapsed {
+            let target = explorer_dir_scroll_target(next, index, rel)
+            {
+              ..next,
+              project_state: { ..next.project_state, explorer_scroll: target, },
+            }
+          } else {
+            next
+          }
+        }
+        _ => next
+      }
+      Some((next, @moui.Effect::none()))
+    }
     AiSessionOp(op) => {
       // AI 插件会话切片经 Feature::scope 委托（M3）：lens 对 + wrap，
       // 与 settings 样板同构；切片 update 零副作用，effect 原样丢弃。
@@ -59,184 +105,6 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     TogglePaneBlocks => Some(toggle_pane_blocks(model))
     SetSplitRatio(ratio) => Some(set_split_ratio(model, ratio))
     SetLeftView(view) => Some(set_left_view(model, view))
-    SetActiveProject(index) =>
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              active_project: index,
-              selected_project_file: None,
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    ToggleProjectDirAt(index, rel) =>
-      Some(toggle_project_dir(model, index, rel))
-    ExplorerHover(key) =>
-      Some(
-        (
-          {
-            ..model,
-            project_state: { ..model.project_state, explorer_hover: key, },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    ToggleExplorerSection(id) => {
-      // 分区折叠是**布局偏好**,与树内目录折叠分开存（目录键带根下标,
-      // 分区键是固定 id）。文件夹分区默认展开,其余默认收起——所以
-      // 「展开」要登记成 `open:<id>` 标记,「折叠」才是裸 id。
-      let toggled : Array[String] = []
-      let open_key = "open:" + id
-      let track_key = if id == @proj.EXPLORER_SECTION_FOLDERS {
-        id
-      } else {
-        open_key
-      }
-      let mut removed = false
-      for item in model.project_state.explorer_sections_collapsed {
-        if item == track_key {
-          removed = true
-        } else {
-          toggled.push(item)
-        }
-      }
-      if !removed {
-        toggled.push(track_key)
-      }
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              explorer_sections_collapsed: toggled,
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    }
-    FileCreateAt(rel) =>
-      // 在指定目录下就地新建（VS Code 口径）。目标目录必须展开,否则
-      // 输入行会被折在树里看不见——先把该目录从折叠集里摘掉。
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              file_create_open: true,
-              file_create_dir: rel,
-              folder_create_open: false,
-              file_rename_open: None,
-              file_name_draft: "",
-              project_tree_collapsed: unfold_dir(
-                model,
-                model.project_state.active_project,
-                rel,
-              ),
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    FolderCreateAt(rel) =>
-      // 与 `FileCreateAt` 完全同形（只是打开的是文件夹输入行）:两个入口
-      // 必须都能指定目标目录,否则目录行悬浮 ＋ 建出来的东西会落到工程根。
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              folder_create_open: true,
-              file_create_dir: rel,
-              file_create_open: false,
-              file_rename_open: None,
-              file_name_draft: "",
-              project_tree_collapsed: unfold_dir(
-                model,
-                model.project_state.active_project,
-                rel,
-              ),
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    ToggleExplorerMenu =>
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              explorer_menu_open: !model.project_state.explorer_menu_open,
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    FolderCreateDraft(value) =>
-      if model.project_state.folder_create_open {
-        Some(
-          (
-            {
-              ..model,
-              project_state: { ..model.project_state, file_name_draft: value, },
-            },
-            @moui.Effect::none(),
-          ),
-        )
-      } else {
-        Some((model, @moui.Effect::none()))
-      }
-    FolderCreateDismiss =>
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              folder_create_open: false,
-              file_name_draft: "",
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    ExplorerCollapseAll =>
-      // 全部折叠 = 整棵树逐层折上:每棵根、工作区/工程的每一层目录
-      // （含成员行与成员内部）都种折叠键。枚举与「导入后整棵树默认折叠」
-      // 共用 collapse_all_tree_keys——各写一遍必然漏层,「全部折叠」就会
-      // 折了根却把里面的文件夹留着。
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              project_tree_collapsed: collapse_all_tree_keys(model),
-              explorer_scroll: @core.Point::new(x=0.0, y=0.0),
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    ExplorerScrolled(offset) =>
-      Some(
-        (
-          {
-            ..model,
-            project_state: { ..model.project_state, explorer_scroll: offset, },
-          },
-          @moui.Effect::none(),
-        ),
-      )
     ProjectFileLoaded(rel, result) =>
       match result {
         Success(content) =>
@@ -312,88 +180,6 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           Some((with_notice(model, error.message, true), @moui.Effect::none()))
         Cancelled => Some((model, @moui.Effect::none()))
       }
-    ProjectFileCaretMoved(caret, selection) =>
-      // 受控编辑器的光标回传（active tab）:没有这个往返,光标不能移动
-      // （移动会被模型里的旧值复位——实测「光标只能向上」的根因）。
-      match active_project_file(model) {
-        None => Some((model, @moui.Effect::none()))
-        Some(open) =>
-          Some(
-            (
-              {
-                ..model,
-                project_state: {
-                  ..model.project_state,
-                  open_project_files: replace_open_file_at(
-                    model.project_state.open_project_files,
-                    model.project_state.open_file_index,
-                    { ..open, caret, selection, },
-                  ),
-                },
-              },
-              @moui.Effect::none(),
-            ),
-          )
-      }
-    EditProjectFile(draft) =>
-      match active_project_file(model) {
-        None => Some((model, @moui.Effect::none()))
-        Some(open) =>
-          Some(
-            (
-              {
-                ..model,
-                project_state: {
-                  ..model.project_state,
-                  open_project_files: replace_open_file_at(
-                    model.project_state.open_project_files,
-                    model.project_state.open_file_index,
-                    { ..open, draft, },
-                  ),
-                },
-              },
-              @moui.Effect::none(),
-            ),
-          )
-      }
-    ProjectFileMarkdownTransaction(transaction) =>
-      // `.md` tab 的 MoMark session 编辑事务：会话 apply 事务（增量的,
-      // 与 momark 同一条链）,草稿/光标随事务回写。兜底分支处理
-      // 会话缺失的 tab（换源重建,不让事务丢失）。
-      match active_project_file(model) {
-        None => Some((model, @moui.Effect::none()))
-        Some(open) => {
-          let session = match open.md_session {
-            Some(session) => session.apply(transaction)
-            None =>
-              @moui_richtext.MarkdownDocumentSession::new(transaction.source)
-          }
-          Some(
-            (
-              {
-                ..model,
-                project_state: {
-                  ..model.project_state,
-                  open_project_files: replace_open_file_at(
-                    model.project_state.open_project_files,
-                    model.project_state.open_file_index,
-                    {
-                      ..open,
-                      draft: transaction.source,
-                      caret: transaction.caret,
-                      selection: transaction.selection,
-                      md_session: Some(session),
-                    },
-                  ),
-                },
-              },
-              @moui.Effect::none(),
-            ),
-          )
-        }
-      }
-    // tab 导航（G4 多标签）：切换 = 置 active（光标随 tab 恢复）;
-    // 关闭的脏 tab 守卫在 update_confirm_msgs（CkCloseFileTab）。
     SelectFileTab(index) =>
       if index >= 0 && index < model.project_state.open_project_files.length() {
         Some(
@@ -824,62 +610,6 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
 // ============================================================================
 // 资源管理器（VS Code 口径）
 // ============================================================================
-
-///|
-/// 目录折叠翻转（单树多根:键 = 根下标 + rel）。
-///
-/// 展开（非折叠）时把滚动偏移直接设为该目录行的偏移——单一事实源
-/// （无 ScrollRequest/模型双轨;此前双轨发散会把窗口化行画到视口外,
-/// 读成「滚动后行消失」）。视图按内容高度钳制显示;折叠保持当前位置
-/// （与 VS Code 一致）。
-fn toggle_project_dir(
-  model : Model,
-  index : Int,
-  rel : String,
-) -> (Model, @moui.Effect[Msg]) {
-  let key = root_collapse_key(index, rel)
-  let collapsed : Array[String] = []
-  let mut removed = false
-  for item in model.project_state.project_tree_collapsed {
-    if item == key {
-      removed = true
-    } else {
-      collapsed.push(item)
-    }
-  }
-  if !removed {
-    collapsed.push(key)
-  }
-  let scroll = if removed {
-    model.project_state.explorer_scroll
-  } else {
-    explorer_dir_scroll_target(model, index, rel)
-  }
-  (
-    {
-      ..model,
-      project_state: {
-        ..model.project_state,
-        project_tree_collapsed: collapsed,
-        explorer_scroll: scroll,
-      },
-    },
-    @moui.Effect::none(),
-  )
-}
-
-///|
-/// 把目标目录从折叠集里摘掉（就地新建前调用:输入行要在可见处出现）。
-fn unfold_dir(model : Model, index : Int, rel : String) -> Array[String] {
-  let key = root_collapse_key(index, rel)
-  let kept : Array[String] = []
-  for item in model.project_state.project_tree_collapsed {
-    if item != key {
-      kept.push(item)
-    }
-  }
-  kept
-}
 
 // ============================================================================
 // 工作区与面板

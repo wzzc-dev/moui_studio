@@ -1117,15 +1117,12 @@ pub(all) struct Model {
 }
 
 pub(all) enum Msg {
+  ProjectOp(@wzzc-dev/moui_studio/plugins/project.ProjectMsg)
   Noop
   SwitchLanguage
   CycleCodeAppearance
   SetCodeAppearance(CodeAppearance)
   ProjectFileLoaded(String, @services.ServiceTaskResult[String])
-  EditProjectFile(String)
-  ProjectFileCaretMoved(Int, @core.TextRange?)
-  ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
-  ExplorerScrolled(@core.Point)
   SaveProjectFile
   SaveAllFiles
   ProjectFileSaveFinished(String, @services.ServiceTaskResult[Unit])
@@ -1300,21 +1297,11 @@ pub(all) enum Msg {
   ProjectRestoreScanCompleted(@services.ServiceTaskResult[Result[@wzzc-dev/moui_studio/services/project.ProjectScanOutput, String]])
   ProjectsStoreWriteRequested
   ProjectsStoreSaved(@services.ServiceTaskResult[Unit])
-  SetActiveProject(Int)
-  ToggleProjectDirAt(Int, String)
   SelectProjectFile(String)
   SelectProjectFileAt(Int, String)
   RemoveProject(Int)
-  ExplorerHover(String)
-  ToggleExplorerSection(String)
-  ToggleExplorerMenu
-  FileCreateAt(String)
-  FolderCreateAt(String)
-  FolderCreateDraft(String)
-  FolderCreateDismiss
   FolderCreateCommit
   FolderCreated(String, @services.ServiceTaskResult[Result[Unit, String]])
-  ExplorerCollapseAll
   ExplorerRefresh
   ProjectFileDeleteRun(String)
   ProjectFileDeleted(String, @services.ServiceTaskResult[Unit])

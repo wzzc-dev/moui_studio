@@ -157,12 +157,18 @@ test "explorer 纯导航:选中工程/折叠目录/选中文件(再点取消)" {
     imported.project_state.project_tree_collapsed.contains(key),
     msg="导入后目录应默认折叠",
   )
-  let unfolded = @app.update_pure(imported, ToggleProjectDirAt(0, "app")).0
+  let unfolded = @app.update_pure(
+      imported,
+      ProjectOp(ToggleProjectDirAt(0, "app")),
+    ).0
   assert_false(unfolded.project_state.project_tree_collapsed.contains(key))
-  let folded = @app.update_pure(unfolded, ToggleProjectDirAt(0, "app")).0
+  let folded = @app.update_pure(
+      unfolded,
+      ProjectOp(ToggleProjectDirAt(0, "app")),
+    ).0
   assert_true(folded.project_state.project_tree_collapsed.contains(key))
   // 根下标参与键:第 1 棵树的 `app/` 折叠不影响第 0 棵
-  let other = @app.update_pure(folded, ToggleProjectDirAt(1, "app")).0
+  let other = @app.update_pure(folded, ProjectOp(ToggleProjectDirAt(1, "app"))).0
   assert_true(
     other.project_state.project_tree_collapsed.contains(
       @app.root_collapse_key(1, "app"),
@@ -179,7 +185,7 @@ test "explorer 纯导航:选中工程/折叠目录/选中文件(再点取消)" {
   let unpicked = @app.update_pure(picked, SelectProjectFile("app/app.mbt")).0
   assert_eq(unpicked.project_state.selected_project_file, None)
   // 选中工程重置文件选中
-  let switched = @app.update_pure(picked, SetActiveProject(0)).0
+  let switched = @app.update_pure(picked, ProjectOp(SetActiveProject(0))).0
   assert_eq(switched.project_state.selected_project_file, None)
 }
 
@@ -304,8 +310,11 @@ test "explorer 全部折叠:根与子目录全折" {
       services,
     ).0
   // 展开根与 app/ 两层（其余目录仍是默认折叠,这里不走全树展开）
-  let opened = @app.update_pure(imported, ToggleProjectDirAt(0, "")).0
-  let fully_open = @app.update_pure(opened, ToggleProjectDirAt(0, "app")).0
+  let opened = @app.update_pure(imported, ProjectOp(ToggleProjectDirAt(0, ""))).0
+  let fully_open = @app.update_pure(
+      opened,
+      ProjectOp(ToggleProjectDirAt(0, "app")),
+    ).0
   assert_false(
     fully_open.project_state.project_tree_collapsed.contains(
       @app.root_collapse_key(0, ""),
@@ -316,7 +325,7 @@ test "explorer 全部折叠:根与子目录全折" {
       @app.root_collapse_key(0, "app"),
     ),
   )
-  let collapsed = @app.update_pure(fully_open, ExplorerCollapseAll).0
+  let collapsed = @app.update_pure(fully_open, ProjectOp(ExplorerCollapseAll)).0
   assert_true(
     collapsed.project_state.project_tree_collapsed.contains(
       @app.root_collapse_key(0, ""),
@@ -341,7 +350,7 @@ test "explorer 就地新建:目标目录参与 rel 拼接" {
       services,
     ).0
   // 在根上新建:目录 = "",草稿 = 文件名
-  let at_root = @app.update_pure(imported, FileCreateAt("")).0
+  let at_root = @app.update_pure(imported, ProjectOp(FileCreateAt(""))).0
   assert_true(at_root.project_state.file_create_open)
   assert_eq(at_root.project_state.file_create_dir, "")
   assert_eq(
@@ -349,7 +358,7 @@ test "explorer 就地新建:目标目录参与 rel 拼接" {
     "main.mbt",
   )
   // 在 app/ 下新建
-  let in_app = @app.update_pure(imported, FileCreateAt("app")).0
+  let in_app = @app.update_pure(imported, ProjectOp(FileCreateAt("app"))).0
   assert_eq(in_app.project_state.file_create_dir, "app")
   assert_eq(
     @app.join_rel(in_app.project_state.file_create_dir, "main.mbt"),
@@ -369,14 +378,14 @@ test "explorer 就地新建:目标目录参与 rel 拼接" {
     ),
     msg="FileCreateAt 应展开目标目录",
   )
-  let folded = @app.update_pure(in_app, ToggleProjectDirAt(0, "app")).0
+  let folded = @app.update_pure(in_app, ProjectOp(ToggleProjectDirAt(0, "app"))).0
   assert_true(
     folded.project_state.project_tree_collapsed.contains(
       @app.root_collapse_key(0, "app"),
     ),
     msg="再次切换应折回目标目录",
   )
-  let reopened = @app.update_pure(folded, FileCreateAt("app")).0
+  let reopened = @app.update_pure(folded, ProjectOp(FileCreateAt("app"))).0
   assert_false(
     reopened.project_state.project_tree_collapsed.contains(
       @app.root_collapse_key(0, "app"),
@@ -431,11 +440,14 @@ test "explorer 分区折叠默认态与翻转" {
     msg="时间线分区默认收起",
   )
   // 翻转一次后状态互换
-  let toggled = @app.update_pure(model, ToggleExplorerSection("outline")).0
+  let toggled = @app.update_pure(
+      model,
+      ProjectOp(ToggleExplorerSection("outline")),
+    ).0
   assert_true(@app.explorer_section_expanded(toggled, "outline"))
   let closed = @app.update_pure(
       toggled,
-      ToggleExplorerSection(@proj.EXPLORER_SECTION_FOLDERS),
+      ProjectOp(ToggleExplorerSection(@proj.EXPLORER_SECTION_FOLDERS)),
     ).0
   assert_false(
     @app.explorer_section_expanded(closed, @proj.EXPLORER_SECTION_FOLDERS),
@@ -1131,7 +1143,7 @@ test "多标签:并行打开 + 切换 + 脏关闭确认" {
   // 编辑 a → 脏;关闭命中确认流(tab 未关)
   let edited = @app.update_with_services(
       switched,
-      EditProjectFile("# A2"),
+      ProjectOp(EditProjectFile("# A2")),
       services,
     ).0
   let guarded = @app.update_with_services(edited, CloseFileTab(0), services).0

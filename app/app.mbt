@@ -1083,7 +1083,7 @@ pub fn update_with_services(
       new_project_file_written(model, result, services)
     // 激活工程：纯转移照走 update_pure；带 IR 快照的工程异步读取恢复
     // （folder projects 的「重开继续编辑」）；回执处理见 new_project.mbt。
-    SetActiveProject(index) =>
+    ProjectOp(SetActiveProject(index)) =>
       activate_project_with_restore(model, index, services)
     ProjectProgramLoaded(result) => project_program_loaded(model, result)
     SnapshotWriteSaved(result) =>

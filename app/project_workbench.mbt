@@ -115,139 +115,6 @@ pub fn active_project_of(model : Model) -> ProjectRecord? {
 }
 
 ///|
-/// 一个折叠键并入数组（已存在则不动;重复种键必须幂等——导入、恢复、
-/// 全部折叠三条路径共用同一份枚举）。
-fn push_collapse_key(collapsed : Array[String], key : String) -> Unit {
-  if !collapsed.contains(key) {
-    collapsed.push(key)
-  }
-}
-
-///|
-/// 工程根在某工作区根之下的相对路径（不在其下 = ""）。
-///
-/// 与 `tree_rel_of_project` 同口径;独立成函数是因为导入时新
-/// `WorkspaceRecord` 还没挂上模型,不能走 Model 版本。
-fn tree_rel_under_workspace(
-  workspace_root : String,
-  project_root : String,
-) -> String {
-  if project_root.has_prefix(workspace_root + "/") {
-    project_root[workspace_root.length() + 1:].to_owned()
-  } else {
-    ""
-  }
-}
-
-///|
-/// 成员路径的**中间层**目录折叠键（`examples/terminal` → 种 `examples`;
-/// 单段成员没有中间层）。成员自己那一行由工程键（`index, member_rel`）
-/// 承担,不在这里重复。
-fn push_member_prefix_keys(
-  collapsed : Array[String],
-  member_rel : String,
-) -> Unit {
-  let mut i = 0
-  for c in member_rel {
-    if c == '/' {
-      push_collapse_key(
-        collapsed,
-        root_collapse_key(
-          @proj.WORKSPACE_ROOT_INDEX,
-          member_rel[0:i].to_owned(),
-        ),
-      )
-    }
-    i = i + 1
-  }
-}
-
-///|
-/// 种一个工程那一行的折叠键与它内部每一层目录的键。
-///
-/// `row_rel` = 工程行在树上的 rel:单模块模式是 ""（根行）,工作区模式
-/// 是成员相对工作区根的路径（`examples/terminal`）。内部目录键两种形态
-/// 都一样用**工程相对路径**——`push_dir_subtree` / `push_member_dir_subtree`
-/// 的键就是这么取的。
-fn seed_project_collapse_keys(
-  collapsed : Array[String],
-  index : Int,
-  project : ProjectRecord,
-  row_rel : String,
-) -> Unit {
-  push_collapse_key(collapsed, root_collapse_key(index, row_rel))
-  push_member_prefix_keys(collapsed, row_rel)
-  for dir in project.scanned.dirs {
-    if dir.rel_path != "" {
-      push_collapse_key(collapsed, root_collapse_key(index, dir.rel_path))
-    }
-  }
-}
-
-///|
-/// 工作区模式:种工作区根、工作区每层目录与每个成员那一整棵子树。
-fn seed_workspace_collapse_keys(
-  collapsed : Array[String],
-  projects : Array[ProjectRecord],
-  workspace : WorkspaceRecord,
-) -> Unit {
-  push_collapse_key(
-    collapsed,
-    root_collapse_key(@proj.WORKSPACE_ROOT_INDEX, ""),
-  )
-  for dir in workspace.dirs {
-    if dir.rel_path != "" {
-      push_collapse_key(
-        collapsed,
-        root_collapse_key(@proj.WORKSPACE_ROOT_INDEX, dir.rel_path),
-      )
-    }
-  }
-  let mut index = 0
-  for project in projects {
-    seed_project_collapse_keys(
-      collapsed,
-      index,
-      project,
-      tree_rel_under_workspace(workspace.root, project.root),
-    )
-    index = index + 1
-  }
-}
-
-///|
-/// 种**当前模型**下整棵树的折叠键:工作区模式 = 根 + 工作区每层目录 +
-/// 每个成员;单模块模式 = 每个工程根 + 每层目录。
-///
-/// 「导入/恢复后整棵树默认折叠」与「全部折叠」共用这一份枚举——两处
-/// 各写一遍必然漏层（这正是「根折上了,里面的文件夹还开着」的原因）。
-fn seed_all_collapse_keys(collapsed : Array[String], model : Model) -> Unit {
-  match model.project_state.workspace_root {
-    Some(workspace) =>
-      seed_workspace_collapse_keys(
-        collapsed,
-        model.project_state.projects,
-        workspace,
-      )
-    None => {
-      let mut index = 0
-      for project in model.project_state.projects {
-        seed_project_collapse_keys(collapsed, index, project, "")
-        index = index + 1
-      }
-    }
-  }
-}
-
-///|
-/// 「全部折叠」的目标折叠集（整棵树逐层折上）。
-fn collapse_all_tree_keys(model : Model) -> Array[String] {
-  let collapsed : Array[String] = []
-  seed_all_collapse_keys(collapsed, model)
-  collapsed
-}
-
-///|
 /// 折叠键随工程表重排的映射（做 `upsert_project` 后必调）。
 ///
 /// 键空间是「下标 + rel」,而 `upsert_project` 把新工程**插到表头**、已有
@@ -848,24 +715,6 @@ pub fn close_open_file_at(model : Model, index : Int) -> Model {
 }
 
 ///|
-/// 原位替换下标处的 tab（光标/草稿/脏基准回写）。
-pub fn replace_open_file_at(
-  files : Array[OpenProjectFile],
-  index : Int,
-  open : OpenProjectFile,
-) -> Array[OpenProjectFile] {
-  let next : Array[OpenProjectFile] = []
-  for i, file in files {
-    if i == index {
-      next.push(open)
-    } else {
-      next.push(file)
-    }
-  }
-  next
-}
-
-///|
 /// 新文件 rel 校验（G4 CRUD）：非空、不以 `/` 开头（工程内相对路径）、
 /// 不含 `..`（不逃逸工程根）。空格等其余字符交给文件系统裁决。
 pub fn valid_new_file_rel(rel : String) -> Bool {
@@ -999,4 +848,54 @@ pub fn decode_plugin_disabled(text : String) -> Array[String] {
     }
   }
   ids
+}
+
+///|
+/// 「全部折叠」折叠集(切片版包装):根臂的导入流程与切片共用同一推导。
+fn collapse_all_tree_keys(model : Model) -> Array[String] {
+  @proj.collapse_all_tree_keys(model.project_state)
+}
+
+///|
+/// 原位替换下标处的 tab(转发切片版;装载/保存等根臂仍走这里)。
+pub fn replace_open_file_at(
+  files : Array[OpenProjectFile],
+  index : Int,
+  open : OpenProjectFile,
+) -> Array[OpenProjectFile] {
+  @proj.replace_open_file_at(files, index, open)
+}
+
+///|
+// 以下四个 seed/tree 包装:根臂的导入与恢复流程与切片共用同一推导
+// (单一定义住在 plugins/project)。
+fn tree_rel_under_workspace(
+  workspace_root : String,
+  project_root : String,
+) -> String {
+  @proj.tree_rel_under_workspace(workspace_root, project_root)
+}
+
+///|
+fn seed_project_collapse_keys(
+  collapsed : Array[String],
+  index : Int,
+  project : ProjectRecord,
+  row_rel : String,
+) -> Unit {
+  @proj.seed_project_collapse_keys(collapsed, index, project, row_rel)
+}
+
+///|
+fn seed_workspace_collapse_keys(
+  collapsed : Array[String],
+  projects : Array[ProjectRecord],
+  workspace : WorkspaceRecord,
+) -> Unit {
+  @proj.seed_workspace_collapse_keys(collapsed, projects, workspace)
+}
+
+///|
+fn seed_all_collapse_keys(collapsed : Array[String], model : Model) -> Unit {
+  @proj.seed_all_collapse_keys(collapsed, model.project_state)
 }

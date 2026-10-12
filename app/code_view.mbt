@@ -1168,10 +1168,10 @@ fn project_file_body(
             selection: open.selection,
           },
           on_transaction=transaction => {
-            ProjectFileMarkdownTransaction(transaction)
+            ProjectOp(ProjectFileMarkdownTransaction(transaction))
           },
           on_selection_change=(caret, selection) => {
-            ProjectFileCaretMoved(caret, selection)
+            ProjectOp(ProjectFileCaretMoved(caret, selection))
           },
           width=editor_width,
           height=content_height,
@@ -1185,7 +1185,7 @@ fn project_file_body(
       None =>
         @md.markdown_file_view(
           content=open.draft,
-          on_input=value => EditProjectFile(value),
+          on_input=value => ProjectOp(EditProjectFile(value)),
           width=editor_width,
           height=content_height,
           font=@text.FontSpec::new(size=13.0),
@@ -1201,7 +1201,7 @@ fn project_file_body(
         project_file_gutter(open),
         @moui_richtext.controlled_rich_text_editor(
           value=open.draft,
-          on_input=value => EditProjectFile(value),
+          on_input=value => ProjectOp(EditProjectFile(value)),
           placeholder="",
           size=@geometry.Size::new(width=editor_width, height=content_height),
           // M6①：工程文件是用户手改的 MoonBit 源码——着色升级为
@@ -1216,7 +1216,7 @@ fn project_file_body(
           cursor_color=@chrome.ide_accent(),
           corner_radius=0.0,
           on_selection_change=Some((caret, selection) => {
-            ProjectFileCaretMoved(caret, selection)
+            ProjectOp(ProjectFileCaretMoved(caret, selection))
           }),
           selection_caret=open.caret,
           selection_range=open.selection,

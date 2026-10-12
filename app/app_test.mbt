@@ -1807,7 +1807,7 @@ test "project file opens editable and saves" {
       assert_true(open.draft.contains("println"))
       assert_false(@app.file_is_dirty(open))
       // 编辑:草稿变化 → 脏
-      let edited = apply(loaded, EditProjectFile("fn main {}\n"))
+      let edited = apply(loaded, ProjectOp(EditProjectFile("fn main {}\n")))
       match @app.active_project_file(edited) {
         Some(open2) => assert_true(@app.file_is_dirty(open2))
         None => fail("编辑后文件应仍打开")

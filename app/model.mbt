@@ -762,17 +762,14 @@ pub(all) struct Model {
 
 ///|
 pub(all) enum Msg {
+  ProjectOp(@proj.ProjectMsg) // 工程域子消息委托(S2b-2,Feature::scope)
   Noop // 设计舞台展示态控件的兜底回调（输入被手势覆盖层拦截，正常不触发）
   SwitchLanguage
   CycleCodeAppearance // 代码视图外观切换：MoonBit（默认显示）⇄ 中英 DSL（M5-5e）
   SetCodeAppearance(CodeAppearance) // 直达目标外观（双芯片入口，实测反馈）
   ProjectFileLoaded(String, @services.ServiceTaskResult[String]) // 工程文件读取回执
-  EditProjectFile(String) // 工程文件草稿编辑（active tab）
-  ProjectFileCaretMoved(Int, @core.TextRange?) // 工程文件编辑器光标/选区上报（active tab）
   // `.md` tab 的 MoMark session 编辑事务（active tab）：回写会话+草稿+光标
-  ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
   // 资源管理器虚拟化列表的滚动偏移回传（应用持有）
-  ExplorerScrolled(@core.Point)
   SaveProjectFile // 保存 active tab（写盘）
   SaveAllFiles // 保存全部脏 tab（G4 多标签）
   ProjectFileSaveFinished(String, @services.ServiceTaskResult[Unit]) // 保存回执(rel 定位 tab)
@@ -1092,32 +1089,22 @@ pub(all) enum Msg {
   ProjectsStoreWriteRequested
   ProjectsStoreSaved(@services.ServiceTaskResult[Unit])
   // 资源管理器导航(纯状态):选中工程 / 折叠目录 / 选中文件 / 会话内移除工程
-  SetActiveProject(Int)
-  ToggleProjectDirAt(Int, String) // 单树多根:根下标 + 目录 rel
   SelectProjectFile(String)
   SelectProjectFileAt(Int, String) // 单树多根:先切活动工程再开文件
   RemoveProject(Int)
   // VS Code 资源管理器壳(纯状态):悬停行 / 分区折叠 / 标题栏溢出菜单 /
   // inline 新建的目标目录。
-  ExplorerHover(String)
-  ToggleExplorerSection(String)
   /// 标题栏 `⋯` 溢出菜单的开合（VS Code 面板头右端的省略号）。
-  ToggleExplorerMenu
   /// 在目录 rel 下新建文件（inline 输入）。**必须带目录**:VS Code 的
   /// 新建发生在「点的那一层」,不带目录的变体会把目标默默固定成工程根
   /// （工具栏入口与目录行悬浮 ＋ 就分不开了）。
-  FileCreateAt(String)
   /// 在目录 rel 下新建文件夹（inline 输入）。与 `FileCreateAt` 同形。
-  FolderCreateAt(String)
-  FolderCreateDraft(String)
-  FolderCreateDismiss
   FolderCreateCommit
   // 新建文件夹(宿主直接 I/O):创建在 FolderCreateCommit 臂内联派发
   // (effect dispatch),回执走这条;没有独立的「请求」变体——有它就会是
   // 一条无人构造的死消息。
   FolderCreated(String, @services.ServiceTaskResult[Result[Unit, String]])
   // 全部折叠(= 折叠所有根目录)/ 刷新(重扫活动工程)
-  ExplorerCollapseAll
   ExplorerRefresh
   // 文件删除(确认后续行 + 服务回执;M0-6b)
   ProjectFileDeleteRun(String)
@@ -1447,25 +1434,7 @@ pub fn initial_model(
     immersive,
     tree_query: "",
     tree_collapsed: [],
-    project_state: @proj.ProjectState::{
-      projects: [],
-      active_project: -1,
-      workspace_root: None,
-      open_project_files: [],
-      open_file_index: -1,
-      project_tree_collapsed: [],
-      explorer_sections_collapsed: [],
-      selected_project_file: None,
-      explorer_scroll: @core.Point::new(x=0.0, y=0.0),
-      explorer_hover: "",
-      explorer_menu_open: false,
-      scan_progress: None,
-      file_create_dir: "",
-      file_create_open: false,
-      file_rename_open: None,
-      folder_create_open: false,
-      file_name_draft: "",
-    },
+    project_state: @proj.ProjectState::new(),
     projects_restore_pending: 0,
     restore_active_root: "",
     plugin_disabled: [],

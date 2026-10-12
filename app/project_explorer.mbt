@@ -78,7 +78,7 @@ pub fn project_explorer(
     spacing=0.0,
     overscan=8,
     offset=@core.Point::new(x=0.0, y=clamped_y),
-    on_scroll=offset => ExplorerScrolled(offset),
+    on_scroll=offset => ProjectOp(ExplorerScrolled(offset)),
   )
   let all : Array[@moui.View[Msg]] = []
   all.push(toolbar)
@@ -176,13 +176,13 @@ fn explorer_toolbar(
       FileNew,
       text(t, "app.explorer.new_file"),
       has_project,
-      FileCreateAt(""),
+      ProjectOp(FileCreateAt("")),
     ),
     explorer_tool_icon(
       NewFolder,
       text(t, "app.explorer.new_folder"),
       has_project,
-      FolderCreateAt(""),
+      ProjectOp(FolderCreateAt("")),
     ),
     explorer_tool_icon(
       Refresh,
@@ -194,7 +194,7 @@ fn explorer_toolbar(
       CollapseAll,
       text(t, "app.explorer.collapse_all"),
       has_project,
-      ExplorerCollapseAll,
+      ProjectOp(ExplorerCollapseAll),
     ),
   ]
   // 右端 `⋯` 溢出菜单（截图里标题栏右上角那一个）。用权重 spacer 顶到
@@ -209,7 +209,7 @@ fn explorer_toolbar(
       Ellipsis,
       text(t, "app.explorer.more"),
       true,
-      ToggleExplorerMenu,
+      ProjectOp(ToggleExplorerMenu),
     ).background(
       if model.project_state.explorer_menu_open {
         @chrome.ide_hover()
@@ -282,10 +282,22 @@ fn explorer_overflow_menu(
       ).on_tap(if enabled { message } else { Msg::Noop }),
     )
   }
-  add(text(t, "app.explorer.new_file"), has_project, FileCreateAt(""))
-  add(text(t, "app.explorer.new_folder"), has_project, FolderCreateAt(""))
+  add(
+    text(t, "app.explorer.new_file"),
+    has_project,
+    ProjectOp(FileCreateAt("")),
+  )
+  add(
+    text(t, "app.explorer.new_folder"),
+    has_project,
+    ProjectOp(FolderCreateAt("")),
+  )
   add(text(t, "app.explorer.refresh"), has_project, ExplorerRefresh)
-  add(text(t, "app.explorer.collapse_all"), has_project, ExplorerCollapseAll)
+  add(
+    text(t, "app.explorer.collapse_all"),
+    has_project,
+    ProjectOp(ExplorerCollapseAll),
+  )
   add(text(t, "app.project.import"), true, ImportProjectRequested)
   @views.column(rows, spacing=0.0)
 }
@@ -535,7 +547,7 @@ fn explorer_section_row(
     padding=0.0,
   )
   .accessibility_label(label)
-  .on_tap(ToggleExplorerSection(id))
+  .on_tap(ProjectOp(ToggleExplorerSection(id)))
 }
 
 ///|
@@ -594,7 +606,11 @@ fn explorer_input_row(
   let dismiss_view = if renaming {
     explorer_input_action("×", @chrome.ide_text_faint(), FileRenameDismiss)
   } else if creating_folder {
-    explorer_input_action("×", @chrome.ide_text_faint(), FolderCreateDismiss)
+    explorer_input_action(
+      "×",
+      @chrome.ide_text_faint(),
+      ProjectOp(FolderCreateDismiss),
+    )
   } else {
     explorer_input_action("×", @chrome.ide_text_faint(), FileCreateDismiss)
   }
@@ -602,7 +618,7 @@ fn explorer_input_row(
     if renaming {
       FileRenameDraft(value)
     } else if creating_folder {
-      FolderCreateDraft(value)
+      ProjectOp(FolderCreateDraft(value))
     } else {
       FileCreateDraft(value)
     }
@@ -655,7 +671,7 @@ fn explorer_root_row(
     model,
     key~,
     depth=0,
-    twisty=Some(ToggleProjectDirAt(index, "")),
+    twisty=Some(ProjectOp(ToggleProjectDirAt(index, ""))),
     expanded~,
     icon=if expanded { FolderOpened } else { Folder },
     icon_color=if active {
@@ -667,7 +683,7 @@ fn explorer_root_row(
     meta=project_entry_meta_of(model, index),
     selected=active,
     width~,
-    on_click=Some(SetActiveProject(index)),
+    on_click=Some(ProjectOp(SetActiveProject(index))),
     trailing=Some(
       @views.icon(Trash, size=12.0, color=@chrome.ide_text()).on_tap(
         RemoveProject(index),
@@ -696,7 +712,7 @@ fn explorer_dir_row(
     model,
     key~,
     depth~,
-    twisty=Some(ToggleProjectDirAt(index, rel)),
+    twisty=Some(ProjectOp(ToggleProjectDirAt(index, rel))),
     expanded~,
     icon=if expanded { FolderOpened } else { Folder },
     icon_color=@chrome.ide_text_muted(),
@@ -732,12 +748,12 @@ fn dir_hover_actions(
       explorer_row_action(
         FileNew,
         text(t, "app.explorer.new_file"),
-        FileCreateAt(rel),
+        ProjectOp(FileCreateAt(rel)),
       ),
       explorer_row_action(
         NewFolder,
         text(t, "app.explorer.new_folder"),
-        FolderCreateAt(rel),
+        ProjectOp(FolderCreateAt(rel)),
       ),
     ],
     spacing=4.0,
@@ -1088,7 +1104,7 @@ fn explorer_tree_row(
   // 悬停观察者写模型槽（框架的 hover 是**转移沿**回调,不会每帧刷）。
   // 行内动作据此显隐——这是「满屏图标」与「找不到操作」之间唯一的解。
   clickable
-  .on_hover(active => ExplorerHover(if active { key } else { "" }))
+  .on_hover(active => ProjectOp(ExplorerHover(if active { key } else { "" })))
   .accessibility_label(label)
 }
 
