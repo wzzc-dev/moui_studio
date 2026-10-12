@@ -3,6 +3,7 @@ package "wzzc-dev/moui_studio/plugins/ai"
 
 import {
   "wzzc-dev/moui/core",
+  "wzzc-dev/moui_i18n",
   "wzzc-dev/moui_studio/domain/proposals",
 }
 
@@ -15,6 +16,8 @@ pub const CHIPS_HEIGHT : Double = 26.0
 
 pub const COMPOSER_HEIGHT : Double = 88.0
 
+pub const SEE_ALL_HEIGHT : Double = 20.0
+
 pub fn ai_sessions_feature() -> @core.Feature[AiSessions, AiSessionMsg]
 
 pub fn composer_block_height(Double) -> Double
@@ -26,6 +29,8 @@ pub fn context_chips_height(Double) -> Double
 pub fn decode_ai_sessions(String) -> Result[AiSessions, AiStoreError]
 
 pub fn encode_ai_sessions(AiSessions) -> String
+
+pub fn[Msg] see_all_row(@moui_i18n.Translator, Double, on_toggle~ : Msg) -> @core.View[Msg]
 
 pub fn thread_area_height(AiSessions, Bool) -> Double
 

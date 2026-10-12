@@ -88,8 +88,6 @@ pub const PROGRAM_SNAPSHOT_REL : String = ".studio/program.json"
 
 pub const RECENT_LIMIT : Int = 24
 
-pub const SEE_ALL_HEIGHT : Double = 20.0
-
 pub const STATEMENT_PALETTE_MIN_WIDTH : Double = 132.0
 
 pub const TOAST_LIMIT : Int = 3

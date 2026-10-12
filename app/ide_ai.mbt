@@ -383,6 +383,13 @@ fn ai_transcript(
 ///|
 /// 时间线行构建：连续的 Agent 工作卡（计划/diff/副作用）归入一组折叠区
 /// （「已工作 N / 待审计 N」），用户气泡、AI 消息与错误卡独立成行。
+
+///|
+fn see_all_row(t : @i18n.Translator, width : Double) -> @moui.View[Msg] {
+  @ai.see_all_row(t, width, on_toggle=ToggleAiHistory)
+}
+
+///|
 fn timeline_rows(
   model : Model,
   t : @i18n.Translator,
@@ -774,7 +781,7 @@ fn ai_card_body(
     // 对话框，不新开一页。
     if model.ai_sessions.current().cards.length() > 3 {
       body.push(see_all_row(t, inner))
-      let rest = (thread_left - fold_h - used - SEE_ALL_HEIGHT).max(0.0)
+      let rest = (thread_left - fold_h - used - @ai.SEE_ALL_HEIGHT).max(0.0)
       if rest > 0.0 {
         body.push(
           @views.container(
@@ -829,52 +836,6 @@ fn ai_card_body(
     padding=0.0,
   )
 }
-
-///|
-/// 「查看全部会话 →」：线程多了以后卡片区只能滚动看，给一个直达既有
-/// AI 历史对话框的出口（设计稿 `#seeAll`）。宽度按内容算（中英文案差近半）。
-fn see_all_row(t : @i18n.Translator, width : Double) -> @moui.View[Msg] {
-  let label = text(t, "app.ai.see_all")
-  let label_width = (@chrome.text_estimate_width(label) * 1.05 + 20.0).max(64.0)
-  @views.container(
-    @views.padding_xy(
-      @chrome.fill_row(
-        [
-          @views.spacer(min_length=0.0, weight=1.0),
-          @views.container(
-            @views.center(
-              @views.text(
-                label,
-                theme=@chrome.studio_theme(),
-                width=(label_width - 20.0).max(40.0),
-                height=16.0,
-              ).foreground(@chrome.ide_accent()),
-              width=label_width,
-              height=18.0,
-            ),
-            background=@chrome.ide_panel_alt(),
-            corner_radius=4.0,
-            width=label_width,
-            height=18.0,
-            padding=0.0,
-          ).on_tap(ToggleAiHistory),
-        ],
-        (width - 16.0).max(120.0),
-        4.0,
-        Center,
-      ),
-      horizontal=8.0,
-      vertical=1.0,
-    ),
-    width~,
-    height=SEE_ALL_HEIGHT,
-    padding=0.0,
-  )
-}
-
-///|
-/// 「查看全部会话 →」行高。
-pub const SEE_ALL_HEIGHT : Double = 20.0
 
 ///|
 /// 折叠条：「Agent 待审计 N」——点一下折叠/展开线程卡。

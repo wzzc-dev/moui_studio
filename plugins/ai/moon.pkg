@@ -1,4 +1,8 @@
 import {
+  "wzzc-dev/moui/geometry",
+  "wzzc-dev/moui/views",
+  "wzzc-dev/moui_studio/chrome",
+  "wzzc-dev/moui_i18n" @i18n,
   "wzzc-dev/moui",
   "moonbitlang/core/json",
   "wzzc-dev/moui_studio/domain/proposals",
