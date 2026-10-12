@@ -159,10 +159,17 @@ macOS 原生入口：`moon run macos_skia --target native`
   domain/codec/       .studio.json 编解码 + 版本门
   domain/proposals/   AI 提案契约 + 校验链 + diff + 内置模板样例
   domain/blocks/      语句 → 积木规格表
+  kernel/             插件内核：服务容器 / 事件总线 / 贡献点
+  chrome/             共享视觉原子（主题 + 尺寸常量 + ChipTone）
+  plugins/blocks/     积木几何 + 绘制计划 + 洞/值命中（零 Model/Msg）
+  plugins/project/    工程域：行模型 + ProjectState + ProjectMsg
+  plugins/run/        预览数据层 + 运行态结构 + 预览视图贡献
+  plugins/ai/         AI 会话切片 + 几何/视图贡献
+  plugins/markdown/ plugins/terminal/
   services/export/    独立应用导出（内核快照 + bundle 生成）
   services/model_provider/  OpenAI 兼容协议（纯）
   services/provider_native/  native async worker + .config.json 读取
-  app/                TEA shell + 五视图 + 中英 catalog
+  app/                TEA shell + 组合根 + 壳级组装视图 + 中英 catalog
   web_wasm/  macos_skia/    薄组合根
   tools/sync_kernel/ tools/emit_bundle/
 ```
@@ -173,14 +180,34 @@ macOS 原生入口：`moon run macos_skia --target native`
 `moui_studio/` 前缀——那是它作为 MoUI 主仓库 submodule 时的写法。
 
 ```sh
-# domain 是多个包（不是单包路径），逐包跑
-for p in ir studio_lang codec blocks proposals; do
-  moon test domain/$p --target native
-done
-moon test app --target native
+moon check --target native          # 0 错误 0 警告
+moon fmt --check
+
+# domain 是多个包（不是单包路径），一次传完
+moon test domain/ir domain/studio_lang domain/codec domain/blocks \
+  domain/proposals --target native
+moon test kernel chrome plugins/ai plugins/markdown plugins/project \
+  plugins/run plugins/terminal plugins/blocks --target native
+moon test services/compiled_runtime services/diff services/compile_native \
+  services/export --target native
+
+moon test app --target native       # 435 个测试
 moon test app --target wasm-gc
+
+# 导出内核漂移门：改了 domain 忘了同步 → 红
 moon run tools/sync_kernel --target native -- --check
+
+moon build web_wasm --target wasm-gc
 ```
+
+> `tools/sync_kernel` 的路径表按**母仓库根**书写（带 `moui_studio/` 前缀），
+> 但工具会按当前根自动解析：在本仓库根跑 `moon run tools/sync_kernel`，
+> 在母仓库根跑 `moon run moui_studio/tools/sync_kernel`，两者等价。
+
+上面这一套就是 `.github/workflows/ci.yml` 的全部内容——push / PR 自动跑，
+单独 clone 本仓库也有回归网。**不在本仓库 CI 里的两件事**：i18n catalog
+生成检查（生成器是母仓库的 `tools/moui/generate_i18n_catalogs` 工具，漂移由
+母仓库 pr profile 把关）与真机 / 真 Skia 冒烟（路径触发，非每日门）。
 
 ---
 

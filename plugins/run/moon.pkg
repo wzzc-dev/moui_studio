@@ -2,7 +2,6 @@ import {
   "wzzc-dev/moui",
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/views",
-  "wzzc-dev/moui/views/style",
   "wzzc-dev/moui_i18n" @i18n,
   "wzzc-dev/moui_studio/chrome",
   "wzzc-dev/moui/geometry",
@@ -12,3 +11,5 @@ import {
   "wzzc-dev/moui_studio/domain/studio_lang",
   "wzzc-dev/moui_studio/services/compiled_runtime",
 }
+
+supported_targets = "native+wasm-gc"

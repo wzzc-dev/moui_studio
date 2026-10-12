@@ -2,7 +2,7 @@
 /// 插槽命中：点中某个洞时能回答「是哪条语句的哪个子表达式」。
 ///
 /// 这些用例的重点不是「能命中」，而是**命中的位置与绘制的位置一致**：
-/// 洞的几何只有一份（`blocks_slot_rects`），绘制与命中都读它。
+/// 洞的几何只有一份（`@blk.blocks_slot_rects`），绘制与命中都读它。
 
 ///|
 /// 点中洞 → 返回该洞的表达式路径；点中字面文本 → 不命中。
@@ -11,14 +11,14 @@ test "slot hit test resolves the expression under the pointer" {
     @ir.Assign("x", @ir.Binary(@ir.Add, @ir.IntLit(1), @ir.IntLit(2))),
   ]
   let blocks = @blocks.block_chain(body)
-  let rects = @app.blocks_item_rects(blocks, avail_width=470.0)
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0)
   // 每字符 7pt 的确定性度量
   let measure = fn(text : String) -> Double { text.length().to_double() * 7.0 }
   let rect = rects[0]
   let row_y = rect.origin.y + 12.0
   // 洞在 `x = `（4 字符 = 28pt）之后，标签起点 = rect.x + 10
   let hole_x = rect.origin.x + 10.0 + 28.0 + 8.0
-  let hit = @app.blocks_slot_hit(blocks, rects, hole_x, row_y, measure)
+  let hit = @blk.blocks_slot_hit(blocks, rects, hole_x, row_y, measure)
   assert_true(hit is Some(_))
   let resolved = hit.unwrap()
   assert_eq(resolved.block_index, 0)
@@ -41,12 +41,12 @@ test "slot hit test ignores literal text" {
     @ir.Assign("x", @ir.Binary(@ir.Add, @ir.IntLit(1), @ir.IntLit(2))),
   ]
   let blocks = @blocks.block_chain(body)
-  let rects = @app.blocks_item_rects(blocks, avail_width=470.0)
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0)
   let measure = fn(text : String) -> Double { text.length().to_double() * 7.0 }
   let rect = rects[0]
   let row_y = rect.origin.y + 12.0
   // `x` 的位置（标签起点 + 2pt）
-  let hit = @app.blocks_slot_hit(
+  let hit = @blk.blocks_slot_hit(
     blocks,
     rects,
     rect.origin.x + 12.0,
@@ -69,17 +69,17 @@ test "each call argument is independently hittable" {
     ]),
   ]
   let blocks = @blocks.block_chain(body)
-  let rects = @app.blocks_item_rects(blocks, avail_width=470.0)
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0)
   let measure = fn(text : String) -> Double { text.length().to_double() * 7.0 }
   let rect = rects[0]
   let row_y = rect.origin.y + 12.0
   // 从两个洞各自命中一次，路径必须不同
-  let holes = @app.blocks_slot_rects(blocks[0], rect, measure)
+  let holes = @blk.blocks_slot_rects(blocks[0], rect, measure)
   assert_eq(holes.length(), 2)
   let seen : Array[Int] = []
   for entry in holes {
     let hole = entry.1
-    let hit = @app.blocks_slot_hit(
+    let hit = @blk.blocks_slot_hit(
       blocks,
       rects,
       hole.origin.x + hole.size.width / 2.0,

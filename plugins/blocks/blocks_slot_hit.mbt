@@ -33,7 +33,7 @@ pub(all) struct SlotHit {
 /// 只在**未截断**的行上判定——截断后段与字形的对齐关系已断（省略号吃掉的
 /// 宽度无从得知），照着原段宽判定会把点击认到错位置。
 pub fn blocks_slot_hit(
-  blocks : Array[@blocks.BlockItem],
+  blocks : Array[@blk.BlockItem],
   rects : Array[@geometry.Rect],
   x : Double,
   y : Double,
@@ -92,12 +92,12 @@ pub fn blocks_slot_hit(
 /// 标签宽，见 `blocks_row_lead_width`）。缺省 0 = 标签从 `item.text` 直接
 /// 开始（纯逻辑测试的口径）。
 pub fn blocks_slot_rects(
-  item : @blocks.BlockItem,
+  item : @blk.BlockItem,
   rect : @geometry.Rect,
   measure : (String) -> Double,
   lead? : Double = 0.0,
-) -> Array[(@blocks.TextSegment, @geometry.Rect)] {
-  let result : Array[(@blocks.TextSegment, @geometry.Rect)] = []
+) -> Array[(@blk.TextSegment, @geometry.Rect)] {
+  let result : Array[(@blk.TextSegment, @geometry.Rect)] = []
   let segments = match item.segments {
     None => return result
     Some(segments) => segments
@@ -105,7 +105,7 @@ pub fn blocks_slot_rects(
   // 条件块（如果/否则如果/当）的标签前有一枚徽标，占 18pt 位。
   // 与绘制同源：这里改、绘制不改就会整体错位一个徽标。
   let badge = match item.kind {
-    @blocks.BkIf | @blocks.BkElseIf | @blocks.BkWhile => true
+    @blk.BkIf | @blk.BkElseIf | @blk.BkWhile => true
     _ => false
   }
   let label_x = rect.origin.x + (if badge { 28.0 } else { 10.0 }) + lead
@@ -138,7 +138,7 @@ pub fn blocks_slot_rects(
 /// （字面量/变量）。点击的语义因此不同——洞是拖放目标，值是编辑目标——
 /// 所以判定也分开，不合成一个「段命中」。
 pub fn blocks_value_hit(
-  blocks : Array[@blocks.BlockItem],
+  blocks : Array[@blk.BlockItem],
   rects : Array[@geometry.Rect],
   x : Double,
   y : Double,
@@ -188,13 +188,13 @@ pub fn blocks_value_hit(
 ///|
 /// 行内找**值段**（`is_slot == false` 且有表达式路径的段）。
 fn value_hit_in_row(
-  item : @blocks.BlockItem,
+  item : @blk.BlockItem,
   rect : @geometry.Rect,
   x : Double,
   y : Double,
   measure : (String) -> Double,
   lead : Double,
-) -> (@blocks.TextSegment, @geometry.Rect)? {
+) -> (@blk.TextSegment, @geometry.Rect)? {
   // 值段与洞段共用同一套几何推演（`blocks_slot_rects` 只产出洞），
   // 所以这里按同样的规则走一遍前缀宽度，但保留**所有**段落。
   let segments = match item.segments {
@@ -202,7 +202,7 @@ fn value_hit_in_row(
     Some(segments) => segments
   }
   let badge = match item.kind {
-    @blocks.BkIf | @blocks.BkElseIf | @blocks.BkWhile => true
+    @blk.BkIf | @blk.BkElseIf | @blk.BkWhile => true
     _ => false
   }
   let label_x = rect.origin.x + (if badge { 28.0 } else { 10.0 }) + lead
@@ -236,13 +236,13 @@ fn value_hit_in_row(
 ///|
 /// 点在哪个插槽上——薄薄一层，判定完全依赖 `blocks_slot_rects`。
 fn slot_hit_in_row(
-  item : @blocks.BlockItem,
+  item : @blk.BlockItem,
   rect : @geometry.Rect,
   x : Double,
   y : Double,
   measure : (String) -> Double,
   lead : Double,
-) -> (@blocks.TextSegment, @geometry.Rect)? {
+) -> (@blk.TextSegment, @geometry.Rect)? {
   for entry in blocks_slot_rects(item, rect, measure, lead~) {
     let hole = entry.1
     if x >= hole.origin.x &&

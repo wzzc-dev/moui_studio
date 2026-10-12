@@ -18,13 +18,13 @@ test "block shapes encode semantics" {
     ),
     @ir.Return(Some(@ir.Var("a"))),
   ])
-  let rects = @app.blocks_item_rects(blocks, avail_width=470.0)
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0)
   let texts = blocks.map(item => item.text)
-  let ops = @app.blocks_draw_plan(blocks, texts, rects, -1, "", None, 0.0, 0.0)
+  let ops = @blk.blocks_draw_plan(blocks, texts, rects, -1, "", None, 0.0, 0.0)
   let mut badges = 0
   for op in ops {
     match op {
-      @app.BlockBadge(_, _, _) => badges = badges + 1
+      @blk.BlockBadge(_, _, _) => badges = badges + 1
       _ => ()
     }
   }
@@ -33,7 +33,7 @@ test "block shapes encode semantics" {
   let mut return_label = ""
   for op in ops {
     match op {
-      @app.BlockLabel(text, _, _, _, _) =>
+      @blk.BlockLabel(text, _, _, _, _) =>
         if text.contains("↩") {
           return_label = text
         }
@@ -62,8 +62,8 @@ test "control flow heads wrap their body in a C shape" {
       [],
     ),
   ])
-  let base = @app.blocks_item_rects(blocks, avail_width=470.0)
-  let visual = @app.blocks_visual_rects(blocks, base)
+  let base = @blk.blocks_item_rects(blocks, avail_width=470.0)
+  let visual = @blk.blocks_visual_rects(blocks, base)
   // 链条：if(0) / a=1(1) / b=2(1) / end(0)
   assert_eq(blocks.length(), 4)
   assert_true(
@@ -87,11 +87,11 @@ test "control flow heads wrap their body in a C shape" {
   assert_eq(visual[3].size.width, base[3].size.width)
   // 4) 左壁：一条，长度 = 帽底 → 收尾块顶边
   let texts = blocks.map(item => item.text)
-  let ops = @app.blocks_draw_plan(blocks, texts, visual, -1, "", None, 0.0, 0.0)
+  let ops = @blk.blocks_draw_plan(blocks, texts, visual, -1, "", None, 0.0, 0.0)
   let mut arms = 0
   for op in ops {
     match op {
-      @app.BlockArm(_, ay, _, ah, kind) => {
+      @blk.BlockArm(_, ay, _, ah, kind) => {
         arms = arms + 1
         assert_true(
           match kind {
@@ -117,10 +117,10 @@ test "only control flow heads get a C shape" {
   let loop_blocks = @blocks.block_chain([
     @ir.CountLoop(@ir.IntLit(3), None, [@ir.Break]),
   ])
-  let loop_base = @app.blocks_item_rects(loop_blocks, avail_width=470.0)
-  let loop_visual = @app.blocks_visual_rects(loop_blocks, loop_base)
+  let loop_base = @blk.blocks_item_rects(loop_blocks, avail_width=470.0)
+  let loop_visual = @blk.blocks_visual_rects(loop_blocks, loop_base)
   let loop_texts = loop_blocks.map(item => item.text)
-  let loop_ops = @app.blocks_draw_plan(
+  let loop_ops = @blk.blocks_draw_plan(
     loop_blocks,
     loop_texts,
     loop_visual,
@@ -133,7 +133,7 @@ test "only control flow heads get a C shape" {
   let mut loop_arms = 0
   for op in loop_ops {
     match op {
-      @app.BlockArm(_, _, _, _, _) => loop_arms = loop_arms + 1
+      @blk.BlockArm(_, _, _, _, _) => loop_arms = loop_arms + 1
       _ => ()
     }
   }
@@ -143,10 +143,10 @@ test "only control flow heads get a C shape" {
     @ir.Assign("a", @ir.IntLit(1)),
     @ir.Assign("b", @ir.IntLit(2)),
   ])
-  let flat_base = @app.blocks_item_rects(flat, avail_width=470.0)
-  let flat_visual = @app.blocks_visual_rects(flat, flat_base)
+  let flat_base = @blk.blocks_item_rects(flat, avail_width=470.0)
+  let flat_visual = @blk.blocks_visual_rects(flat, flat_base)
   let flat_texts = flat.map(item => item.text)
-  let flat_ops = @app.blocks_draw_plan(
+  let flat_ops = @blk.blocks_draw_plan(
     flat,
     flat_texts,
     flat_visual,
@@ -159,7 +159,7 @@ test "only control flow heads get a C shape" {
   let mut flat_arms = 0
   for op in flat_ops {
     match op {
-      @app.BlockArm(_, _, _, _, _) => flat_arms = flat_arms + 1
+      @blk.BlockArm(_, _, _, _, _) => flat_arms = flat_arms + 1
       _ => ()
     }
   }
@@ -175,7 +175,7 @@ test "only control flow heads get a C shape" {
 ///|
 /// M7①：匹配帽的多分支 C 形臂——帽 + 每个情况行 + 否则都是 C 头，
 /// 各自把「自己到下一个收尾块」的子栈围成 C（4 段臂）；情况体内的
-/// 语句行右缩（blocks_in_c_body 同口径）。
+/// 语句行右缩（@blk.blocks_in_c_body 同口径）。
 test "match hat wraps every arm in a C shape" {
   let blocks = @blocks.block_chain([
     @ir.Match(
@@ -194,9 +194,9 @@ test "match hat wraps every arm in a C shape" {
     ),
   ])
   // 快照口径：4 段臂（帽→情况0、情况0→情况1、情况1→否则、否则→结束）
-  let base = @app.blocks_item_rects(blocks, avail_width=470.0)
-  let visual = @app.blocks_visual_rects(blocks, base)
-  let ops = @app.blocks_draw_plan(
+  let base = @blk.blocks_item_rects(blocks, avail_width=470.0)
+  let visual = @blk.blocks_visual_rects(blocks, base)
+  let ops = @blk.blocks_draw_plan(
     blocks,
     blocks.map(item => item.text),
     visual,
@@ -209,7 +209,7 @@ test "match hat wraps every arm in a C shape" {
   let mut arms = 0
   for op in ops {
     match op {
-      @app.BlockArm(_, _, _, _, _) => arms = arms + 1
+      @blk.BlockArm(_, _, _, _, _) => arms = arms + 1
       _ => ()
     }
   }
@@ -218,19 +218,19 @@ test "match hat wraps every arm in a C shape" {
   let mut badges = 0
   for op in ops {
     match op {
-      @app.BlockBadge(_, _, _) => badges = badges + 1
+      @blk.BlockBadge(_, _, _) => badges = badges + 1
       _ => ()
     }
   }
   assert_eq(badges, 1)
   // 情况体内的语句行右缩（C 形包裹的第二个信号）
   // 链序：0 帽 / 1 情况行 / 2 体 / 3 情况行 / 4 体 / 5 否则 / 6 体 / 7 结束
-  assert_true(@app.blocks_in_c_body(blocks, 2))
-  assert_true(@app.blocks_in_c_body(blocks, 4))
-  assert_true(@app.blocks_in_c_body(blocks, 6))
+  assert_true(@blk.blocks_in_c_body(blocks, 2))
+  assert_true(@blk.blocks_in_c_body(blocks, 4))
+  assert_true(@blk.blocks_in_c_body(blocks, 6))
   // 情况行与帽同层（伴随装饰块），不在任何 C 体内
-  assert_false(@app.blocks_in_c_body(blocks, 1))
-  assert_false(@app.blocks_in_c_body(blocks, 3))
+  assert_false(@blk.blocks_in_c_body(blocks, 1))
+  assert_false(@blk.blocks_in_c_body(blocks, 3))
 }
 
 ///|
@@ -259,8 +259,8 @@ test "declaration blocks project as read-only rows" {
     assert_eq(item.path.length(), 0)
   }
   // 绘制计划：有块体与标签，没有榫卯/臂/洞
-  let rects = @app.blocks_item_rects(decls, avail_width=470.0)
-  let ops = @app.blocks_draw_plan(
+  let rects = @blk.blocks_item_rects(decls, avail_width=470.0)
+  let ops = @blk.blocks_draw_plan(
     decls,
     decls.map(item => item.text),
     rects,
@@ -274,8 +274,8 @@ test "declaration blocks project as read-only rows" {
   let mut decorations = 0
   for op in ops {
     match op {
-      @app.BlockOutline(_, _, _, _, _, _, _) => bodies = bodies + 1
-      @app.BlockArm(_, _, _, _, _) => decorations = decorations + 1
+      @blk.BlockOutline(_, _, _, _, _, _, _) => bodies = bodies + 1
+      @blk.BlockArm(_, _, _, _, _) => decorations = decorations + 1
       _ => ()
     }
   }
@@ -288,7 +288,7 @@ test "declaration blocks project as read-only rows" {
 /// 在轮廓动词里）与字段访问胶囊（@chrome.pill 洞）走真实绘制指令流。
 test "headless acceptance: outline path and field access @chrome.pill" {
   // 1) 单轮廓几何：榫头凸起（y-5）与卯口凹口（y+h+5）都在路径动词里
-  let verbs = @app.block_outline_path(10.0, 20.0, 200.0, 30.0, true, true)
+  let verbs = @blk.block_outline_path(10.0, 20.0, 200.0, 30.0, true, true)
   let mut has_tab_bump = false
   let mut has_notch_dip = false
   // 卯口肩点必须在**底边** y+h=50——抓到顶边 y=20 会让路径自交,
@@ -320,7 +320,7 @@ test "headless acceptance: outline path and field access @chrome.pill" {
   assert_true(shoulder_right)
   // 2) 一次 fill+stroke：绘制指令流里只有一条 DrawPath
   let ctx = @views.PaintContext::new()
-  @app.paint_block_outline(
+  @blk.paint_block_outline(
     ctx,
     10.0,
     20.0,
@@ -344,8 +344,8 @@ test "headless acceptance: outline path and field access @chrome.pill" {
     @ir.Assign("y", @ir.FieldAccess(@ir.Var("person"), "名字")),
     @ir.Assign("z", @ir.Binary(@ir.Add, @ir.Var("a"), @ir.Var("b"))),
   ])
-  let rects = @app.blocks_item_rects(blocks, avail_width=470.0)
-  let ops = @app.blocks_draw_plan(
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0)
+  let ops = @blk.blocks_draw_plan(
     blocks,
     blocks.map(item => item.text),
     rects,
@@ -359,7 +359,7 @@ test "headless acceptance: outline path and field access @chrome.pill" {
   let mut plain_hole = false
   for op in ops {
     match op {
-      @app.SlotHole(_, _, _, _, _, is_pill) =>
+      @blk.SlotHole(_, _, _, _, _, is_pill) =>
         if is_pill {
           field_pill = true
         } else {

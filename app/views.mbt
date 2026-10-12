@@ -2,6 +2,9 @@
 /// MoUI Studio 视图层：顶栏 + 左栏（控件/子程序）+ 中部（三模式）+
 /// 右栏（属性 / AI 提案）+ 运行区。全部文案过 i18n 翻译器。
 
+// 积木几何/绘制层用点（S5 出壳到 plugins/blocks）：using 带进作用域，免得 @blk. 限定名把单行调用折成四行、顶穿本文件行数预算。
+using @blk {blocks_item_rects, blocks_insert_mark}
+
 ///|
 /// 中部：按模式切换（设计画布 / 积木链 / 代码编辑器）。
 fn center_panel(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {

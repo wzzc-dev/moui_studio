@@ -1495,7 +1495,7 @@ test "blocks canvas layout, hit test and drop slot" {
   ignore(idx)
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() > 3)
-  let rects = @app.blocks_item_rects(blocks)
+  let rects = @blk.blocks_item_rects(blocks)
   // 布局：逐行 40px 步进，深度缩进
   assert_eq(rects[0].origin.y, 10.0)
   assert_eq(rects[1].origin.y, 50.0)
@@ -1514,23 +1514,23 @@ test "blocks canvas layout, hit test and drop slot" {
   assert_true(rects[deep_index].origin.x > rects[0].origin.x)
   // 命中：第一行中心命中 0；画布右上角空白命中 -1
   assert_eq(
-    @app.blocks_hit_index(
+    @blk.blocks_hit_index(
       blocks,
       rects[0].origin.x + 10.0,
       rects[0].origin.y + 10.0,
     ),
     0,
   )
-  assert_eq(@app.blocks_hit_index(blocks, 460.0, 5.0), -1)
+  assert_eq(@blk.blocks_hit_index(blocks, 460.0, 5.0), -1)
   // 落槽：同层列表内按兄弟中心线计数
   let first_path = blocks[0].path
-  let list_path = @app.blocks_parent_of(first_path)
+  let list_path = @blk.blocks_parent_of(first_path)
   assert_eq(
-    @app.blocks_drop_slot(blocks, list_path, rects[0].origin.y + 1.0, rects),
+    @blk.blocks_drop_slot(blocks, list_path, rects[0].origin.y + 1.0, rects),
     0,
   )
   assert_eq(
-    @app.blocks_drop_slot(blocks, list_path, rects[1].origin.y + 30.0, rects),
+    @blk.blocks_drop_slot(blocks, list_path, rects[1].origin.y + 30.0, rects),
     1,
   )
 }

@@ -851,12 +851,6 @@ pub fn decode_plugin_disabled(text : String) -> Array[String] {
 }
 
 ///|
-/// 「全部折叠」折叠集(切片版包装):根臂的导入流程与切片共用同一推导。
-fn collapse_all_tree_keys(model : Model) -> Array[String] {
-  @proj.collapse_all_tree_keys(model.project_state)
-}
-
-///|
 /// 原位替换下标处的 tab(转发切片版;装载/保存等根臂仍走这里)。
 pub fn replace_open_file_at(
   files : Array[OpenProjectFile],

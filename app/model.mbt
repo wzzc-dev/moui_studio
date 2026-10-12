@@ -113,25 +113,8 @@ pub(all) struct DragState {
 }
 
 ///|
-/// 积木拖拽态：同层重排——list_path 定位语句列表，from/to 是
-/// 兄弟下标与落槽（落槽 = 落在原下标 to 的语句之前）。
-pub(all) struct BlocksDragState {
-  /// 源语句所在的语句列表路径（拖动前算定）
-  list_path : Array[Int]
-  /// 源语句的**完整 IR 路径**（链下标在跨层移动时不够用：目标列表要用
-  /// 路径寻址，而链下标随展开的装饰块变化）。
-  from_path : Array[Int]
-  from : Int
-  /// 落槽位置。`to_list` 为空时是「同列表内重排」语义。
-  to : Int
-  /// **落点所在的列表路径**（可能跨层：拖进 C 形块的洞里）。
-  /// 空数组 = 顶层。与 `list_path` 不同即为跨层移动——
-  /// 那走 `@blocks.move_stmt_at`，同层仍走 `reorder_stack`。
-  to_list : Array[Int]
-  /// 当前落点**是否被语言规则接受**（`@blocks.drop_accepts_stmt`）。
-  /// 拖拽过程中据此画拒绝反馈；松手时也据此决定要不要真的写 IR。
-  valid : Bool
-}
+/// 积木拖拽态(S5 出壳,plugins/blocks)：类型转发，构造点与字段读取不变。
+pub type BlocksDragState = @blk.BlocksDragState
 
 ///|
 /// 拖拽种类：移动（带按下点相对控件原点的偏移，拖拽跟随不跳变）/

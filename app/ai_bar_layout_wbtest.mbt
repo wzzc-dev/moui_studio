@@ -205,7 +205,7 @@ test "the blocks context menu actually renders its items" {
 /// **插槽洞走真实渲染管线也画得出来**（`measured_canvas` → 度量单元 →
 /// 绘制计划 → 绘制指令）。
 ///
-/// 为什么单独测这一段：`blocks_draw_plan` 的洞测试是**注入假度量**直接调的，
+/// 为什么单独测这一段：`@blk.blocks_draw_plan` 的洞测试是**注入假度量**直接调的，
 /// 覆盖不到「布局期的 `TextSystem` 度量有没有真的送到绘制期」。而这条链一旦
 /// 断掉（比如共享单元被重建、或 `measure` 没被调用），表现是**洞全都不画**，
 /// 而前一个测试仍然全绿——它喂的是自己造的度量。
@@ -383,36 +383,36 @@ test "the script note renders on the blocks canvas only when set" {
 /// 判据：在真实运行时里点某一块的**可见中心**，断言选中的就是它。
 
 ///|
-/// **有说明横幅时，命中契约成立**：`blocks_chain_y` 是绘制与命中之间
+/// **有说明横幅时，命中契约成立**：`@blk.blocks_chain_y` 是绘制与命中之间
 /// 唯一的换算函数，它是 `local ↦ chain` 的**逆映射**。
 ///
 /// 契约（`y_offset = 0`）：
 ///   draw:  chain c 渲染在 `frame.y + note_height + c`
 ///   click: 可见位置 `p` 的局部量是 `p - frame.y = note_height + c`
-///   求逆:  `blocks_chain_y(note_height + c, 0, note_height) == c`
+///   求逆:  `@blk.blocks_chain_y(note_height + c, 0, note_height) == c`
 ///
 /// 这条用例直接验逆映射的**数学**，因此不依赖任何取点技巧。它守的是
 /// 一个真实踩过的错：把该函数写成 `local + note_height` 时，点击会落到
 /// 所点那块**下方**的块（`2 × note_height` 的偏差），而且**只在有说明
 /// 时**出现——不带说明的用例永远发现不了。
 test "the note offset round-trips through the draw/hit conversion" {
-  let note_h = BLOCKS_NOTE_HEIGHT
+  let note_h = @blk.BLOCKS_NOTE_HEIGHT
   // 逐块验：每一条链条 y 都要能被逆回来
   for chain_y in [0.0, 10.0, 50.0, 90.0, 130.0, 137.5] {
     let drawn_local = note_h + chain_y
-    let recovered = blocks_chain_y(drawn_local, 0.0, note_h)
+    let recovered = @blk.blocks_chain_y(drawn_local, 0.0, note_h)
     assert_eq(recovered, chain_y)
   }
   // 反向也会被抓住：若把符号写成 `+`，这个等式立刻不成立
   let wrong = note_h + 50.0
   assert_true(
-    blocks_chain_y(wrong, 0.0, note_h) != wrong,
+    @blk.blocks_chain_y(wrong, 0.0, note_h) != wrong,
     msg="the conversion must not be the identity when a note is present",
   )
   // 没有说明时是恒等（`note_height = 0`）——保证不带说明的路径零变化
-  assert_eq(blocks_chain_y(42.0, 0.0, 0.0), 42.0)
+  assert_eq(@blk.blocks_chain_y(42.0, 0.0, 0.0), 42.0)
   // `y_offset`（编辑卡拆段时的链条原点）叠加正确
-  assert_eq(blocks_chain_y(note_h + 20.0, 30.0, note_h), 50.0)
+  assert_eq(@blk.blocks_chain_y(note_h + 20.0, 30.0, note_h), 50.0)
 }
 
 ///|
@@ -481,17 +481,17 @@ test "clicking a block with a note shown selects the block under the pointer" {
   }
   // 横幅画在 `frame.y + 2`，而 `dy = frame.y + note_height`
   //   => frame.y = banner_top - 2 - note_height
-  let frame_y = banner_top - 2.0 - BLOCKS_NOTE_HEIGHT
-  // 画布把「可见 y」换算成链坐标用的是 `blocks_chain_y`；这里用它的**逆**
+  let frame_y = banner_top - 2.0 - @blk.BLOCKS_NOTE_HEIGHT
+  // 画布把「可见 y」换算成链坐标用的是 `@blk.blocks_chain_y`；这里用它的**逆**
   // 从链坐标推出可见 y，再减去 frame.y 得到消息该带的局部量。
   // 直接点该块在链坐标里的中心（命中区间明确落在这一块内）。
-  let rects = blocks_item_rects(chain, avail_width=470.0)
+  let rects = @blk.blocks_item_rects(chain, avail_width=470.0)
   let chain_center = rects[1].origin.y + rects[1].size.height / 2.0
-  let visible_y = frame_y + BLOCKS_NOTE_HEIGHT + chain_center
+  let visible_y = frame_y + @blk.BLOCKS_NOTE_HEIGHT + chain_center
   let local_y = visible_y - frame_y
-  // 消息吃的是**链坐标**（画布在事件回调里用 `blocks_chain_y` 折算了
+  // 消息吃的是**链坐标**（画布在事件回调里用 `@blk.blocks_chain_y` 折算了
   // 局部量），所以这里送折算后的链坐标——与画布真实行为一致。
-  let chain_y = blocks_chain_y(local_y, 0.0, BLOCKS_NOTE_HEIGHT)
+  let chain_y = @blk.blocks_chain_y(local_y, 0.0, @blk.BLOCKS_NOTE_HEIGHT)
   assert_eq(chain_y, chain_center)
   let picked = apply_shell(noted, BlocksCanvasTap(20.0, chain_y, 470.0))
   assert_eq(picked.selected_block, 1)
@@ -499,7 +499,7 @@ test "clicking a block with a note shown selects the block under the pointer" {
   // **反例**：把偏移少算一次（模拟「命中漏了 note_height」）会选错块。
   let wrong = apply_shell(
     noted,
-    BlocksCanvasTap(20.0, chain_y - BLOCKS_NOTE_HEIGHT, 470.0),
+    BlocksCanvasTap(20.0, chain_y - @blk.BLOCKS_NOTE_HEIGHT, 470.0),
   )
   assert_true(
     wrong.selected_block != 1,

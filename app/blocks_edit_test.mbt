@@ -35,10 +35,10 @@ test "blocks insert mark follows sibling slots in chain space" {
   let model = @app.load_template_program(@app.initial_model(), 2)
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() >= 2)
-  let rects = @app.blocks_item_rects(blocks)
-  let list_path = @app.blocks_parent_of(blocks[0].path)
+  let rects = @blk.blocks_item_rects(blocks)
+  let list_path = @blk.blocks_parent_of(blocks[0].path)
   // 落槽 0：第一条兄弟顶缘上方 3pt
-  let mark_top = @app.blocks_insert_mark(
+  let mark_top = @blk.blocks_insert_mark(
     blocks,
     rects,
     Some({
@@ -53,7 +53,7 @@ test "blocks insert mark follows sibling slots in chain space" {
   let (top_y, _, _) = mark_top.unwrap()
   assert_eq(top_y, rects[0].origin.y - 3.0)
   // 落槽 = 兄弟总数：最后一条兄弟底缘下方 3pt
-  let mark_bottom = @app.blocks_insert_mark(
+  let mark_bottom = @blk.blocks_insert_mark(
     blocks,
     rects,
     Some({
@@ -68,7 +68,7 @@ test "blocks insert mark follows sibling slots in chain space" {
   let (bottom_y, _, _) = mark_bottom.unwrap()
   assert_eq(bottom_y, rects[blocks.length() - 1].max_y() + 3.0)
   // 无拖拽：无指示线
-  assert_true(@app.blocks_insert_mark(blocks, rects, None) is None)
+  assert_true(@blk.blocks_insert_mark(blocks, rects, None) is None)
 }
 
 ///|
@@ -81,7 +81,7 @@ test "blocks canvas drag moves the grabbed stack and is undoable" {
   let second_text = blocks[1].text
   let third_text = blocks[2].text
   // 按上第一块 → 拖到落槽 2（原下标 1 之后）→ 松手
-  let rects = @app.blocks_item_rects(blocks)
+  let rects = @blk.blocks_item_rects(blocks)
   let pressed = apply(
     model,
     BlocksCanvasPress(rects[0].origin.x + 10.0, rects[0].origin.y + 10.0, 470.0),
@@ -296,7 +296,7 @@ test "dragging a statement into an if body moves it across layers" {
   for item in chain {
     if source_index < 0 &&
       item.path.length() > 0 &&
-      !@app.blocks_in_c_body(chain, k) &&
+      !@blk.blocks_in_c_body(chain, k) &&
       k != head_index {
       source_index = k
     }
@@ -306,10 +306,10 @@ test "dragging a statement into an if body moves it across layers" {
   // 源语句必须与 if 头**同层**（顶层）才是干净的跨层用例
   assert_eq(chain[source_index].depth, chain[head_index].depth)
   // 目标：if 头的下半行 → 落进体内
-  let rects = @app.blocks_item_rects(chain, avail_width=470.0)
+  let rects = @blk.blocks_item_rects(chain, avail_width=470.0)
   let head_rect = rects[head_index]
   let drop_y = head_rect.origin.y + head_rect.size.height * 0.75
-  let drop_list = @app.blocks_drop_list_of(chain, rects, drop_y, [])
+  let drop_list = @blk.blocks_drop_list_of(chain, rects, drop_y, [])
   // 落点列表必须**不是**顶层（真的进了体内）
   assert_true(drop_list.length() > 0)
   // 走生产手势：按下源行 → 拖到 if 下半行 → 松手
@@ -399,12 +399,12 @@ test "right-click hit-testing uses the same geometry as drawing" {
   // 默认常量 430，比这里的块宽大得多——「块右缘之外、430 之内」那片空白
   // 会被误判成命中，这正是「点空白却选中了积木」的来源。
   let width = 370.0
-  let rects = @app.blocks_item_rects(chain, avail_width=width)
+  let rects = @blk.blocks_item_rects(chain, avail_width=width)
   let r0 = rects[0]
   assert_true(r0.size.width < 430.0)
   // 块内一点：命中 0
   assert_eq(
-    @app.blocks_hit_index(
+    @blk.blocks_hit_index(
       chain,
       r0.origin.x + r0.size.width / 2.0,
       r0.origin.y + r0.size.height / 2.0,
@@ -416,7 +416,7 @@ test "right-click hit-testing uses the same geometry as drawing" {
   let outside_x = r0.origin.x + r0.size.width + 6.0
   assert_true(outside_x < 430.0)
   assert_eq(
-    @app.blocks_hit_index(
+    @blk.blocks_hit_index(
       chain,
       outside_x,
       r0.origin.y + r0.size.height / 2.0,
@@ -438,7 +438,7 @@ test "dragging a palette skeleton onto the canvas inserts at the pointer" {
   // 开始拖一条骨架（流程分类第 0 条 = if 骨架）
   let dragging = apply(model, PaletteDragStart(2, 0))
   assert_true(dragging.palette_drag is Some(_))
-  let rects = @app.blocks_item_rects(
+  let rects = @blk.blocks_item_rects(
     @app.block_chain_of(dragging),
     avail_width=470.0,
   )
@@ -502,7 +502,7 @@ test "an invalid drop is rejected and leaves the program untouched" {
   }
   assert_true(loop_index >= 0)
   // 选中循环**体内**那条骨架，再插一条跳出 → break 落在循环里（合法）
-  let rects0 = @app.blocks_item_rects(chain0, avail_width=470.0)
+  let rects0 = @blk.blocks_item_rects(chain0, avail_width=470.0)
   let mut body_index = -1
   let mut k = loop_index + 1
   while k < chain0.length() {
@@ -539,7 +539,7 @@ test "an invalid drop is rejected and leaves the program untouched" {
   }
   assert_true(break_index >= 0)
   // 它在循环体内：合法落点
-  let rects = @app.blocks_item_rects(chain, avail_width=470.0)
+  let rects = @blk.blocks_item_rects(chain, avail_width=470.0)
   let pressed = apply(
     with_break,
     BlocksCanvasPress(
@@ -754,12 +754,12 @@ test "an empty container still shows an insert mark" {
     empty_body.push(part)
   }
   empty_body.push(0)
-  let rects = @app.blocks_item_rects(
+  let rects = @blk.blocks_item_rects(
     @app.block_chain_of(emptied),
     avail_width=470.0,
   )
   // 构造拖拽态：落点是那个空体
-  let drag : @app.BlocksDragState = {
+  let drag : @blk.BlocksDragState = {
     list_path: [],
     from_path: [0],
     from: 0,
@@ -767,7 +767,7 @@ test "an empty container still shows an insert mark" {
     to_list: empty_body,
     valid: true,
   }
-  let mark = @app.blocks_insert_mark(
+  let mark = @blk.blocks_insert_mark(
     @app.block_chain_of(emptied),
     rects,
     Some(drag),
@@ -795,12 +795,12 @@ test "reporter slots are drawn at measured text offsets" {
   // 块宽随内容收紧后，矩形由**展示文本**决定——与绘制同一份，否则
   // 「按 item.text 收窄的块」装不下带标签前缀的整行文字，截断守卫会把
   // 洞整个跳掉（实测本用例 0 个洞）。
-  let rects = @app.blocks_item_rects(blocks, avail_width=470.0, display_texts=[
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0, display_texts=[
     "赋值  x = (1 + 2)",
   ])
   // 度量：每个字符 7pt（确定性的假度量，便于断言精确位置）
   let per_char = fn(text : String) -> Double { text.length().to_double() * 7.0 }
-  let ops = @app.blocks_draw_plan(
+  let ops = @blk.blocks_draw_plan(
     blocks,
     ["赋值  x = (1 + 2)"],
     rects,
@@ -814,7 +814,7 @@ test "reporter slots are drawn at measured text offsets" {
   let holes : Array[(Double, Double, Double, Double, Bool)] = []
   for op in ops {
     match op {
-      @app.BlocksDrawOp::SlotHole(x, y, w, h, filled, _) =>
+      @blk.BlocksDrawOp::SlotHole(x, y, w, h, filled, _) =>
         holes.push((x, y, w, h, filled))
       _ => ()
     }
@@ -833,7 +833,7 @@ test "reporter slots are drawn at measured text offsets" {
   // 收紧后，过宽的度量会让「标签装不下块」成立，截断守卫正确地跳过洞
   // （20pt/字符实测就不画了）——那是否定路径，不是本用例的断言对象。
   let wider = fn(text : String) -> Double { text.length().to_double() * 8.0 }
-  let ops2 = @app.blocks_draw_plan(
+  let ops2 = @blk.blocks_draw_plan(
     blocks,
     ["赋值  x = (1 + 2)"],
     rects,
@@ -847,7 +847,7 @@ test "reporter slots are drawn at measured text offsets" {
   let mut hx2 = -1.0
   for op in ops2 {
     match op {
-      @app.BlocksDrawOp::SlotHole(x, _, _, _, _, _) => if hx2 < 0.0 { hx2 = x }
+      @blk.BlocksDrawOp::SlotHole(x, _, _, _, _, _) => if hx2 < 0.0 { hx2 = x }
       _ => ()
     }
   }
@@ -864,13 +864,13 @@ test "slot holes start after the localized label lead" {
     @ir.Assign("x", @ir.Binary(@ir.Add, @ir.IntLit(1), @ir.IntLit(2))),
   ]
   let blocks = @blocks.block_chain(body)
-  let rects = @app.blocks_item_rects(blocks, avail_width=470.0, display_texts=[
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0, display_texts=[
     "赋值  x = (1 + 2)",
   ])
   // 度量：每字符 7pt。引导 = 「赋值␣␣」（4 字符 = 28pt），字面段 = `x = `
   // （4 字符 = 28pt）。
   let per_char = fn(text : String) -> Double { text.length().to_double() * 7.0 }
-  let ops = @app.blocks_draw_plan(
+  let ops = @blk.blocks_draw_plan(
     blocks,
     ["赋值  x = (1 + 2)"],
     rects,
@@ -885,7 +885,7 @@ test "slot holes start after the localized label lead" {
   let mut hx = -1.0
   for op in ops {
     match op {
-      @app.BlocksDrawOp::SlotHole(x, _, _, _, _, _) => if hx < 0.0 { hx = x }
+      @blk.BlocksDrawOp::SlotHole(x, _, _, _, _, _) => if hx < 0.0 { hx = x }
       _ => ()
     }
   }
@@ -899,8 +899,8 @@ test "slot holes start after the localized label lead" {
 /// 「积木左右撑满了」。同时命中区有下限（64pt），「结束」这类小帽仍可点。
 test "block rows hug their content instead of filling the canvas" {
   let blocks = @blocks.block_chain([@ir.Assign("x", @ir.IntLit(1))])
-  let full = @app.blocks_item_rects(blocks, avail_width=470.0)
-  let hugged = @app.blocks_item_rects(blocks, avail_width=470.0, display_texts=[
+  let full = @blk.blocks_item_rects(blocks, avail_width=470.0)
+  let hugged = @blk.blocks_item_rects(blocks, avail_width=470.0, display_texts=[
     "赋值  x = 1",
   ])
   // 满预算（无展示文本，按 item.text 估）也远小于旧的全宽 450
@@ -915,7 +915,7 @@ test "block rows hug their content instead of filling the canvas" {
       @ir.StrLit("一句非常非常非常长的展示文本来撑满画布"),
     ),
   ])
-  let capped = @app.blocks_item_rects(long, avail_width=200.0, display_texts=[
+  let capped = @blk.blocks_item_rects(long, avail_width=200.0, display_texts=[
     "赋值  计数器 = \"一句非常非常非常长的展示文本来撑满画布\"",
   ])
   assert_true(capped[0].size.width <= 180.0)
@@ -930,11 +930,11 @@ test "slot holes are painted beneath the label text" {
     @ir.Assign("x", @ir.Binary(@ir.Add, @ir.IntLit(1), @ir.IntLit(2))),
   ]
   let blocks = @blocks.block_chain(body)
-  let rects = @app.blocks_item_rects(blocks, avail_width=470.0, display_texts=[
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0, display_texts=[
     "赋值  x = (1 + 2)",
   ])
   let per_char = fn(text : String) -> Double { text.length().to_double() * 7.0 }
-  let ops = @app.blocks_draw_plan(
+  let ops = @blk.blocks_draw_plan(
     blocks,
     ["赋值  x = (1 + 2)"],
     rects,
@@ -951,11 +951,11 @@ test "slot holes are painted beneath the label text" {
   let mut i = 0
   for op in ops {
     match op {
-      @app.BlocksDrawOp::SlotHole(_, _, _, _, _, _) =>
+      @blk.BlocksDrawOp::SlotHole(_, _, _, _, _, _) =>
         if hole_index < 0 {
           hole_index = i
         }
-      @app.BlocksDrawOp::BlockLabel(_, _, _, _, _) =>
+      @blk.BlocksDrawOp::BlockLabel(_, _, _, _, _) =>
         if label_index < 0 {
           label_index = i
         }

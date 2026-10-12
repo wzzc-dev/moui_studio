@@ -1,0 +1,12 @@
+import {
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/views",
+  "wzzc-dev/moui/geometry",
+  "wzzc-dev/moui/graphics",
+  "wzzc-dev/moui_studio/chrome",
+  // 别名 @blk：本包名就是 blocks，与 domain/blocks 的默认别名冲突
+  // （plugins/project 的 @scan 先例）。
+  "wzzc-dev/moui_studio/domain/blocks" @blk,
+}
+
+supported_targets = "native+wasm-gc"

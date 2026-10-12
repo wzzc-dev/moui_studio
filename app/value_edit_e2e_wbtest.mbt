@@ -1,7 +1,7 @@
 ///|
 /// 值编辑的**端到端**验证：走真实运行时（布局 → 命中 → 手势 → update → 重绘）。
 ///
-/// 为什么单测不够：`blocks_value_hit` 的单测喂的是**自己造的矩形与度量**，
+/// 为什么单测不够：`@blk.blocks_value_hit` 的单测喂的是**自己造的矩形与度量**，
 /// 覆盖不到「画布在真实布局里量出的文本宽度有没有送到命中判定」以及
 /// 「点击事件有没有真的路由到画布」。这条链一断就是「点值没反应」，
 /// 而所有单测仍然全绿。
@@ -64,13 +64,13 @@ test "value and slot hit regions never overlap" {
     @ir.Assign("x", @ir.Binary(@ir.Add, @ir.IntLit(1), @ir.IntLit(2))),
   ]
   let blocks = @blocks.block_chain(body)
-  let rects = blocks_item_rects(blocks, avail_width=470.0)
+  let rects = @blk.blocks_item_rects(blocks, avail_width=470.0)
   let measure = fn(text : String) -> Double { text.length().to_double() * 7.0 }
-  let slots = blocks_slot_rects(blocks[0], rects[0], measure)
+  let slots = @blk.blocks_slot_rects(blocks[0], rects[0], measure)
   // 对每个洞的中心点：值命中**不得**返回
   for entry in slots {
     let hole = entry.1
-    let hit = blocks_value_hit(
+    let hit = @blk.blocks_value_hit(
       blocks,
       rects,
       hole.origin.x + hole.size.width / 2.0,
@@ -84,7 +84,7 @@ test "value and slot hit regions never overlap" {
   for segment in blocks[0].segments.unwrap() {
     let width = measure(segment.text)
     if !segment.is_slot && segment.expr_path is Some(_) {
-      let slot_hit = blocks_slot_hit(
+      let slot_hit = @blk.blocks_slot_hit(
         blocks,
         rects,
         cursor + width / 2.0,

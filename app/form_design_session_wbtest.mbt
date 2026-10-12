@@ -154,7 +154,6 @@ test "移动补丁:写源码 + 重解析 + 其余字段不动" {
       assert_false(ok)
       assert_eq(same.source, session.source)
     }
-    Err(_) => ()
   }
 }
 
@@ -180,6 +179,5 @@ test "缩放补丁:写源码 + 重解析 + 坐标不动" {
       let (_, bad) = form_design_apply_resize(session, -1, 1.0, 1.0)
       assert_false(bad)
     }
-    Err(_) => ()
   }
 }

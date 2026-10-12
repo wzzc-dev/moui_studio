@@ -103,7 +103,7 @@ pub fn select_block_by_path(model : Model, path : Array[Int]) -> Model {
   let mut index = -1
   let mut i = 0
   while i < blocks.length() {
-    if index == -1 && blocks_same_path(blocks[i].path, path) {
+    if index == -1 && @blk.blocks_same_path(blocks[i].path, path) {
       index = i
     }
     i = i + 1
@@ -209,7 +209,7 @@ fn duplicate_block(model : Model) -> Model {
               Some(stmt) => stmt
               None => return model
             }
-            let parent = blocks_parent_of(item.path)
+            let parent = @blk.blocks_parent_of(item.path)
             let index = item.path[item.path.length() - 1]
             match @blocks.stmt_list_at(working, parent) {
               // 插入到原语句之后：IR 列表与积木链同序，链下标即列表下标
@@ -267,7 +267,13 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
           translator(model),
           blocks,
         )
-        let hit = blocks_hit_index(blocks, x, y, avail_width~, display_texts~)
+        let hit = @blk.blocks_hit_index(
+          blocks,
+          x,
+          y,
+          avail_width~,
+          display_texts~,
+        )
         if hit >= 0 {
           Some((select_block(model, hit), @moui.Effect::none()))
         } else {
@@ -284,10 +290,16 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
         translator(model),
         blocks,
       )
-      let hit = blocks_hit_index(blocks, x, y, avail_width~, display_texts~)
+      let hit = @blk.blocks_hit_index(
+        blocks,
+        x,
+        y,
+        avail_width~,
+        display_texts~,
+      )
       if hit >= 0 && blocks[hit].path.length() > 0 {
         let item = blocks[hit]
-        let list_path = blocks_parent_of(item.path)
+        let list_path = @blk.blocks_parent_of(item.path)
         let sibling_index = item.path[item.path.length() - 1]
         Some(
           (
@@ -322,12 +334,21 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
             translator(model),
             blocks,
           )
-          let rects = blocks_item_rects(blocks, avail_width~, display_texts~)
+          let rects = @blk.blocks_item_rects(
+            blocks,
+            avail_width~,
+            display_texts~,
+          )
           // 落点列表：指针停在哪个容器里，就落到哪个容器的语句列表。
           // 停在某个 C 形头的行上 → 落进它的**体内**（Scratch 的「拖进洞里」）；
           // 否则与源同层（同层重排）。
-          let to_list = blocks_drop_list_of(blocks, rects, y, drag.list_path)
-          let slot = blocks_drop_slot(blocks, to_list, y, rects)
+          let to_list = @blk.blocks_drop_list_of(
+            blocks,
+            rects,
+            y,
+            drag.list_path,
+          )
+          let slot = @blk.blocks_drop_slot(blocks, to_list, y, rects)
           // **落点有效性**：语言规则不允许的落点（如 `break` 放进非循环
           // 容器）在拖动过程中就标出来——用户不必「拖进去 → 运行 → 看报错」。
           // 用拖拽块的语句类型判定；取不到语句时按「接受」处理（保守：
@@ -367,7 +388,7 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
           //
           // 所以这里只判「跨层」，同层是否真移动由 `reorder_stack` 返回
           // `None`（原位）来表达。
-          let cross = !blocks_same_path(drag.list_path, drag.to_list)
+          let cross = !@blk.blocks_same_path(drag.list_path, drag.to_list)
           // **无效落点直接拒绝**（不写 IR、不给撤销点）：这是 Scratch 的
           // 「放不进去」——拖着时已经标红，松手就该什么都不发生，而不是
           // 塞进一个语言层随后会报错的语句。
@@ -432,7 +453,7 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
           let mut hit = -1
           let mut i = 0
           for item in chain {
-            if hit == -1 && blocks_same_path(item.path, new_path) {
+            if hit == -1 && @blk.blocks_same_path(item.path, new_path) {
               hit = i
             }
             i = i + 1
@@ -644,9 +665,19 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
             translator(model),
             blocks,
           )
-          let rects = blocks_item_rects(blocks, avail_width~, display_texts~)
+          let rects = @blk.blocks_item_rects(
+            blocks,
+            avail_width~,
+            display_texts~,
+          )
           // 横向决定**容器**（拖进 C 形块的洞里），纵向决定槽位。
-          let hit = blocks_hit_index(blocks, x, y, avail_width~, display_texts~)
+          let hit = @blk.blocks_hit_index(
+            blocks,
+            x,
+            y,
+            avail_width~,
+            display_texts~,
+          )
           let (list_path, at) = if hit >= 0 && blocks[hit].path.length() > 0 {
             let item = blocks[hit]
             let r = rects[hit]
@@ -663,7 +694,7 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
               body.push(0)
               (body, 0)
             } else {
-              let parent = blocks_parent_of(item.path)
+              let parent = @blk.blocks_parent_of(item.path)
               let idx = item.path[item.path.length() - 1]
               (parent, if lower { idx + 1 } else { idx })
             }
@@ -994,7 +1025,7 @@ fn insert_statement_at(
       let chain = block_chain_of(model)
       match block_at(chain, model.selected_block) {
         Some(item) if item.path.length() > 0 => {
-          let parent = blocks_parent_of(item.path)
+          let parent = @blk.blocks_parent_of(item.path)
           (parent, item.path[item.path.length() - 1] + 1)
         }
         _ => {

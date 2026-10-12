@@ -13,7 +13,7 @@
 ///   语句文本为空的行（装饰块）没有段，引导为空串。
 ///
 /// 画布绘制（`blocks_canvas` 的 `display_texts`/`lead_texts`）与 update 层
-/// 的命中测试（`blocks_hit_index` 的 `display_texts`）都必须吃这一份。
+/// 的命中测试（`@blk.blocks_hit_index` 的 `display_texts`）都必须吃这一份。
 pub fn block_row_texts(
   t : @i18n.Translator,
   blocks : Array[@blocks.BlockItem],
@@ -131,12 +131,12 @@ pub fn blocks_pane(
       // 落槽指示线一次算好（链条坐标）。矩形必须与画布绘制**同一组入参**
       // （真实画布宽 + 展示文本）：块宽随内容收紧后，宽度进了几何，
       // 两处各算一份宽度，指示线与块体就对不上了。
-      let rects = blocks_item_rects(
+      let rects = @blk.blocks_item_rects(
         blocks,
         avail_width=canvas_width,
         display_texts~,
       )
-      let mark = blocks_insert_mark(blocks, rects, model.block_drag)
+      let mark = @blk.blocks_insert_mark(blocks, rects, model.block_drag)
       let spotlight = current_spotlight(model)
       let sel = model.selected_block
       // **选中不再在链条里插编辑卡**（旧版做法）：卡片夹在上下两段之间，
@@ -152,7 +152,11 @@ pub fn blocks_pane(
       // 加进画布高度——两处不一致会让横幅被裁掉（画布太矮）或与第一块
       // 积木重叠（偏移与高度不匹配）。
       let script_note = target_note(model)
-      let note_height = if script_note == "" { 0.0 } else { BLOCKS_NOTE_HEIGHT }
+      let note_height = if script_note == "" {
+        0.0
+      } else {
+        @blk.BLOCKS_NOTE_HEIGHT
+      }
       let canvas_height = (rects.length().to_double() * BLOCK_ROW_HEIGHT +
         24.0 +
         note_height)
@@ -756,6 +760,413 @@ fn onstart_hat_row(
     ),
     width~,
     height=28.0,
+    padding=0.0,
+  )
+}
+
+///|
+/// 画布视图：绘制 + 点选/拖拽事件转 typed Msg。
+/// `y_offset`：本段画布在**链条坐标**里的纵向原点。编辑卡把链条拆成
+/// 上下两段后，下段画布的本地 y 要加上偏移才能与 update 里的链条矩形
+/// （命中/落槽计算空间）对齐；整链画布传 0 即可。
+pub fn blocks_canvas(
+  blocks : Array[@blocks.BlockItem],
+  display_texts : Array[String],
+  selected : Int,
+  spotlight : String,
+  insert_mark : (Double, Double, Bool)?,
+  width : Double,
+  height : Double,
+  semantics_label : String,
+  y_offset? : Double = 0.0,
+  palette_drag? : Bool = false,
+  expr_drag? : Bool = false,
+  script_note? : String = "",
+  note_height? : Double = 0.0,
+  lead_texts? : Array[String] = [],
+) -> @moui.View[Msg] {
+  // 文本度量：**布局期**量好、**绘制期**取用。
+  //
+  // 为什么必须跨这两个阶段：插槽洞的位置 = 前面所有段的宽度之和，而
+  // 段宽只有 `TextSystem` 能给；`TextSystem` 挂在**布局上下文**上，
+  // 绘制回调拿到的 `PaintContext` 刻意只装绘制指令（框架设计如此），
+  // 量不了文本。所以用一格共享单元把结果从布局带到绘制——这也是
+  // `measured_canvas` 存在的理由。
+  let metrics : Ref[Map[String, Double]] = Ref(Map([]))
+  @views.container(
+    @views.measured_canvas(
+      measure=fn(_constraints, text_system) {
+        // 量本画布会用到的所有段（字面段 + 插槽段）、标签前缀与整行标签。
+        // 逐段量而不是量整行：洞的位置正是逐段宽度的累加；整行与引导文本
+        // 也要量——截断判定（`not_truncated`）与洞的起点（引导宽）读它们。
+        let cache : Map[String, Double] = Map([])
+        let measure_into = fn(text : String, cache : Map[String, Double]) {
+          if !cache.contains(text) {
+            let font = @text.FontSpec::new(size=12.0)
+            let measured = text_system.measure_text(
+              @core.TextLayoutInput::new(text~, font~),
+            )
+            cache[text] = measured.size.width
+          }
+        }
+        let mut index = 0
+        for item in blocks {
+          match item.segments {
+            None => ()
+            Some(segments) =>
+              for segment in segments {
+                measure_into(segment.text, cache)
+              }
+          }
+          // 引导文本（箭头前缀 + 本地化标签）：洞的起点 = 它的宽度
+          let lead_text = if index < lead_texts.length() {
+            lead_texts[index]
+          } else {
+            ""
+          }
+          measure_into("\{@blk.blocks_row_arrow(item)}\{lead_text}", cache)
+          // 整行标签：截断判定的实尺
+          let display = if index < display_texts.length() {
+            display_texts[index]
+          } else {
+            ""
+          }
+          measure_into("\{@blk.blocks_row_arrow(item)}\{display}", cache)
+          index = index + 1
+        }
+        metrics.val = cache
+        // 宽度必须由调用方给定：scroll_view 给子节点的是无界约束
+        // （纵向滚动、横向不滚），画布自己量不出视口宽——写死 470 会
+        // 在窄窗格里溢出到隔壁面板。高度不设下限（旧的 160pt 下限是给
+        // 整链画布的；编辑卡拆段后上段只有 ~50pt，下限会在块与编辑卡
+        // 之间凭空垫出一段空白），调用方传的高度就是段的真实高度。
+        @geometry.Size::new(width=width.max(160.0), height=height.max(1.0))
+      },
+      draw=fn(ctx, frame) {
+        let dx = frame.origin.x
+        // 有说明横幅时，积木链整体**下移** `note_height`，让横幅占住
+        // 上方预留的空间（而不是叠在第一块积木上）。
+        // 链坐标 → 画布局部：减去横幅偏移（`@blk.blocks_chain_y` 的逆）。
+        let dy = frame.origin.y + note_height
+        let base = @blk.blocks_item_rects(
+          blocks,
+          avail_width=width,
+          display_texts~,
+        )
+        // C 形包裹：顶行的矩形向下扩张，把子栈**包在里面**（Scratch 的核心
+        // 视觉语义）。绘制用扩张后的矩形，落槽仍用基础行高——插入位置按
+        // 「行」算，视觉包裹按「弧」算，两者刻意分开。基础矩形只算一次。
+        let rects = @blk.blocks_visual_rects(blocks, base)
+        let cache = metrics.val
+        let measure = fn(text : String) -> Double {
+          match cache.get(text) {
+            Some(value) => value
+            None => 0.0
+          }
+        }
+        let ops = @blk.blocks_draw_plan(
+          blocks,
+          display_texts,
+          rects,
+          selected,
+          spotlight,
+          insert_mark,
+          dx,
+          dy,
+          measure~,
+          lead_texts~,
+        )
+        // **脚本说明横幅**：画在积木链上方（Scratch 的脚本注释贴在积木旁）。
+        // 只在有说明时占位——空说明不画，否则每条子程序上方都会有一条
+        // 空白带，把画布本来就不多的空间吃掉。
+        // `note_height` 是调用方为横幅**预留**的高度：积木链整体下移，
+        // 横幅画在空出来的上方。不用「画在积木上」的做法——那会遮住第一块
+        // 积木的文本。调用方（`blocks_pane`）把同一数值加进画布高度，
+        // 两处一致才不会让横幅被裁掉或与积木重叠。
+        if script_note != "" {
+          ops.push(
+            ScriptNote(
+              @chrome.fit_label(script_note, (width - 24.0).max(60.0)),
+              dx + 10.0,
+              dy + 2.0,
+              (width - 24.0).max(60.0),
+            ),
+          )
+        }
+        for op in ops {
+          match op {
+            BlockOutline(x, y, w, h, kind, tab, notch) =>
+              // 单轮廓（M7②）：一次 fill+stroke，榫卯在轮廓里
+              @blk.paint_block_outline(ctx, x, y, w, h, kind, tab, notch)
+            BlockArm(x, y, w, h, kind) =>
+              fill_rounded_rect(
+                ctx,
+                @graphics.RoundedRect::new(
+                  rect=@geometry.Rect::new(x~, y~, width=w, height=h),
+                  radius=2.0,
+                ),
+                @graphics.Brush::solid(@chrome.block_fill(kind)),
+              )
+            BlockBadge(x, y, kind) =>
+              fill_rounded_rect(
+                ctx,
+                @graphics.RoundedRect::new(
+                  rect=@geometry.Rect::new(x~, y~, width=14.0, height=14.0),
+                  radius=4.0,
+                ),
+                @graphics.Brush::solid(@chrome.block_badge_color(kind)),
+              )
+            BlockLabel(_text, x, y, maxw, fitted) =>
+              // **左对齐**：插槽洞的游标从 frame.x 起按段宽累加，文字居中
+              // 会让洞与字形整个错开（实测「如果」块上孤零零一枚黑洞——
+              // 用户报的「积木上的黑块」）。
+              draw_text(
+                ctx,
+                @text.TextRun::new(
+                  text=fitted,
+                  frame=@geometry.Rect::new(x~, y~, width=maxw, height=20.0),
+                  font=@text.FontSpec::new(size=12.0),
+                  color=@chrome.block_text_color(),
+                  align=TextStart,
+                ),
+              )
+            BlockStroke(x, y, w, h) =>
+              stroke_rounded_rect(
+                ctx,
+                @graphics.RoundedRect::new(
+                  rect=@geometry.Rect::new(
+                    x=x - 2.0,
+                    y=y - 2.0,
+                    width=w + 4.0,
+                    height=h + 4.0,
+                  ),
+                  radius=8.0,
+                ),
+                @graphics.Brush::solid(@chrome.ide_accent()),
+                2.0,
+              )
+            InsertMark(x, y, w, valid) =>
+              fill_rounded_rect(
+                ctx,
+                @graphics.RoundedRect::new(
+                  rect=@geometry.Rect::new(
+                    x~,
+                    y~,
+                    width=w,
+                    height=if valid { 3.0 } else { 2.0 },
+                  ),
+                  radius=1.5,
+                ),
+                @graphics.Brush::solid(
+                  if valid {
+                    @chrome.ide_accent()
+                  } else {
+                    @chrome.ide_danger()
+                  },
+                ),
+              )
+            // 说明用**斜体式的弱化色**画在浅底上，与积木文本区分开：
+            // 注释不该和代码抢注意力（Scratch 的注释也是灰底灰字）。
+            ScriptNote(text_value, x, y, w) => {
+              fill_rounded_rect(
+                ctx,
+                @graphics.RoundedRect::new(
+                  rect=@geometry.Rect::new(x~, y~, width=w, height=16.0),
+                  radius=3.0,
+                ),
+                @graphics.Brush::solid(@chrome.blocks_note_background()),
+              )
+              draw_text(
+                ctx,
+                @text.TextRun::new(
+                  text=text_value,
+                  frame=@geometry.Rect::new(x~, y~, width=w, height=16.0),
+                  font=@text.FontSpec::new(size=11.0),
+                  color=@chrome.blocks_note_text(),
+                ),
+              )
+            }
+            SlotHole(x, y, w, h, filled, pill) =>
+              // 插槽：**浅色内凹**读作「这里可以塞一块积木」。
+              // 有内容时底色更亮一点（内容块坐上去），空槽更暗（等一块进来）。
+              // 颜色取自画布栈的既有色阶，不新引入 token——插槽是积木的
+              // 内部结构，不是独立表面。
+              // 字段访问胶囊（M7②）：全圆角（h/2），数据读取的专属形态。
+              fill_rounded_rect(
+                ctx,
+                @graphics.RoundedRect::new(
+                  rect=@geometry.Rect::new(x~, y~, width=w, height=h),
+                  radius=if pill { h / 2.0 } else { 6.0 },
+                ),
+                @graphics.Brush::solid(
+                  if filled {
+                    @chrome.blocks_slot_filled()
+                  } else {
+                    @chrome.blocks_slot_empty()
+                  },
+                ),
+              )
+          }
+        }
+      },
+      semantics_label~,
+    )
+    // 右键：命中测试与左键同一套几何（含真实 avail_width），把链下标
+    // 交给 update 开菜单。**与左键共用 `@blk.blocks_hit_index`**——两处各算一份
+    // 命中就会「点得中但右键点不中」。
+    .on_secondary_tap_with_frame(fn(position, frame) {
+      let lx = position.x - frame.origin.x
+      // 画布局部 → 链坐标：与 draw 共用 `@blk.blocks_chain_y`（单一来源）。
+      let ly = @blk.blocks_chain_y(
+        position.y - frame.origin.y,
+        y_offset,
+        note_height,
+      )
+      let hit = @blk.blocks_hit_index(
+        blocks,
+        lx,
+        ly,
+        avail_width=width,
+        display_texts~,
+      )
+      // **存视口坐标**（`position` 就是），不是画布局部坐标：菜单要锚在
+      // 指针所在的那一点上，而 `context_menu_region` 的 `Viewport` 锚点
+      // 吃的是视口坐标。存局部坐标的话菜单会按画布原点的偏移弹出来，
+      // 滚动或换行后位置就偏了。
+      Msg::BlocksContextMenu(hit, position.x, position.y)
+    })
+    .on_tap_with_frame(fn(position, frame) {
+      let lx = position.x - frame.origin.x
+      // 画布局部 → 链坐标：与 draw 共用 `@blk.blocks_chain_y`（单一来源）。
+      let ly = @blk.blocks_chain_y(
+        position.y - frame.origin.y,
+        y_offset,
+        note_height,
+      )
+      // **点值就地编辑**优先于整行选中：值格子（叶子段）比整行小得多，
+      // 用户点在数字上就是想改那个数字。用与绘制同一份几何判定
+      // （`@blk.blocks_value_hit`），保证「画在哪就点在哪」。
+      let cache = metrics.val
+      let measure = fn(text : String) -> Double {
+        match cache.get(text) {
+          Some(value) => value
+          None => 0.0
+        }
+      }
+      let base = @blk.blocks_item_rects(
+        blocks,
+        avail_width=width,
+        display_texts~,
+      )
+      let visual = @blk.blocks_visual_rects(blocks, base)
+      match
+        @blk.blocks_value_hit(
+          blocks,
+          visual,
+          lx,
+          ly,
+          measure,
+          y_offset~,
+          lead_texts~,
+        ) {
+        Some(hit) => Msg::EditBlockValue(hit.block_index, hit.expr_path)
+        None =>
+          // 宽度随消息带上：命中必须用与绘制同一组矩形（见 Msg 上的注释）。
+          Msg::BlocksCanvasTap(lx, ly, width)
+      }
+    })
+    .on_drag_with_frame(fn(event, frame) {
+      let lx = event.position.x - frame.origin.x
+      // 同上：与 draw 共用同一个换算。
+      let ly = @blk.blocks_chain_y(
+        event.position.y - frame.origin.y,
+        y_offset,
+        note_height,
+      )
+      // **从调色板拖进来的骨架**：画布这一侧才拿得到指针的落点。
+      // 松手时按指针算出目标容器与位置，派发 DropStatement。
+      // 调色板拖动期间：只有**松手**才产生消息（落点由这里算），
+      // 移动过程不发消息——拖动中的高亮是调色板侧的事，画布不需要
+      // 每个指针采样都过一次 update（那只是无谓的重渲）。
+      // **拖到边缘自动滚动**：长链条拖拽的必需项——不自动滚就只能拖到
+      // 可视区内，链尾的块永远拖不动。判据用指针在画布内的 y 位置：
+      // 上缘 24pt 内向上滚、下缘 24pt 内向下滚。
+      // 只在**拖动中**触发（`Changed`），松手后不再滚。
+      let auto = if event.phase == @views.DragGesturePhase::Changed {
+        if ly < @blk.BLOCKS_EDGE_ZONE {
+          Msg::BlocksAutoScroll(-1)
+        } else if ly > height - @blk.BLOCKS_EDGE_ZONE {
+          Msg::BlocksAutoScroll(1)
+        } else {
+          Msg::Noop
+        }
+      } else {
+        Msg::Noop
+      }
+      let _ = auto
+      if expr_drag {
+        // 报告块拖动：松手时按指针找**洞**（段级命中）。
+        //
+        // 解析放在这里而不是 update：洞的位置 = 逐段文本宽度累加，需要
+        // `TextSystem`；它只在布局上下文里（`metrics` 已在布局期量好），
+        // update 拿不到。与绘制读**同一份** `metrics`，才保证画哪点哪。
+        if event.phase == @views.DragGesturePhase::Ended {
+          let cache = metrics.val
+          let measure = fn(text : String) -> Double {
+            match cache.get(text) {
+              Some(value) => value
+              None => 0.0
+            }
+          }
+          let base = @blk.blocks_item_rects(
+            blocks,
+            avail_width=width,
+            display_texts~,
+          )
+          let visual = @blk.blocks_visual_rects(blocks, base)
+          match
+            @blk.blocks_slot_hit(
+              blocks,
+              visual,
+              lx,
+              ly,
+              measure,
+              y_offset~,
+              lead_texts~,
+            ) {
+            Some(hit) => Msg::ExpressionDrop(hit.block_index, hit.expr_path)
+            None =>
+              // 没落在洞上：明确拒绝（松手毫无反应会让用户以为拖坏了）
+              Msg::ExpressionDrop(-1, [])
+          }
+        } else {
+          auto
+        }
+      } else if palette_drag {
+        if event.phase == @views.DragGesturePhase::Ended {
+          Msg::PaletteDrop(lx, ly, width)
+        } else {
+          auto
+        }
+      } else if event.phase == @views.DragGesturePhase::Started {
+        Msg::BlocksCanvasPress(lx, ly, width)
+      } else if event.phase == @views.DragGesturePhase::Changed {
+        // 边缘时优先滚动（否则长链拖不到头）；不在边缘才是普通拖动。
+        match auto {
+          Msg::BlocksAutoScroll(_) => auto
+          _ => Msg::BlocksCanvasDragTo(lx, ly, width)
+        }
+      } else {
+        Msg::BlocksCanvasRelease
+      }
+    }),
+    // 画布底板**显式钉住**：这个容器此前没有 background，回落到环境 Base →
+    // `palette.surface`，于是画布底与相邻的 AI 保留带完全同色（实测同为
+    // `#22262C`），两段之间的边界整个消失——同一条水平结构线，左半（窗格
+    // 脚注 → 带）看得见、右半（画布 → 带）看不见。`@chrome.blocks_canvas_background`
+    // 因此曾经是一个零调用者的死函数，这里把它激活：积木画布与壳面板是两套
+    // 配色纪律，画布底由积木域自己钉，不借邻居的回落色。
+    background=@chrome.blocks_canvas_background(),
     padding=0.0,
   )
 }

@@ -1178,11 +1178,6 @@ fn explorer_rows(model : Model, t : @i18n.Translator) -> Array[ExplorerRow] {
 }
 
 ///|
-fn section_collapsed(model : Model, id : String) -> Bool {
-  @proj.section_collapsed(explorer_data_of(model), id)
-}
-
-///|
 fn dir_collapsed(model : Model, key : String) -> Bool {
   @proj.dir_collapsed(explorer_data_of(model), key)
 }

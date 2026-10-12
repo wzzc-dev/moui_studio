@@ -1,5 +1,4 @@
 import {
-  "wzzc-dev/moui/geometry",
   "wzzc-dev/moui/views",
   "wzzc-dev/moui_studio/chrome",
   "wzzc-dev/moui_i18n" @i18n,
