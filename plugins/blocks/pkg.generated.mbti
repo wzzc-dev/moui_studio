@@ -1,0 +1,85 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/plugins/blocks"
+
+import {
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/views/common",
+}
+
+// Values
+pub const BLOCKS_EDGE_ZONE : Double = 24.0
+
+pub const BLOCKS_NOTE_HEIGHT : Double = 22.0
+
+pub fn block_outline_path(Double, Double, Double, Double, Bool, Bool) -> Array[@core.PathVerb]
+
+pub fn blocks_c_arms(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect]) -> Map[Int, Double]
+
+pub fn blocks_chain_y(Double, Double, Double) -> Double
+
+pub fn blocks_draw_plan(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[String], Array[@core.Rect], Int, String, (Double, Double, Bool)?, Double, Double, measure? : (String) -> Double, lead_texts? : Array[String]) -> Array[BlocksDrawOp]
+
+pub fn blocks_drop_list_of(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], Double, Array[Int]) -> Array[Int]
+
+pub fn blocks_drop_slot(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[Int], Double, Array[@core.Rect]) -> Int
+
+pub fn blocks_hit_index(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Double, Double, avail_width? : Double, display_texts? : Array[String]) -> Int
+
+pub fn blocks_in_c_body(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Int) -> Bool
+
+pub fn blocks_insert_mark(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], BlocksDragState?) -> (Double, Double, Bool)?
+
+pub fn blocks_item_rects(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], avail_width? : Double, display_texts? : Array[String]) -> Array[@core.Rect]
+
+pub fn blocks_parent_of(Array[Int]) -> Array[Int]
+
+pub fn blocks_row_arrow(@wzzc-dev/moui_studio/domain/blocks.BlockItem) -> String
+
+pub fn blocks_row_lead_width(@wzzc-dev/moui_studio/domain/blocks.BlockItem, String, (String) -> Double) -> Double
+
+pub fn blocks_same_path(Array[Int], Array[Int]) -> Bool
+
+pub fn blocks_slot_hit(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], Double, Double, (String) -> Double, y_offset? : Double, lead_texts? : Array[String]) -> SlotHit?
+
+pub fn blocks_slot_rects(@wzzc-dev/moui_studio/domain/blocks.BlockItem, @core.Rect, (String) -> Double, lead? : Double) -> Array[(@wzzc-dev/moui_studio/domain/blocks.TextSegment, @core.Rect)]
+
+pub fn blocks_value_hit(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], Double, Double, (String) -> Double, y_offset? : Double, lead_texts? : Array[String]) -> SlotHit?
+
+pub fn blocks_visual_rects(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect]) -> Array[@core.Rect]
+
+pub fn no_text_measure(String) -> Double
+
+pub fn paint_block_outline(@common.PaintContext, Double, Double, Double, Double, @wzzc-dev/moui_studio/domain/blocks.BlockKind, Bool, Bool) -> Unit
+
+// Errors
+
+// Types and methods
+pub(all) struct BlocksDragState {
+  list_path : Array[Int]
+  from_path : Array[Int]
+  from : Int
+  to : Int
+  to_list : Array[Int]
+  valid : Bool
+}
+
+pub(all) enum BlocksDrawOp {
+  BlockOutline(Double, Double, Double, Double, @wzzc-dev/moui_studio/domain/blocks.BlockKind, Bool, Bool)
+  BlockArm(Double, Double, Double, Double, @wzzc-dev/moui_studio/domain/blocks.BlockKind)
+  BlockBadge(Double, Double, @wzzc-dev/moui_studio/domain/blocks.BlockKind)
+  BlockLabel(String, Double, Double, Double, String)
+  ScriptNote(String, Double, Double, Double)
+  BlockStroke(Double, Double, Double, Double)
+  InsertMark(Double, Double, Double, Bool)
+  SlotHole(Double, Double, Double, Double, Bool, Bool)
+}
+
+pub(all) struct SlotHit {
+  block_index : Int
+  expr_path : Array[Int]
+  rect : @core.Rect
+}
+
+// Type aliases
+
+// Traits
