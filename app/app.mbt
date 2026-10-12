@@ -405,7 +405,7 @@ pub fn update_with_services(
       // 跳转 = 切到代码工作区 + 打开该文件（选中态相同则免重复读——
       // ProjectFileLoaded 的挂载守卫依赖选中态）
       let (next, _) = update_pure(model, SetWorkSpace(WsCode))
-      if next.selected_project_file == Some(rel) {
+      if next.project_state.selected_project_file == Some(rel) {
         (next, @moui.Effect::none())
       } else {
         let (selected, effect) = update_pure(next, SelectProjectFile(rel))
@@ -425,11 +425,13 @@ pub fn update_with_services(
       match tree_root_of(model) {
         None => (model, @moui.Effect::none())
         Some(_root) => {
-          let name = model.file_name_draft.trim(chars=" \t").to_owned()
+          let name = model.project_state.file_name_draft
+            .trim(chars=" \t")
+            .to_owned()
           // 目标目录来自行内入口（VS Code:在哪个文件夹上点新建就建在
           // 哪个文件夹里）。草稿只收文件名,目录由 file_create_dir 携带;
           // 两层都是**树相对**路径，所以直接拼即可。
-          let rel = join_rel(model.file_create_dir, name)
+          let rel = join_rel(model.project_state.file_create_dir, name)
           if !valid_new_file_rel(rel) {
             (
               with_notice(
@@ -472,8 +474,10 @@ pub fn update_with_services(
       match tree_root_of(model) {
         None => (model, @moui.Effect::none())
         Some(_root) => {
-          let name = model.file_name_draft.trim(chars=" \t").to_owned()
-          let rel = join_rel(model.file_create_dir, name)
+          let name = model.project_state.file_name_draft
+            .trim(chars=" \t")
+            .to_owned()
+          let rel = join_rel(model.project_state.file_create_dir, name)
           if !valid_new_file_rel(rel) {
             (
               with_notice(
@@ -518,12 +522,26 @@ pub fn update_with_services(
           match active_project_of(model) {
             None =>
               (
-                { ..model, folder_create_open: false, file_name_draft: "", },
+                {
+                  ..model,
+                  project_state: {
+                    ..model.project_state,
+                    folder_create_open: false,
+                    file_name_draft: "",
+                  },
+                },
                 @moui.Effect::none(),
               )
             Some(project) => {
               let created = with_notice(
-                { ..model, folder_create_open: false, file_name_draft: "", },
+                {
+                  ..model,
+                  project_state: {
+                    ..model.project_state,
+                    folder_create_open: false,
+                    file_name_draft: "",
+                  },
+                },
                 text_with(translator(model), "app.explorer.folder_created", [
                   ("a", rel),
                 ]),
@@ -541,7 +559,13 @@ pub fn update_with_services(
         Success(Err(message)) =>
           (
             with_notice(
-              { ..model, folder_create_open: false, },
+              {
+                ..model,
+                project_state: {
+                  ..model.project_state,
+                  folder_create_open: false,
+                },
+              },
               text_with(translator(model), "app.explorer.folder_failed", [
                 ("a", message),
               ]),
@@ -552,7 +576,13 @@ pub fn update_with_services(
         Failure(error) =>
           (
             with_notice(
-              { ..model, folder_create_open: false, },
+              {
+                ..model,
+                project_state: {
+                  ..model.project_state,
+                  folder_create_open: false,
+                },
+              },
               error.message,
               true,
             ),
@@ -579,21 +609,27 @@ pub fn update_with_services(
             None => (model, @moui.Effect::none())
             Some(project) => {
               // 开空 tab + 重扫刷新文件树
-              let (files, index) = upsert_open_file(model.open_project_files, OpenProjectFile::{
-                rel,
-                saved_content: "",
-                draft: "",
-                caret: 0,
-                selection: None,
-                md_session: with_md_session(rel~, content=""),
-              })
+              let (files, index) = upsert_open_file(
+                model.project_state.open_project_files,
+                OpenProjectFile::{
+                  rel,
+                  saved_content: "",
+                  draft: "",
+                  caret: 0,
+                  selection: None,
+                  md_session: with_md_session(rel~, content=""),
+                },
+              )
               let created = with_notice(
                 {
                   ..model,
-                  open_project_files: files,
-                  open_file_index: index,
-                  file_create_open: false,
-                  file_name_draft: "",
+                  project_state: {
+                    ..model.project_state,
+                    open_project_files: files,
+                    open_file_index: index,
+                    file_create_open: false,
+                    file_name_draft: "",
+                  },
                 },
                 text_with(translator(model), "app.project.file_created", [
                   ("a", rel),
@@ -611,7 +647,13 @@ pub fn update_with_services(
         Failure(error) =>
           (
             with_notice(
-              { ..model, file_create_open: false, },
+              {
+                ..model,
+                project_state: {
+                  ..model.project_state,
+                  file_create_open: false,
+                },
+              },
               error.message,
               true,
             ),
@@ -620,11 +662,13 @@ pub fn update_with_services(
         Cancelled => (model, @moui.Effect::none())
       }
     FileRenameCommit =>
-      match (model.file_rename_open, tree_root_of(model)) {
+      match (model.project_state.file_rename_open, tree_root_of(model)) {
         (Some(old), Some(_root)) => {
           // 输入行只收文件名（FileRenameStart 已把草稿裁成最后一段），
           // 这里按**原文件所在目录**拼回 rel——用户改的是名字，不是位置。
-          let name = model.file_name_draft.trim(chars=" \t").to_owned()
+          let name = model.project_state.file_name_draft
+            .trim(chars=" \t")
+            .to_owned()
           let new = join_rel(parent_of(old), name)
           if !valid_new_file_rel(new) {
             (
@@ -636,7 +680,16 @@ pub fn update_with_services(
               @moui.Effect::none(),
             )
           } else if new == old {
-            ({ ..model, file_rename_open: None, }, @moui.Effect::none())
+            (
+              {
+                ..model,
+                project_state: {
+                  ..model.project_state,
+                  file_rename_open: None,
+                },
+              },
+              @moui.Effect::none(),
+            )
           } else {
             (
               model,
@@ -666,7 +719,13 @@ pub fn update_with_services(
         Failure(error) =>
           (
             with_notice(
-              { ..model, file_rename_open: None, },
+              {
+                ..model,
+                project_state: {
+                  ..model.project_state,
+                  file_rename_open: None,
+                },
+              },
               error.message,
               true,
             ),
@@ -692,7 +751,13 @@ pub fn update_with_services(
           // 新文件已写、旧文件残留——半完成如实说话,不静默
           (
             with_notice(
-              { ..model, file_rename_open: None, },
+              {
+                ..model,
+                project_state: {
+                  ..model.project_state,
+                  file_rename_open: None,
+                },
+              },
               text_with(translator(model), "app.project.rename_partial", [
                 ("a", error.message),
               ]),
@@ -707,13 +772,16 @@ pub fn update_with_services(
         Success(_) => {
           let renamed = {
             ..model,
-            open_project_files: rename_open_file(
-              model.open_project_files,
-              old,
-              new,
-            ),
-            file_rename_open: None,
-            file_name_draft: "",
+            project_state: {
+              ..model.project_state,
+              open_project_files: rename_open_file(
+                model.project_state.open_project_files,
+                old,
+                new,
+              ),
+              file_rename_open: None,
+              file_name_draft: "",
+            },
           }
           let noticed = with_notice(
             renamed,
@@ -736,7 +804,13 @@ pub fn update_with_services(
         Failure(error) =>
           (
             with_notice(
-              { ..model, file_rename_open: None, },
+              {
+                ..model,
+                project_state: {
+                  ..model.project_state,
+                  file_rename_open: None,
+                },
+              },
               text_with(translator(model), "app.project.rename_partial", [
                 ("a", error.message),
               ]),
@@ -752,7 +826,7 @@ pub fn update_with_services(
         None => (model, @moui.Effect::none())
         Some(_root) => {
           let writes : Array[@moui.Effect[Msg]] = []
-          for open in model.open_project_files {
+          for open in model.project_state.open_project_files {
             if open.draft != open.saved_content {
               writes.push(
                 services
@@ -1084,11 +1158,14 @@ pub fn update_with_services(
           let pending = model.projects_restore_pending - 1
           match project_record_from_source(source) {
             Ok(record) => {
-              let (projects, _index) = upsert_project(model.projects, record)
+              let (projects, _index) = upsert_project(
+                model.project_state.projects,
+                record,
+              )
               let next = {
                 ..model,
-                projects,
                 projects_restore_pending: pending,
+                project_state: { ..model.project_state, projects, },
               }
               if pending == 0 {
                 (finish_restore_active(next), @moui.Effect::none())
@@ -1156,7 +1233,7 @@ pub fn update_with_services(
               // 打开中的 tab 一并关闭（文件已不存在;删除本身走确认流,
               // 这里不再对脏 tab 二次打扰）
               let model = match
-                open_file_index_of(model.open_project_files, rel) {
+                open_file_index_of(model.project_state.open_project_files, rel) {
                 Some(index) => close_open_file_at(model, index)
                 None => model
               }

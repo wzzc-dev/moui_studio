@@ -63,3 +63,27 @@ pub(all) struct OpenProjectFile {
   /// 都要判后缀。
   md_session : @moui_richtext.MarkdownDocumentSession?
 }
+
+///|
+/// 工程域状态切片(S2b-1 出壳):资源管理器/工程文件 tab 的全部壳状态。
+/// 壳经 `Feature::scope` 式单一字段 `model.project_state` 读写;跨域真相
+/// (IR/undo/通知/事件出站)仍住壳——切片零副作用,ai_sessions 先例。
+pub(all) struct ProjectState {
+  projects : Array[ProjectRecord]
+  active_project : Int
+  workspace_root : WorkspaceRecord?
+  open_project_files : Array[OpenProjectFile]
+  open_file_index : Int
+  project_tree_collapsed : Array[String]
+  explorer_sections_collapsed : Array[String]
+  selected_project_file : String?
+  explorer_scroll : @core.Point
+  explorer_hover : String
+  explorer_menu_open : Bool
+  scan_progress : String?
+  file_create_dir : String
+  file_create_open : Bool
+  file_rename_open : String?
+  folder_create_open : Bool
+  file_name_draft : String
+}

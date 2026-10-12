@@ -28,7 +28,10 @@ fn explorer_draw(
 /// 展开全部根行:本文件里「树内容可见」的渲染断言都以展开态为前提,
 /// 「导入默认折叠」由专门的回归用例锁定,不在这里重复默认值。
 fn explorer_tree_expanded(model : Model) -> Model {
-  { ..model, project_tree_collapsed: [], }
+  {
+    ..model,
+    project_state: { ..model.project_state, project_tree_collapsed: [], },
+  }
 }
 
 ///|
@@ -829,21 +832,30 @@ test "explorer 目录行新建:目标目录跟随所在层" {
     ).0
   // 目录行的「新建文件」
   let file_in_app = explorer_apply(imported, FileCreateAt("app"))
-  assert_eq(file_in_app.file_create_dir, "app")
-  assert_eq(join_rel(file_in_app.file_create_dir, "x.mbt"), "app/x.mbt")
+  assert_eq(file_in_app.project_state.file_create_dir, "app")
+  assert_eq(
+    join_rel(file_in_app.project_state.file_create_dir, "x.mbt"),
+    "app/x.mbt",
+  )
   // 目录行的「新建文件夹」——必须同样落在 app/
   let folder_in_app = explorer_apply(imported, FolderCreateAt("app"))
-  assert_true(folder_in_app.folder_create_open)
+  assert_true(folder_in_app.project_state.folder_create_open)
   assert_eq(
-    folder_in_app.file_create_dir,
+    folder_in_app.project_state.file_create_dir,
     "app",
     msg="新建文件夹的目标目录应是所在层,不是工程根",
   )
-  assert_eq(join_rel(folder_in_app.file_create_dir, "newdir"), "app/newdir")
+  assert_eq(
+    join_rel(folder_in_app.project_state.file_create_dir, "newdir"),
+    "app/newdir",
+  )
   // 工具栏（不带目录）= 工程根
   let folder_at_root = explorer_apply(imported, FolderCreateAt(""))
-  assert_eq(folder_at_root.file_create_dir, "")
-  assert_eq(join_rel(folder_at_root.file_create_dir, "newdir"), "newdir")
+  assert_eq(folder_at_root.project_state.file_create_dir, "")
+  assert_eq(
+    join_rel(folder_at_root.project_state.file_create_dir, "newdir"),
+    "newdir",
+  )
 }
 
 ///|
@@ -857,16 +869,19 @@ test "explorer 新建文件与新建文件夹互斥" {
       services,
     ).0
   let file_open = explorer_apply(imported, FileCreateAt("app"))
-  assert_true(file_open.file_create_open)
+  assert_true(file_open.project_state.file_create_open)
   let then_folder = explorer_apply(file_open, FolderCreateAt("app"))
-  assert_true(then_folder.folder_create_open)
+  assert_true(then_folder.project_state.folder_create_open)
   assert_false(
-    then_folder.file_create_open,
+    then_folder.project_state.file_create_open,
     msg="打开文件夹输入行应关掉文件输入行",
   )
   let then_file = explorer_apply(then_folder, FileCreateAt("app"))
-  assert_true(then_file.file_create_open)
-  assert_false(then_file.folder_create_open, msg="反向也应互斥")
+  assert_true(then_file.project_state.file_create_open)
+  assert_false(
+    then_file.project_state.folder_create_open,
+    msg="反向也应互斥",
+  )
 }
 
 ///|
@@ -1052,7 +1067,7 @@ test "explorer 缩进导轨:透明占位格 + 1pt 细线" {
 /// 不能把里面的成员平铺到顶层。
 ///
 /// 根因:成员路径可以是多段的（`examples/terminal`、`benchmarks/full_cycle`）。
-/// 早先按 `model.projects` 遍历、一个成员一行,于是 `examples/terminal`
+/// 早先按 `model.project_state.projects` 遍历、一个成员一行,于是 `examples/terminal`
 /// 变成顶层一行,而 `examples` 这个中间目录**根本不存在**——用户看到的是
 /// 「examples 下的模块直接显示,收起 examples 收不掉里面」。
 ///

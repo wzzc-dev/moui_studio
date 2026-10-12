@@ -642,62 +642,14 @@ pub(all) struct Model {
   tree_query : String
   // 结构树展开的分组集合（g 值文本；设计稿只在会话内记忆）
   tree_collapsed : Array[String]
-  // === 工程工作台（M0）：导入的 MoonBit 工程（会话内，不持久化）===
-  // 最近导入的在前；active_project 是资源管理器当前高亮的下标（-1 = 无）。
-  // Studio 自身的 .studio.json 程序仍是主编辑上下文，真源切换在 M6。
-  projects : Array[ProjectRecord]
-  active_project : Int
-  /// **工作区根**记录（moon.work 导入时才有;单模块导入 = None）。
-  ///
-  /// 资源管理器的单根行用它渲染:截图里的顶层 `MoUI` 行是工作区根**自己**,
-  /// 成员模块是它的子目录,而根上的 `moon.work`/`README.md`/`gradlew`…
-  /// 与成员目录**同级**。没有这条记录,根目录自己的文件在整个树里没有出现
-  /// 的位置（用户反馈「看不到根目录下的文件」的根因）。
-  ///
-  /// 字段名刻意**不叫** `workspace`——那个名字已经被 `WorkSpace`
-  /// （工作区**模式**:可视化/代码/预览枚举）占用,重名会让 `WsVisual`
-  /// 这类构造器解析到本字段的类型上（实测编译错误）。
-  workspace_root : WorkspaceRecord?
-  // 扫描进度读数（G2）：进行中 = 资源管理器头部一行「已扫描 N 目录」;
-  // 完成即清 None。
-  scan_progress : String?
+  // 工程域状态切片(S2b-1,ADR 0038/0039):资源管理器与
+  // 工程 tab 的全部状态住在 plugins/project 的 ProjectState。
+  project_state : @proj.ProjectState
   // 工程记录恢复中（G2 W3）：>0 = 还有 N 个 boot 重扫未回来（静默合并）;
   // 0 = 常规导入语义（带通知与预览 harness）。restore_active_root 是本次
   // 恢复要重新选中的工程根（全部重扫回来时落位）。
   projects_restore_pending : Int
   restore_active_root : String
-  // 资源管理器:折叠的目录(相对路径)与选中的文件(相对路径)
-  project_tree_collapsed : Array[String]
-  selected_project_file : String?
-  // 资源管理器滚动偏移（虚拟化列表的应用持有偏移,框架约定）。展开包时
-  // update 直接把它设为该包行的偏移（单一事实源,无请求/模型双轨）,
-  // 视图按内容高度钳制后喂给虚拟化列表。
-  explorer_scroll : @core.Point
-  // VS Code 资源管理器口径的悬停行 key（`explorer_row_key` 的口径）。
-  // 行内动作（改名的 ✎ / 删除的 🗑 / 新建的 ＋）只在悬停行出现——
-  // 满屏垃圾桶会把树读成一张操作表。空串 = 没有行在悬停下。
-  explorer_hover : String
-  // 分区折叠集（打开的编辑器 / 大纲 / 时间线 / 文件夹）。
-  // 与树内目录折叠分开：目录折叠随选择变化频繁,分区折叠是布局偏好。
-  explorer_sections_collapsed : Array[String]
-  // 面板头 `⋯` 溢出菜单是否打开（VS Code 的视图与更多操作菜单）。
-  explorer_menu_open : Bool
-  /// 打开的工程文件 tabs（G4 多标签:数组 + active 下标,旧单槽退役）。
-  /// rel = 工程相对路径;saved_content = 最近一次落盘/读取的内容（脏标记
-  /// 的基准）;draft = 编辑中的内容;caret/selection 随 tab 走。
-  open_project_files : Array[OpenProjectFile]
-  open_file_index : Int
-  // G4 文件 CRUD:inline 一行式输入态(新建/改名共用输入框草稿)。
-  // file_create_open = 目标目录下显示「新建文件」输入行;
-  // folder_create_open = 同形态的「新建文件夹」输入行;
-  // file_rename_open = 正在改名的 rel(该文件行替换为输入行)。
-  // file_create_dir = 新建的目标目录 rel（"" = 工程根;VS Code 在哪个
-  // 文件夹上点「新建文件」就建在哪个文件夹里）。
-  file_create_open : Bool
-  folder_create_open : Bool
-  file_create_dir : String
-  file_rename_open : String?
-  file_name_draft : String
   // G7.3 插件管理:禁用清单（静态装配的「启用/禁用」诚实形态——禁用 =
   // 组合根装配时过滤贡献项入口,不是运行时卸载）。id: ai / terminal / markdown
   plugin_disabled : Array[String]
@@ -1495,25 +1447,27 @@ pub fn initial_model(
     immersive,
     tree_query: "",
     tree_collapsed: [],
-    projects: [],
-    active_project: -1,
-    workspace_root: None,
-    scan_progress: None,
+    project_state: @proj.ProjectState::{
+      projects: [],
+      active_project: -1,
+      workspace_root: None,
+      open_project_files: [],
+      open_file_index: -1,
+      project_tree_collapsed: [],
+      explorer_sections_collapsed: [],
+      selected_project_file: None,
+      explorer_scroll: @core.Point::new(x=0.0, y=0.0),
+      explorer_hover: "",
+      explorer_menu_open: false,
+      scan_progress: None,
+      file_create_dir: "",
+      file_create_open: false,
+      file_rename_open: None,
+      folder_create_open: false,
+      file_name_draft: "",
+    },
     projects_restore_pending: 0,
     restore_active_root: "",
-    project_tree_collapsed: [],
-    selected_project_file: None,
-    explorer_scroll: @core.Point::new(x=0.0, y=0.0),
-    explorer_hover: "",
-    explorer_sections_collapsed: [],
-    explorer_menu_open: false,
-    open_project_files: [],
-    open_file_index: -1,
-    file_create_open: false,
-    folder_create_open: false,
-    file_create_dir: "",
-    file_rename_open: None,
-    file_name_draft: "",
     plugin_disabled: [],
     control_clipboard: None,
     multi_select_mode: false,

@@ -139,7 +139,7 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         let guarded = match msg {
           DeleteControl(_) | DeleteVariable(_) => true
           CloseFileTab(index) =>
-            match model.open_project_files.get(index) {
+            match model.project_state.open_project_files.get(index) {
               Some(open) => file_is_dirty(open)
               None => false
             }

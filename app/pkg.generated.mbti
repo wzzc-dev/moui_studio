@@ -1055,25 +1055,9 @@ pub(all) struct Model {
   immersive : Bool
   tree_query : String
   tree_collapsed : Array[String]
-  projects : Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord]
-  active_project : Int
-  workspace_root : @wzzc-dev/moui_studio/plugins/project.WorkspaceRecord?
-  scan_progress : String?
+  project_state : @wzzc-dev/moui_studio/plugins/project.ProjectState
   projects_restore_pending : Int
   restore_active_root : String
-  project_tree_collapsed : Array[String]
-  selected_project_file : String?
-  explorer_scroll : @core.Point
-  explorer_hover : String
-  explorer_sections_collapsed : Array[String]
-  explorer_menu_open : Bool
-  open_project_files : Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
-  open_file_index : Int
-  file_create_open : Bool
-  folder_create_open : Bool
-  file_create_dir : String
-  file_rename_open : String?
-  file_name_draft : String
   plugin_disabled : Array[String]
   control_clipboard : @ir.Control?
   multi_select_mode : Bool

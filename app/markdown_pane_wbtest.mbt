@@ -9,17 +9,20 @@ fn md_pane_model(rel~ : String, content~ : String) -> Model {
     ..initial_model(),
     // .md 面板挂在代码工作区（WsCode 是 code_workspace 的宿主）
     workspace: WsCode,
-    open_project_files: [
-      OpenProjectFile::{
-        rel,
-        saved_content: content,
-        draft: content,
-        caret: 0,
-        selection: None,
-        md_session: with_md_session(rel~, content~),
-      },
-    ],
-    open_file_index: 0,
+    project_state: {
+      ..initial_model().project_state,
+      open_project_files: [
+        OpenProjectFile::{
+          rel,
+          saved_content: content,
+          draft: content,
+          caret: 0,
+          selection: None,
+          md_session: with_md_session(rel~, content~),
+        },
+      ],
+      open_file_index: 0,
+    },
   }
 }
 
@@ -94,17 +97,20 @@ test "插件管理:AI 门控与 markdown 回退" {
   let with_file = {
     ..md_off,
     workspace: WsCode,
-    open_project_files: [
-      OpenProjectFile::{
-        rel: "guide.md",
-        saved_content: "# t",
-        draft: "# t",
-        caret: 0,
-        selection: None,
-        md_session: with_md_session(rel="guide.md", content="# t"),
-      },
-    ],
-    open_file_index: 0,
+    project_state: {
+      ..md_off.project_state,
+      open_project_files: [
+        OpenProjectFile::{
+          rel: "guide.md",
+          saved_content: "# t",
+          draft: "# t",
+          caret: 0,
+          selection: None,
+          md_session: with_md_session(rel="guide.md", content="# t"),
+        },
+      ],
+      open_file_index: 0,
+    },
   }
   // 插件禁用 → plain 渲染:原始 `#` 标记原样出现（差分于 Markdown 面板）
   let commands = shell_draw(with_file, 1200.0, 800.0)

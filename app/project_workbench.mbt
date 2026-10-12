@@ -21,7 +21,7 @@
 /// 那种写法无法表达「这个 rel 属于工作区根,不属于任何工程」,根上的文件
 /// 于是在每一处都落空。
 pub fn tree_root_of(model : Model) -> String? {
-  match model.workspace_root {
+  match model.project_state.workspace_root {
     Some(record) => Some(record.root)
     None =>
       match active_project_of(model) {
@@ -44,7 +44,7 @@ pub fn tree_abs_path(model : Model, rel : String) -> String? {
 /// 按根路径取工程下标（-1 = 不在册）。
 pub fn project_index_of_root(model : Model, root : String) -> Int {
   let mut index = 0
-  for project in model.projects {
+  for project in model.project_state.projects {
     if project.root == root {
       return index
     }
@@ -60,13 +60,13 @@ pub fn project_index_of_root(model : Model, root : String) -> Int {
 /// 是否落在某个成员目录之下（最长前缀胜出,成员路径可能是 `a/b` 多段）。
 /// 单模块导入时没有成员概念,恒 None（调用方退回活动工程）。
 pub fn project_index_of_tree_rel(model : Model, rel : String) -> Int? {
-  match model.workspace_root {
+  match model.project_state.workspace_root {
     None => None
     Some(_) => {
       let mut best : Int? = None
       let mut best_length = -1
       let mut index = 0
-      for project in model.projects {
+      for project in model.project_state.projects {
         let member_rel = tree_rel_of_project(model, project)
         if member_rel != "" &&
           (rel == member_rel || rel.has_prefix(member_rel + "/")) &&
@@ -106,8 +106,9 @@ pub fn project_record_from_source(
 ///|
 /// 当前选中的工程(资源管理器高亮;`active_project < 0` = 无)。
 pub fn active_project_of(model : Model) -> ProjectRecord? {
-  if model.active_project >= 0 && model.active_project < model.projects.length() {
-    Some(model.projects[model.active_project])
+  if model.project_state.active_project >= 0 &&
+    model.project_state.active_project < model.project_state.projects.length() {
+    Some(model.project_state.projects[model.project_state.active_project])
   } else {
     None
   }
@@ -221,12 +222,16 @@ fn seed_workspace_collapse_keys(
 /// 「导入/恢复后整棵树默认折叠」与「全部折叠」共用这一份枚举——两处
 /// 各写一遍必然漏层（这正是「根折上了,里面的文件夹还开着」的原因）。
 fn seed_all_collapse_keys(collapsed : Array[String], model : Model) -> Unit {
-  match model.workspace_root {
+  match model.project_state.workspace_root {
     Some(workspace) =>
-      seed_workspace_collapse_keys(collapsed, model.projects, workspace)
+      seed_workspace_collapse_keys(
+        collapsed,
+        model.project_state.projects,
+        workspace,
+      )
     None => {
       let mut index = 0
-      for project in model.projects {
+      for project in model.project_state.projects {
         seed_project_collapse_keys(collapsed, index, project, "")
         index = index + 1
       }
@@ -303,18 +308,21 @@ pub fn import_single_source(
   match project_record_from_source(source) {
     Ok(record) => {
       // 同 root 原位替换（重复导入=刷新扫描），新工程成为当前选中
-      let (projects, index) = upsert_project(model.projects, record)
+      let (projects, index) = upsert_project(
+        model.project_state.projects,
+        record,
+      )
       // **新导入整棵树默认折叠**（用户口径）:根与每层目录都种折叠键,
       // 展开一层才见下一层。旧工程的折叠态跟着下标重排一起搬;重扫刷新
       // （同 root 原位替换）因此原样保留用户的展开态,不会「新建/删除
       // 文件 → 重扫 → 树又折上」。
       let collapsed = remap_project_tree_collapsed(
-        model.projects,
+        model.project_state.projects,
         projects,
-        model.project_tree_collapsed,
+        model.project_state.project_tree_collapsed,
       )
       if project_index_of_root(model, record.root) < 0 {
-        let row_rel = match model.workspace_root {
+        let row_rel = match model.project_state.workspace_root {
           Some(workspace) =>
             tree_rel_under_workspace(workspace.root, record.root)
           None => ""
@@ -324,10 +332,13 @@ pub fn import_single_source(
       let notified = with_notice(
         {
           ..model,
-          projects,
-          active_project: index,
-          scan_progress: None,
-          project_tree_collapsed: collapsed,
+          project_state: {
+            ..model.project_state,
+            projects,
+            active_project: index,
+            scan_progress: None,
+            project_tree_collapsed: collapsed,
+          },
         },
         text_with(translator(model), "app.project.imported", [
           ("name", record.module_name),
@@ -379,8 +390,8 @@ pub fn import_workspace_scan(
   silent? : Bool = false,
 ) -> (Model, @moui.Effect[Msg]) {
   let t = translator(model)
-  let mut projects = model.projects
-  let mut last_index = model.active_project
+  let mut projects = model.project_state.projects
+  let mut last_index = model.project_state.active_project
   let mut imported = 0
   let skipped : Array[String] = []
   for source in scan.loaded {
@@ -402,7 +413,10 @@ pub fn import_workspace_scan(
     // 全部失败:用第一条原因说话(逐条列 54 行没人读,修复指引在原因里)。
     // 启动恢复路径静默——用户没发起导入,报「导入失败」只会困惑。
     let reason = if skipped.length() > 0 { skipped[0] } else { "无成员" }
-    let failed = { ..model, scan_progress: None, }
+    let failed = {
+      ..model,
+      project_state: { ..model.project_state, scan_progress: None, },
+    }
     (
       if silent {
         failed
@@ -429,11 +443,11 @@ pub fn import_workspace_scan(
     // 成员行与成员内部每层目录都种键,展开一层才见下一层。同一工作区
     // 重扫（刷新/恢复）保留用户的展开态,换一个工作区导入 = 新根,重新折上。
     let collapsed = remap_project_tree_collapsed(
-      model.projects,
+      model.project_state.projects,
       projects,
-      model.project_tree_collapsed,
+      model.project_state.project_tree_collapsed,
     )
-    let same_workspace = match model.workspace_root {
+    let same_workspace = match model.project_state.workspace_root {
       Some(previous) => previous.root == scan.root
       None => false
     }
@@ -449,11 +463,14 @@ pub fn import_workspace_scan(
     }
     let assembled = {
       ..model,
-      projects,
-      active_project: last_index,
-      workspace_root: Some(workspace),
-      scan_progress: None,
-      project_tree_collapsed: collapsed,
+      project_state: {
+        ..model.project_state,
+        projects,
+        active_project: last_index,
+        workspace_root: Some(workspace),
+        scan_progress: None,
+        project_tree_collapsed: collapsed,
+      },
     }
     // 启动恢复不弹通知（用户没发起导入）;主动导入才说话
     let notified = if silent {
@@ -489,15 +506,15 @@ const PROJECTS_STORE_VERSION : Int = 1
 /// 编码当前工程列表（root/module_name 摘要 + active_root + 工作区根）。
 pub fn encode_project_store(model : Model) -> String {
   let items : Array[Json] = []
-  for project in model.projects {
+  for project in model.project_state.projects {
     let item = Map([])
     item["root"] = Json::string(project.root)
     item["module_name"] = Json::string(project.module_name)
     items.push(Json::object(item))
   }
-  let active_root = if model.active_project >= 0 &&
-    model.active_project < model.projects.length() {
-    model.projects[model.active_project].root
+  let active_root = if model.project_state.active_project >= 0 &&
+    model.project_state.active_project < model.project_state.projects.length() {
+    model.project_state.projects[model.project_state.active_project].root
   } else {
     ""
   }
@@ -507,7 +524,7 @@ pub fn encode_project_store(model : Model) -> String {
   root["active_root"] = Json::string(active_root)
   root["projects"] = Json::array(items)
   // 工作区根:有则存,没有就**不写这个键**（旧读取方零影响）
-  match model.workspace_root {
+  match model.project_state.workspace_root {
     Some(record) => root["workspace_root"] = Json::string(record.root)
     None => ()
   }
@@ -598,7 +615,7 @@ pub fn mark_projects_dirty(model : Model) -> Unit {
 pub fn finish_restore_active(model : Model) -> Model {
   let mut index = -1
   let mut i = 0
-  for project in model.projects {
+  for project in model.project_state.projects {
     if project.root == model.restore_active_root {
       index = i
     }
@@ -607,13 +624,16 @@ pub fn finish_restore_active(model : Model) -> Model {
   // boot 恢复与「导入后整棵树默认折叠」同一口径:恢复完成后根与每层
   // 目录都种折叠键,展开一层见一层。单模块恢复臂绕过 import_single_source
   // 直接 upsert,在这里统一补种;工作区模式连同中间目录与成员行一起种。
-  let collapsed = model.project_tree_collapsed.copy()
+  let collapsed = model.project_state.project_tree_collapsed.copy()
   seed_all_collapse_keys(collapsed, model)
   {
     ..model,
-    active_project: index,
     restore_active_root: "",
-    project_tree_collapsed: collapsed,
+    project_state: {
+      ..model.project_state,
+      active_project: index,
+      project_tree_collapsed: collapsed,
+    },
   }
 }
 
@@ -747,7 +767,7 @@ pub fn with_md_session(
 ///|
 /// 任一 tab 脏（「保存全部」chip 的出现条件）。
 pub fn any_file_dirty(model : Model) -> Bool {
-  for file in model.open_project_files {
+  for file in model.project_state.open_project_files {
     if file_is_dirty(file) {
       return true
     }
@@ -801,11 +821,11 @@ pub fn open_file_index_of(files : Array[OpenProjectFile], rel : String) -> Int? 
 /// 关闭下标处的 tab,并把 active 收敛到合法范围（删的是 active 时停在
 /// 同位置的下一个 tab,尾部则回退一格）。
 pub fn close_open_file_at(model : Model, index : Int) -> Model {
-  if index < 0 || index >= model.open_project_files.length() {
+  if index < 0 || index >= model.project_state.open_project_files.length() {
     return model
   }
   let files : Array[OpenProjectFile] = []
-  for i, file in model.open_project_files {
+  for i, file in model.project_state.open_project_files {
     if i != index {
       files.push(file)
     }
@@ -817,7 +837,14 @@ pub fn close_open_file_at(model : Model, index : Int) -> Model {
   } else {
     files.length() - 1
   }
-  { ..model, open_project_files: files, open_file_index: next_index, }
+  {
+    ..model,
+    project_state: {
+      ..model.project_state,
+      open_project_files: files,
+      open_file_index: next_index,
+    },
+  }
 }
 
 ///|

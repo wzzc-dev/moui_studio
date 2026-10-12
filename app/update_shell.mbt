@@ -62,14 +62,29 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     SetActiveProject(index) =>
       Some(
         (
-          { ..model, active_project: index, selected_project_file: None, },
+          {
+            ..model,
+            project_state: {
+              ..model.project_state,
+              active_project: index,
+              selected_project_file: None,
+            },
+          },
           @moui.Effect::none(),
         ),
       )
     ToggleProjectDirAt(index, rel) =>
       Some(toggle_project_dir(model, index, rel))
     ExplorerHover(key) =>
-      Some(({ ..model, explorer_hover: key, }, @moui.Effect::none()))
+      Some(
+        (
+          {
+            ..model,
+            project_state: { ..model.project_state, explorer_hover: key, },
+          },
+          @moui.Effect::none(),
+        ),
+      )
     ToggleExplorerSection(id) => {
       // 分区折叠是**布局偏好**,与树内目录折叠分开存（目录键带根下标,
       // 分区键是固定 id）。文件夹分区默认展开,其余默认收起——所以
@@ -82,7 +97,7 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         open_key
       }
       let mut removed = false
-      for item in model.explorer_sections_collapsed {
+      for item in model.project_state.explorer_sections_collapsed {
         if item == track_key {
           removed = true
         } else {
@@ -94,7 +109,13 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       }
       Some(
         (
-          { ..model, explorer_sections_collapsed: toggled, },
+          {
+            ..model,
+            project_state: {
+              ..model.project_state,
+              explorer_sections_collapsed: toggled,
+            },
+          },
           @moui.Effect::none(),
         ),
       )
@@ -106,12 +127,19 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         (
           {
             ..model,
-            file_create_open: true,
-            file_create_dir: rel,
-            folder_create_open: false,
-            file_rename_open: None,
-            file_name_draft: "",
-            project_tree_collapsed: unfold_dir(model, model.active_project, rel),
+            project_state: {
+              ..model.project_state,
+              file_create_open: true,
+              file_create_dir: rel,
+              folder_create_open: false,
+              file_rename_open: None,
+              file_name_draft: "",
+              project_tree_collapsed: unfold_dir(
+                model,
+                model.project_state.active_project,
+                rel,
+              ),
+            },
           },
           @moui.Effect::none(),
         ),
@@ -123,12 +151,19 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         (
           {
             ..model,
-            folder_create_open: true,
-            file_create_dir: rel,
-            file_create_open: false,
-            file_rename_open: None,
-            file_name_draft: "",
-            project_tree_collapsed: unfold_dir(model, model.active_project, rel),
+            project_state: {
+              ..model.project_state,
+              folder_create_open: true,
+              file_create_dir: rel,
+              file_create_open: false,
+              file_rename_open: None,
+              file_name_draft: "",
+              project_tree_collapsed: unfold_dir(
+                model,
+                model.project_state.active_project,
+                rel,
+              ),
+            },
           },
           @moui.Effect::none(),
         ),
@@ -136,20 +171,41 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     ToggleExplorerMenu =>
       Some(
         (
-          { ..model, explorer_menu_open: !model.explorer_menu_open, },
+          {
+            ..model,
+            project_state: {
+              ..model.project_state,
+              explorer_menu_open: !model.project_state.explorer_menu_open,
+            },
+          },
           @moui.Effect::none(),
         ),
       )
     FolderCreateDraft(value) =>
-      if model.folder_create_open {
-        Some(({ ..model, file_name_draft: value, }, @moui.Effect::none()))
+      if model.project_state.folder_create_open {
+        Some(
+          (
+            {
+              ..model,
+              project_state: { ..model.project_state, file_name_draft: value, },
+            },
+            @moui.Effect::none(),
+          ),
+        )
       } else {
         Some((model, @moui.Effect::none()))
       }
     FolderCreateDismiss =>
       Some(
         (
-          { ..model, folder_create_open: false, file_name_draft: "", },
+          {
+            ..model,
+            project_state: {
+              ..model.project_state,
+              folder_create_open: false,
+              file_name_draft: "",
+            },
+          },
           @moui.Effect::none(),
         ),
       )
@@ -162,31 +218,53 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         (
           {
             ..model,
-            project_tree_collapsed: collapse_all_tree_keys(model),
-            explorer_scroll: @core.Point::new(x=0.0, y=0.0),
+            project_state: {
+              ..model.project_state,
+              project_tree_collapsed: collapse_all_tree_keys(model),
+              explorer_scroll: @core.Point::new(x=0.0, y=0.0),
+            },
           },
           @moui.Effect::none(),
         ),
       )
     ExplorerScrolled(offset) =>
-      Some(({ ..model, explorer_scroll: offset, }, @moui.Effect::none()))
+      Some(
+        (
+          {
+            ..model,
+            project_state: { ..model.project_state, explorer_scroll: offset, },
+          },
+          @moui.Effect::none(),
+        ),
+      )
     ProjectFileLoaded(rel, result) =>
       match result {
         Success(content) =>
           // 文件仍处于选中态才挂载编辑器（再点同文件 = 取消选中）;
           // G4 多标签:同 rel 原位替换(重新读取=刷新内容),否则追加并激活。
-          if model.selected_project_file is Some(current) && current == rel {
-            let (files, index) = upsert_open_file(model.open_project_files, OpenProjectFile::{
-              rel,
-              saved_content: content,
-              draft: content,
-              caret: 0,
-              selection: None,
-              md_session: with_md_session(rel~, content~),
-            })
+          if model.project_state.selected_project_file is Some(current) &&
+            current == rel {
+            let (files, index) = upsert_open_file(
+              model.project_state.open_project_files,
+              OpenProjectFile::{
+                rel,
+                saved_content: content,
+                draft: content,
+                caret: 0,
+                selection: None,
+                md_session: with_md_session(rel~, content~),
+              },
+            )
             Some(
               (
-                { ..model, open_project_files: files, open_file_index: index, },
+                {
+                  ..model,
+                  project_state: {
+                    ..model.project_state,
+                    open_project_files: files,
+                    open_file_index: index,
+                  },
+                },
                 @moui.Effect::none(),
               ),
             )
@@ -203,17 +281,21 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       // 诊断汇 Problems）——保存是天然节流点,不做独立防抖计时器。
       match result {
         Success(_) =>
-          match open_file_index_of(model.open_project_files, rel) {
+          match
+            open_file_index_of(model.project_state.open_project_files, rel) {
             Some(index) => {
-              let open = model.open_project_files[index]
+              let open = model.project_state.open_project_files[index]
               let aligned = with_notice(
                 {
                   ..model,
-                  open_project_files: replace_open_file_at(
-                    model.open_project_files,
-                    index,
-                    { ..open, saved_content: open.draft, },
-                  ),
+                  project_state: {
+                    ..model.project_state,
+                    open_project_files: replace_open_file_at(
+                      model.project_state.open_project_files,
+                      index,
+                      { ..open, saved_content: open.draft, },
+                    ),
+                  },
                 },
                 "已保存",
                 false,
@@ -240,11 +322,14 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
             (
               {
                 ..model,
-                open_project_files: replace_open_file_at(
-                  model.open_project_files,
-                  model.open_file_index,
-                  { ..open, caret, selection, },
-                ),
+                project_state: {
+                  ..model.project_state,
+                  open_project_files: replace_open_file_at(
+                    model.project_state.open_project_files,
+                    model.project_state.open_file_index,
+                    { ..open, caret, selection, },
+                  ),
+                },
               },
               @moui.Effect::none(),
             ),
@@ -258,11 +343,14 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
             (
               {
                 ..model,
-                open_project_files: replace_open_file_at(
-                  model.open_project_files,
-                  model.open_file_index,
-                  { ..open, draft, },
-                ),
+                project_state: {
+                  ..model.project_state,
+                  open_project_files: replace_open_file_at(
+                    model.project_state.open_project_files,
+                    model.project_state.open_file_index,
+                    { ..open, draft, },
+                  ),
+                },
               },
               @moui.Effect::none(),
             ),
@@ -284,17 +372,20 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
             (
               {
                 ..model,
-                open_project_files: replace_open_file_at(
-                  model.open_project_files,
-                  model.open_file_index,
-                  {
-                    ..open,
-                    draft: transaction.source,
-                    caret: transaction.caret,
-                    selection: transaction.selection,
-                    md_session: Some(session),
-                  },
-                ),
+                project_state: {
+                  ..model.project_state,
+                  open_project_files: replace_open_file_at(
+                    model.project_state.open_project_files,
+                    model.project_state.open_file_index,
+                    {
+                      ..open,
+                      draft: transaction.source,
+                      caret: transaction.caret,
+                      selection: transaction.selection,
+                      md_session: Some(session),
+                    },
+                  ),
+                },
               },
               @moui.Effect::none(),
             ),
@@ -304,8 +395,16 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     // tab 导航（G4 多标签）：切换 = 置 active（光标随 tab 恢复）;
     // 关闭的脏 tab 守卫在 update_confirm_msgs（CkCloseFileTab）。
     SelectFileTab(index) =>
-      if index >= 0 && index < model.open_project_files.length() {
-        Some(({ ..model, open_file_index: index, }, @moui.Effect::none()))
+      if index >= 0 && index < model.project_state.open_project_files.length() {
+        Some(
+          (
+            {
+              ..model,
+              project_state: { ..model.project_state, open_file_index: index, },
+            },
+            @moui.Effect::none(),
+          ),
+        )
       } else {
         Some((model, @moui.Effect::none()))
       }
@@ -316,8 +415,16 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     // （带目标目录,VS Code 就地新建口径）——没有单独的「Start」变体:
     // 它不带目录,与就入口径重复。
     FileCreateDraft(value) =>
-      if model.file_create_open {
-        Some(({ ..model, file_name_draft: value, }, @moui.Effect::none()))
+      if model.project_state.file_create_open {
+        Some(
+          (
+            {
+              ..model,
+              project_state: { ..model.project_state, file_name_draft: value, },
+            },
+            @moui.Effect::none(),
+          ),
+        )
       } else {
         Some((model, @moui.Effect::none()))
       }
@@ -326,9 +433,12 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         (
           {
             ..model,
-            file_create_open: false,
-            file_name_draft: "",
-            file_create_dir: "",
+            project_state: {
+              ..model.project_state,
+              file_create_open: false,
+              file_name_draft: "",
+              file_create_dir: "",
+            },
           },
           @moui.Effect::none(),
         ),
@@ -338,26 +448,44 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         (
           {
             ..model,
-            // 改名草稿要**只填文件名**:输入行提交时按 file_create_dir 拼
-            // 回目录（与新建同一条口径）。填整个 rel 会让提交把目录拼两次。
-            file_rename_open: Some(rel),
-            file_create_open: false,
-            folder_create_open: false,
-            file_name_draft: rel_path_last_segment(rel),
+            project_state: {
+              ..model.project_state,
+              // 改名草稿要**只填文件名**:输入行提交时按 file_create_dir 拼
+              // 回目录（与新建同一条口径）。填整个 rel 会让提交把目录拼两次。
+              file_rename_open: Some(rel),
+              file_create_open: false,
+              folder_create_open: false,
+              file_name_draft: rel_path_last_segment(rel),
+            },
           },
           @moui.Effect::none(),
         ),
       )
     FileRenameDraft(value) =>
-      if model.file_rename_open is Some(_) {
-        Some(({ ..model, file_name_draft: value, }, @moui.Effect::none()))
+      if model.project_state.file_rename_open is Some(_) {
+        Some(
+          (
+            {
+              ..model,
+              project_state: { ..model.project_state, file_name_draft: value, },
+            },
+            @moui.Effect::none(),
+          ),
+        )
       } else {
         Some((model, @moui.Effect::none()))
       }
     FileRenameDismiss =>
       Some(
         (
-          { ..model, file_rename_open: None, file_name_draft: "", },
+          {
+            ..model,
+            project_state: {
+              ..model.project_state,
+              file_rename_open: None,
+              file_name_draft: "",
+            },
+          },
           @moui.Effect::none(),
         ),
       )
@@ -385,12 +513,15 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         (
           {
             ..model,
-            selected_project_file: if model.selected_project_file
-              is Some(current) &&
-              current == rel {
-              None
-            } else {
-              Some(rel)
+            project_state: {
+              ..model.project_state,
+              selected_project_file: if model.project_state.selected_project_file
+                is Some(current) &&
+                current == rel {
+                None
+              } else {
+                Some(rel)
+              },
             },
           },
           @moui.Effect::none(),
@@ -407,23 +538,26 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       let owner = match project_index_of_tree_rel(model, rel) {
         Some(found) => found
         None =>
-          if index >= 0 && index < model.projects.length() {
+          if index >= 0 && index < model.project_state.projects.length() {
             index
           } else {
-            model.active_project
+            model.project_state.active_project
           }
       }
       Some(
         (
           {
             ..model,
-            active_project: owner,
-            selected_project_file: if model.selected_project_file
-              is Some(current) &&
-              current == rel {
-              None
-            } else {
-              Some(rel)
+            project_state: {
+              ..model.project_state,
+              active_project: owner,
+              selected_project_file: if model.project_state.selected_project_file
+                is Some(current) &&
+                current == rel {
+                None
+              } else {
+                Some(rel)
+              },
             },
           },
           @moui.Effect::none(),
@@ -441,12 +575,15 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         (
           {
             ..model,
-            scan_progress: Some(
-              text_with(translator(model), "app.project.scanning", [
-                ("n", p.scanned_dirs.to_string()),
-                ("path", p.current),
-              ]),
-            ),
+            project_state: {
+              ..model.project_state,
+              scan_progress: Some(
+                text_with(translator(model), "app.project.scanning", [
+                  ("n", p.scanned_dirs.to_string()),
+                  ("path", p.current),
+                ]),
+              ),
+            },
           },
           @moui.Effect::none(),
         ),
@@ -703,7 +840,7 @@ fn toggle_project_dir(
   let key = root_collapse_key(index, rel)
   let collapsed : Array[String] = []
   let mut removed = false
-  for item in model.project_tree_collapsed {
+  for item in model.project_state.project_tree_collapsed {
     if item == key {
       removed = true
     } else {
@@ -714,12 +851,19 @@ fn toggle_project_dir(
     collapsed.push(key)
   }
   let scroll = if removed {
-    model.explorer_scroll
+    model.project_state.explorer_scroll
   } else {
     explorer_dir_scroll_target(model, index, rel)
   }
   (
-    { ..model, project_tree_collapsed: collapsed, explorer_scroll: scroll, },
+    {
+      ..model,
+      project_state: {
+        ..model.project_state,
+        project_tree_collapsed: collapsed,
+        explorer_scroll: scroll,
+      },
+    },
     @moui.Effect::none(),
   )
 }
@@ -729,7 +873,7 @@ fn toggle_project_dir(
 fn unfold_dir(model : Model, index : Int, rel : String) -> Array[String] {
   let key = root_collapse_key(index, rel)
   let kept : Array[String] = []
-  for item in model.project_tree_collapsed {
+  for item in model.project_state.project_tree_collapsed {
     if item != key {
       kept.push(item)
     }
@@ -848,12 +992,12 @@ fn set_left_view(model : Model, view : LeftView) -> (Model, @moui.Effect[Msg]) {
 /// 会话内移除导入的工程(不动磁盘)。active_project 随之修正:
 /// 移除的正是当前选中 → 清空选中;移除在选中之前 → 下标左移一位。
 fn remove_project_at(model : Model, index : Int) -> Model {
-  if index < 0 || index >= model.projects.length() {
+  if index < 0 || index >= model.project_state.projects.length() {
     return model
   }
   let projects : Array[ProjectRecord] = []
   let mut i = 0
-  for project in model.projects {
+  for project in model.project_state.projects {
     if i != index {
       projects.push(project)
     }
@@ -862,7 +1006,7 @@ fn remove_project_at(model : Model, index : Int) -> Model {
   // 选中修正:移除的正是当前选中 → 落到**同位的下一个工程**(IDE 移除
   // 选中标签页的惯例;列表空了才清空选中);移除在选中之前 → 下标左移。
   let remaining = projects.length()
-  let active = if model.active_project == index {
+  let active = if model.project_state.active_project == index {
     if remaining == 0 {
       -1
     } else if index >= remaining {
@@ -870,12 +1014,20 @@ fn remove_project_at(model : Model, index : Int) -> Model {
     } else {
       index
     }
-  } else if model.active_project > index {
-    model.active_project - 1
+  } else if model.project_state.active_project > index {
+    model.project_state.active_project - 1
   } else {
-    model.active_project
+    model.project_state.active_project
   }
-  { ..model, projects, active_project: active, selected_project_file: None, }
+  {
+    ..model,
+    project_state: {
+      ..model.project_state,
+      projects,
+      active_project: active,
+      selected_project_file: None,
+    },
+  }
 }
 
 ///|

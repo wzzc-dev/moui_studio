@@ -14,7 +14,7 @@ using @proj {type ExplorerRow}
 /// 3. **行内动作**。改名 / 删除 / 新建只在**悬停行**出现(满屏图标会把
 ///    树读成一张操作表);新建是就地输入行,挂在目标目录之下。
 ///
-/// 数据全部来自 `active_project_of` / `model.projects` 的**派生视图**:
+/// 数据全部来自 `active_project_of` / `model.project_state.projects` 的**派生视图**:
 /// 目录树由 `ScannedModule.dirs` 投影,文件列表随扫描快照,不单独存储
 /// ——重新导入即刷新,与「扫描是真源」的口径一致。
 ///
@@ -36,7 +36,7 @@ pub fn project_explorer(
   let toolbar = explorer_toolbar(model, t, width)
   // 扫描进度读数（G2）:进行中才显示;导入完成/失败臂统一清 None
   let progress : Array[@moui.View[Msg]] = []
-  match model.scan_progress {
+  match model.project_state.scan_progress {
     Some(line) =>
       progress.push(
         @views.padding_xy(
@@ -67,7 +67,7 @@ pub fn project_explorer(
   let clamped_y = explorer_clamp_scroll_y(
     rows.length(),
     viewport_height,
-    model.explorer_scroll.y,
+    model.project_state.explorer_scroll.y,
   )
   let list = @views.virtual_list(
     rows,
@@ -102,15 +102,19 @@ pub fn project_explorer(
 /// 第 17pt，正是最容易漏算的一处。
 fn explorer_toolbar_height(model : Model) -> Double {
   // 动作行 26 + 空态才有的导入行 28
-  let base = if model.projects.length() == 0 { 54.0 } else { 26.0 }
+  let base = if model.project_state.projects.length() == 0 {
+    54.0
+  } else {
+    26.0
+  }
   // 溢出菜单展开时按行数加高（不变量:菜单行数与 `explorer_overflow_menu`
   // 实际产出的行数必须一致,否则视口会多算/少算一屏）。
-  let menu = if model.explorer_menu_open {
+  let menu = if model.project_state.explorer_menu_open {
     EXPLORER_MENU_ROWS.to_double() * @chrome.TREE_ROW_HEIGHT
   } else {
     0.0
   }
-  let progress = match model.scan_progress {
+  let progress = match model.project_state.scan_progress {
     Some(_) => 20.0
     None => 0.0
   }
@@ -135,7 +139,7 @@ fn explorer_toolbar(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let has_project = model.projects.length() > 0
+  let has_project = model.project_state.projects.length() > 0
   let head : Array[@moui.View[Msg]] = []
   if !has_project {
     head.push(
@@ -207,7 +211,7 @@ fn explorer_toolbar(
       true,
       ToggleExplorerMenu,
     ).background(
-      if model.explorer_menu_open {
+      if model.project_state.explorer_menu_open {
         @chrome.ide_hover()
       } else {
         @chrome.ide_panel()
@@ -246,11 +250,11 @@ fn explorer_overflow_menu(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  if !model.explorer_menu_open {
+  if !model.project_state.explorer_menu_open {
     return @views.spacer(min_length=0.0)
   }
   let rows : Array[@moui.View[Msg]] = []
-  let has_project = model.projects.length() > 0
+  let has_project = model.project_state.projects.length() > 0
   let add = fn(label : String, enabled : Bool, message : Msg) {
     rows.push(
       @views.container(
@@ -609,7 +613,7 @@ fn explorer_input_row(
         [
           explorer_guides(depth),
           @views.text_field(
-            model.file_name_draft,
+            model.project_state.file_name_draft,
             on_input~,
             placeholder~,
             variant=Outline,
@@ -983,7 +987,7 @@ fn explorer_tree_row(
   trailing? : @moui.View[Msg]? = None,
   trailing_width? : Double = 0.0,
 ) -> @moui.View[Msg] {
-  let hovered = model.explorer_hover == key
+  let hovered = model.project_state.explorer_hover == key
   let indent = explorer_indent(depth)
   let cells : Array[@moui.View[Msg]] = [
     explorer_guides(depth),
@@ -1136,19 +1140,19 @@ pub type OutlineSymbol = @proj.OutlineSymbol
 /// 行模型快照:从 Model 组装工程域只读视图数据。
 fn explorer_data_of(model : Model) -> @proj.ExplorerData {
   {
-    projects: model.projects,
-    active_project: model.active_project,
-    workspace_root: model.workspace_root,
-    open_project_files: model.open_project_files,
-    open_file_index: model.open_file_index,
-    project_tree_collapsed: model.project_tree_collapsed,
-    explorer_sections_collapsed: model.explorer_sections_collapsed,
-    selected_project_file: model.selected_project_file,
+    projects: model.project_state.projects,
+    active_project: model.project_state.active_project,
+    workspace_root: model.project_state.workspace_root,
+    open_project_files: model.project_state.open_project_files,
+    open_file_index: model.project_state.open_file_index,
+    project_tree_collapsed: model.project_state.project_tree_collapsed,
+    explorer_sections_collapsed: model.project_state.explorer_sections_collapsed,
+    selected_project_file: model.project_state.selected_project_file,
     recent_changes: model.recent_changes,
-    file_create_dir: model.file_create_dir,
-    file_create_open: model.file_create_open,
-    file_rename_open: model.file_rename_open,
-    folder_create_open: model.folder_create_open,
+    file_create_dir: model.project_state.file_create_dir,
+    file_create_open: model.project_state.file_create_open,
+    file_rename_open: model.project_state.file_rename_open,
+    folder_create_open: model.project_state.folder_create_open,
   }
 }
 

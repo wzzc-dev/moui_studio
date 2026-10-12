@@ -89,7 +89,7 @@ pub fn code_workspace(
                 height=16.0,
               )
               .foreground(@chrome.ide_accent())
-              .on_tap(CloseFileTab(model.open_file_index)),
+              .on_tap(CloseFileTab(model.project_state.open_file_index)),
             ],
             spacing=6.0,
             align=Center,
@@ -1090,8 +1090,8 @@ fn file_tab_label(rel : String) -> String {
 /// 行宽不足时裁切——v1 不做横向滚动,tab 数量由用户控制。
 fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
   let cells : Array[@moui.View[Msg]] = []
-  for i, file in model.open_project_files {
-    let active = i == model.open_file_index
+  for i, file in model.project_state.open_project_files {
+    let active = i == model.project_state.open_file_index
     let label = file_tab_label(file.rel) +
       (if file_is_dirty(file) { " ●" } else { "" })
     let cell_width = (@chrome.text_estimate_width(label) + 40.0)

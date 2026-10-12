@@ -567,7 +567,10 @@ fn update_shell_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
             {
               ..model,
               left_view: LeftProject,
-              selected_project_file: Some(file),
+              project_state: {
+                ..model.project_state,
+                selected_project_file: Some(file),
+              },
             },
             @moui.Effect::none(),
           ),

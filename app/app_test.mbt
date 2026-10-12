@@ -1793,7 +1793,7 @@ test "project file opens editable and saves" {
   // 点文件:选中态 + 读取回执挂载编辑器(读取走 fake 服务的成功路径——
   // 文件不存在时 fake 返回错误内容,这里直接喂回执测纯转移)
   let selected = apply(@app.initial_model(), SelectProjectFile("app/main.mbt"))
-  assert_true(selected.selected_project_file is Some(_))
+  assert_true(selected.project_state.selected_project_file is Some(_))
   let loaded = apply(
     selected,
     ProjectFileLoaded(
@@ -1823,9 +1823,12 @@ test "project file opens editable and saves" {
         None => fail("保存后文件应仍打开")
       }
       // 关闭:回到 IR 编辑面
-      let closed = apply(saved, CloseFileTab(saved.open_file_index))
-      assert_true(closed.open_project_files.is_empty())
-      assert_eq(closed.open_file_index, -1)
+      let closed = apply(
+        saved,
+        CloseFileTab(saved.project_state.open_file_index),
+      )
+      assert_true(closed.project_state.open_project_files.is_empty())
+      assert_eq(closed.project_state.open_file_index, -1)
     }
     None => fail("读取回执后文件应打开")
   }

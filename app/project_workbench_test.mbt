@@ -58,14 +58,14 @@ test "导入完成:工程入库、成为当前选中、toast 报名" {
     ProjectScanCompleted(Success(Ok(Single(counter_source())))),
     services,
   )
-  assert_eq(next.projects.length(), 1)
-  assert_eq(next.active_project, 0)
-  assert_eq(next.projects[0].root, "/root")
-  assert_eq(next.projects[0].module_name, "examples/counter")
+  assert_eq(next.project_state.projects.length(), 1)
+  assert_eq(next.project_state.active_project, 0)
+  assert_eq(next.project_state.projects[0].root, "/root")
+  assert_eq(next.project_state.projects[0].module_name, "examples/counter")
   // 入口判定随记录带入(预览三模式 M1-M3 直接吃)
-  assert_eq(next.projects[0].scanned.web_entry, "web_wasm")
-  assert_eq(next.projects[0].scanned.native_entry, "macos_skia")
-  assert_eq(next.projects[0].scanned.program_packages, ["app"])
+  assert_eq(next.project_state.projects[0].scanned.web_entry, "web_wasm")
+  assert_eq(next.project_state.projects[0].scanned.native_entry, "macos_skia")
+  assert_eq(next.project_state.projects[0].scanned.program_packages, ["app"])
   assert_eq(next.toasts.length(), 1)
   assert_true(next.notice.contains("examples/counter"))
 }
@@ -83,8 +83,8 @@ test "重复导入同根工程:原位替换不新增" {
     ProjectScanCompleted(Success(Ok(Single(counter_source())))),
     services,
   )
-  assert_eq(second.0.projects.length(), 1)
-  assert_eq(second.0.active_project, 0)
+  assert_eq(second.0.project_state.projects.length(), 1)
+  assert_eq(second.0.project_state.active_project, 0)
 }
 
 ///|
@@ -95,8 +95,8 @@ test "域级失败(目录不是 MoonBit 模块):toast 说明、不进列表" {
     ProjectScanCompleted(Success(Err("/root:目录里没有 moon.mod"))),
     services,
   )
-  assert_eq(next.projects.length(), 0)
-  assert_eq(next.active_project, -1)
+  assert_eq(next.project_state.projects.length(), 0)
+  assert_eq(next.project_state.active_project, -1)
   assert_eq(next.toasts.length(), 1)
   assert_true(next.notice.contains("moon.mod"))
 }
@@ -111,7 +111,7 @@ test "基础设施失败(扫描坏了):toast 报服务错误" {
     ),
     services,
   )
-  assert_eq(next.projects.length(), 0)
+  assert_eq(next.project_state.projects.length(), 0)
   assert_eq(next.toasts.length(), 1)
   assert_true(next.notice.contains("磁盘不可读"))
 }
@@ -124,7 +124,7 @@ test "选目录取消:一切不变" {
       ProjectRootPicked(Cancelled),
       services,
     ).0
-  assert_eq(next.projects.length(), 0)
+  assert_eq(next.project_state.projects.length(), 0)
   assert_eq(next.toasts.length(), 0)
 }
 
@@ -154,29 +154,33 @@ test "explorer 纯导航:选中工程/折叠目录/选中文件(再点取消)" {
   // 导入后 app/ 已默认种键 → 第一次切换是「展开」,第二次才是「折叠」。
   let key = @app.root_collapse_key(0, "app")
   assert_true(
-    imported.project_tree_collapsed.contains(key),
+    imported.project_state.project_tree_collapsed.contains(key),
     msg="导入后目录应默认折叠",
   )
   let unfolded = @app.update_pure(imported, ToggleProjectDirAt(0, "app")).0
-  assert_false(unfolded.project_tree_collapsed.contains(key))
+  assert_false(unfolded.project_state.project_tree_collapsed.contains(key))
   let folded = @app.update_pure(unfolded, ToggleProjectDirAt(0, "app")).0
-  assert_true(folded.project_tree_collapsed.contains(key))
+  assert_true(folded.project_state.project_tree_collapsed.contains(key))
   // 根下标参与键:第 1 棵树的 `app/` 折叠不影响第 0 棵
   let other = @app.update_pure(folded, ToggleProjectDirAt(1, "app")).0
   assert_true(
-    other.project_tree_collapsed.contains(@app.root_collapse_key(1, "app")),
+    other.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(1, "app"),
+    ),
   )
   assert_true(
-    other.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    other.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, "app"),
+    ),
   )
   // 文件选中 + 再点取消
   let picked = @app.update_pure(imported, SelectProjectFile("app/app.mbt")).0
-  assert_eq(picked.selected_project_file, Some("app/app.mbt"))
+  assert_eq(picked.project_state.selected_project_file, Some("app/app.mbt"))
   let unpicked = @app.update_pure(picked, SelectProjectFile("app/app.mbt")).0
-  assert_eq(unpicked.selected_project_file, None)
+  assert_eq(unpicked.project_state.selected_project_file, None)
   // 选中工程重置文件选中
   let switched = @app.update_pure(picked, SetActiveProject(0)).0
-  assert_eq(switched.selected_project_file, None)
+  assert_eq(switched.project_state.selected_project_file, None)
 }
 
 ///|
@@ -201,7 +205,7 @@ test "explorer 单树多根:点文件同时切活动工程与选中" {
       ProjectScanCompleted(Success(Ok(Workspace(scan)))),
       services,
     ).0
-  assert_eq(imported.projects.length(), 2)
+  assert_eq(imported.project_state.projects.length(), 2)
   // `upsert_project` 把**最新导入的放表头**（index 0），所以 projects[0]
   // 是 mod_b。按 root 取下标，避免依赖插入顺序。
   let index_a = @app.project_index_of_root(imported, "/workspace/mod_a")
@@ -210,12 +214,12 @@ test "explorer 单树多根:点文件同时切活动工程与选中" {
   // 树上的 rel 带成员前缀
   let rel_a = @app.tree_rel_of_project_file(
     imported,
-    imported.projects[index_a],
+    imported.project_state.projects[index_a],
     "app/app.mbt",
   )
   let rel_b = @app.tree_rel_of_project_file(
     imported,
-    imported.projects[index_b],
+    imported.project_state.projects[index_b],
     "app/app.mbt",
   )
   assert_eq(rel_a, "mod_a/app/app.mbt")
@@ -223,18 +227,18 @@ test "explorer 单树多根:点文件同时切活动工程与选中" {
   // 点 mod_b 的文件 → 活动工程 = mod_b 的下标,选中该工作区相对路径
   let picked = @app.update_pure(imported, SelectProjectFileAt(index_b, rel_b)).0
   assert_eq(
-    picked.active_project,
+    picked.project_state.active_project,
     index_b,
     msg="点 mod_b 的文件应切活动工程",
   )
-  assert_eq(picked.selected_project_file, Some(rel_b))
+  assert_eq(picked.project_state.selected_project_file, Some(rel_b))
   // 同一文件再点 = 取消选中（不会误切工程）
   let un = @app.update_pure(picked, SelectProjectFileAt(index_b, rel_b)).0
-  assert_eq(un.selected_project_file, None)
+  assert_eq(un.project_state.selected_project_file, None)
   // 换到另一个成员点同名文件 = 切回去并选中**另一个** rel
   let back = @app.update_pure(picked, SelectProjectFileAt(index_a, rel_a)).0
-  assert_eq(back.active_project, index_a)
-  assert_eq(back.selected_project_file, Some(rel_a))
+  assert_eq(back.project_state.active_project, index_a)
+  assert_eq(back.project_state.selected_project_file, Some(rel_a))
   assert_true(
     rel_a != rel_b,
     msg="两个成员的同名文件必须是不同的树 rel",
@@ -261,7 +265,7 @@ test "explorer 工作区根文件:归属反查不污染活动工程" {
       ProjectScanCompleted(Success(Ok(Workspace(scan)))),
       services,
     ).0
-  assert_true(imported.workspace_root is Some(_))
+  assert_true(imported.project_state.workspace_root is Some(_))
   // 根上的文件不属于任何成员
   assert_eq(@app.project_index_of_tree_rel(imported, "gradlew"), None)
   // 成员里的文件归属该成员
@@ -272,18 +276,21 @@ test "explorer 工作区根文件:归属反查不污染活动工程" {
   // 绝对路径由工作区根拼出（这是「看得到根目录文件」的前提）
   assert_eq(@app.tree_abs_path(imported, "gradlew"), Some("/workspace/gradlew"))
   // 点根上的文件:选中它,但活动工程**不**被写成 -1
-  let before = imported.active_project
+  let before = imported.project_state.active_project
   let picked = @app.update_pure(
       imported,
       SelectProjectFileAt(@proj.WORKSPACE_ROOT_INDEX, "gradlew"),
     ).0
-  assert_eq(picked.selected_project_file, Some("gradlew"))
+  assert_eq(picked.project_state.selected_project_file, Some("gradlew"))
   assert_eq(
-    picked.active_project,
+    picked.project_state.active_project,
     before,
     msg="根上文件不应污染活动工程",
   )
-  assert_true(picked.active_project >= 0, msg="活动工程不应变成 -1")
+  assert_true(
+    picked.project_state.active_project >= 0,
+    msg="活动工程不应变成 -1",
+  )
 }
 
 ///|
@@ -300,17 +307,25 @@ test "explorer 全部折叠:根与子目录全折" {
   let opened = @app.update_pure(imported, ToggleProjectDirAt(0, "")).0
   let fully_open = @app.update_pure(opened, ToggleProjectDirAt(0, "app")).0
   assert_false(
-    fully_open.project_tree_collapsed.contains(@app.root_collapse_key(0, "")),
+    fully_open.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, ""),
+    ),
   )
   assert_false(
-    fully_open.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    fully_open.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, "app"),
+    ),
   )
   let collapsed = @app.update_pure(fully_open, ExplorerCollapseAll).0
   assert_true(
-    collapsed.project_tree_collapsed.contains(@app.root_collapse_key(0, "")),
+    collapsed.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, ""),
+    ),
   )
   assert_true(
-    collapsed.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    collapsed.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, "app"),
+    ),
     msg="全部折叠应连子目录一起折上",
   )
 }
@@ -327,31 +342,45 @@ test "explorer 就地新建:目标目录参与 rel 拼接" {
     ).0
   // 在根上新建:目录 = "",草稿 = 文件名
   let at_root = @app.update_pure(imported, FileCreateAt("")).0
-  assert_true(at_root.file_create_open)
-  assert_eq(at_root.file_create_dir, "")
-  assert_eq(@app.join_rel(at_root.file_create_dir, "main.mbt"), "main.mbt")
+  assert_true(at_root.project_state.file_create_open)
+  assert_eq(at_root.project_state.file_create_dir, "")
+  assert_eq(
+    @app.join_rel(at_root.project_state.file_create_dir, "main.mbt"),
+    "main.mbt",
+  )
   // 在 app/ 下新建
   let in_app = @app.update_pure(imported, FileCreateAt("app")).0
-  assert_eq(in_app.file_create_dir, "app")
-  assert_eq(@app.join_rel(in_app.file_create_dir, "main.mbt"), "app/main.mbt")
+  assert_eq(in_app.project_state.file_create_dir, "app")
+  assert_eq(
+    @app.join_rel(in_app.project_state.file_create_dir, "main.mbt"),
+    "app/main.mbt",
+  )
   // 就地新建会把目标目录从折叠集里摘掉（否则输入行折在树里看不见）:
   // 导入后 app/ 默认折叠,FileCreateAt 必须先展开它。
   assert_true(
-    imported.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    imported.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, "app"),
+    ),
     msg="导入后 app/ 应默认折叠",
   )
   assert_false(
-    in_app.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    in_app.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, "app"),
+    ),
     msg="FileCreateAt 应展开目标目录",
   )
   let folded = @app.update_pure(in_app, ToggleProjectDirAt(0, "app")).0
   assert_true(
-    folded.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    folded.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, "app"),
+    ),
     msg="再次切换应折回目标目录",
   )
   let reopened = @app.update_pure(folded, FileCreateAt("app")).0
   assert_false(
-    reopened.project_tree_collapsed.contains(@app.root_collapse_key(0, "app")),
+    reopened.project_state.project_tree_collapsed.contains(
+      @app.root_collapse_key(0, "app"),
+    ),
     msg="就地新建应展开目标目录",
   )
 }
@@ -367,12 +396,19 @@ test "explorer 改名:草稿只填文件名,提交回原目录" {
       services,
     ).0
   let started = @app.update_pure(imported, FileRenameStart("app/app.mbt")).0
-  assert_eq(started.file_rename_open, Some("app/app.mbt"))
-  assert_eq(started.file_name_draft, "app.mbt", msg="草稿应只含文件名")
-  assert_eq(@app.join_rel("app", started.file_name_draft), "app/app.mbt")
+  assert_eq(started.project_state.file_rename_open, Some("app/app.mbt"))
+  assert_eq(
+    started.project_state.file_name_draft,
+    "app.mbt",
+    msg="草稿应只含文件名",
+  )
+  assert_eq(
+    @app.join_rel("app", started.project_state.file_name_draft),
+    "app/app.mbt",
+  )
   // 根目录下的文件改名:父目录为空,rel 就是文件名本身
   let root_file = @app.update_pure(imported, FileRenameStart("moon.mod")).0
-  assert_eq(root_file.file_name_draft, "moon.mod")
+  assert_eq(root_file.project_state.file_name_draft, "moon.mod")
   assert_eq(@app.parent_of("moon.mod"), "")
 }
 
@@ -529,16 +565,16 @@ test "explorer 移除工程:会话级,active 下标随位次修正" {
       services,
     ).0
   // b 在表头且是当前选中(0);移除 0 → a 回到选中位 0
-  assert_eq(with_b.projects[0].root, "/b")
-  assert_eq(with_b.active_project, 0)
+  assert_eq(with_b.project_state.projects[0].root, "/b")
+  assert_eq(with_b.project_state.active_project, 0)
   let removed = @app.update_pure(with_b, RemoveProject(0)).0
-  assert_eq(removed.projects.length(), 1)
-  assert_eq(removed.projects[0].root, "/root")
-  assert_eq(removed.active_project, 0)
+  assert_eq(removed.project_state.projects.length(), 1)
+  assert_eq(removed.project_state.projects[0].root, "/root")
+  assert_eq(removed.project_state.active_project, 0)
   // 再移除唯一的工程 → 无选中
   let emptied = @app.update_pure(removed, RemoveProject(0)).0
-  assert_eq(emptied.projects.length(), 0)
-  assert_eq(emptied.active_project, -1)
+  assert_eq(emptied.project_state.projects.length(), 0)
+  assert_eq(emptied.project_state.active_project, -1)
 }
 
 ///|
@@ -564,7 +600,7 @@ test "文件删除确认流:置卡→确认清卡→服务执行→回执通知"
     ProjectFileDeleteRun("app/app.mbt"),
     services,
   )
-  assert_eq(run.projects.length(), 1)
+  assert_eq(run.project_state.projects.length(), 1)
   // 4) 回执成功:通知 + 重扫 effect(资源管理器文件树随之刷新)。
   // toast 是就地追加的共享数组,断言用**相对基线**(导入时已有一条)。
   let baseline = run.toasts.length()
@@ -585,7 +621,7 @@ test "文件删除确认流:置卡→确认清卡→服务执行→回执通知"
     services,
   )
   assert_eq(failed.toasts.length(), baseline + 2)
-  assert_eq(failed.projects.length(), 1)
+  assert_eq(failed.project_state.projects.length(), 1)
 }
 
 ///|
@@ -596,7 +632,7 @@ test "文件删除:无选中工程时续行为无操作" {
     ProjectFileDeleteRun("app/app.mbt"),
     services,
   )
-  assert_eq(next.projects.length(), 0)
+  assert_eq(next.project_state.projects.length(), 0)
   assert_eq(next.toasts.length(), 0)
 }
 
@@ -648,7 +684,7 @@ test "构建门:web 不可用 / 无工程 / 缺入口各自显式说话" {
       ProjectScanCompleted(Success(Ok(Single(web_only_source)))),
       services,
     ).0
-  assert_eq(with_project.projects[0].scanned.native_entry, "")
+  assert_eq(with_project.project_state.projects[0].scanned.native_entry, "")
   let no_entry = @app.update_with_services(
       with_project,
       ProjectBuildRun(BkRunNative),
@@ -744,7 +780,10 @@ test "构建回执:报告落 last_build,busy 复位,诊断汇进 Problems" {
       GotoProblem("build:/root/app/app.mbt", 5),
     ).0
   assert_true(jumped.left_view is LeftProject)
-  assert_eq(jumped.selected_project_file, Some("/root/app/app.mbt"))
+  assert_eq(
+    jumped.project_state.selected_project_file,
+    Some("/root/app/app.mbt"),
+  )
 }
 
 ///|
@@ -1005,7 +1044,7 @@ test "boot 恢复:静默重扫合并并落位 active" {
     services,
   )
   assert_eq(restored_a.projects_restore_pending, 1)
-  assert_eq(restored_a.projects.length(), 1)
+  assert_eq(restored_a.project_state.projects.length(), 1)
   // G7.4.2:恢复时显示欢迎通知(告知用户最近工程已恢复)
   assert_true(restored_a.notice.contains("恢复"), msg=restored_a.notice)
   let (restored_b, _) = @app.update_with_services(
@@ -1016,7 +1055,7 @@ test "boot 恢复:静默重扫合并并落位 active" {
     services,
   )
   assert_eq(restored_b.projects_restore_pending, 0)
-  assert_eq(restored_b.projects.length(), 2)
+  assert_eq(restored_b.project_state.projects.length(), 2)
   assert_eq(restored_b.restore_active_root, "")
   // active 落位在 /root_b 的记录上
   match @app.active_project_of(restored_b) {
@@ -1040,13 +1079,16 @@ test "工作区导入:多成员入库 + 失败汇总" {
   let (next, _) = @app.update_with_services(
     {
       ..@app.initial_model(),
-      scan_progress: Some("已扫描 100 个目录 · x"),
+      project_state: {
+        ..@app.initial_model().project_state,
+        scan_progress: Some("已扫描 100 个目录 · x"),
+      },
     },
     ProjectScanCompleted(Success(Ok(Workspace(scan)))),
     services,
   )
-  assert_eq(next.projects.length(), 2)
-  assert_eq(next.scan_progress, None)
+  assert_eq(next.project_state.projects.length(), 2)
+  assert_eq(next.project_state.scan_progress, None)
   // 汇总通知要提到 1 个跳过
   assert_true(next.notice.contains("1"), msg=next.notice)
 }
@@ -1075,8 +1117,8 @@ test "多标签:并行打开 + 切换 + 脏关闭确认" {
       ProjectFileLoaded("b.mbt", Success("fn main {}")),
       services,
     ).0
-  assert_eq(loaded_b.open_project_files.length(), 2)
-  assert_eq(loaded_b.open_file_index, 1)
+  assert_eq(loaded_b.project_state.open_project_files.length(), 2)
+  assert_eq(loaded_b.project_state.open_file_index, 1)
   // 切回 a:active tab 正确,光标随 tab(初始 0)
   let switched = @app.update_with_services(loaded_b, SelectFileTab(0), services).0
   match @app.active_project_file(switched) {
@@ -1097,10 +1139,10 @@ test "多标签:并行打开 + 切换 + 脏关闭确认" {
     guarded.pending_confirm is Some(CkCloseFileTab(0)),
     msg="脏 tab 关闭应进确认",
   )
-  assert_eq(guarded.open_project_files.length(), 2)
+  assert_eq(guarded.project_state.open_project_files.length(), 2)
   // 确认 → 续行关闭
   let accepted = @app.update_with_services(guarded, ConfirmAccepted, services).0
-  assert_eq(accepted.open_project_files.length(), 1)
+  assert_eq(accepted.project_state.open_project_files.length(), 1)
   match @app.active_project_file(accepted) {
     Some(open) => assert_eq(open.rel, "b.mbt")
     None => fail("关闭后应停在剩余 tab")
@@ -1118,21 +1160,35 @@ test "文件 CRUD:新建拒绝重名,成功开 tab" {
     ).0
   // 重名拒绝(树里已有 app/app.mbt)
   let dup = @app.update_with_services(
-      { ..imported, file_create_open: true, file_name_draft: "app/app.mbt", },
+      {
+        ..imported,
+        project_state: {
+          ..imported.project_state,
+          file_create_open: true,
+          file_name_draft: "app/app.mbt",
+        },
+      },
       FileCreateCommit,
       services,
     ).0
   assert_true(dup.notice.contains("已存在"), msg=dup.notice)
-  assert_eq(dup.open_project_files.length(), 0)
+  assert_eq(dup.project_state.open_project_files.length(), 0)
   // 合法新建:回执后开空 tab、输入态关闭
   let created = @app.update_with_services(
-      { ..imported, file_create_open: true, file_name_draft: "app/notes.md", },
+      {
+        ..imported,
+        project_state: {
+          ..imported.project_state,
+          file_create_open: true,
+          file_name_draft: "app/notes.md",
+        },
+      },
       ProjectFileCreated("app/notes.md", Success(())),
       services,
     ).0
-  assert_eq(created.open_project_files.length(), 1)
-  assert_eq(created.open_file_index, 0)
-  assert_false(created.file_create_open)
+  assert_eq(created.project_state.open_project_files.length(), 1)
+  assert_eq(created.project_state.open_file_index, 0)
+  assert_false(created.project_state.file_create_open)
   match @app.active_project_file(created) {
     Some(open) => {
       assert_eq(open.rel, "app/notes.md")
@@ -1148,22 +1204,25 @@ test "文件 CRUD:改名链走完 tab rel 替换" {
   let services = @services.AppServices::new()
   let open_tab = {
     ..@app.initial_model(),
-    open_project_files: [
-      @app.OpenProjectFile::{
-        rel: "app/old.md",
-        saved_content: "# 旧",
-        draft: "# 旧草稿",
-        caret: 3,
-        selection: None,
-        md_session: @app.with_md_session(
-          rel="app/old.md",
-          content="# 旧草稿",
-        ),
-      },
-    ],
-    open_file_index: 0,
-    file_rename_open: Some("app/old.md"),
-    file_name_draft: "app/new.md",
+    project_state: {
+      ..@app.initial_model().project_state,
+      open_project_files: [
+        @app.OpenProjectFile::{
+          rel: "app/old.md",
+          saved_content: "# 旧",
+          draft: "# 旧草稿",
+          caret: 3,
+          selection: None,
+          md_session: @app.with_md_session(
+            rel="app/old.md",
+            content="# 旧草稿",
+          ),
+        },
+      ],
+      open_file_index: 0,
+      file_rename_open: Some("app/old.md"),
+      file_name_draft: "app/new.md",
+    },
   }
   // read 回执 → 写;写回执 → 删;删回执 → rel 替换 + 输入态关闭
   let read_ok = @app.update_with_services(
@@ -1181,7 +1240,7 @@ test "文件 CRUD:改名链走完 tab rel 替换" {
       ProjectRenameDeleted("app/old.md", "app/new.md", Success(())),
       services,
     ).0
-  assert_eq(deleted.open_project_files.length(), 1)
+  assert_eq(deleted.project_state.open_project_files.length(), 1)
   match @app.active_project_file(deleted) {
     Some(open) => {
       assert_eq(open.rel, "app/new.md")
@@ -1191,7 +1250,7 @@ test "文件 CRUD:改名链走完 tab rel 替换" {
     }
     None => fail("改名后 tab 应保留")
   }
-  assert_false(deleted.file_rename_open is Some(_))
+  assert_false(deleted.project_state.file_rename_open is Some(_))
 }
 
 ///|
@@ -1234,17 +1293,20 @@ test "保存后自动构建:mbt 触发,md 不触发" {
   let md_loaded = @app.update_with_services(
       {
         ..md_base,
-        open_project_files: [
-          @app.OpenProjectFile::{
-            rel: "README.md",
-            saved_content: "x",
-            draft: "x",
-            caret: 0,
-            selection: None,
-            md_session: @app.with_md_session(rel="README.md", content="x"),
-          },
-        ],
-        open_file_index: 0,
+        project_state: {
+          ..md_base.project_state,
+          open_project_files: [
+            @app.OpenProjectFile::{
+              rel: "README.md",
+              saved_content: "x",
+              draft: "x",
+              caret: 0,
+              selection: None,
+              md_session: @app.with_md_session(rel="README.md", content="x"),
+            },
+          ],
+          open_file_index: 0,
+        },
       },
       ProjectFileSaveFinished("README.md", Success(())),
       services,
@@ -1297,7 +1359,7 @@ test "全文搜索:命中落集,点击跳转" {
       services,
     ).0
   assert_true(jumped.workspace is WsCode, msg="跳转应切到代码工作区")
-  assert_true(jumped.selected_project_file == Some("app/app.mbt"))
+  assert_true(jumped.project_state.selected_project_file == Some("app/app.mbt"))
 }
 
 ///|
@@ -1496,14 +1558,17 @@ test "工程记录恢复:重建工作区树且不弹通知" {
   )
   // ① 工作区根重建（这是「examples 可折叠」的前提）
   assert_true(
-    restored.workspace_root is Some(_),
+    restored.project_state.workspace_root is Some(_),
     msg="恢复后应有工作区根",
   )
-  assert_eq(restored.projects.length(), 1)
+  assert_eq(restored.project_state.projects.length(), 1)
   // ② 不弹通知
   assert_eq(restored.toasts.length(), 0, msg="启动恢复不应弹通知")
   // ③ 树的形态:examples 是可折叠中间目录,成员嵌在它下面
-  let expanded = { ..restored, project_tree_collapsed: [], }
+  let expanded = {
+    ..restored,
+    project_state: { ..restored.project_state, project_tree_collapsed: [], },
+  }
   let rows = @app.explorer_rows_for_test(expanded)
   let mut has_examples = false
   let mut has_member = false

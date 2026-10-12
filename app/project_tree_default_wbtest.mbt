@@ -139,11 +139,15 @@ test "重扫刷新保留用户的展开态" {
     ).0
   let expanded = explorer_apply(imported, ToggleProjectDirAt(0, ""))
   assert_false(
-    expanded.project_tree_collapsed.contains(root_collapse_key(0, "")),
+    expanded.project_state.project_tree_collapsed.contains(
+      root_collapse_key(0, ""),
+    ),
     msg="展开根后根键应被摘掉",
   )
   assert_true(
-    expanded.project_tree_collapsed.contains(root_collapse_key(0, "app")),
+    expanded.project_state.project_tree_collapsed.contains(
+      root_collapse_key(0, "app"),
+    ),
     msg="根展开不影响子目录的折叠记录",
   )
   let rescanned = update_with_services(
@@ -152,11 +156,15 @@ test "重扫刷新保留用户的展开态" {
       services,
     ).0
   assert_false(
-    rescanned.project_tree_collapsed.contains(root_collapse_key(0, "")),
+    rescanned.project_state.project_tree_collapsed.contains(
+      root_collapse_key(0, ""),
+    ),
     msg="同 root 重扫应保留展开态,不能把根折回",
   )
   assert_true(
-    rescanned.project_tree_collapsed.contains(root_collapse_key(0, "app")),
+    rescanned.project_state.project_tree_collapsed.contains(
+      root_collapse_key(0, "app"),
+    ),
     msg="同 root 重扫应保留子目录折叠记录",
   )
 }
@@ -172,11 +180,15 @@ test "boot 恢复后工程根默认折叠" {
     services,
   )
   assert_true(
-    restored.project_tree_collapsed.contains(root_collapse_key(0, "")),
+    restored.project_state.project_tree_collapsed.contains(
+      root_collapse_key(0, ""),
+    ),
     msg="恢复后工程根应种折叠键",
   )
   assert_true(
-    restored.project_tree_collapsed.contains(root_collapse_key(0, "app")),
+    restored.project_state.project_tree_collapsed.contains(
+      root_collapse_key(0, "app"),
+    ),
     msg="恢复后子目录也应种折叠键",
   )
   assert_false(
