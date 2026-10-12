@@ -4,6 +4,7 @@ package "wzzc-dev/moui_studio/plugins/run"
 import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/services",
+  "wzzc-dev/moui_i18n",
   "wzzc-dev/moui_studio/domain/studio_lang",
   "wzzc-dev/moui_studio/services/compiled_runtime",
 }
@@ -15,11 +16,15 @@ pub fn find_literal_span(String, String) -> (Int, Int)?
 
 pub fn parse_preview_frame(String) -> Result[PreviewFrame, String]
 
+pub fn[Msg] preview_replay_canvas(PreviewFrame, Int?, Double, on_select~ : (Int) -> Msg) -> @core.View[Msg]
+
 pub fn semantic_hit_index(Array[SemanticHitNode], Double, Double) -> Int
 
 pub fn semantic_hit_nodes(PreviewFrame) -> Array[SemanticHitNode]
 
 pub fn semantic_label_patch_task(@services.FileServices, SemanticPatchRequest) -> @services.ServiceTask[Result[String, String]]
+
+pub fn[Msg] semantic_property_strip(PreviewFrame?, Int?, String, @moui_i18n.Translator, Double, on_label_input~ : (String) -> Msg, on_label_commit~ : Msg) -> @core.View[Msg]
 
 // Errors
 

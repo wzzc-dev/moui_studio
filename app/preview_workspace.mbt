@@ -266,178 +266,30 @@ pub fn preview_workspace(
 }
 
 ///|
-/// 重放画布:按帧尺寸 1:1 出图,重放解析好的 DrawCommand 序列;
-/// 选中节点画高亮描边;点击做语义命中测试(点空处取消选中)。
 pub fn preview_replay_canvas(
   model : Model,
   frame : PreviewFrame,
   pane_width : Double,
 ) -> @moui.View[Msg] {
-  // 画布 1:1(帧坐标),超出交给外层滚动;缩放跟随 M2 的适配逻辑
-  let canvas_width = frame.width.max(1.0)
-  let canvas_height = frame.height.max(1.0)
-  let nodes = @run.semantic_hit_nodes(frame)
-  let selected = match model.selected_semantic {
-    Some(index) =>
-      if index >= 0 && index < nodes.length() {
-        Some(nodes[index])
-      } else {
-        None
-      }
-    None => None
-  }
-  @views.container(
-    @views.measured_canvas(
-      measure=fn(_constraints, _text_system) {
-        @geometry.Size::new(width=canvas_width, height=canvas_height)
-      },
-      draw=fn(ctx, _frame) {
-        // 重放:解析好的 DrawCommand 按序推回 PaintContext
-        for command in frame.commands {
-          ctx.commands.push(command)
-        }
-        // 选中高亮:强调色描边(画在重放内容之上)
-        match selected {
-          Some(node) =>
-            ctx.commands.push(
-              @core.StrokeRect(
-                @geometry.Rect::new(
-                  x=node.frame.origin.x - 2.0,
-                  y=node.frame.origin.y - 2.0,
-                  width=node.frame.size.width + 4.0,
-                  height=node.frame.size.height + 4.0,
-                ),
-                @chrome.ide_accent(),
-                2.0,
-              ),
-            )
-          None => ()
-        }
-      },
-      semantics_label="preview-canvas",
-    ).on_tap_with_frame(fn(position, tap_frame) {
-      // 画布局部坐标 = 帧坐标(1:1);命中取最深(最后一个匹配)
-      let x = position.x - tap_frame.origin.x
-      let y = position.y - tap_frame.origin.y
-      Msg::SelectSemanticNode(@run.semantic_hit_index(nodes, x, y))
-    }),
-    background=@chrome.ide_editor_background(),
-    width=canvas_width.min(pane_width - 2.0).max(1.0),
-    height=canvas_height,
-    padding=0.0,
-  )
+  @run.preview_replay_canvas(frame, model.selected_semantic, pane_width, on_select=index => {
+    SelectSemanticNode(index)
+  })
 }
 
 ///|
-/// 属性条(M1-3):选中语义节点的信息 + label 字面量编辑 + 提交。
 pub fn semantic_property_strip(
   model : Model,
   t : @i18n.Translator,
   height : Double,
 ) -> @moui.View[Msg] {
-  let selected = match model.selected_semantic {
-    Some(index) =>
-      match model.preview_frame {
-        Some(frame) => {
-          let nodes = @run.semantic_hit_nodes(frame)
-          if index >= 0 && index < nodes.length() {
-            Some(nodes[index])
-          } else {
-            None
-          }
-        }
-        None => None
-      }
-    None => None
-  }
-  let rows : Array[@moui.View[Msg]] = [
-    @views.padding_xy(
-      @views.text(
-        text(t, "app.project.props_title"),
-        theme=@chrome.studio_theme(),
-        width=196.0,
-        height=18.0,
-        align=TextStart,
-      ).foreground(@chrome.ide_text()),
-      horizontal=12.0,
-      vertical=8.0,
-    ),
-  ]
-  match selected {
-    None =>
-      rows.push(
-        @views.padding_xy(
-          @views.text(
-            text(t, "app.project.props_none"),
-            theme=@chrome.studio_theme(),
-            width=196.0,
-            height=34.0,
-            align=TextStart,
-          ).foreground(@chrome.ide_text_faint()),
-          horizontal=12.0,
-          vertical=0.0,
-        ),
-      )
-    Some(node) => {
-      rows.push(
-        @views.padding_xy(
-          @views.text(
-            text_with(t, "app.project.props_role", [("a", node.role)]),
-            theme=@chrome.studio_theme(),
-            width=196.0,
-            height=16.0,
-            align=TextStart,
-          ).foreground(@chrome.ide_text_muted()),
-          horizontal=12.0,
-          vertical=0.0,
-        ),
-      )
-      rows.push(
-        @views.padding_xy(
-          @views.text_field(
-            model.semantic_draft,
-            on_input=text => SemanticLabelInput(text),
-            placeholder=text(t, "app.project.props_label_hint"),
-            variant=Outline,
-            width=196.0,
-            height=@chrome.FIELD_HEIGHT,
-          ),
-          horizontal=12.0,
-          vertical=6.0,
-        ),
-      )
-      rows.push(
-        @views.container(
-          @views.center(
-            @views.text(
-              text(t, "app.project.props_apply"),
-              theme=@chrome.studio_theme(),
-              width=80.0,
-              height=18.0,
-            ),
-            width=196.0,
-            height=28.0,
-          ),
-          background=@chrome.ide_accent(),
-          corner_radius=4.0,
-          width=196.0,
-          height=28.0,
-          padding=0.0,
-        ).on_tap(SemanticLabelCommit),
-      )
-    }
-  }
-  @views.container(
-    @views.scroll_view(
-      @views.column(rows, spacing=4.0),
-      width=220.0,
-      height~,
-      shows_indicator=true,
-    ),
-    background=@chrome.ide_panel(),
-    width=220.0,
-    height~,
-    padding=0.0,
+  @run.semantic_property_strip(
+    model.preview_frame,
+    model.selected_semantic,
+    model.semantic_draft,
+    t,
+    height,
+    on_label_input=draft => SemanticLabelInput(draft),
+    on_label_commit=SemanticLabelCommit,
   )
 }
 
