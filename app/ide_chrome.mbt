@@ -24,7 +24,6 @@ pub fn icon_button(
   height : Double,
   icon_size : Double,
   tile? : Bool = true,
-  hovered? : String = "",
 ) -> @moui.View[Msg] {
   // VS Code 活动栏口径：选中 = **深灰微高亮底 + 白色字形**（不是蓝底蓝字
   // ——蓝色块连排是「不协调」的主因）；未选中 = 灰字形裸露（底色与所在
@@ -52,17 +51,21 @@ pub fn icon_button(
       padding=0.0,
     )
     .accessibility_label(tip)
-    // 悬停把说明写进状态栏（一站式提示）；同时在指针处弹框架浮层 tooltip。
-    // tooltip 需调用方持有 visible 状态：`hovered` 由组合根传 `model.hover_hint`，
-    // 与 `on_hover` 写状态同源——同一时刻只有被悬停的那个按钮可见。
+    // 悬停把说明写进**状态栏**（`HoverHint` → `ide_status_bar` 左端一格）。
+    //
+    // **不在这里再弹框架浮层**。两个理由，第二个是实测缺陷：
+    // 1. 状态栏已经是本仓的「一站式提示」口径（图标栏六枚纯图标当年就是靠它
+    //    变得可发现的），同一条信息弹两处是重复；
+    // 2. `@views.tooltip` 的 `visible` 判据是**按文案字符串**匹配的
+    //    （`hovered == tip`），而同一文案在本壳里被多个按钮共用——「设置」
+    //    同时出现在顶栏 ↙、图标栏齿轮、右栏齿轮三处，于是悬停任意一个，
+    //    **三块同名浮层一起弹出来**（用户实测截图：右侧同时两块「设置」）。
+    //    要修就得把判据换成稳定身份（节点 key），而 `@style.IconName` 与
+    //    `Msg` 都不具备唯一性；既然状态栏已承载这条信息，直接去掉浮层是
+    //    更小的改动、也消掉了整类重复。
     .on_hover(active => HoverHint(if active { tip } else { "" }))
     .on_tap(on_click)
-  @views.tooltip(
-    button,
-    tip,
-    visible=tip != "" && hovered == tip,
-    theme=@chrome.studio_theme(),
-  )
+  button
 }
 
 ///|
@@ -78,7 +81,6 @@ pub fn ghost_icon_button(
   height : Double,
   icon_size : Double,
   surface : @core.Color,
-  hovered? : String = "",
 ) -> @moui.View[Msg] {
   let button = @views.container(
       @views.center(
@@ -103,16 +105,12 @@ pub fn ghost_icon_button(
       padding=0.0,
     )
     .accessibility_label(tip)
-    // 悬停把说明写进状态栏 + 指针处弹框架 tooltip（与 icon_button 同口径：
-    // `hovered` 由组合根传 `model.hover_hint`，同一时刻只有被悬停者可见）。
+    // 悬停把说明写进状态栏（与 `icon_button` 同口径；**不弹框架浮层**——
+    // 理由见 `icon_button` 的注释：状态栏已承载这条信息，且浮层的
+    // `visible` 按文案匹配会让同名按钮一起弹）。
     .on_hover(active => HoverHint(if active { tip } else { "" }))
     .on_tap(on_click)
-  @views.tooltip(
-    button,
-    tip,
-    visible=tip != "" && hovered == tip,
-    theme=@chrome.studio_theme(),
-  )
+  button
 }
 
 ///|

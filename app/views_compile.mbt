@@ -133,7 +133,7 @@ pub fn compile_report_card(
       } else {
         rows.push(@views.text(text(t, "app.compile.open_hint"), role=Caption))
         for artifact in report.artifacts {
-          rows.push(artifact_row(artifact, t, model.hover_hint))
+          rows.push(artifact_row(artifact, t))
         }
       }
       if report.work_root != "" {
@@ -162,7 +162,6 @@ pub fn compile_report_card(
                 22.0,
                 13.0,
                 @chrome.ide_elevated(),
-                hovered=model.hover_hint,
               ),
               ghost_icon_button(
                 FolderOpen,
@@ -173,7 +172,6 @@ pub fn compile_report_card(
                 22.0,
                 13.0,
                 @chrome.ide_elevated(),
-                hovered=model.hover_hint,
               ),
             ],
             spacing=6.0,
@@ -379,7 +377,6 @@ fn compile_step_row(
 fn artifact_row(
   artifact : @export.CompileArtifact,
   t : @i18n.Translator,
-  hover_hint : String,
 ) -> @moui.View[Msg] {
   // 卡宽 600 − 内垫 10×2 = 580 可用；路径整行吃满。
   let path_width = 580.0
@@ -423,7 +420,6 @@ fn artifact_row(
       22.0,
       13.0,
       @chrome.ide_elevated(),
-      hovered=hover_hint,
     ),
   )
   actions.push(
@@ -436,7 +432,6 @@ fn artifact_row(
       22.0,
       13.0,
       @chrome.ide_elevated(),
-      hovered=hover_hint,
     ),
   )
   @views.column(

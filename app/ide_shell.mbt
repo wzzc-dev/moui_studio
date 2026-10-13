@@ -139,7 +139,6 @@ pub fn ide_top_bar(
         28.0,
         26.0,
         14.0,
-        hovered=model.hover_hint,
       ),
       @chrome.topbar_brand(text(t, "app.title"), model.dirty, crumb),
     ],
@@ -188,7 +187,6 @@ pub fn ide_top_bar(
       32.0,
       26.0,
       14.0,
-      hovered=model.hover_hint,
     ),
     icon_button(
       ChevronRight,
@@ -198,7 +196,6 @@ pub fn ide_top_bar(
       32.0,
       26.0,
       14.0,
-      hovered=model.hover_hint,
     ),
     // 命令面板：Ctrl/Cmd+K（快捷键走全局命令表；设置面板负责语言切换）
     icon_button(
@@ -209,7 +206,6 @@ pub fn ide_top_bar(
       32.0,
       26.0,
       14.0,
-      hovered=model.hover_hint,
     ),
     icon_button(
       Settings,
@@ -219,7 +215,6 @@ pub fn ide_top_bar(
       28.0,
       26.0,
       14.0,
-      hovered=model.hover_hint,
     ),
     // 右上角：底栏收起/展开 + 右栏收起/展开（VS Code 的两个布局开关口径）
     icon_button(
@@ -230,7 +225,6 @@ pub fn ide_top_bar(
       28.0,
       26.0,
       14.0,
-      hovered=model.hover_hint,
     ),
     icon_button(
       Columns,
@@ -240,7 +234,6 @@ pub fn ide_top_bar(
       28.0,
       26.0,
       14.0,
-      hovered=model.hover_hint,
     ),
   ]
   // 内垫：沉浸式左侧让出系统信号灯（78），否则常规 10。
@@ -337,7 +330,6 @@ pub fn ide_icon_bar(
       28.0,
       17.0,
       tile=false,
-      hovered=model.hover_hint,
     )
   }
   let mode_items : Array[@moui.View[Msg]] = [
@@ -384,7 +376,6 @@ pub fn ide_icon_bar(
         28.0,
         17.0,
         tile=false,
-        hovered=model.hover_hint,
       ),
     ]
   @views.container(
@@ -1065,7 +1056,6 @@ pub fn ide_bottom_bar(
       22.0,
       22.0,
       12.0,
-      hovered=model.hover_hint,
     ),
   )
   let head = @views.container(

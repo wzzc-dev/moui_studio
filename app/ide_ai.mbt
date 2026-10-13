@@ -1141,7 +1141,6 @@ fn composer(
         20.0,
         11.0,
         ghost_surface,
-        hovered=model.hover_hint,
       ),
     )
   }

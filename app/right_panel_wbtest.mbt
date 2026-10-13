@@ -1123,65 +1123,80 @@ test "restoring a session drops the in-flight busy card" {
 }
 
 ///|
-/// **带标签的页块不弹提示浮层**（用户报的「已经有文字了，小 tips 去掉吧」）。
+/// **面板头上不再有指针处的提示浮层**——悬停说明只走状态栏。
 ///
-/// 页块上已经写着「检查器 / AI」，再弹一块**同名**浮层是纯重复。判据取绘制流里
-/// 有没有那块浮层的底：提示浮层是一块 `Overlay` 面的小圆角矩形（18pt 高），
-/// 而页块自身是 22pt 高——高度差就是二者的判别特征。
+/// 两件事一起钉住（用户先后报的两条）：
+/// 1. **带标签的页块不该弹同名提示**（「已经有文字了，小 tips 去掉吧」）——
+///    页块上写着「检查器 / AI」，再弹一块同名浮层是纯重复；
+/// 2. **同名按钮不该一起弹**（用户截图：右侧同时两块「设置」）。根因是
+///    `@views.tooltip` 的 `visible` 判据按**文案字符串**匹配
+///    （`hovered == tip`），而「设置」在本壳里被三个按钮共用（顶栏 / 图标栏
+///    齿轮 / 右栏齿轮）——悬停任意一个，三块同名浮层一起出来。要修得把判据
+///    换成稳定身份（节点 key），而 `IconName` 与 `Msg` 都不唯一；既然状态栏
+///    已经承载这条信息（`HoverHint` → 状态栏左端一格），直接去掉浮层更小、
+///    也消掉整类重复。
 ///
-/// 同时钉住**图标 only 档仍然弹**：窄窗降级时标签不画，浮层是那一页唯一的
-/// 名字来源，不能一起删掉。
-test "labelled page tiles carry no tooltip popup" {
-  let (panel_left, panel_right) = right_panel_span(1280.0)
-  let head_top = right_panel_top()
-  let head_bottom = head_top + @chrome.PANEL_HEAD_HEIGHT
-  let count_popup_fills = fn(commands : Array[@core.DrawCommand]) {
-    let mut popups = 0
-    for command in commands {
-      let (rect, _color) = match command {
-        @core.FillRoundedRect(r, c) => (r.rect, c)
-        @core.FillRoundedRectBrush(r, @graphics.Brush::Solid(c)) => (r.rect, c)
-        _ => continue
-      }
-      // 浮层特征：18pt 高、落在头部带内、右栏横向范围内。
-      if (rect.size.height - 18.0).abs() < 1.0 &&
-        rect.origin.y >= head_top - 1.0 &&
-        rect.origin.y + rect.size.height <= head_bottom + 1.0 &&
-        rect.origin.x >= panel_left - 1.0 &&
-        rect.origin.x + rect.size.width <= panel_right + 1.0 {
-        popups = popups + 1
-      }
+/// **判据取 runtime 的 overlay 绘制通道，不取 `shell_draw`**：浮层走
+/// `cached_overlay_draw_commands`（**不对外暴露**），`shell_draw` 只返回基础层
+/// 命令——在那里数浮层永远是 0，断言会**恒真**。本测试的第一版就是这样，
+/// 破断验证（故意把浮层加回去）时它依然全绿。
+///
+/// 现在改用 `InspectorSnapshot::render().nodes()` 的
+/// **`overlay_command_count`**：那是 runtime 诊断面里「这个渲染节点贡献了几条
+/// 浮层绘制命令」的公开读数，正是「有没有浮层在场」的单点事实源。
+test "the right panel head pops no pointer tooltips" {
+  let overlay_commands = fn(runtime : @runtime.AppRuntime) {
+    let nodes = runtime.inspector_snapshot().render().nodes()
+    let mut total = 0
+    for node in nodes {
+      total = total + node.overlay_command_count()
     }
-    popups
+    total
   }
-  // 悬停在「检查器」页块上：**不得**出现浮层（面板已是宽档，页块带标签）
-  let hovering = apply_shell(inspector_model(), HoverHint("检查器"))
-  assert_eq(hovering.hover_hint, "检查器")
-  assert_eq(
-    count_popup_fills(shell_draw(hovering, 1280.0, 800.0)),
-    0,
-    msg="a labelled page tile must not pop a duplicate tooltip",
+  let build = fn(model : Model) {
+    let program : @core.Program[Model, Msg] = @moui.Program::new_with_environment(
+      init=() => (model, @moui.Effect::none()),
+      update=(current, msg) => update_pure(current, msg),
+      view=(current, env) => view_with_viewport(current, env.viewport_size()),
+    )
+    @runtime.new_program_with_dimensions(program~, width=1280.0, height=800.0)
+  }
+  for hint in ["检查器", "收起右栏", "设置"] {
+    let model = apply_shell(inspector_model(), HoverHint(hint))
+    assert_eq(model.hover_hint, hint)
+    assert_eq(
+      overlay_commands(build(model)),
+      0,
+      msg="no pointer tooltip may be presented for hint: " + hint,
+    )
+  }
+  // **对照（证明判据不是恒零）**：右键菜单那条浮层通路没被动过——菜单打开时
+  // overlay 命令数必然 > 0。没有这条，上面的「0」既可能是「没弹」，也可能是
+  // 「这套判据数不到任何东西」。
+  let menu_open = apply_shell(
+    load_template_program(inspector_model(), 2),
+    BlocksContextMenu(0, 400.0, 300.0),
   )
-  // 对照：头部动作钮（＋/⚙/✕ 这类**只有图标**的控件）仍然弹浮层——
-  // 它们没有文字，浮层是唯一的名字来源。
-  let on_icon = apply_shell(inspector_model(), HoverHint("收起右栏"))
-  let icon_cmds = shell_draw(on_icon, 1280.0, 800.0)
-  println("DBG hint='" + on_icon.hover_hint + "'")
-  for command in icon_cmds {
-    match command {
-      @core.FillRoundedRect(r, _) =>
-        if r.rect.size.height <= 30.0 && r.rect.origin.x > 1000.0 {
-          println("DBG rrect h=" + r.rect.size.height.to_string() + " w=" + r.rect.size.width.to_string() + " x=" + r.rect.origin.x.to_string() + " y=" + r.rect.origin.y.to_string())
-        }
-      @core.FillRoundedRectBrush(r, _) =>
-        if r.rect.size.height <= 30.0 && r.rect.origin.x > 1000.0 {
-          println("DBG brush h=" + r.rect.size.height.to_string() + " w=" + r.rect.size.width.to_string() + " x=" + r.rect.origin.x.to_string() + " y=" + r.rect.origin.y.to_string())
-        }
-      _ => ()
+  if menu_open.block_menu is None {
+    fail("expected the block context menu to open")
+  }
+  assert_true(
+    overlay_commands(build(menu_open)) > 0,
+    msg="the overlay probe must detect a presented surface (context menu)",
+  )
+  // 状态栏那条提示仍然要送达（去掉浮层不等于去掉可发现性）——**同一条信息
+  // 有且只有一个出口**：`HoverHint` 写进 model → 状态栏左端渲染它。
+  let hinted = apply_shell(inspector_model(), HoverHint("收起右栏"))
+  let commands = shell_draw(hinted, 1280.0, 800.0)
+  let mut in_status_bar = false
+  for run in shell_texts(commands) {
+    if run.text.contains("收起右栏") &&
+      run.frame.origin.y > 800.0 - @chrome.STATUSBAR_HEIGHT - 1.0 {
+      in_status_bar = true
     }
   }
   assert_true(
-    count_popup_fills(icon_cmds) >= 1,
-    msg="icon-only head actions must keep their tooltip",
+    in_status_bar,
+    msg="the hover hint must still reach the status bar",
   )
 }
