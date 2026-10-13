@@ -762,20 +762,15 @@ fn remove_project_at(model : Model, index : Int) -> Model {
 
 ///|
 /// 右栏当前视图（M2）：右栏头的 ✕ 关（RvHidden），重开与换视图走命令
-/// 面板逃生口（studio.right.context / studio.ai.dock 等）。幂等。
+/// 面板逃生口（studio.right.context 等）。幂等。
 ///
-/// 切到停靠（RvAi）时底栏若正停在 AI 页签必须让开——否则底栏（stale 页签）
-/// 与右栏各画一份 composer。这不是「落点联动」：宿主仍是推导的，这里只是
-/// 把 stale 的页签选择复位到审计（AI 回底栏时由 studio.ai.bar 显式选回）。
+/// AI 输入面只有一个宿主（右栏底部），所以这里**不需要**再为「切到停靠档时
+/// 把底栏的 stale AI 页签复位」打补丁——底栏根本没有 AI 页签了。
 fn set_right_view(
   model : Model,
   view : RightView,
 ) -> (Model, @moui.Effect[Msg]) {
-  let next = match (view, model.bottom_tab) {
-    (RvAi, BtAi) => { ..model, bottom_tab: BtAudit, }
-    _ => model
-  }
-  ({ ..next, right_view: view, }, @moui.Effect::none())
+  ({ ..model, right_view: view, }, @moui.Effect::none())
 }
 
 ///|
@@ -826,7 +821,7 @@ fn apply_perspective_preset(
         ..model,
         perspective,
         left_view: LeftProject,
-        right_view: RvAi,
+        right_view: RvContext,
         workspace: WsCode,
         mode: ModeDesign,
       }
@@ -1215,9 +1210,9 @@ fn run_studio_command(model : Model, id : String) -> (Model, @moui.Effect[Msg]) 
     "studio.bottom.toggle" => update_pure(model, ToggleBottom)
     "studio.audit.settle_all" =>
       update_pure(model, AuditSettleAll("app.audit.confirmed"))
-    // AI 落点显式 move-to（M2）：落底栏 = 右栏换回检查器 + 展开底栏选中
-    // AI 页签（「把输入面放到某处」必须同时让它可见）；落右栏 = 停靠。
-    // 不再有循环命令。composer 的 ghost 按钮也走这两条命令。
+    // AI 落点曾经有两条显式 move-to 命令（落底栏 / 停靠右栏）与一对互为
+    // 出口的 ghost 钮。宿主唯一化（输入面只在右栏底部）后它们一并取消：
+    // 「把输入面放到某处」不再是一个需要用户决定的问题。
     // 会话管理（M6,对白转录）：命令面板与键盘同走 run_studio_command
     "studio.ai.new_session" =>
       update_pure(
@@ -1225,11 +1220,6 @@ fn run_studio_command(model : Model, id : String) -> (Model, @moui.Effect[Msg]) 
         AiSessionOp(AiSessionCreate(civil_seconds(model.clock))),
       )
     "studio.ai.search" => update_pure(model, ToggleAiSessionSearch)
-    "studio.ai.bar" => {
-      let (next, _) = update_pure(model, SetRightView(RvContext))
-      update_pure(next, SetBottomTab(BtAi))
-    }
-    "studio.ai.dock" => update_pure(model, SetRightView(RvAi))
     "studio.ai.history" => update_pure(model, ToggleAiHistory)
     "studio.settings" => update_pure(model, ToggleSettings)
     "studio.run.start" => update_pure(model, RunStart)

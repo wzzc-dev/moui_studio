@@ -497,12 +497,5 @@ fn ai_session_row(
 }
 
 ///|
-/// AI 输入面的宿主判定（M2 唯一性推导；随会话列表块从 ide_ai 拆出）：
-/// 右栏停靠与 AI 模式中心之外的落点 = 底栏 BtAi 页签。
-pub fn ai_host_is_bottom(model : Model) -> Bool {
-  !(model.right_view is RvAi) && !(model.perspective is PsAi)
-}
-
-///|
 /// AI 会话头高度（对白转录）：标题 + 置顶/删除动作。
 pub const AI_SESSION_HEADER_HEIGHT : Double = 34.0

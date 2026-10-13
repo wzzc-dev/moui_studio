@@ -100,61 +100,33 @@ test "hiding panes funnels into the empty stage with restore entries" {
 /// 那个回落色又与相邻的积木画布底**完全同色**，于是「一条横带压在工作区
 /// 底部」被读成「工作区没铺满」——这正是用户报的「不协调」。
 ///
-/// 本仓的解法是**结构性的**：输入面只由底栏页签 / 右栏停靠两个宿主承载，
-/// 中心列里不再有任何 AI 定位层。判据取**纵向**归属：舞台区（内容行）
-/// 之内不许出现输入条文字——底栏在内容行之下、右栏在中心列之右。
-///
-/// 注意不能按横向判：底栏本身就横跨中心列宽度，横向判据会把合法的底栏
-/// 误判成「铺在中心列上」（这正是第一版的错误）。
+/// 本仓的解法是**结构性的**：输入面只有一个宿主 = 右栏底部的钉底 composer
+/// （VS Code 侧面板口径），中心列与底栏里不再有任何 AI 定位层。判据取
+/// **宿主归属**：composer 的占位文字必须落在右栏里（中心列右缘之右），
+/// 且整棵壳里只有一份。
 test "AI input lives only inside its host panel" {
   let model = initial_model()
   let widths = shell_chrome_widths(model, 1280.0 - @chrome.ICONBAR_WIDTH)
   let center_left = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0
   let center_right = center_left + widths.center
-  // 每档断言「输入条在它自己的宿主里」，而不是「不在工作区里」——
-  // 后者需要一个「工作区到哪结束」的中间量（= 行高 − 底栏高），
-  // 那个量算错就会把底栏误判成工作区（第一版正是如此）。直接判宿主归属
-  // 更简单也更贴近要钉的性质。
-  let bar = apply_shell(model, SetRightView(RvContext))
-  let bar_commands = shell_draw(bar, 1280.0, 800.0)
-  guard shell_find_text(bar_commands, "描述你想要的应用")
-    is Some(bar_run) else {
-    fail("bar AI composer missing")
+  let commands = shell_draw(model, 1280.0, 800.0)
+  // 只有一份输入面（发送钮是它唯一的可观测形态）
+  let sends = shell_find_send_buttons(commands)
+  assert_eq(sends.length(), 1, msg="exactly one composer host in the shell")
+  // 那一份在右栏里：占位文字与发送钮都落在中心列右缘之右
+  guard shell_find_text(commands, "描述你想要的应用") is Some(run) else {
+    fail("right-panel AI composer missing")
   }
-  // 底栏档：底栏在中心列的下方（顶边 = 顶栏 + 1 + 工作区段高）。
-  let bar_top = @chrome.TOPBAR_HEIGHT +
-    1.0 +
-    (
-      800.0 -
-      @chrome.TOPBAR_HEIGHT -
-      @chrome.STATUSBAR_HEIGHT -
-      @chrome.PANEL_HEAD_HEIGHT -
-      2.0 -
-      ai_bar_height(bar, widths.center, 800.0)
-    )
-  if bar_run.frame.origin.y < bar_top - 0.5 {
-    fail(
-      "bar AI composer sits above the bottom bar: y=" +
-      bar_run.frame.origin.y.to_string() +
-      " bar_top=" +
-      bar_top.to_string(),
-    )
-  }
-  // 停靠档：输入条在右栏（中心列右缘之右）
-  let docked = apply_shell(model, SetRightView(RvAi))
-  let docked_commands = shell_draw(docked, 1280.0, 800.0)
-  guard shell_find_text(docked_commands, "描述你想要的应用")
-    is Some(docked_run) else {
-    fail("docked AI composer missing")
-  }
-  if docked_run.frame.origin.x < center_right - 1.0 {
-    fail(
-      "docked AI composer sits left of the right panel: x=" +
-      docked_run.frame.origin.x.to_string() +
-      " panel_left=" +
-      center_right.to_string(),
-    )
-  }
+  assert_true(
+    run.frame.origin.x >= center_right - 1.0,
+    msg="the composer sits left of the right panel: x=" +
+      run.frame.origin.x.to_string(),
+  )
+  assert_true(
+    sends[0].origin.x >= center_right - 1.0,
+    msg="the send button sits left of the right panel: x=" +
+      sends[0].origin.x.to_string(),
+  )
 }
 
 ///|

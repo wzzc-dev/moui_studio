@@ -945,16 +945,14 @@ test "every tree group has a catalog entry" {
 /// （中文侧显示 `Bottom bar`、英文侧显示 `底栏`）。所以这条同时检查
 /// **中文侧含汉字**——只查键存在的话，装反了照样全绿。
 test "bottom tab labels are translated in both languages" {
-  let keys = [
-    "app.bottom.ai", "app.bottom.audit", "app.bottom.console", "app.bottom.problems",
-  ]
+  let keys = ["app.bottom.audit", "app.bottom.console", "app.bottom.problems"]
   let zh = @app.translator_for(ZhHans)
   for key in keys {
     let label = @app.text(zh, key)
     assert_false(label.contains("[["), msg="missing zh entry for \{key}")
   }
   // 中文侧必须真的含汉字（除品牌名这类专有词）
-  for key in ["app.bottom.ai", "app.bottom.audit"] {
+  for key in ["app.bottom.audit", "app.bottom.problems"] {
     let label = @app.text(zh, key)
     let mut has_cjk = false
     for ch in label {

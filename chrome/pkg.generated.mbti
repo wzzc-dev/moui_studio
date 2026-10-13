@@ -33,6 +33,8 @@ pub const RIGHTBAR_WIDTH : Double = 272.0
 
 pub const SASH_WIDTH : Double = 4.0
 
+pub const SECTION_HEAD_HEIGHT : Double = 22.0
+
 pub const STATUSBAR_HEIGHT : Double = 22.0
 
 pub const TOPBAR_ACTION_HEIGHT : Double = 24.0
@@ -165,7 +167,11 @@ pub fn[Msg] pill(String, @core.Color, Double) -> @core.View[Msg]
 
 pub fn[Msg] progress_bar(Int, Double) -> @core.View[Msg]
 
+pub fn[Msg] section_head(String, Double, trailing? : Array[@core.View[Msg]], trailing_widths? : Array[Double], lead? : @core.View[Msg]?) -> @core.View[Msg]
+
 pub fn set_ui_dark(Bool) -> Unit
+
+pub fn[Msg] side_panel_section(String, @core.View[Msg], Double, trailing? : Array[@core.View[Msg]], trailing_widths? : Array[Double], lead? : @core.View[Msg]?) -> @core.View[Msg]
 
 pub fn[Msg] status_cells(Array[(String, Int)], Double, Bool) -> @core.View[Msg]
 

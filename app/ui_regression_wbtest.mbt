@@ -1,14 +1,13 @@
 ///|
-/// 本轮 UI 批次的回归断言：AI 居中锚 / 舞台产品主题 / 提示换行。
+/// 本轮 UI 批次的回归断言：右栏钉底 composer / 舞台产品主题 / 提示换行。
 /// 复用 shell_layout_wbtest 的白盒助手（同包共享）。
 
 ///|
-test "docked AI card stays inside the right panel" {
-  // 停靠档：输入卡是右栏顶部的内联卡，必须**完整落在右栏**内——
-  // 不能越到中心列或溢出窗口右缘。历史：浮动锚点按中心列居中，
-  // 卡片宽度是设计值；改成右栏内联后，宽度由右栏决定，判据也随之改为
-  // 「落在右栏区间内」。
-  let model = apply_shell(initial_model(), SetRightView(RvAi))
+test "the docked AI composer stays inside the right panel" {
+  // 输入盒是右栏底部的钉底块，必须**完整落在右栏**内——不能越到中心列，
+  // 也不能溢出窗口右缘。历史：浮动锚点按中心列居中、卡片宽度是设计值；
+  // 钉到右栏后宽度由右栏决定，判据也随之改为「落在右栏区间内」。
+  let model = initial_model()
   let width = 1280.0
   let commands = shell_draw(model, width, 800.0)
   let chrome = shell_chrome_widths(model, width - @chrome.ICONBAR_WIDTH)
@@ -195,16 +194,16 @@ test "design stage fills the pane with a centered stage and full lattice" {
 }
 
 ///|
-/// AI 卡常驻预算上限：瘦身后空闲卡（头 + 芯片行 + 单行输入）不得再回到
-/// 旧版 ~190pt 的三层 chrome。预算涨回去，避让带就会重新吃掉工作区。
-test "idle ai card stays compact" {
+/// 钉底块预算上限：上下文芯片 + 两行输入盒不得长成旧版 ~190pt 的三层
+/// chrome。预算涨回去，检查器正文就被吃穿。
+test "the docked composer block stays compact" {
   let model = initial_model()
-  let height = ai_card_height(model, 680.0)
-  if height > 140.0 {
+  let height = ai_docked_height(model, @chrome.RIGHTBAR_WIDTH)
+  if height > 160.0 {
     fail(
-      "idle AI card grew too tall: " +
+      "the docked composer block grew too tall: " +
       height.to_string() +
-      " (single-row composer budget is ~102)",
+      " (chip + two-line composer budget is ~124)",
     )
   }
 }

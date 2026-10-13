@@ -195,19 +195,18 @@ pub(all) enum ContextTab {
 }
 
 ///|
-/// 底栏页签：运行审计 / Console / 问题（诊断汇总）/ AI 输入条 / 终端。
+/// 底栏页签：运行审计 / Console / 问题（诊断汇总）/ 工作区搜索 / 真终端。
 /// 原来是 `bottom_audit : Bool` 两态开关，问题面板加入后升级为枚举。
 ///
-/// `BtAi` 是**输入条的底栏落点**（`AiAnchor::AiBar`）：输入条与三个只读
-/// 面板并列成页签，占用同一块底栏高度，不额外占据中心列。选中它时底栏
-/// 里画出 composer（见 `ide_bottom_bar` 的 body 分派）。
+/// **这里只有只读面板**。AI 输入面曾经是一条 `BtAi` 页签（与右栏停靠档二选一，
+/// 还要一对互为出口的切换钮）；宿主唯一化后它只有一个家 = 右栏底部的钉底
+/// composer（见 `ide_right_panel`），这条页签随之取消。
 pub(all) enum BottomTab {
   BtAudit
   BtConsole
   BtProblems
   /// 工作区全文搜索（G4 F3）
   BtSearch
-  BtAi
   /// 真终端（M5，AI 模式专属页签）
   BtTerminal
 }
@@ -277,11 +276,6 @@ pub(all) enum StudioPerspective {
 pub extend StudioPerspective with Eq::{not_equal, equal}
 
 ///|
-/// 右栏当前视图：取代旧 `right_visible`（布尔）与 `ai_anchor` 的 AiDocked 档
-/// 的 2×2 组合——单一枚举消除两状态互拉（历史上出过「收起底栏 AI 自己跑
-/// 去右栏」的事故，根因就是两个独立状态描述同一件事）。
-
-///|
 /// AI 工作区面板（RvWorkspace）的页签：更改（提案历史）/ 文件（工程树）。
 pub(all) enum RightPanelTab {
   RpChanges
@@ -292,14 +286,18 @@ pub(all) enum RightPanelTab {
 pub extend RightPanelTab with Eq::{not_equal, equal}
 
 ///|
+/// 右栏当前视图：取代旧 `right_visible`（布尔）与 `ai_anchor` 的 AiDocked 档
+/// 的 2×2 组合——单一枚举消除两状态互拉（历史上出过「收起底栏 AI 自己跑
+/// 去右栏」的事故，根因就是两个独立状态描述同一件事）。
+///
+/// `RvContext` 与旧 `RvAi` 已合并：AI 输入面只有一个宿主（右栏底部），
+/// 「检查器」与「检查器 + AI 卡钉底」不再需要两个状态来描述同一块区域。
 pub(all) enum RightView {
-  /// Context 检查器占满右栏（AI 回落底栏页签）
+  /// Context 检查器 + 钉底 composer（VS Code 侧面板口径）
   RvContext
-  /// Context 页签 + AI 卡钉底（原 AiDocked 的布局）
-  RvAi
   /// AI 模式工作区面板：更改（提案历史）/ 文件（工程树）双页签
   RvWorkspace
-  /// 右栏不占宽（AI 回落底栏页签）
+  /// 右栏不占宽
   RvHidden
 } derive(Eq)
 
@@ -615,8 +613,9 @@ pub(all) struct Model {
   perspective : StudioPerspective
   // 组合 profile（M7）：Teaching = 只开放图形化模式 + 无终端
   profile : StudioProfile
-  // 右栏当前视图（M2）：取代 right_visible × ai_anchor 的 2×2 组合，
-  // AI 宿主由它推导（RvAi=右栏停靠，否则底栏页签或 AI 模式中心）
+  // 右栏当前视图（M2）：取代 right_visible × ai_anchor 的 2×2 组合。
+  // AI 输入面只有一个宿主（RvContext 的右栏底部；AI 工作台模式另在中心），
+  // 所以右栏视图不再参与「输入面在哪」的推导。
   right_view : RightView
   // 沉浸式无边框：true 时顶栏之上多一条窗控条（信号点 + 拖拽区）。
   // 平台入口按自己有没有无边框窗口决定——Web 恒 false。
@@ -725,7 +724,6 @@ pub(all) struct Model {
   /// 请求序号（新输出时自增 → 强制滚到底部，scroll 容器 clamp）
   mut terminal_scroll : @geometry.Point
   mut terminal_scroll_seq : Int
-  ai_context_chips : Array[String]
   // 设置对话框 / AI 历史对话框
   settings_open : Bool
   ai_history_open : Bool
@@ -1441,12 +1439,12 @@ pub fn initial_model(
     preview_web_url: None,
     preview_web_opened: false,
     ctx_tab: CtxProps,
-    // 底栏默认**展开且选中 AI 页签**：图形化模式的 AI 输入条由底栏承载
-    // （右栏预设是检查器），底栏收着输入条就看不见——初始状态必须让
-    // 「问 AI」第一眼可达。三个只读面板仍在同一行，一次点击可达。
+    // 底栏默认展开且选中审计页签。**AI 输入面不在底栏**——它只有一个宿主
+    // （右栏底部的钉底 composer），初始状态就可见，不需要靠底栏页签把它
+    // 带到第一眼。三个只读面板与终端在同一行，一次点击可达。
     bottom_open: true,
     bottom_height: 168.0,
-    bottom_tab: BtAi,
+    bottom_tab: BtAudit,
     audit_entries: initial_audit,
     audit_seq: initial_audit.length(),
     log_lines: boot_log_lines(program),
@@ -1474,7 +1472,6 @@ pub fn initial_model(
     terminal_open: true,
     terminal_scroll: @geometry.Point::new(x=0.0, y=0.0),
     terminal_scroll_seq: 0,
-    ai_context_chips: [],
     settings_open: false,
     ai_history_open: false,
     toasts: [],

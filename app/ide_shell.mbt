@@ -955,11 +955,10 @@ pub fn ide_bottom_bar(
   let pending = pending_side_effects(model)
   let errors = audit_error_count(model)
   let problems = problem_rows(model, t).length()
-  // AI 宿主推导（M2）：底栏页签只在「AI 没有停靠右栏、也不在 AI 模式中心」
-  // 时出现——任何时刻输入面恰好一个宿主可见（见 ide_ai.mbt 的 host 注释）。
-  let ai_in_bottom = !(model.right_view is RvAi) &&
-    !(model.perspective is PsAi) &&
-    plugin_active(model, "ai")
+  // 底栏只承载**只读**面板（审计 / Console / 问题 / 搜索 / 终端）。
+  // AI 输入面不在这里——它只有一个宿主：右栏底部（`ide_right_panel` 的
+  // 钉底 composer）。旧版有一条「AI 输入」页签，与右栏停靠档二选一，
+  // 还要一对互为出口的切换钮；宿主唯一化后那条页签与切换钮一并取消。
   let head_cells : Array[@moui.View[Msg]] = [
     tab_button(
       text(t, "app.bottom.audit"),
@@ -986,22 +985,7 @@ pub fn ide_bottom_bar(
       SetBottomTab(BtSearch),
       model.search_hits.length(),
     ),
-    // AI 输入条页签：与只读面板并列。计数用待审计提案数——它是
-    // 「这里有没有等你处理的东西」的唯一读数（与药丸徽标同一个来源）。
   ]
-  let ai_tab_cells : Array[@moui.View[Msg]] = if ai_in_bottom {
-    [
-      tab_button(
-        text(t, "app.bottom.ai"),
-        model.bottom_tab is BtAi,
-        SetBottomTab(BtAi),
-        pending_ai_cards(model),
-      ),
-    ]
-  } else {
-    []
-  }
-  let head_cells = head_cells + ai_tab_cells
   // 真终端页签（M5）：AI 模式专属（预设表：模式 3 底栏 = 真终端）
   // 终端页签（M8）：全模式可用——关闭态点击重开（重派生）；选中态再点
   // = 关闭（kill + 收起，见 select_bottom_tab 的开关语义）
@@ -1112,31 +1096,6 @@ pub fn ide_bottom_bar(
     BtConsole => console_pane(model, t, width, height - 30.0)
     BtProblems => problems_pane(model, t, width, height - 30.0)
     BtSearch => search_pane(model, t, width, height - 30.0)
-    // AI 输入面：与停靠档**同一个** `ai_card_body`（折叠条 + 线程区 +
-    // 输入盒 + 决策行），宿主换成底栏。
-    //
-    // 高度**显式给**（body 区 = 总高 − 页签头）：卡片必须待在自己的格子里，
-    // 否则它会按内容自然高画出去、越过底栏边界，把窗口底色露在底栏里
-    // （实测底栏底部一条 14px 的暗带）。线程区自己会滚动，所以这里不套
-    // 外层 scroll_view——两层滚动会让线程卡的滚动量与预期不符。
-    BtAi =>
-      // 防御性门控：页签列表已按宿主推导过滤，但 stale 的页签选择仍可能
-      // 指到 BtAi（如停靠后再展开）。宿主不在底栏时诚实显示空态，
-      // 绝不画第二份 composer。
-      if ai_host_is_bottom(model) {
-        ai_bar_composer(
-          model,
-          t,
-          width,
-          (height - @chrome.PANEL_HEAD_HEIGHT).max(80.0),
-        )
-      } else {
-        @chrome.empty_hint(
-          text(t, "app.ai.elsewhere"),
-          width,
-          height - @chrome.PANEL_HEAD_HEIGHT,
-        )
-      }
     // 真终端（M5）：可用 = 屏行滚动 + 输入行；不可用（web/无头/教学版）
     // = 显式空态
     // 真终端（M5/M8 交互式）：不可用端（web/无头/教学版）上层已降级空态

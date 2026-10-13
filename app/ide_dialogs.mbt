@@ -734,12 +734,6 @@ pub fn studio_commands(t : @i18n.Translator) -> Array[StudioCommand] {
       hint: "",
     },
     StudioCommand::{
-      id: "studio.ai.anchor",
-      label: text(t, "app.command.ai.anchor"),
-      group: group_ai,
-      hint: "",
-    },
-    StudioCommand::{
       id: "studio.ai.new_session",
       label: text(t, "app.command.ai.new_session"),
       group: group_ai,
@@ -748,18 +742,6 @@ pub fn studio_commands(t : @i18n.Translator) -> Array[StudioCommand] {
     StudioCommand::{
       id: "studio.ai.search",
       label: text(t, "app.command.ai.search_sessions"),
-      group: group_ai,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.ai.dock",
-      label: text(t, "app.command.ai.dock"),
-      group: group_ai,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.ai.pill",
-      label: text(t, "app.command.ai.pill"),
       group: group_ai,
       hint: "",
     },

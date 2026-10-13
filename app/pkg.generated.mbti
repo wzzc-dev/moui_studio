@@ -26,8 +26,6 @@ import {
 }
 
 // Values
-pub const AI_BAR_HEIGHT : Double = 166.
-
 pub const AI_CARD_LIMIT : Int = 24
 
 pub const AI_CARD_PAD : Double = 8.0
@@ -35,6 +33,8 @@ pub const AI_CARD_PAD : Double = 8.0
 pub const AI_SESSION_HEADER_HEIGHT : Double = 34.0
 
 pub const AI_SESSION_ROW_HEIGHT : Double = 36.0
+
+pub const AI_SUBJECT_CHIP_HEIGHT : Double = 22.0
 
 pub const AI_WS_ENTRY_HEIGHT : Double = 44.0
 
@@ -82,6 +82,8 @@ pub const PROGRAM_SNAPSHOT_REL : String = ".studio/program.json"
 
 pub const RECENT_LIMIT : Int = 24
 
+pub const RIGHT_TAB_HEIGHT : Double = 30.0
+
 pub const STATEMENT_PALETTE_MIN_WIDTH : Double = 132.0
 
 pub const TOAST_LIMIT : Int = 3
@@ -104,23 +106,17 @@ pub fn active_project_file(Model) -> @wzzc-dev/moui_studio/plugins/project.OpenP
 
 pub fn active_project_of(Model) -> @wzzc-dev/moui_studio/plugins/project.ProjectRecord?
 
-pub fn ai_bar_composer(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
-
-pub fn ai_bar_height(Model, Double, Double) -> Double
-
-pub fn ai_card_height(Model, Double) -> Double
-
 pub fn ai_center(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
+
+pub fn ai_docked_block(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
+
+pub fn ai_docked_height(Model, Double) -> Double
 
 pub fn ai_history_dialog(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
-pub fn ai_host_hint_key(Model) -> String
-
-pub fn ai_host_is_bottom(Model) -> Bool
-
-pub fn ai_layer(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]?
-
 pub fn ai_session_list(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
+
+pub fn ai_thread_section(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
 pub fn ai_workspace_panel(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -364,6 +360,8 @@ pub fn group_children(Array[TreeNode], String) -> Array[TreeNode]
 
 pub fn handler_key(String, String) -> String
 
+pub fn has_ai_thread(Model) -> Bool
+
 pub fn hhmm_of_stamp(Int) -> String
 
 pub fn hit_test_control(Array[@ir.Control], Double, Double) -> @ir.Control?
@@ -554,6 +552,8 @@ pub fn settings_dialog(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
 pub fn shortcut_icon_button(@style.IconName, String, Msg, @core.KeyboardShortcut, Double, Double, Double, alt_shortcut? : @core.KeyboardShortcut?) -> @core.View[Msg]
 
+pub fn side_subject_of(Model, @moui_i18n.Translator) -> (String, String)
+
 pub fn snap_move_position(Array[@ir.Control], String, Double, Double, Double, Double) -> (Double, Double)
 
 pub fn snap_resize_position(Array[@ir.Control], String, @ir.Control, @ir.DragCorner, Double, Double) -> (Double, Double)
@@ -717,7 +717,6 @@ pub(all) enum BottomTab {
   BtConsole
   BtProblems
   BtSearch
-  BtAi
   BtTerminal
 }
 
@@ -1021,7 +1020,6 @@ pub(all) struct Model {
   mut terminal_open : Bool
   mut terminal_scroll : @core.Point
   mut terminal_scroll_seq : Int
-  ai_context_chips : Array[String]
   settings_open : Bool
   ai_history_open : Bool
   toasts : Array[ToastEntry]
@@ -1385,7 +1383,6 @@ pub fn RightPanelTab::not_equal(Self, Self) -> Bool
 
 pub(all) enum RightView {
   RvContext
-  RvAi
   RvWorkspace
   RvHidden
 } derive(Eq)

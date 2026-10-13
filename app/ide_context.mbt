@@ -1,90 +1,17 @@
 ///|
-/// v4 IDE 右栏：Context（属性/状态/数据/动作/依赖）+ 快速操作 + 运行时监视。
+/// v4 IDE 右栏：Context（属性/状态/数据/动作/依赖/运行时）+ 快速操作 +
+/// 运行时监视 + AI 会话 + 钉底 composer。
 /// 设计稿的右栏是「当前对象的全貌」：不只是属性编辑，还包括它现在是什么
-/// 状态、有哪些数据、能触发什么、被谁依赖。五页签就是这个全貌的五刀切面。
+/// 状态、有哪些数据、能触发什么、被谁依赖。六页签就是这个全貌的六刀切面。
+///
+/// **VS Code 侧面板（side panel）口径**：面板头（标题 + 动作簇）→ 页签行
+/// （视图切换器）→ **单一滚动区**（所有分区同一条 scroll_view）→ hairline →
+/// 钉底 composer。快速操作与运行时监视从「固定在底部的两块」变成滚动区里的
+/// 分区——它们会长、会滚动，而 composer 与面板头不该被它们推走。
 
 // ============================================================================
 // 右栏
 // ============================================================================
-
-///|
-/// 右栏：Context 头（选中对象 + 类型徽标）+ 五页签 + 页签体 +
-/// 快速操作 + 运行时监视。
-///
-/// 选中积木时，页签体**顶部**多一段「编辑积木」卡（见 `context_block_editor`）：
-/// 语句编辑从积木画布搬到了这里。旧版把编辑卡夹在链条中间，把画布切成
-/// 三段，块一多就挤得看不全——用户读到的是「点积木后下面内容显示不全」。
-/// 侧栏是滚动容器，编辑面在这里永远完整可见。
-pub fn ide_right_panel(
-  model : Model,
-  t : @i18n.Translator,
-  width : Double,
-  height : Double,
-) -> @moui.View[Msg] {
-  let ctx_head = context_head(model, t, width)
-  let tabs = context_tabs(model, t, width)
-  // 高度预算：头 30 + 页签 30 + 正文（可滚动）+ 快速操作 + 监视。
-  // 正文之外的块都定高，正文吃掉剩余——列也必须显式定尺，
-  // 否则容器盒会把整列居中（右栏头会掉到中间）。
-  let body_height = (height - 30.0 - 30.0 - 56.0 - 150.0).max(100.0)
-  let body = context_body(model, t, width, body_height)
-  @views.container(
-    @views.column(
-      [
-        ctx_head,
-        tabs,
-        body,
-        quick_actions(model, t, width),
-        watch_pane(model, t, width),
-      ],
-      spacing=0.0,
-    ).frame(width~, height~),
-    background=@chrome.ide_panel(),
-    width~,
-    height~,
-    padding=0.0,
-  )
-}
-
-///|
-/// 页签体：五个切面各自的只读视图（编辑仍走属性页签的输入框）。
-///
-/// **积木编辑卡在最上面**：它是「当前选中积木」的编辑面，与下面五个
-/// 「当前选中控件」的切面是两个对象，所以不做成第六个页签（页签是同一
-/// 对象的不同切面），而是常驻在正文顶部——选中积木时立刻可见、无需再点。
-fn context_body(
-  model : Model,
-  t : @i18n.Translator,
-  width : Double,
-  height : Double,
-) -> @moui.View[Msg] {
-  let content = match model.ctx_tab {
-    CtxProps => context_props(model, t, width)
-    CtxState => context_state(model, t, width)
-    CtxData => context_data(model, t, width)
-    CtxActions => context_actions(model, t, width)
-    CtxDeps => context_deps(model, t, width)
-    CtxRuntime => context_runtime(model, t, width)
-  }
-  let sections : Array[@moui.View[Msg]] = []
-  match context_block_editor(model, t, width) {
-    Some(editor) => sections.push(editor)
-    None => ()
-  }
-  sections.push(content)
-  @views.container(
-    @views.scroll_view(
-      @views.column(sections, spacing=0.0),
-      width~,
-      height~,
-      shows_indicator=true,
-    ),
-    background=@chrome.ide_panel(),
-    width~,
-    height~,
-    padding=0.0,
-  )
-}
 
 ///|
 /// 积木编辑卡（右栏版）：分类色徽章 + 语句文本 + 三个动作。
@@ -279,18 +206,14 @@ fn context_block_editor(
 }
 
 ///|
-/// Context 头：选中对象名 + 种类徽标。没选中对象时显式说「未选中」——
-/// 不静默显示上一个对象的属性（那是误导）。
-fn context_head(
-  model : Model,
-  t : @i18n.Translator,
-  width : Double,
-) -> @moui.View[Msg] {
-  // 四条槽的优先级：非控件对象 → 控件 → 子程序 → 无。
-  // `side_target` 排在最前是因为它只在「用户点了窗体/变量/数据行」时被
-  // 设置，而那三条入口已经清掉了控件与子程序槽（`select_target` 漏斗），
-  // 所以这里不会出现「同时有效」的歧义。
-  let (name, kind) = match model.side_target {
+/// 当前侧栏对象读数（唯一判据）：面板头与 composer 的上下文芯片都从这里取。
+///
+/// 四条槽的优先级：非控件对象 → 控件 → 子程序 → 无。
+/// `side_target` 排在最前是因为它只在「用户点了窗体/变量/数据行」时被
+/// 设置，而那三条入口已经清掉了控件与子程序槽（`select_target` 漏斗），
+/// 所以这里不会出现「同时有效」的歧义。
+pub fn side_subject_of(model : Model, t : @i18n.Translator) -> (String, String) {
+  match model.side_target {
     Some(SideWindow) => (model.program.window.title, text(t, "app.ctx.window"))
     Some(SideVariable(variable_name)) =>
       (
@@ -332,14 +255,22 @@ fn context_head(
           }
       }
   }
-  // 行内布局（对齐设计稿 `.ctxsel`）：`对象名 + 清除 ✕` 靠左成组，
-  // 然后权重 spacer，右边是种类徽标与**收起整个右栏**的 ✕。
-  //
-  // 为什么两个 ✕ 必须分开：设计稿的 `#clearSel` 是**对象芯片内部**的小 ✕
-  // （`.objchip` 里紧挨着名字），而面板关闭按钮属于窗格头。之前把
-  // `ClearSelection` 放在整行的最右端——那正是「关闭面板」按钮该在的位置，
-  // 于是点它只是清了选中、面板纹丝不动，用户读到的语义就是「关闭右栏
-  // 关错了东西」。位置即语义，两者不能互换。
+}
+
+///|
+/// Context 面板头（VS Code 侧面板口径）：**标题靠左、动作簇靠右**，整行只有
+/// ghost 字形（不再有 tile 底块——安静头部才是侧面板的形态）。
+///
+/// 三段分组与两个 ✕ 的语义分工保持不变（历史 bug 的修正结论，见
+/// `memories/repo/moui-studio.md` 的「右栏头的 ✕」条）：`对象名 + 清除 ✕` 靠左
+/// 成组，然后权重 spacer，右边是种类徽标 + 设置齿轮 + **收起整个右栏**的 ✕。
+/// 清空选中永远紧挨对象名，绝不与关闭按钮互换位置。
+fn context_head(
+  model : Model,
+  t : @i18n.Translator,
+  width : Double,
+) -> @moui.View[Msg] {
+  let (name, kind) = side_subject_of(model, t)
   let has_selection = name != text(t, "app.ctx.none")
   let lead : Array[@moui.View[Msg]] = [
     @views.text(
@@ -352,7 +283,7 @@ fn context_head(
   ]
   if has_selection {
     lead.push(
-      icon_button(
+      ghost_icon_button(
         Close,
         text(t, "app.ctx.clear"),
         false,
@@ -360,6 +291,7 @@ fn context_head(
         18.0,
         18.0,
         10.0,
+        @chrome.ide_panel_alt(),
         hovered=model.hover_hint,
       ),
     )
@@ -368,8 +300,23 @@ fn context_head(
   if kind != "" {
     trail.push(@chrome.count_badge(kind, 4))
   }
+  // 面板头齿轮（VS Code 侧面板头部同款）：与活动栏齿轮、⌘K 设置入口重复是
+  // IDE 惯例——用户在该面板里想改设置时不必离开它。
   trail.push(
-    icon_button(
+    ghost_icon_button(
+      Gear,
+      text(t, "app.settings.title"),
+      model.settings_open,
+      ToggleSettings,
+      20.0,
+      20.0,
+      11.0,
+      @chrome.ide_panel_alt(),
+      hovered=model.hover_hint,
+    ),
+  )
+  trail.push(
+    ghost_icon_button(
       Close,
       text(t, "app.right.hide"),
       false,
@@ -377,6 +324,7 @@ fn context_head(
       20.0,
       20.0,
       12.0,
+      @chrome.ide_panel_alt(),
       hovered=model.hover_hint,
     ),
   )
@@ -403,7 +351,16 @@ fn context_head(
 }
 
 ///|
-/// 五页签条：属性/状态/数据/动作/依赖。每页签宽度均分。
+/// 六页签条：属性/状态/数据/动作/依赖/运行时。每页签宽度均分。
+///
+/// **VS Code 视图切换器口径**：扁平文字页签，没有每格的填充底——活动态只由
+/// 「亮一档的文字 + 2pt 强调色下划线」表达（旧版用 `ide_selection()` 填满格子，
+/// 六个方块连排是「不协调」的主因）。页签行与面板头同底色连成一条带，下划线
+/// 即两条带之间的边界。
+///
+/// 等宽格子**沿用既有公式**（不改成内容宽）：窄窗紧急收缩可把右栏压到 170pt，
+/// 内容宽页签在那里必然溢出。`cell` 宽把 5 个间隙与左右内垫一起算进去——旧版
+/// 只减了内垫忘了间隙，「依赖」页签正好顶到右边缘被切掉半个字（实测截图）。
 fn context_tabs(
   model : Model,
   t : @i18n.Translator,
@@ -417,10 +374,6 @@ fn context_tabs(
     (CtxDeps, text(t, "app.ctx.deps")),
     (CtxRuntime, text(t, "app.ctx.runtime")),
   ]
-  // 页签总宽 = 6×cell + 5×gap，必须**连同左右内垫**一起塞进 width。
-  // 原来只减了 12（内垫）却忘了 4 个 3px 间隙：5×52+12 = 272 = 面板宽，
-  // 于是「依赖」页签正好顶到右边缘被切掉半个字（实际截图可见）。
-  // 加到六页签后同一纪律继续成立：cell 宽把 5 个间隙也算进去。
   let cell_width = ((width - 12.0 - 5.0 * 3.0) / 6.0).max(28.0)
   let tabs : Array[@moui.View[Msg]] = []
   for entry in entries {
@@ -428,28 +381,44 @@ fn context_tabs(
     let selected = same_tab(model.ctx_tab, tab)
     tabs.push(
       @views.container(
-        @views.center(
-          @views.text(
-            label,
-            theme=@chrome.studio_theme(),
-            width=cell_width - 4.0,
-            height=16.0,
-          ).foreground(
-            if selected {
-              @chrome.ide_text()
-            } else {
-              @chrome.ide_text_faint()
-            },
-          ),
-          width=cell_width,
-          height=22.0,
-        ),
-        background=if selected {
-          @chrome.ide_selection()
-        } else {
-          @chrome.ide_panel_alt()
-        },
-        corner_radius=3.0,
+        // 列必须显式定尺：不定尺的列按内容高测量，下划线会跟着漂。
+        @views.column(
+          [
+            @views.text(
+              label,
+              theme=@chrome.studio_theme(),
+              width=cell_width,
+              height=16.0,
+              align=TextCenter,
+            ).foreground(
+              if selected {
+                @chrome.ide_text()
+              } else {
+                @chrome.ide_text_faint()
+              },
+            ),
+            // 活动态下划线：2pt 强调色条；非活动态同高的「空条」占位，
+            // 六格因此严格等高（高度不随选中跳变）。
+            @views.container(
+              @views.empty(),
+              background=if selected {
+                @chrome.ide_accent()
+              } else {
+                @chrome.ide_panel_alt()
+              },
+              width=(cell_width - 12.0).max(8.0),
+              height=2.0,
+              corner_radius=1.0,
+              padding=0.0,
+            ),
+          ],
+          spacing=3.0,
+          align=Center,
+        ).frame(width=cell_width, height=22.0),
+        // 底色必须显式：无背景 container 在 paint 期回落到环境 Base 刷子，
+        // 与页签行的 `ide_panel_alt()` 不同色就会在每个格子里露一块异色
+        // （本仓反复踩的 ambient 坑）。
+        background=@chrome.ide_panel_alt(),
         width=cell_width,
         height=22.0,
         padding=0.0,
@@ -464,8 +433,8 @@ fn context_tabs(
       horizontal=6.0,
       vertical=0.0,
     ),
-    background=@chrome.ide_panel(),
-    height=@chrome.PANEL_HEAD_HEIGHT,
+    background=@chrome.ide_panel_alt(),
+    height=RIGHT_TAB_HEIGHT,
     width~,
     padding=0.0,
   )
@@ -1045,7 +1014,7 @@ fn quick_actions(
     Some(control) => Some(control.name)
     None => None
   }
-  let head = @chrome.panel_head(text(t, "app.qa.title"), "", [], width)
+  let head = @chrome.section_head(text(t, "app.qa.title"), width)
   let buttons : Array[@moui.View[Msg]] = []
   match target {
     None =>
@@ -1174,11 +1143,10 @@ fn watch_pane(
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let head = @chrome.panel_head(
+  let head = @chrome.section_head(
     text(t, "app.watch.title"),
-    "",
-    [@chrome.count_badge(watch_rows(model).length().to_string(), 0)],
     width,
+    trailing=[@chrome.count_badge(watch_rows(model).length().to_string(), 0)],
     trailing_widths=[56.0],
   )
   let rows = watch_rows(model)

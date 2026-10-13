@@ -52,22 +52,15 @@ fn shell_view(
     ModePreview | ModeHelp | ModeRun => true
     _ => false
   }
-  // 底栏高：展开时按**内容**算（AI 页签要装下线程卡，见 `ai_bar_height`），
-  // 收起时**整个隐藏**（页签行也隐藏——重开走标题栏的底栏开关 / J 键 /
-  // 命令面板，VS Code 面板口径）。写成「模型里那个数」会让 AI 页签在有提案
-  // 时裁掉线程区——高度是算出来的，不是存下来的（`bottom_height` 只作为
-  // 用户拖拽的下限）。
-  let bottom_height = if model.bottom_open {
-    if model.bottom_tab is BtAi {
-      ai_bar_height(model, center_width_of(model, width), height).max(
-        model.bottom_height,
-      )
-    } else {
-      model.bottom_height
-    }
-  } else {
-    0.0
-  }
+  // 底栏高：展开时按**内容**算，收起时**整个隐藏**（页签行也隐藏——重开走
+  // 标题栏的底栏开关 / J 键 / 命令面板，VS Code 面板口径）。写成「模型里那个
+  // 数」会让面板被算成固定高而内容装不下——高度是算出来的，不是存下来的
+  // （`bottom_height` 只作为用户拖拽的下限）。
+  //
+  // AI 输入面**不在底栏**：它只有一个宿主 = 右栏底部（见 `ide_right_panel`）。
+  // 旧版在这里按 `bottom_tab is BtAi` 给底栏加高以装下线程卡，那个分支随
+  // 底栏 AI 页签一并消失。
+  let bottom_height = if model.bottom_open { model.bottom_height } else { 0.0 }
   let window_bar = if model.immersive {
     @chrome.WINDOW_CHROME_HEIGHT - @chrome.TOPBAR_HEIGHT
   } else {
@@ -224,40 +217,13 @@ fn shell_view(
         lower_height,
       ),
     )
+    // 右列只有两个宿主：AI 工作台模式（PsAi）= 更改/文件双页签面板；
+    // 其余 = 检查器 + 钉底 composer（VS Code 侧面板口径，见
+    // `ide_right_panel`）。AI 输入面**只有一个家**——右栏底部；底栏不再
+    // 承载它，也就不再需要「停靠右栏 / 放到底栏」这对互为出口的切换钮。
     if model.right_view is RvWorkspace {
-      // AI 工作区面板（VS Code 智能体模式口径）:更改/文件 双页签占满右栏
       lower_cells.push(
         ai_workspace_panel(model, t, chrome_widths.right, lower_height),
-      )
-    } else if model.right_view is RvAi {
-      // VS Code 口径（实测反馈）：AI 输入**钉在右栏最底部**（属性页签
-      // 之下），卡片按内容自适应——线程空时只占输入盒一条，不再固定
-      // 340 顶在右栏上部留一大块空白。
-      let ai_card_h = ai_card_height(model, chrome_widths.right)
-      let ai_slice = (ai_card_h + @chrome.PANEL_HEAD_HEIGHT + 8.0).min(
-        (lower_height - 200.0).max(0.0),
-      )
-      lower_cells.push(
-        @views.column(
-          [
-            ide_right_panel(
-              model,
-              t,
-              chrome_widths.right,
-              (lower_height - ai_slice).max(200.0),
-            ),
-            @views.container(
-              match ai_layer(model, t, chrome_widths.right, ai_slice) {
-                Some(layer) => layer
-                None => @views.text("", width=1.0, height=1.0)
-              },
-              width=chrome_widths.right,
-              height=ai_slice,
-              padding=0.0,
-            ),
-          ],
-          spacing=0.0,
-        ).frame(width=chrome_widths.right, height=lower_height),
       )
     } else {
       lower_cells.push(
@@ -449,6 +415,115 @@ fn workspace_content(
     WsPreview => preview_workspace(model, t, width, height)
     WsEmpty => empty_stage(model, t, width, height)
   }
+}
+
+///|
+/// 页签行高：与面板头同节奏（30pt），单独一个常量——高度预算只有一处来源。
+pub const RIGHT_TAB_HEIGHT : Double = 30.0
+
+///|
+/// 右栏主体（VS Code 侧面板形态）。
+///
+/// 高度预算：面板头 30 + 页签行 30 + 钉底块（`ai_docked_height` 单点算）+
+/// 滚动正文（剩余，下限 100）。**正文之外的块都定高**，正文吃掉剩余——列也
+/// 必须显式定尺，否则容器盒会把整列居中（右栏头会掉到中间）。
+///
+/// AI 插件被禁用（教学版 profile / G7.3 插件管理）时**整块不出**：没有输入面
+/// 就没有宿主，正文吃满整高。这与活动栏 AI 模式、底栏 AI 页签走同一个谓词
+/// （`plugin_active`）——能力缺席时不出「点了必失败」的假按钮。
+pub fn ide_right_panel(
+  model : Model,
+  t : @i18n.Translator,
+  width : Double,
+  height : Double,
+) -> @moui.View[Msg] {
+  let ctx_head = context_head(model, t, width)
+  let tabs = context_tabs(model, t, width)
+  let ai_on = plugin_active(model, "ai")
+  // 钉底块夹取：与旧 `ai_slice` 同纪律——窗口极矮时宁可裁 composer 脚注，
+  // 也不让正文塌成 0（正常 800pt 窗不可能触发）。
+  let docked_h = if ai_on {
+    ai_docked_height(model, width).min(
+      (height - @chrome.PANEL_HEAD_HEIGHT - RIGHT_TAB_HEIGHT - 100.0).max(0.0),
+    )
+  } else {
+    0.0
+  }
+  let body_height = (height -
+  @chrome.PANEL_HEAD_HEIGHT -
+  RIGHT_TAB_HEIGHT -
+  docked_h).max(100.0)
+  let docked : Array[@moui.View[Msg]] = if ai_on {
+    [@chrome.hairline(), ai_docked_block(model, t, width, docked_h)]
+  } else {
+    []
+  }
+  @views.container(
+    @views.column(
+      [
+        ctx_head,
+        tabs,
+        @views.container(
+          @views.scroll_view(
+            context_sections(model, t, width),
+            width~,
+            height~,
+            shows_indicator=true,
+          ),
+          background=@chrome.ide_panel(),
+          width~,
+          height=body_height,
+          padding=0.0,
+        ),
+      ] +
+      docked,
+      spacing=0.0,
+    ).frame(width~, height~),
+    background=@chrome.ide_panel(),
+    width~,
+    height~,
+    padding=0.0,
+  )
+}
+
+///|
+/// 正文分区序列（单一滚动区的内容）。顺序即优先级：
+///
+/// 1. **AI 会话**（仅当本会话有线程卡）——它只在该有内容时存在，所以默认态
+///    检查器的视觉与改造前完全一致；出现时紧贴页签行可见，对应 VS Code
+///    「转录在正文顶部、输入在底部」的口径。
+/// 2. **积木编辑卡**（仅当有选中积木）——「当前选中积木」的编辑面，与下面
+///    几个「当前选中控件」的切面是两个对象，所以不做成第七个页签（页签是
+///    同一对象的不同切面），而是常驻在正文里——选中积木时立刻可见、无需再点。
+/// 3. **当前页签内容**——不加分区头：页签行已经是它的标签（VS Code 的视图
+///    切换器下方也不重复一行同名标题）。
+/// 4. **快速操作** / 5. **运行时监视**——原固定块，现为分区。
+fn context_sections(
+  model : Model,
+  t : @i18n.Translator,
+  width : Double,
+) -> @moui.View[Msg] {
+  let sections : Array[@moui.View[Msg]] = []
+  if plugin_active(model, "ai") && has_ai_thread(model) {
+    sections.push(ai_thread_section(model, t, width))
+  }
+  match context_block_editor(model, t, width) {
+    Some(editor) => sections.push(editor)
+    None => ()
+  }
+  sections.push(
+    match model.ctx_tab {
+      CtxProps => context_props(model, t, width)
+      CtxState => context_state(model, t, width)
+      CtxData => context_data(model, t, width)
+      CtxActions => context_actions(model, t, width)
+      CtxDeps => context_deps(model, t, width)
+      CtxRuntime => context_runtime(model, t, width)
+    },
+  )
+  sections.push(quick_actions(model, t, width))
+  sections.push(watch_pane(model, t, width))
+  @views.column(sections, spacing=0.0)
 }
 
 ///|

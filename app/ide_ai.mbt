@@ -164,9 +164,13 @@ fn ai_composer_framed(
 }
 
 ///|
-/// AI 模式的中心工作区（宿主 2；对白转录）：
+/// AI 模式的中心工作区（对白转录）：
 /// **空会话** = composer 垂直居中于大画布（「Pitch your idea」形态）；
 /// **有内容** = 会话头 + 全幅对白时间线（滚动）+ composer 钉底。
+///
+/// 这是 composer 的**第二个也是最后一个**宿主：AI 工作台模式（PsAi）的右栏是
+/// 更改/文件工作区面板，中心即会话面。检查器模式的输入面只有右栏底部一个落点
+/// （见 `ide_right_panel`），所以这里不再需要「停靠了就只画转录」的分支。
 pub fn ai_center(
   model : Model,
   t : @i18n.Translator,
@@ -174,36 +178,6 @@ pub fn ai_center(
   height : Double,
 ) -> @moui.View[Msg] {
   let cards = model.ai_sessions.current().cards
-  if model.right_view is RvAi {
-    // 宿主唯一性（M2）:RvAi > PsAi 中心——AI 已停靠右栏时,中心只剩
-    // 会话流（无 composer/姿态——输入面归停靠宿主,不画第二份）。
-    return @views.container(
-      @views.padding_edges(
-        @views.scroll_view(
-          @views.column(timeline_rows(model, t, width), spacing=8.0).frame(
-            width=(width - 24.0).max(120.0),
-          ),
-          offset=model.transcript_scroll,
-          on_scroll=Some(offset => TranscriptScrolled(offset)),
-          request=@core.ScrollRequest::new(
-            id=model.transcript_scroll_seq,
-            offset=model.transcript_scroll,
-          ),
-          width~,
-          height~,
-          shows_indicator=true,
-        ),
-        left=12.0,
-        right=12.0,
-        top=4.0,
-        bottom=4.0,
-      ),
-      background=@chrome.ide_editor_background(),
-      width~,
-      height~,
-      padding=0.0,
-    )
-  }
   if cards.length() == 0 {
     // 空会话：视觉居中（50/50）——上下**等重加权 spacer**。列必须显式
     // `.frame(height=height)`：ContainerBox 会把「量出来比容器矮」的子节点
@@ -655,240 +629,200 @@ fn message_actions_row(
 }
 
 ///|
-/// 停靠档的 AI 输入面：右栏的内联卡（钉底，见 ide_root 的装配）。
+/// 右栏钉底块的内衬：输入盒与面板边缘之间的呼吸缝。
 ///
-/// **只有停靠档会调用它。** 底栏档由底栏自己画（`ide_bottom_bar` 的
-/// `BtAi` 页签 → `ai_bar_composer`）。两个落点共用同一个 `composer`，
-/// 所以这里只负责「放到右栏里」这一件事。
-pub fn ai_layer(
-  model : Model,
-  t : @i18n.Translator,
-  width : Double,
-  height : Double,
-) -> @moui.View[Msg]? {
-  if model.right_view is RvAi {
-    Some(ai_docked(model, t, width, height))
-  } else {
-    None
-  }
-}
-
-///|
-/// 卡片四周的内衬：输入盒与卡片边缘之间的呼吸缝。
-///
-/// 停靠档的卡片宽度由右栏决定、高度由内容决定，所以内衬是**预算的一部分**
-/// （`card_chrome_height` 要计入它），视图层再用 `padding` 把它留出来。
-/// 两处同源，卡片才不会裁掉自己的内容。
+/// 停靠块的宽度由右栏决定、高度由内容决定，所以内衬是**预算的一部分**
+/// （`ai_docked_height` 要计入它），视图层再用 `padding` 把它留出来。
+/// 两处同源，钉底块才不会裁掉自己的内容。
 pub const AI_CARD_PAD : Double = 8.0
 
 ///|
-/// AI 卡的内容高度：输入盒 + 决策行 + 线程区 + 卡片内衬。
+/// 上下文芯片高（右栏钉底口径）——VS Code 侧栏输入盒上方那行「＋ ≡ <上下文>」。
+pub const AI_SUBJECT_CHIP_HEIGHT : Double = 22.0
+
+///|
+/// 钉底块高度上限：决策条的校验错误列表再长，也不把检查器正文吃穿。
+/// 被截断的原因在审计日志里同样可见（`validate_program` 的结论不只一个出口）。
+const AI_DOCKED_MAX_HEIGHT : Double = 220.0
+
+///|
+/// 决策条的实际足迹：`decision_bar` 的容器高是 `decision_bar_height + 12`
+/// （上下各 6pt 内衬）。预算必须逐段对齐视图——少算这 12pt，钉底块就会裁掉
+/// 自己的决策条（本仓反复踩的双算账）。
+fn decision_bar_footprint(model : Model) -> Double {
+  if has_decision_content(model) {
+    decision_bar_height(model) + 12.0
+  } else {
+    0.0
+  }
+}
+
+///|
+/// 右栏钉底块高度（唯一来源）：内衬 + 上下文芯片 + composer 块 + 决策条。
 ///
-/// 停靠档由右栏的列布局决定实际高度，但这个函数仍是**唯一**的
-/// 「内容需要多高」口径——右栏层用它做高度钳制与测试断言。
-pub fn ai_card_height(model : Model, card_width : Double) -> Double {
-  card_chrome_height(model, card_width) + thread_area_height(model)
+/// 视图层（`ide_right_panel`）与测试断言都从这里取；两处各算一份，composer
+/// 就会被顶出右栏。
+pub fn ai_docked_height(model : Model, width : Double) -> Double {
+  let natural = AI_CARD_PAD * 2.0 +
+    AI_SUBJECT_CHIP_HEIGHT +
+    2.0 +
+    composer_block_height(width) +
+    decision_bar_footprint(model)
+  natural.min(AI_DOCKED_MAX_HEIGHT)
 }
 
 ///|
-fn thread_area_height(model : Model) -> Double {
-  @ai.thread_area_height(model.ai_sessions, model.ai_cards_folded)
-}
-
-///|
-/// 卡内除线程区以外的固定高度（输入盒 + 决策行 + 四周内衬）。
+/// 右栏钉底块：上下文芯片 + composer + 决策条。
 ///
-/// 内衬**必须计入**：视图层用 `padding=AI_CARD_PAD` 把输入盒推进去，
-/// 预算少算这一圈，卡片就会裁掉自己的内容。曾经这里是一个孤零零的
-/// `+ 12.0`——视图层没有对应元素，那 12pt 被 ContainerBox 居中平摊，
-/// 成了「上下不对称」的一半来源。现在它与 `AI_CARD_PAD` 同源。
-fn card_chrome_height(model : Model, width : Double) -> Double {
-  composer_block_height(width) + decision_bar_height(model) + AI_CARD_PAD * 2.0
-}
-
-///|
-/// 停靠卡：铺满右栏宽度的内联版本（无浮动底边距）。
-fn ai_docked(
+/// **线程卡不在这里**——它是右栏滚动区里的一个分区（`ai_thread_section`），
+/// 与检查器的其它分区同一条滚动区。线程区曾经是「定高区域 + 内层
+/// scroll_view」，于是右栏要同时维护两份高度（`ai_card_height` /
+/// `thread_area_height`）还要处理两层滚动量；并进滚动区后这些一并消失。
+pub fn ai_docked_block(
   model : Model,
   t : @i18n.Translator,
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
-  // 同 ai_floating：纯定位的外层用 center，避免无背景 container 回落到
-  // 不透明面板刷子把右栏其余内容糊掉。
-  @views.center(
-    ai_card_body(model, t, width, height - @chrome.PANEL_HEAD_HEIGHT - 8.0),
+  @views.container(
+    @views.padding_edges(
+      @views.column(
+        [
+          ai_subject_chip(model, t, width - AI_CARD_PAD * 2.0),
+          composer(model, t, width),
+          decision_bar(model, t, width),
+        ],
+        spacing=2.0,
+      ).frame(width~),
+      left=AI_CARD_PAD,
+      right=AI_CARD_PAD,
+      top=6.0,
+      bottom=6.0,
+    ),
+    // 底色必须显式：无背景 container 在 paint 期回落到环境 Base 刷子，
+    // 与面板不同色就在钉底边界上露一条脏边。
+    background=@chrome.ide_panel(),
     width~,
     height~,
-  )
-}
-
-///|
-/// 卡片主体：头（标题 + 锚点循环 + 药丸 + 停靠）+ 折叠条 + 线程卡 +
-/// 上下文芯片 + 输入条 + 生成/采纳/拒绝按钮。
-fn ai_card_body(
-  model : Model,
-  t : @i18n.Translator,
-  width : Double,
-  thread_height : Double,
-) -> @moui.View[Msg] {
-  // 无头部（Codex/ZCode 口径）：浮在画布上的输入盒不需要标题栏——
-  // 「AI 提案 / 底部居中 / 离线模型」与一排图标都是冗余 chrome。
-  // 卡片级操作收敛到输入盒脚注（收起/停靠/历史），锚点循环与 provider
-  // 设置走命令面板（⌘K）。
-  // 卡内可用宽 = 卡宽 − 四周内衬。**所有**子件都按这个宽建，谁都不许
-  // 再声明「卡宽」——内衬是卡片提供的，子件自己再按卡宽算一遍就会溢出
-  // （列会给它们 W−16 的约束，它们却声明 W）。
-  let inner = (width - AI_CARD_PAD * 2.0).max(120.0)
-  // 折叠条：有待审计卡时显示计数并允许折叠线程
-  let pending = pending_ai_cards(model)
-  // 固定部分 = composer 块 + 决策行 + 上下内衬;剩余全部给钉底占位/线程区。
-  // **列必须显式钉高（见函数尾 .frame）**——否则 ContainerBox 把「量出来比
-  // 宿主矮」的卡片垂直居中,composer 浮在中间、上下留空（真机实测缺陷）。
-  let fixed = composer_block_height(width) +
-    decision_bar_height(model) +
-    AI_CARD_PAD * 2.0
-  let thread_left = (thread_height - fixed).max(0.0)
-  let body : Array[@moui.View[Msg]] = []
-  if model.ai_sessions.current().cards.length() == 0 || model.ai_cards_folded {
-    // 空线程/折叠：剩余空间全部给钉底占位（输入面沉底,空带在上方——
-    // VS Code 面板口径）。占位用零高 container（text 有最小行高,会顶出空带）。
-    if thread_left > 0.0 {
-      body.push(
-        @views.container(
-          @views.text("", width=1.0, height=thread_left),
-          width=1.0,
-          height=thread_left,
-          padding=0.0,
-        ),
-      )
-    }
-  } else {
-    body.push(fold_bar(model, t, inner, pending))
-    let fold_h = FOLD_BAR_HEIGHT
-    // 线程区 = 钉底占位之外的剩余（ capped at 280 上限）
-    let used = (thread_left - fold_h).min(thread_area_height(model)).max(0.0)
-    body.push(
-      @views.scroll_view(
-        @views.column(ai_card_views(model, t, inner), spacing=6.0),
-        width=inner,
-        height=used,
-        shows_indicator=true,
-      ),
-    )
-    // 设计稿 `#seeAll`：线程超过 3 条时给一个「查看全部会话 →」的出口
-    // （折叠态不显示——折叠时线程区本来就收起了）。跳的是既有 AI 历史
-    // 对话框，不新开一页。
-    if model.ai_sessions.current().cards.length() > 3 {
-      body.push(see_all_row(t, inner))
-      let rest = (thread_left - fold_h - used - @ai.SEE_ALL_HEIGHT).max(0.0)
-      if rest > 0.0 {
-        body.push(
-          @views.container(
-            @views.text("", width=1.0, height=rest),
-            width=1.0,
-            height=rest,
-            padding=0.0,
-          ),
-        )
-      }
-    } else {
-      let rest = (thread_left - fold_h - used).max(0.0)
-      if rest > 0.0 {
-        body.push(
-          @views.container(
-            @views.text("", width=1.0, height=rest),
-            width=1.0,
-            height=rest,
-            padding=0.0,
-          ),
-        )
-      }
-    }
-  }
-  // 输入盒是卡内唯一的实体（线程区/决策行都在它之上/之下），所以
-  // **它自己就是那道边界**：卡片只出填充，不再描边。
-  //
-  // 此前卡与外盒各画一圈、两圈又同为 `#414449`（`@chrome.ide_border` 与
-  // `@chrome.ide_elevated` 在主题里一度是同一个 rgba），左右只隔 8pt、垂直相距 0，
-  // 读起来像「画错的边框」而不是「抬起的卡片」。收敛成一道环之后，
-  // 「这是输入区」由**填充 + 单环**表达，层级更少也更干净。
-  //
-  // **不要再套一层定宽 wrapper**：包一层没有 background 的 container，
-  // 它在 paint 期会回落到环境 Base → `palette.surface`，于是一圈本该露出
-  // 卡片底色的内衬被刷成另一个颜色（实测 `#1F2227` 夹在卡片 `#393B40` 与
-  // 输入盒 `#2B2D30` 之间）。这一圈此前看不见，只是因为那个回落色**恰好**
-  // 等于旧带的回落色；给带钉上显式底色后就露出来了——「无背景 container =
-  // 不透明面板色」是本仓反复踩的坑，这里直接不创造它。
-  body.push(composer(model, t, width))
-  body.push(decision_bar(model, t, width))
-  // 扁平（实测反馈：卡片要「阴影/色阶」感,与面板融为一块）——
-  // 与 composer 同底色,无圆角无抬升。
-  @views.container(
-    // 列钉高 = 宿主给的线程区高:filler 吸收剩余,composer/决策行沉底
-    @views.padding(
-      @views.column(body, spacing=0.0).frame(height=thread_height),
-      AI_CARD_PAD,
-    ),
-    background=@chrome.ide_panel(),
-    corner_radius=0.0,
-    width~,
     padding=0.0,
   )
 }
 
 ///|
-/// 折叠条：「Agent 待审计 N」——点一下折叠/展开线程卡。
-fn fold_bar(
+/// 上下文芯片（VS Code 侧栏口径）：当前选中对象 = 「AI 会针对谁」。
+///
+/// 纯信息、不可点——不出死按钮。没有选中对象时**如实**说「未选中对象」，
+/// 不静默显示上一个对象（与面板头同一口径）。
+fn ai_subject_chip(
   model : Model,
   t : @i18n.Translator,
   width : Double,
-  pending : Int,
 ) -> @moui.View[Msg] {
-  ignore(model)
+  let (name, kind) = side_subject_of(model, t)
+  let none = name == text(t, "app.ctx.none")
+  let tint = if none {
+    @chrome.ide_text_faint()
+  } else {
+    @chrome.ide_text_muted()
+  }
+  let label_w = (width - 44.0).max(40.0)
+  let label = if kind == "" {
+    @chrome.fit_label(name, label_w)
+  } else {
+    @chrome.fit_label("\{name} · \{kind}", label_w)
+  }
   @views.container(
-    @views.padding_xy(
+    @views.center(
       @views.row(
         [
-          @views.icon(
-            if model.ai_cards_folded {
-              ChevronRight
-            } else {
-              ChevronDown
-            },
-            size=12.0,
-            color=@chrome.ide_text_muted(),
-          ),
+          @views.icon(Focus, size=11.0, color=tint),
           @views.text(
-            if pending > 0 {
-              text_with(t, "app.ai.fold_pending", [
-                ("count", pending.to_string()),
-              ])
-            } else {
-              text(t, "app.ai.fold_idle")
-            },
+            label,
             theme=@chrome.studio_theme(),
-            width=(width - 60.0).max(60.0),
-            height=16.0,
+            role=Caption,
+            width=label_w,
+            height=14.0,
             align=TextStart,
-          ).foreground(
-            if pending > 0 {
-              @chrome.ide_warning()
-            } else {
-              @chrome.ide_text_faint()
-            },
-          ),
+          ).foreground(tint),
         ],
         spacing=4.0,
         align=Center,
-      ),
-      horizontal=8.0,
-      vertical=0.0,
+      ).frame(width=(width - 16.0).max(60.0)),
+      width~,
+      height=AI_SUBJECT_CHIP_HEIGHT,
     ),
-    height=22.0,
+    background=@chrome.ide_panel_alt(),
+    corner_radius=11.0,
     width~,
+    height=AI_SUBJECT_CHIP_HEIGHT,
     padding=0.0,
+  )
+}
+
+///|
+/// 本会话有没有可显示的 AI 内容（线程卡）。空会话不画分区——检查器的视觉
+/// 与改造前完全一致。
+pub fn has_ai_thread(model : Model) -> Bool {
+  model.ai_sessions.current().cards.length() > 0
+}
+
+///|
+/// AI 会话分区：分区头（折叠雪佛龙 + 计数徽标，整条可点折叠）+ 线程卡列表。
+///
+/// 分区头与旧 `fold_bar` **合体**：旧实现在分区上面再堆一条 22pt 的折叠条，
+/// 两条头上下相邻读作重复 chrome。折叠态只留分区头。
+///
+/// 线程卡**不套内层 scroll_view**：外层（`ide_right_panel` 的正文）已经是滚动区，
+/// 两层滚动会让线程卡的滚动量与预期不符（底栏档踩过的同一教训）。
+pub fn ai_thread_section(
+  model : Model,
+  t : @i18n.Translator,
+  width : Double,
+) -> @moui.View[Msg] {
+  let pending = pending_ai_cards(model)
+  let inner = (width - 16.0).max(80.0)
+  let chevron : @moui.View[Msg] = @views.icon(
+    if model.ai_cards_folded {
+      ChevronRight
+    } else {
+      ChevronDown
+    },
+    size=11.0,
+    color=@chrome.ide_text_muted(),
+  )
+  // 待审计徽标**只在真有待办时出现**：「0」徽标是噪音。文案走
+  // `app.ai.pending_chip`（待审计 N）而不是裸数字——分区头要自己说清
+  // 这个数是什么，用户不该去猜。
+  let badge : Array[@moui.View[Msg]] = if pending > 0 {
+    [
+      @chrome.count_badge(
+        text_with(t, "app.ai.pending_chip", [("count", pending.to_string())]),
+        2,
+      ),
+    ]
+  } else {
+    []
+  }
+  let head = @chrome.section_head(
+    text(t, "app.right.ai_thread"),
+    width,
+    trailing=badge,
+    trailing_widths=[96.0],
+    lead=Some(chevron),
   ).on_tap(ToggleAiCardsFold)
+  let body : Array[@moui.View[Msg]] = []
+  if !model.ai_cards_folded {
+    for card in ai_card_views(model, t, inner) {
+      body.push(card)
+    }
+    // 线程超过 3 条时给一个「查看全部会话 →」的出口（跳既有 AI 历史对话框）。
+    if model.ai_sessions.current().cards.length() > 3 {
+      body.push(see_all_row(t, inner))
+    }
+  }
+  @views.column([head, @views.column(body, spacing=6.0)], spacing=0.0).frame(
+    width~,
+  )
 }
 
 ///|
@@ -1050,83 +984,6 @@ fn ai_card_view(
 /// 是 `min_size`，文字比声明的宽就会自己长大顶出卡片。
 
 ///|
-/// 底栏档所需的最小底栏高度：页签头 + 输入面（不含线程区）。
-///
-/// 线程卡出现时底栏还要更高（见 `ai_bar_height`）——写死一个值会在有提案
-/// 时把线程区裁掉，那正是「生成完什么都看不见」的形态。
-pub const AI_BAR_HEIGHT : Double = @chrome.PANEL_HEAD_HEIGHT +
-  @ai.COMPOSER_HEIGHT +
-  @ai.CHIPS_HEIGHT +
-  2.0 +
-  AI_CARD_PAD * 2.0 +
-  4.0
-
-///|
-/// 底栏档的实际高度：按内容（含线程区）算，并钳在窗口可用高之内。
-///
-/// 与「底栏装得下输入面」同一纪律：高度是**算出来的**，不是写死的。
-/// 上限 `max` 防止线程卡多起来把工作区压没（底栏超过屏幕一半时截断，
-/// 线程区自己会滚动）。
-pub fn ai_bar_height(
-  model : Model,
-  width : Double,
-  viewport_height : Double,
-) -> Double {
-  let inner = (width - AI_CARD_PAD * 2.0).max(120.0)
-  // ai_card_height **已含**卡片四周内衬（AI_CARD_PAD*2）——这里再计一次
-  // 会让底栏比内容高出一截，页签头和输入盒之间留出一条空白带（实测缺陷）。
-  let content = @chrome.PANEL_HEAD_HEIGHT + ai_card_height(model, inner) + 4.0
-  content.max(AI_BAR_HEIGHT).min((viewport_height * 0.5).max(AI_BAR_HEIGHT))
-}
-
-///|
-/// 底栏档的输入面：**与停靠档逐段同构**——折叠条 +（线程区 + #seeAll）+
-/// 输入盒 + 决策行，只是宿主换成底栏、宽度按底栏给。
-///
-/// **为什么不能只放一个 composer**：线程卡（提案 diff / 计划 / 闸门）是
-/// 「Agent 干了什么」的唯一可见记录，必须与输入面**同宿主**——否则默认
-/// 档下生成提案后什么都看不见（实测：底栏档只有输入盒，`#seeAll`、
-/// 待审计计数、diff 卡全部消失）。所以这里复用 `ai_card_body`，而不是
-/// 另写一个精简版。
-///
-/// `height` 由调用方给（底栏体区高）：卡片必须待在自己的格子里，否则会按
-/// 自然高画出去、越过底栏边界露出窗口底色。
-pub fn ai_bar_composer(
-  model : Model,
-  t : @i18n.Translator,
-  width : Double,
-  height : Double,
-) -> @moui.View[Msg] {
-  // 线程区只能拿「体区 − 输入面固定部分」的剩余，不能拿满高——
-  // 否则输入盒会被顶出底栏。
-  let inner = (width - AI_CARD_PAD * 2.0).max(120.0)
-
-  // **宽度只扣一次内衬**：`ai_card_body` 自己已经用 `width − 2×pad` 算内宽
-  // 并声明`width`，这里再套一层 `padding_xy` 就等于扣两次——卡片声明整宽、
-  // 却只被给了 `width − 16` 的格子，右侧那 16pt 连同发送钮一起被推出面板
-  // （实测发送钮贴死在中心列右缘 2009，右边一个 padding 都不剩）。
-  // 所以外层只给底色，不再加横向内衬。
-  // **外层容器必须显式给底色**：无背景的 container 在 paint 期回落到环境
-  // Base → `palette.surface`（`#1F2227`），于是卡片上下那两圈内衬被刷成
-  // 另一个颜色，在底栏里读成「两段脏边」。底栏的底色是 `@chrome.ide_panel()`，
-  // 这里跟它对齐——回落色与宿主面板不同色，是同一个坑的第二次。
-  @views.container(
-    // 横向内衬 8:卡片按 inner(宽−16)建,两侧各 8 补齐整宽。**纵向不能再垫**:
-    // ai_card_body 自己的容器已有四周 8 内衬,再垫 16 会双重计账——
-    // V3 芯片行加宽块足迹后,这 16pt 刚好吃掉脚注（真机实测缺陷）。
-    @views.padding_xy(
-      ai_card_body(model, t, inner, height),
-      horizontal=AI_CARD_PAD,
-      vertical=0.0,
-    ),
-    background=@chrome.ide_panel(),
-    width~,
-    height~,
-    padding=0.0,
-  )
-}
-
-///|
 fn composer(
   model : Model,
   t : @i18n.Translator,
@@ -1175,48 +1032,15 @@ fn composer(
   let inner_width = box_width - 16.0
   let busy = model.ai_busy
   let send_msg = if busy { Msg::Noop } else { ComposerRun }
-  // 盒内脚注的 ghost 操作：**两种内联落点之间的一步切换**。
-  //
-  // 底栏档显示「停靠右栏」按钮，停靠档显示「放到底栏」——两边互为出口，
-  // 用户在任一形态下都只需一次点击就能换到另一种一等形态。浮动族（贴底
-  // 浮层）是次要档，只保留「收起成药丸」这一个出口，不再各配一个按钮
-  // （那会让脚注变成一排图标，而它本该只有两个动作）。
-  //
-  // 历史/锚点循环/provider 设置走命令面板（⌘K），不占盒内空间。
+  // 盒内脚注的 ghost 操作：**只有一个宿主**（右栏钉底），所以脚注不再放
+  // 「停靠右栏 / 放到底栏」这一对互为出口的切换钮——没有第二个落点可去，
+  // 放一对就是死 UI。历史/provider 设置走命令面板（⌘K）与这里各一个入口。
   let ghost_surface = @chrome.ide_panel()
   let foot_cells : Array[@moui.View[Msg]] = [
     @views.row(mode_cells, spacing=3.0, align=Center),
     @views.spacer(min_length=6.0, weight=1.0),
   ]
   if inner_width >= 300.0 {
-    foot_cells.push(
-      ghost_icon_button(
-        Columns,
-        text(t, "app.ai.to_dock"),
-        model.right_view is RvAi,
-        StudioCommandRun("studio.ai.dock"),
-        22.0,
-        20.0,
-        11.0,
-        ghost_surface,
-        hovered=model.hover_hint,
-      ),
-    )
-    foot_cells.push(
-      ghost_icon_button(
-        // 底栏档用 ChevronDown：与底栏「展开/收起」同一个视觉语汇
-        // （图标集里没有专用的 bottom-panel 图标，不为一个按钮加新图标）。
-        ChevronDown,
-        text(t, "app.ai.to_bar"),
-        !(model.right_view is RvAi),
-        StudioCommandRun("studio.ai.bar"),
-        22.0,
-        20.0,
-        11.0,
-        ghost_surface,
-        hovered=model.hover_hint,
-      ),
-    )
     foot_cells.push(
       ghost_icon_button(
         Clipboard,
@@ -1419,18 +1243,6 @@ fn ai_posture_row(
 }
 
 ///|
-/// AI 宿主读数（设计稿 `#posHint`）：让人不用猜「现在输入面在哪」。
-pub fn ai_host_hint_key(model : Model) -> String {
-  if model.right_view is RvAi {
-    "app.ai.anchor.docked"
-  } else if model.perspective is PsAi {
-    "app.ai.anchor.center"
-  } else {
-    "app.ai.anchor.bar"
-  }
-}
-
-///|
 /// composer 模式芯片宽：文案实测 × 1.05 + 两侧内垫 14，下限 36。
 /// 段宽合计（composer）与芯片自身宽必须走同一函数——两处各算一份，
 /// 输入框的剩余宽就会算错。
@@ -1609,8 +1421,8 @@ fn decision_bar(
 ///|
 /// 决策条内容高：有提案时是「摘要 + 采纳/拒绝/历史」两行，否则是
 /// 「空闲/忙碌」一行加可选的讲解与错误行。
-/// 视图层与 ai_card_height 共用这一个来源——两处各写一份，
-/// 避让预留就会和实际遮挡对不上。
+/// 视图层与 `decision_bar_footprint`（钉底块预算）共用这一个来源——两处各写
+/// 一份，避让预留就会和实际遮挡对不上。
 pub fn decision_bar_height(model : Model) -> Double {
   if !has_decision_content(model) {
     return 0.0

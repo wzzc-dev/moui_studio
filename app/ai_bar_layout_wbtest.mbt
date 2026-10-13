@@ -1,42 +1,40 @@
 ///|
-/// 底栏 AI 输入面（`AiAnchor::AiBar`）的布局回归。
+/// AI 输入面（composer）的布局回归。
 ///
 /// 单独成文件：`shell_layout_wbtest.mbt` 已到 1200 行硬上限附近
 /// （`checks/source-file-policy.json`），新测试按仓规另开文件——
 /// 与 `blocks_edit_test.mbt` 当年从 `app_test.mbt` 拆出同一处置。
 ///
-/// 本文件钉住两类**只在底栏宿主下才出现**的缺陷：
-/// 1. 环境回落色漏进底栏（无背景 container → `palette.surface`）；
-/// 2. 输入面溢出中心列右缘（内衬被扣两次 → 发送钮贴死在列边）。
+/// **宿主唯一化（VS Code 侧面板口径）**：输入面只有一个落点 = 右栏底部的钉底
+/// composer。旧版有三个宿主（底栏 `BtAi` 页签 / 右栏停靠 / AI 模式中心）与一对
+/// 互为出口的切换钮，本文件当年钉的就是那套切换语义；现在那些测试被替换成
+/// 「只有一个宿主」的契约。
+///
+/// 本文件钉住两类**只在右栏宿主下才出现**的缺陷：
+/// 1. 环境回落色漏进右栏（无背景 container → `palette.surface`）；
+/// 2. 输入面溢出右栏右缘（内衬被扣两次 → 发送钮贴死在面板边）。
 
 ///|
-/// 底栏 AI 页签里**不许露出宿主面板以外的底色**。
+/// 右栏钉底块里**不许露出宿主面板以外的底色**。
 ///
 /// 这一类 bug 在本仓出现过三次（浮动层的外层、卡片内衬、底栏体区），
 /// 根因都是同一条：**无 background 的 container 在 paint 期回落到环境
 /// Base → `palette.surface`**，而那个颜色与它所在的宿主面板不同，于是
 /// 本该是「留白」的一圈被刷成一块异色。
 ///
-/// 判据：底栏带内不得出现 `palette.surface`（回落色）——底栏的合法底色
-/// 只有 `@chrome.ide_panel()` / `@chrome.ide_panel_alt()`（页签头）与 AI 卡片的
-/// `@chrome.ide_elevated()`，不含回落色。
-test "the AI bottom bar shows no ambient-fallback surface" {
+/// 判据：右栏带内不得出现 `palette.surface`（回落色）——右栏的合法底色
+/// 只有 `@chrome.ide_panel()` / `@chrome.ide_panel_alt()`（面板头 / 分区头），
+/// 不含回落色。
+test "the docked AI composer shows no ambient-fallback surface" {
   let model = initial_model()
   let commands = shell_draw(model, 1280.0, 800.0)
-  // 底栏纵向范围：状态栏之上、工作区段之下
-  let bottom_bar_top = @chrome.TOPBAR_HEIGHT +
-    1.0 +
-    (
-      800.0 -
-      @chrome.TOPBAR_HEIGHT -
-      @chrome.STATUSBAR_HEIGHT -
-      @chrome.PANEL_HEAD_HEIGHT -
-      2.0 -
-      ai_bar_height(model, center_width_of(model, 1280.0), 800.0)
-    )
-  let bottom_bar_bottom = 800.0 - @chrome.STATUSBAR_HEIGHT
-  let center_left = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0
-  let center_width = center_width_of(model, 1280.0)
+  // 钉底块的纵向范围：右栏底边往上一个 `ai_docked_height`（与旧底栏版
+  // 按 `ai_bar_height` 算带顶同一纪律——高度是算出来的，不是估的）。
+  let right_bar_bottom = 800.0 - @chrome.STATUSBAR_HEIGHT - 1.0
+  let right_bar_top = right_bar_bottom -
+    ai_docked_height(model, @chrome.RIGHTBAR_WIDTH)
+  // 右栏横向范围：窗口右缘往左一个右栏宽 + 一条 sash
+  let right_left = 1280.0 - @chrome.RIGHTBAR_WIDTH - @chrome.SASH_WIDTH
   // 回落色 = @chrome.studio_theme 的 palette.surface
   let fallback = @chrome.studio_theme().palette.surface
   for command in commands {
@@ -50,23 +48,21 @@ test "the AI bottom bar shows no ambient-fallback surface" {
         }
       _ => continue
     }
-    // **必须同时限定横向**：底栏只铺中心列——左栏与右栏在那条纵带上
-    // 各有自己的面板（它们的回落色是合法内容，不是本测试的对象）。
-    // 只按纵向判会把左右栏的元素误报成「底栏漏色」。
-    let in_bar = rect.origin.y >= bottom_bar_top - 1.0 &&
-      rect.origin.y + rect.size.height <= bottom_bar_bottom + 1.0 &&
-      rect.origin.x >= center_left - 1.0 &&
-      rect.origin.x + rect.size.width <= center_left + center_width + 1.0
+    // **必须同时限定横向**：右栏只占最右那一段——中心列与左栏在同一水平带
+    // 上各有自己的面板（它们的回落色是合法内容，不是本测试的对象）。
+    let in_panel = rect.origin.y >= right_bar_top - 1.0 &&
+      rect.origin.y + rect.size.height <= right_bar_bottom + 1.0 &&
+      rect.origin.x >= right_left - 1.0
     // 只要**有面积**的填充：零高/零宽的占位矩形画不出任何东西，
     // 把它们算进来只会让判据变脆（实测 `h=0` 的占位被误报）。
-    if in_bar &&
+    if in_panel &&
       rect.size.width > 100.0 &&
       rect.size.height > 1.0 &&
       (color.r - fallback.r).abs() < 0.01 &&
       (color.g - fallback.g).abs() < 0.01 &&
       (color.b - fallback.b).abs() < 0.01 {
       fail(
-        "ambient fallback surface painted inside the AI bottom bar at y=" +
+        "ambient fallback surface painted inside the docked composer at y=" +
         rect.origin.y.to_string() +
         " h=" +
         rect.size.height.to_string(),
@@ -76,54 +72,51 @@ test "the AI bottom bar shows no ambient-fallback surface" {
 }
 
 ///|
-/// 底栏 AI 输入面**不许溢出中心列右缘**。
+/// 右栏钉底输入面**不许溢出右栏右缘**。
 ///
-/// 回归意义：`ai_card_body` 内部已经用 `width − 2×pad` 算内宽并声明整宽，
-/// 外层再套一层同宽的 `padding` 就等于**扣两次内衬**——卡片声明整宽、却只
-/// 拿到 `width − 16` 的格子，右侧那 16pt 连同发送钮一起被推出面板（实测
-/// 发送钮贴死在中心列右缘，右边一个 padding 都不剩）。
+/// 回归意义：内衬被扣两次时，输入盒声明整宽、却只拿到 `width − 16` 的格子，
+/// 右侧那 16pt 连同发送钮一起被推出面板（实测发送钮贴死在面板右缘，右边一个
+/// padding 都不剩）。
 ///
-/// 判据：输入面里的每一个元素都必须落在中心列之内——特别是**最右**的那个
+/// 判据：输入面里的每一个元素都必须落在右栏之内——特别是**最右**的那个
 /// （发送钮），它是最先被挤出去的。
-test "the AI input bar never overflows the centre column" {
+test "the docked AI composer never overflows the right panel" {
   let model = initial_model()
   let commands = shell_draw(model, 1280.0, 800.0)
-  let center_left = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0
-  let center_right = center_left +
-    center_width_of(model, 1280.0 - @chrome.ICONBAR_WIDTH)
+  let panel_left = 1280.0 - @chrome.RIGHTBAR_WIDTH - @chrome.SASH_WIDTH
+  let panel_right = 1280.0
   guard shell_find_send_button(commands) is Some(send) else {
     fail("round send button missing")
   }
   let send_right = send.origin.x + send.size.width
-  if send_right > center_right - 2.0 {
+  if send_right > panel_right - 2.0 {
     fail(
-      "send button touches the column edge (no padding): right=" +
+      "send button touches the panel edge (no padding): right=" +
       send_right.to_string() +
-      " column_right=" +
-      center_right.to_string(),
+      " panel_right=" +
+      panel_right.to_string(),
     )
   }
-  if send.origin.x < center_left + 2.0 {
+  if send.origin.x < panel_left + 2.0 {
     fail(
-      "send button escapes the column on the left: left=" +
+      "send button escapes the panel on the left: left=" +
       send.origin.x.to_string(),
     )
   }
-  // 输入面里的每一段文字也都要留在列内。**纵向必须限定成底栏那段**：
-  // 只按 y >= 610 会把右栏（同一水平带但在列右）与状态栏（y=780）都算进来
-  // ——它们本来就该在列外，误报三次都是这个原因。
-  let bar_top = 610.0
+  // 输入面里的每一段文字也都要留在面板内。**纵向必须限定成钉底那段**：
+  // 只按 y 下限会把状态栏（y≈780）算进来——它本来就该在面板外。
+  let bar_top = 800.0 - @chrome.STATUSBAR_HEIGHT - 220.0
   let bar_bottom = 800.0 - @chrome.STATUSBAR_HEIGHT
   for run in shell_texts(commands) {
     let in_bar_y = run.frame.origin.y >= bar_top &&
       run.frame.origin.y + run.frame.size.height <= bar_bottom + 0.5
-    let in_column_x = run.frame.origin.x >= center_left - 1.0 &&
-      run.frame.origin.x < center_right
+    let in_panel_x = run.frame.origin.x >= panel_left - 1.0 &&
+      run.frame.origin.x < panel_right
     if in_bar_y &&
-      in_column_x &&
-      run.frame.origin.x + run.frame.size.width > center_right + 1.0 {
+      in_panel_x &&
+      run.frame.origin.x + run.frame.size.width > panel_right + 1.0 {
       fail(
-        "AI bar content overflows the column: text='" +
+        "docked composer content overflows the panel: text='" +
         run.text +
         "' right=" +
         (run.frame.origin.x + run.frame.size.width).to_string(),
@@ -509,160 +502,65 @@ test "clicking a block with a note shown selects the block under the pointer" {
 }
 
 ///|
-/// **收起底栏不会把 AI 输入面挪去右栏**（用户报的缺陷之一）。
+/// **输入面只有一个宿主：右栏底部**（VS Code 侧面板口径）。
 ///
-/// 旧实现在收起时会把 `ai_anchor` 改成 `AiDocked`，理由是「别把输入面
-/// 整个藏起来」。后果是用户只想折叠一个面板，AI 却**自己出现在右栏**
-/// ——落点被悄悄改了。
+/// 旧版有三个宿主（底栏 `BtAi` 页签 / 右栏停靠 / AI 模式中心）与一对互为出口
+/// 的切换钮，于是同一时刻「输入面在哪」要靠 `right_view × perspective` 推导，
+/// 还要防 stale 页签画出第二份 composer。宿主唯一化后这条契约变成：
+/// 检查器模式下右栏**必然**画出 composer，且**只有一份**。
 ///
-/// 正确语义：折叠面板 ≠ 切换输入面落点。收起时输入面跟着一起收起
-/// （与审计/控制台页签完全一样），落点始终由 `ai_anchor` 单独决定。
-test "collapsing the bottom bar does not move the AI composer to the right panel" {
+/// 判据取发送钮的绘制次数：一个宿主 = 一枚发送钮。
+test "the AI composer lives only in the right panel" {
   let model = initial_model()
-  // 默认在底栏档
-  assert_true(model.right_view is RvContext)
-  let collapsed = apply_shell(model, ToggleBottom)
-  // 底栏收起了
-  assert_false(collapsed.bottom_open)
-  // **锚点没被动过**：用户没要求把 AI 挪去右栏
+  let commands = shell_draw(model, 1280.0, 800.0)
+  let sends = shell_find_send_buttons(commands)
+  assert_eq(sends.length(), 1, msg="exactly one send button in the shell")
+  // 那一枚必须落在右栏里（面板左缘之右）
+  let panel_left = 1280.0 - @chrome.RIGHTBAR_WIDTH - @chrome.SASH_WIDTH
+  let send = sends[0]
   assert_true(
-    collapsed.right_view is RvContext,
-    msg="collapsing must not change the AI anchor",
+    send.origin.x >= panel_left - 1.0,
+    msg="the only send button must sit inside the right panel",
   )
-  // 右栏里没有第二份 composer
+  // 输入面的占位文案在场（不是一块空白）
   assert_true(
-    ai_layer(collapsed, translator_for(ZhHans), 1280.0, 800.0) is None,
+    shell_has_text(commands, "描述") || shell_has_text(commands, "AI"),
   )
-  // 页签仍是 AI：展开后输入面原样回来
-  assert_true(collapsed.bottom_tab is BtAi)
-  let reopened = apply_shell(collapsed, ToggleBottom)
-  assert_true(reopened.bottom_open)
-  assert_true(reopened.right_view is RvContext)
 }
 
 ///|
-/// **收起再展开后，点「AI 输入」页签能把输入面带回来**（用户报的缺陷之二）。
+/// **底栏永远没有「AI 输入」页签**。
 ///
-/// 旧实现下这条路径是死的：收起时锚点已被改成 `AiDocked`，于是底栏
-/// 那份 composer 不画——页签亮着、下面却什么都没有，用户点了没反应。
-test "the AI tab restores the composer after collapse and expand" {
-  let model = initial_model()
-  let collapsed = apply_shell(model, ToggleBottom)
-  let reopened = apply_shell(collapsed, ToggleBottom)
-  assert_true(reopened.bottom_open)
-  // 点 AI 页签：宿主本就在底栏，页签只负责选中（不产生落点联动）
-  let on_ai = apply_shell(reopened, SetBottomTab(BtAi))
-  assert_true(
-    on_ai.right_view is RvContext,
-    msg="clicking the AI tab must keep the host on the bar",
-  )
-  assert_true(on_ai.bottom_tab is BtAi)
-  assert_true(on_ai.bottom_open)
-  // 输入面真的画出来了（占位文案在场）
-  let commands = shell_draw(on_ai, 1280.0, 800.0)
-  assert_true(shell_has_text(commands, "AI 输入"))
-
-  // **反例**：切到停靠后，stale 的 AI 页签必须让位（审计顶上）——
-  // 否则底栏与右栏各画一份 composer
-  let docked = apply_shell(on_ai, SetRightView(RvAi))
-  assert_true(docked.right_view is RvAi)
-  assert_false(
-    docked.bottom_tab is BtAi,
-    msg="docking must move the stale AI tab out of the way",
-  )
-
-  // **反例 2**：点只读页签不动宿主（回到底栏档再切审计，输入面留在底栏）
-  let bar_again = apply_shell(model, SetBottomTab(BtAi))
-  let audit = apply_shell(bar_again, SetBottomTab(BtAudit))
-  assert_true(audit.bottom_tab is BtAudit)
-  assert_true(audit.bottom_open)
-  assert_true(audit.right_view is RvContext)
-}
-
-///|
-/// **在 AI 输入面上点只读页签，AI 不会被搬到右栏**（用户报的缺陷）。
-///
-/// 早先 `select_bottom_tab` 为了绕开 `sync_ai_placement` 对页签的强制，
-/// 会在切到只读页签时把锚点改成 `AiDocked`——用户在 AI 输入面上点一下
-/// 「问题」看一眼，**AI 就自己跑到右栏去了**。
-///
-/// 判据：切页签前后 `ai_anchor` 必须**一模一样**，且右栏里不出现 composer。
-test "switching to a read-only bottom tab never docks the AI composer" {
-  let model = initial_model()
-  assert_true(model.right_view is RvContext)
-  for tab in [BtAudit, BtConsole, BtProblems] {
-    let switched = apply_shell(model, SetBottomTab(tab))
-    assert_true(
-      switched.right_view is RvContext,
-      msg="a read-only tab must not move the AI composer",
+/// 宿主唯一化的另一半：底栏只承载只读面板（审计 / Console / 问题 / 搜索 /
+/// 终端）。这条同时覆盖三个模式——每个模式的底栏页签行都不含 AI。
+test "the bottom bar never offers an AI tab" {
+  for perspective in [PsVisual, PsCode, PsAi] {
+    let model = apply_shell(initial_model(), SetPerspective(perspective))
+    let commands = shell_draw(model, 1280.0, 800.0)
+    assert_false(
+      shell_has_text(commands, "AI 输入"),
+      msg="the bottom bar must not carry an AI tab",
     )
-    // 右栏没有第二份 composer
-    assert_true(
-      ai_layer(switched, translator_for(ZhHans), 1280.0, 800.0) is None,
-    )
-    // 页签确实切过去了（不是「什么都没发生」）
-    let is_target = match tab {
-      BtAudit => switched.bottom_tab is BtAudit
-      BtConsole => switched.bottom_tab is BtConsole
-      BtProblems => switched.bottom_tab is BtProblems
-      _ => false
-    }
-    assert_true(is_target, msg="the clicked tab should be selected")
-    assert_true(switched.bottom_open)
   }
 }
 
 ///|
-/// **「放到底栏」命令 = 把输入面放回底栏并让它可见**（含从停靠档拉回）。
+/// **折叠底栏不搬动输入面**（用户报过的缺陷：只想折叠面板，AI 却自己跑去右栏）。
 ///
-/// M2 起宿主由 right_view × 模式推导，落点切换是**复合动作**（右栏换回
-/// 检查器 + 展开底栏选中 AI 页签）——由 studio.ai.bar 命令承担；停靠后
-/// 底栏的 AI 页签已不在列表里，不存在「点页签拉回」的路径。
-test "the move-to-bar command pulls the composer back to the bottom bar" {
+/// 宿主唯一化后这条缺陷在结构上不可能复发——输入面不在底栏里，底栏收起与它
+/// 无关。仍然保留断言：收起前后右栏都画出同一枚发送钮。
+test "collapsing the bottom bar keeps the composer in the right panel" {
   let model = initial_model()
-  // 先停靠到右栏（显式切换落点，这是唯一能改落点的入口）
-  let docked = apply_shell(model, SetRightView(RvAi))
-  assert_true(docked.right_view is RvAi)
-  // 右栏这时有 composer
-  assert_true(
-    ai_layer(docked, translator_for(ZhHans), 1280.0, 800.0) is Some(_),
+  let before = shell_draw(model, 1280.0, 800.0)
+  assert_eq(shell_find_send_buttons(before).length(), 1)
+  let collapsed = apply_shell(model, ToggleBottom)
+  assert_false(collapsed.bottom_open)
+  let after = shell_draw(collapsed, 1280.0, 800.0)
+  assert_eq(
+    shell_find_send_buttons(after).length(),
+    1,
+    msg="collapsing the bar must not move or drop the composer",
   )
-  // 命令「放到底栏」→ 拉回底栏档
-  let back = apply_shell(docked, StudioCommandRun("studio.ai.bar"))
-  assert_true(
-    back.right_view is RvContext,
-    msg="the command must anchor the composer to the bar",
-  )
-  assert_true(back.bottom_tab is BtAi)
-  assert_true(back.bottom_open)
-  // 右栏不再画 composer（一个输入面只有一份）
-  assert_true(ai_layer(back, translator_for(ZhHans), 1280.0, 800.0) is None)
-}
-
-///|
-/// **显式切换落点会顺带让输入面可见**：落到底栏 ⇒ 展开并选中 AI 页签。
-///
-/// 停在审计页签时按「放到底栏」，若只改锚点不改页签，用户会看到**什么都没
-/// 发生**（底栏档但页签是审计，composer 不画）。这是与上一条互补的方向：
-/// 页签不动落点，但落点**必须**能带动页签。
-test "explicitly anchoring to the bar reveals the composer" {
-  let model = initial_model()
-  // 走到一个「审计页签 + 停靠档」的状态
-  let audit = apply_shell(model, SetBottomTab(BtAudit))
-  let docked = apply_shell(audit, SetRightView(RvAi))
-  assert_true(docked.right_view is RvAi)
-  assert_true(docked.bottom_tab is BtAudit)
-  // 显式落到底栏（命令链负责选中 AI 页签 + 展开底栏）
-  let back = apply_shell(docked, StudioCommandRun("studio.ai.bar"))
-  assert_true(back.right_view is RvContext)
-  assert_true(
-    back.bottom_tab is BtAi,
-    msg="anchoring to the bar must select the AI tab",
-  )
-  assert_true(back.bottom_open, msg="anchoring to the bar must expand the bar")
-  // composer 真的画出来了
-  let commands = shell_draw(back, 1280.0, 800.0)
-  assert_true(shell_has_text(commands, "AI 输入"))
 }
 
 ///|
