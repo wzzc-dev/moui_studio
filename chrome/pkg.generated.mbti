@@ -21,6 +21,12 @@ pub const LEFTBAR_MIN_WIDTH : Double = 200.0
 
 pub const LEFTBAR_WIDTH : Double = 232.0
 
+pub const OBJECT_ROW_HEIGHT : Double = 24.0
+
+pub const PAGE_TILE_HEIGHT : Double = 22.0
+
+pub const PAGE_TILE_ICON_WIDTH : Double = 24.0
+
 pub const PANEL_HEAD_HEIGHT : Double = 30.0
 
 pub const RECENT_STRIP_ROWS : Int = 3
@@ -29,13 +35,15 @@ pub const RIGHTBAR_MAX_WIDTH : Double = 560.0
 
 pub const RIGHTBAR_MIN_WIDTH : Double = 200.0
 
-pub const RIGHTBAR_WIDTH : Double = 272.0
+pub const RIGHTBAR_WIDTH : Double = 340.0
 
 pub const SASH_WIDTH : Double = 4.0
 
 pub const SECTION_HEAD_HEIGHT : Double = 22.0
 
 pub const STATUSBAR_HEIGHT : Double = 22.0
+
+pub const SUB_TAB_ROW_HEIGHT : Double = 30.0
 
 pub const TOPBAR_ACTION_HEIGHT : Double = 24.0
 
@@ -161,6 +169,14 @@ pub fn[Msg] inline_card(@core.Color, @core.View[Msg], Double, Bool) -> @core.Vie
 
 pub fn[Msg] kv_row(String, String, Double, Bool) -> @core.View[Msg]
 
+pub fn[Msg] object_strip(String, String, String, Bool, Msg, String, Double, (String) -> Msg, hovered? : String) -> @core.View[Msg]
+
+pub fn[Msg] page_switcher_head(Array[PageSpec], Int, (Int) -> Msg, Array[@core.View[Msg]], Array[Double], Double, (String) -> Msg, hovered? : String) -> @core.View[Msg]
+
+pub fn[Msg] page_tile(@style.IconName, String, String, Bool, Msg, (String) -> Msg, @core.Color, Double, hovered? : String) -> @core.View[Msg]
+
+pub fn page_tile_width(String) -> Double
+
 pub fn[Msg] panel_head(String, String, Array[@core.View[Msg]], Double, trailing_widths? : Array[Double]) -> @core.View[Msg]
 
 pub fn[Msg] pill(String, @core.Color, Double) -> @core.View[Msg]
@@ -192,6 +208,8 @@ pub fn studio_theme() -> @core.Theme
 pub fn studio_typography() -> @core.TypographyScale
 
 pub fn studio_window_background() -> @core.Color
+
+pub fn[Msg] sub_tab_row(Array[String], Int, (Int) -> Msg, Double, @core.Color) -> @core.View[Msg]
 
 pub fn[Msg] text_chip(String, Msg, Double, Bool) -> @core.View[Msg]
 
@@ -228,6 +246,11 @@ pub(all) enum IconTint {
 pub fn IconTint::equal(Self, Self) -> Bool
 pub fn IconTint::not_equal(Self, Self) -> Bool
 pub fn IconTint::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PageSpec {
+  icon : @style.IconName
+  label : String
+}
 
 // Type aliases
 

@@ -295,6 +295,46 @@ fn drop_ai_busy_card(model : Model) -> Model {
 }
 
 ///|
+/// 恢复会话时摘掉**所有 in-flight 卡**：未结算且**没有任何内容**的占位卡。
+///
+/// 两条 in-flight 形态都属于「上一进程没来得及收尾」：
+/// 1. `CardPlan` 的忙碌占位（`app.ai.busy`，「正在生成提案…」）；
+/// 2. `CardExplanation` 的空流式卡——提交时预置、分片往里追加，若进程在
+///    首个分片到达前退出，留下的就是一张**空白**的「回复」卡。
+///
+/// 二者和 `drop_ai_busy_card` 的区别：后者服务于**运行中**的回执路径（只摘
+/// 最近一张计划卡，因为它知道那一次生成对应哪张）；这里是**恢复**路径，判据
+/// 是「这张卡本身有内容吗」——有内容的未结算卡（比如已收到部分分片、或待审计
+/// 的 diff 卡）必须原样保留，它们仍然承载信息。
+///
+/// 与 `memories/repo/moui-studio.md` 的「未结算卡被写进 JSON → 下次启动永远
+/// 转圈」是同一类缺陷：**瞬时状态不该跨进程存活**。
+fn drop_in_flight_cards(model : Model) -> Model {
+  let session = model.ai_sessions.current()
+  let keep : Array[AiCard] = []
+  let mut removed = false
+  for card in session.cards {
+    let empty_plan = card.kind is CardPlan &&
+      !card.settled &&
+      card.body == "" &&
+      card.steps.length() == 0
+    let empty_stream = card.kind is CardExplanation &&
+      !card.settled &&
+      card.body == ""
+    if empty_plan || empty_stream {
+      removed = true
+    } else {
+      keep.push(card)
+    }
+  }
+  if !removed {
+    return model
+  }
+  model.ai_sessions.amend({ ..session, cards: keep, })
+  model
+}
+
+///|
 /// 提交时预置的空流式卡：真实 provider 的分片经 StreamChunk 追加进它，
 /// 停止/完成由既有流式管道收尾——与旧假路径同一条卡流。
 fn push_streaming_card(model : Model, title : String) -> Model {
@@ -713,9 +753,16 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
                 transcript_follow: true,
                 transcript_scroll: @geometry.Point::new(x=0.0, y=0.0),
               }
-              restored.transcript_scroll_seq = restored.transcript_scroll_seq +
-                1
-              Some((restored, @moui.Effect::none()))
+              // **恢复时清掉 in-flight 卡**：`app.ai.busy` 那张「正在生成提案…」
+              // 与空的流式「回复」卡都是**进行中**的瞬时状态（回执/分片到达时
+              // 才收尾）。但「提交后、回执前」存盘是可能的（未结算卡被如实写进
+              // JSON），于是下次启动读回来就**永远转圈/永远空白**——用户实测
+              // 看到的正是这个（生成早已成功，卡片还在）。恢复是「上一进程的
+              // 终态」，任何 in-flight 卡到这里都已经无效，所以统一摘除，
+              // 不依赖它是被哪条路径写进去的。有内容的未结算卡原样保留。
+              let dropped = drop_in_flight_cards(restored)
+              dropped.transcript_scroll_seq = dropped.transcript_scroll_seq + 1
+              Some((dropped, @moui.Effect::none()))
             }
             Err(error) =>
               Some(

@@ -253,13 +253,13 @@ test "bottom bar hides entirely when collapsed and expands to the audit" {
 }
 
 ///|
-/// AI 输入条只在**右栏底部**一个落点里出现，且不盖状态栏。
+/// AI 输入条只在**右栏 AI 页**（`RvAi`）一个落点里出现，且不盖状态栏。
 ///
-/// 判据：输入盒在右栏带内、不越过状态栏上沿。曾经的三个浮动锚点（居中/左下/
-/// 右下）、药丸收起态与底栏页签落点都已删除——输入面不再浮在中心列上、也不
-/// 再占底栏，所以「浮层压住状态栏」这一整类风险随之消失。
+/// 判据：输入卡在右栏带内、不越过状态栏上沿。曾经的三个浮动锚点（居中/左下/
+/// 右下）、药丸收起态、底栏页签落点与「检查器页钉底」都已删除——输入面不再
+/// 浮在中心列上、也不再占底栏，所以「浮层压住状态栏」这一整类风险随之消失。
 test "AI input bar lives in the right panel and never covers the status bar" {
-  let model = initial_model()
+  let model = apply_shell(initial_model(), SetRightView(RvAi))
   let commands = shell_draw(model, 1280.0, 800.0)
   assert_true(shell_has_text(commands, "描述你想要的应用"))
   // 输入条是输入盒形态：模式下拉（当前模式名）+ 圆形发送钮（图标，无文字）
@@ -287,6 +287,11 @@ test "AI input bar lives in the right panel and never covers the status bar" {
     run.frame.origin.x >= center_left + widths.center - 1.0,
     msg="composer sits left of the right panel",
   )
+  // **检查器页没有输入面**（严格 VS Code 分页口径）：不画占位文字，也没有
+  // 发送钮。与上面同测一处，防止输入面悄悄回到检查器页。
+  let inspector = shell_draw(initial_model(), 1280.0, 800.0)
+  assert_false(shell_has_text(inspector, "描述你想要的应用"))
+  assert_eq(shell_find_send_buttons(inspector).length(), 0)
 }
 
 ///|
@@ -776,33 +781,32 @@ test "data group offers no create menu" {
 /// 空舞台：引导入口（模板）与 AI 输入条**互不遮挡**。
 ///
 /// 历史：空舞台上曾有「hero」形态——输入框升到中心列上方当主角、加宽到
-/// 700 并列示例指令，因此引导语要用定长前导 spacer 顶上沿避让。输入条
-/// 改由底栏页签/右栏停靠承载后，hero 不再存在，中心列只归引导入口，
-/// 两者结构上不可能重叠。
+/// 700 并列示例指令，因此引导语要用定长前导 spacer 顶上沿避让。输入条改由
+/// 右栏 AI 页承载后，hero 不再存在，中心列只归引导入口，两者结构上不可能重叠。
 test "empty workspace keeps guidance and AI input in separate panels" {
   let model = initial_model()
   let empty = apply_shell(model, SetWorkSpace(WsEmpty))
-  // 空舞台 + 底栏档：输入条在底栏，模板按钮在中心列
-  let commands = shell_draw(empty, 1280.0, 800.0)
+  // 空舞台 + 检查器页：中心列只有引导入口，没有输入面
+  let inspector = shell_draw(empty, 1280.0, 800.0)
+  assert_true(shell_has_text(inspector, "新建问候程序"))
+  assert_false(shell_has_text(inspector, "描述你想要的应用"))
+  // 空舞台 + AI 页：输入面在右栏，仍然可见
+  let ai_page = apply_shell(empty, SetRightView(RvAi))
+  let commands = shell_draw(ai_page, 1280.0, 800.0)
   assert_true(shell_has_text(commands, "描述你想要的应用"))
   guard shell_find_send_button(commands) is Some(_) else {
     fail("AI send button missing on empty stage")
   }
-  // 空舞台 + 停靠档：输入条改到右栏，仍然可见
-  let docked = apply_shell(empty, SetRightView(RvContext))
-  assert_true(
-    shell_has_text(
-      shell_draw(docked, 1280.0, 800.0),
-      "描述你想要的应用",
-    ),
-  )
 }
 
 ///|
 /// 输入条模式段：四个模式都在，且「发送」按模式分流到既有通道。
 test "composer mode routes send to existing channels" {
   // 修复通道的「无效草稿」语义在 DSL 外观下制造（M5-5e）
-  let model = apply_shell(initial_model(), CycleCodeAppearance)
+  let base = apply_shell(initial_model(), CycleCodeAppearance)
+  // 输入面在 AI 页：整条链都在那一页上走（模式/草稿/发送都是同一份状态，
+  // 切页只改「画在哪」，不改消息路由）
+  let model = apply_shell(base, SetRightView(RvAi))
   // V4：四胶囊收敛为单下拉——展开态才可见四选一
   let expanded = apply_shell(model, ToggleComposerModePicker)
   let commands = shell_draw(expanded, 1280.0, 800.0)
@@ -881,22 +885,30 @@ test "generate mode starts from an empty program" {
 }
 
 ///|
-/// 输入条在**任何工作区**下都渲染（含空舞台）。
+/// 输入条在**任何工作区**下都渲染（含空舞台），且**只在 AI 页**。
 ///
 /// 曾经的结构性 bug：带高为 0 时浮动层被塞进 0 高的容器，整块消失。
-/// 现在输入面只有一个宿主 = 右栏底部的钉底块，不再依赖「带高」这个中间量，
-/// 所以这类塌陷在结构上不可能发生——这条测试钉住该性质。
+/// 现在输入面只在 `RvAi` 一页里，不再依赖「带高」这个中间量，所以这类塌陷
+/// 在结构上不可能发生——这条测试钉住该性质，并补上分页的另一半：
+/// **检查器页一律不画输入面**（无论中心是哪个工作区）。
 test "the composer renders in every workspace" {
   let model = initial_model()
   for space in [WsVisual, WsCode, WsEmpty] {
     let m = apply_shell(model, SetWorkSpace(space))
-    let commands = shell_draw(m, 1280.0, 800.0)
+    // 检查器页：没有输入面
+    assert_false(
+      shell_has_text(shell_draw(m, 1280.0, 800.0), "描述你想要的应用"),
+      msg="the inspector page must not keep a composer around",
+    )
+    // AI 页：输入面在场
+    let on_ai = apply_shell(m, SetRightView(RvAi))
+    let commands = shell_draw(on_ai, 1280.0, 800.0)
     assert_true(shell_has_text(commands, "描述你想要的应用"))
     guard shell_find_send_button(commands) is Some(_) else {
       fail("AI send button missing in the workspace")
     }
-    // 右栏收起时输入面跟着收起（没有第二个宿主能接住它）
-    let hidden = apply_shell(m, SetRightView(RvHidden))
+    // 右栏收起时输入面跟着收起（AI 页不在了，没有第二个宿主能接住它）
+    let hidden = apply_shell(on_ai, SetRightView(RvHidden))
     assert_false(
       shell_has_text(
         shell_draw(hidden, 1280.0, 800.0),
@@ -911,10 +923,13 @@ test "the composer renders in every workspace" {
 /// 空舞台的引导入口（模板按钮）必须落在 hero 卡上方，不被盖住——被盖住就等于
 /// 「点了没反应」，那是比不好看严重得多的问题。
 test "empty stage guidance is not covered by the AI composer" {
-  // 空舞台：引导入口（模板按钮）在中心列，AI 输入条在底栏/右栏。
+  // 空舞台：引导入口（模板按钮）在中心列，AI 输入条在右栏 AI 页。
   // 两者在不同面板里，所以「输入卡盖住引导语」在结构上不可能发生；
   // 这条测试钉住该性质（历史上 hero 卡会盖住装饰文字）。
-  let empty = apply_shell(initial_model(), SetWorkSpace(WsEmpty))
+  let empty = apply_shell(
+    apply_shell(initial_model(), SetWorkSpace(WsEmpty)),
+    SetRightView(RvAi),
+  )
   let commands = shell_draw(empty, 1280.0, 800.0)
   guard shell_find_text(commands, "新建问候程序") is Some(guide_run) else {
     fail("stage buttons missing")
@@ -990,8 +1005,8 @@ test "floating AI layer does not paint over the workspace" {
 /// composer 常驻 chrome 瘦身后的契约：旧工具行（与头部图标完全重复的三个
 /// 文本按钮）删除、发送芯片在卡内且不越界。
 test "ai composer box stays inside its host panel" {
-  // 输入盒是右栏底部的钉底块，发送钮必须落在**右栏**里（不溢出面板）。
-  let model = initial_model()
+  // 输入卡是 AI 页的钉底块，发送钮必须落在**右栏**里（不溢出面板）。
+  let model = apply_shell(initial_model(), SetRightView(RvAi))
   let commands = shell_draw(model, 1280.0, 800.0)
   // 无头部（Codex 口径）：标题/读数/徽标都不再绘制
   assert_false(shell_has_text(commands, "AI 提案"))
@@ -1022,79 +1037,24 @@ test "ai composer box stays inside its host panel" {
 }
 
 ///|
-/// **输入面只有一个宿主**，所以「现在这条在哪」不再需要推导。
-///
-/// 旧版有三个宿主（底栏页签 / 右栏停靠 / AI 模式中心）与一个 `ai_host_hint_key`
-/// 读数（bar/docked/center）——那个读数在生产侧本就没有调用点。宿主唯一化后
-/// 读数与键一并删除：输入面永远在右栏底部（AI 工作台模式另在中心）。
-test "the AI composer has exactly one host" {
-  let model = initial_model()
-  // 检查器模式：一枚发送钮，且在右栏里
-  let commands = shell_draw(model, 1280.0, 800.0)
-  let sends = shell_find_send_buttons(commands)
-  assert_eq(sends.length(), 1, msg="one composer host in the inspector mode")
-  let widths = shell_chrome_widths(model, 1280.0 - @chrome.ICONBAR_WIDTH)
-  let center_left = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0
-  assert_true(sends[0].origin.x >= center_left + widths.center - 1.0)
-  // 右栏收起 = 输入面跟着收起（没有第二个宿主接住它）
-  let hidden = apply_shell(model, SetRightView(RvHidden))
-  assert_eq(
-    shell_find_send_buttons(shell_draw(hidden, 1280.0, 800.0)).length(),
-    0,
-    msg="hiding the right panel must hide the only composer",
-  )
-  // AI 工作台模式：输入面在中心（该模式的右栏是更改/文件工作区面板）
-  let center = apply_shell(model, SetPerspective(PsAi))
-  assert_eq(
-    shell_find_send_buttons(shell_draw(center, 1280.0, 800.0)).length(),
-    1,
-    msg="the AI workbench keeps its own centre composer",
-  )
-}
-
-///|
-/// `#seeAll`：线程多于 3 条时才出现，且点了打开既有 AI 历史。
-test "see all sessions appears only with a long thread list" {
-  let model = initial_model()
-  // 初始只有 1 张卡 → 不显示
-  assert_false(
-    shell_has_text(shell_draw(model, 1280.0, 800.0), "查看全部会话 →"),
-  )
-  // 每条真实回执都推进一张 diff 线程卡（真实漏斗：proposal_from_completion）
-  let mut many = with_pending_roll_call(model)
-  for _ in 0..<4 {
-    many = with_pending_roll_call(many)
-  }
-  if many.ai_sessions.current().cards.length() <= 3 {
-    fail("expected >3 thread cards")
-  }
-  assert_true(
-    shell_has_text(shell_draw(many, 1280.0, 800.0), "查看全部会话 →"),
-  )
-  // 折叠后线程区收起，出口也收起
-  let folded = apply_shell(many, ToggleAiCardsFold)
-  assert_false(
-    shell_has_text(shell_draw(folded, 1280.0, 800.0), "查看全部会话 →"),
-  )
-}
-
-///|
 /// 待审计读数：药丸与底栏页签徽标都删除后，`pending_ai_cards` 仍然是唯一来源，
-/// 由右栏「AI 会话」分区头的徽标承载。
+/// 由 **AI 页**的状态行（`ai_posture_row`）承载。
 test "pending review count still surfaces after the pill removal" {
-  let model = with_pending_roll_call(initial_model())
+  let model = apply_shell(
+    with_pending_roll_call(initial_model()),
+    SetRightView(RvAi),
+  )
   if pending_ai_cards(model) == 0 {
     fail("proposal did not create a pending thread card")
   }
-  // AI 会话分区头在场，且徽标说出「这个数是什么」
+  // 状态行在场，且说出「这个数是什么」
   let commands = shell_draw(model, 1280.0, 800.0)
-  assert_true(shell_has_text(commands, "AI 会话"))
   assert_true(shell_has_text(commands, "待审计"))
 }
 
 ///|
 /// 线程卡是**事件驱动**的可见记录：生成提案 → 出现 diff 线程卡 +
-/// 分区头待审计徽标；采纳 → 卡被标为已应用且待审计数归零。
+/// 状态行待审计读数；采纳 → 卡被标为已应用且待审计数归零。
 ///
 /// 回归意义：`push_ai_card` 曾经没有任何调用方，`ai_cards` 恒为空，
 /// 于是线程区/#seeAll/待审计徽标全是永不出现的死 UI。
@@ -1105,8 +1065,12 @@ test "proposal threads produce visible, settleable cards" {
   assert_true(proposed.pending is Some(_))
   assert_eq(proposed.ai_sessions.current().cards.length(), 1)
   assert_eq(pending_ai_cards(proposed), 1)
-  // 卡片可见：分区头徽标给出待审计计数
-  let commands = shell_draw(proposed, 1280.0, 800.0)
+  // 卡片可见：AI 页状态行给出待审计计数
+  let commands = shell_draw(
+    apply_shell(proposed, SetRightView(RvAi)),
+    1280.0,
+    800.0,
+  )
   assert_true(shell_has_text(commands, "待审计 1"))
   // 采纳后归零并留回执
   let accepted = apply_shell(proposed, AcceptProposal)
@@ -1174,21 +1138,29 @@ fn shell_find_send_buttons(
 }
 
 ///|
-/// 线程卡再多也挤不走钉底的 composer。
+/// 线程卡再多也挤不走钉底的输入卡。
 ///
-/// 线程区现在是右栏滚动区里的一个分区（不再是与 composer 争固定高度的
-/// 「定高区域 + 内层 scroll_view」），所以这条缺陷在结构上不可能复发。仍然
-/// 保留几何断言：发送钮必须留在输入盒那一行带里。
+/// 转录在 AI 页的**滚动区**里（不再是与 composer 争固定高度的「定高区域 +
+/// 内层 scroll_view」），所以「卡把 composer 顶出宿主」在结构上不可能复发。
+/// 仍然保留几何断言：发送钮必须留在输入盒那一行带里。
+///
+/// 邻近预算 120pt：卡片把输入卡**包起来**（芯片行 + 输入域 + 页脚），所以
+/// 发送钮到占位文字的纵向距离上限由卡片高度给出（88pt 输入块 + 22 芯片 +
+/// 2 间距 ≈ 112），120 留了一点余量。分页后转录不再参与这段距离。
 test "thread cards never push the composer out of its host" {
   let mut model = initial_model()
-  // 连推几张卡，触发线程分区的内容增长
+  // 连推几张卡，触发转录区的内容增长
   for _ in 0..<5 {
     model = with_pending_roll_call(model)
   }
   if model.ai_sessions.current().cards.length() <= 3 {
     fail("expected >3 thread cards")
   }
-  let commands = shell_draw(model, 1280.0, 800.0)
+  let commands = shell_draw(
+    apply_shell(model, SetRightView(RvAi)),
+    1280.0,
+    800.0,
+  )
   guard shell_find_text(commands, "描述你想要的应用")
     is Some(composer_run) else {
     fail("AI composer missing")

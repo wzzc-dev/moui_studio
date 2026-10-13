@@ -23,10 +23,14 @@
 /// 本该是「留白」的一圈被刷成一块异色。
 ///
 /// 判据：右栏带内不得出现 `palette.surface`（回落色）——右栏的合法底色
-/// 只有 `@chrome.ide_panel()` / `@chrome.ide_panel_alt()`（面板头 / 分区头），
-/// 不含回落色。
+/// 只有 `@chrome.ide_panel()` / `@chrome.ide_panel_alt()` / `@chrome.ide_elevated()`
+/// （面板 / 分区头 / **输入卡抬起面**），不含回落色。
+///
+/// 卡片化之后这条尤其要紧：抬起面天然是「卡片底色」的候选，而
+/// `palette.surface` 也长得很像一块卡片底——两色在两种主题下都不相等，
+/// 所以断言既拦得住真回落，也不会误伤新卡片。
 test "the docked AI composer shows no ambient-fallback surface" {
-  let model = initial_model()
+  let model = apply_shell(initial_model(), SetRightView(RvAi))
   let commands = shell_draw(model, 1280.0, 800.0)
   // 钉底块的纵向范围：右栏底边往上一个 `ai_docked_height`（与旧底栏版
   // 按 `ai_bar_height` 算带顶同一纪律——高度是算出来的，不是估的）。
@@ -37,6 +41,12 @@ test "the docked AI composer shows no ambient-fallback surface" {
   let right_left = 1280.0 - @chrome.RIGHTBAR_WIDTH - @chrome.SASH_WIDTH
   // 回落色 = @chrome.studio_theme 的 palette.surface
   let fallback = @chrome.studio_theme().palette.surface
+  // **扫描范围 = 整个右栏正文**（页头之下到状态栏之上），不只钉底带。
+  // 分页后转录也住在右栏里，而它恰恰是最容易漏掉显式底色的那一块——实测：
+  // `ai_transcript` 的外层容器没写 background 时，整片转录区被刷成
+  // `palette.surface`（暗色 0.121 vs 面板 0.169），右栏读作两块不同质感的
+  // 区域。只扫钉底带的旧判据对这块**完全失明**。
+  let panel_top = @chrome.TOPBAR_HEIGHT + 1.0 + @chrome.PANEL_HEAD_HEIGHT
   for command in commands {
     let (rect, color) = match command {
       @core.FillRect(r, c) => (r, c)
@@ -50,7 +60,7 @@ test "the docked AI composer shows no ambient-fallback surface" {
     }
     // **必须同时限定横向**：右栏只占最右那一段——中心列与左栏在同一水平带
     // 上各有自己的面板（它们的回落色是合法内容，不是本测试的对象）。
-    let in_panel = rect.origin.y >= right_bar_top - 1.0 &&
+    let in_panel = rect.origin.y >= panel_top - 1.0 &&
       rect.origin.y + rect.size.height <= right_bar_bottom + 1.0 &&
       rect.origin.x >= right_left - 1.0
     // 只要**有面积**的填充：零高/零宽的占位矩形画不出任何东西，
@@ -62,10 +72,13 @@ test "the docked AI composer shows no ambient-fallback surface" {
       (color.g - fallback.g).abs() < 0.01 &&
       (color.b - fallback.b).abs() < 0.01 {
       fail(
-        "ambient fallback surface painted inside the docked composer at y=" +
+        "ambient fallback surface painted inside the right panel at y=" +
         rect.origin.y.to_string() +
         " h=" +
-        rect.size.height.to_string(),
+        rect.size.height.to_string() +
+        " (docked band starts at " +
+        right_bar_top.to_string() +
+        ")",
       )
     }
   }
@@ -80,8 +93,12 @@ test "the docked AI composer shows no ambient-fallback surface" {
 ///
 /// 判据：输入面里的每一个元素都必须落在右栏之内——特别是**最右**的那个
 /// （发送钮），它是最先被挤出去的。
+///
+/// 卡片化后多一层账要算对：卡自己占掉左右各 `AI_CARD_PAD` + 卡内 8pt 内衬，
+/// 所以发送钮距面板右缘更远了——但**不能因此放宽判据**：`-2.0` 保证它仍在
+/// 面板内，`panel_left + 2.0` 保证它没被挤到左半边去。
 test "the docked AI composer never overflows the right panel" {
-  let model = initial_model()
+  let model = apply_shell(initial_model(), SetRightView(RvAi))
   let commands = shell_draw(model, 1280.0, 800.0)
   let panel_left = 1280.0 - @chrome.RIGHTBAR_WIDTH - @chrome.SASH_WIDTH
   let panel_right = 1280.0
@@ -502,20 +519,27 @@ test "clicking a block with a note shown selects the block under the pointer" {
 }
 
 ///|
-/// **输入面只有一个宿主：右栏底部**（VS Code 侧面板口径）。
+/// **输入面只在右栏 AI 页**（VS Code 侧栏分页口径）。
 ///
 /// 旧版有三个宿主（底栏 `BtAi` 页签 / 右栏停靠 / AI 模式中心）与一对互为出口
 /// 的切换钮，于是同一时刻「输入面在哪」要靠 `right_view × perspective` 推导，
-/// 还要防 stale 页签画出第二份 composer。宿主唯一化后这条契约变成：
-/// 检查器模式下右栏**必然**画出 composer，且**只有一份**。
+/// 还要防 stale 页签画出第二份 composer。收敛到「右栏一页」后再分页，契约
+/// 变成：**检查器页 0 枚、AI 页恰好 1 枚**（PsAi 中心是第三个落点，另有测试）。
 ///
 /// 判据取发送钮的绘制次数：一个宿主 = 一枚发送钮。
 test "the AI composer lives only in the right panel" {
   let model = initial_model()
-  let commands = shell_draw(model, 1280.0, 800.0)
+  // 检查器页：没有输入面（严格 VS Code 口径，本轮的分页决定）
+  assert_eq(
+    shell_find_send_buttons(shell_draw(model, 1280.0, 800.0)).length(),
+    0,
+    msg="the inspector page must not draw a composer",
+  )
+  // AI 页：恰好一枚，且落在右栏里
+  let on_ai = apply_shell(model, SetRightView(RvAi))
+  let commands = shell_draw(on_ai, 1280.0, 800.0)
   let sends = shell_find_send_buttons(commands)
   assert_eq(sends.length(), 1, msg="exactly one send button in the shell")
-  // 那一枚必须落在右栏里（面板左缘之右）
   let panel_left = 1280.0 - @chrome.RIGHTBAR_WIDTH - @chrome.SASH_WIDTH
   let send = sends[0]
   assert_true(
@@ -523,9 +547,7 @@ test "the AI composer lives only in the right panel" {
     msg="the only send button must sit inside the right panel",
   )
   // 输入面的占位文案在场（不是一块空白）
-  assert_true(
-    shell_has_text(commands, "描述") || shell_has_text(commands, "AI"),
-  )
+  assert_true(shell_has_text(commands, "描述"))
 }
 
 ///|
@@ -548,9 +570,9 @@ test "the bottom bar never offers an AI tab" {
 /// **折叠底栏不搬动输入面**（用户报过的缺陷：只想折叠面板，AI 却自己跑去右栏）。
 ///
 /// 宿主唯一化后这条缺陷在结构上不可能复发——输入面不在底栏里，底栏收起与它
-/// 无关。仍然保留断言：收起前后右栏都画出同一枚发送钮。
+/// 无关。仍然保留断言：收起前后 AI 页都画出同一枚发送钮。
 test "collapsing the bottom bar keeps the composer in the right panel" {
-  let model = initial_model()
+  let model = apply_shell(initial_model(), SetRightView(RvAi))
   let before = shell_draw(model, 1280.0, 800.0)
   assert_eq(shell_find_send_buttons(before).length(), 1)
   let collapsed = apply_shell(model, ToggleBottom)

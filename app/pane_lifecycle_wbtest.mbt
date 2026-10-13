@@ -93,19 +93,19 @@ test "hiding panes funnels into the empty stage with restore entries" {
 }
 
 ///|
-/// AI 输入条**只住在自己的宿主面板里**（底栏带 或 右栏），不浮在工作区上。
+/// AI 输入条**只住在自己的宿主面板里**（右栏 AI 页 / PsAi 中心），不浮在
+/// 工作区上。
 ///
 /// 真实缺陷（用户截图 + 本轮复查）：输入条的定位外层曾是无背景
 /// `@views.container`，会回落到环境 Base 刷子（不透明面板色）整帧铺满；
 /// 那个回落色又与相邻的积木画布底**完全同色**，于是「一条横带压在工作区
 /// 底部」被读成「工作区没铺满」——这正是用户报的「不协调」。
 ///
-/// 本仓的解法是**结构性的**：输入面只有一个宿主 = 右栏底部的钉底 composer
-/// （VS Code 侧面板口径），中心列与底栏里不再有任何 AI 定位层。判据取
-/// **宿主归属**：composer 的占位文字必须落在右栏里（中心列右缘之右），
-/// 且整棵壳里只有一份。
+/// 本仓的解法是**结构性的**：输入面只在右栏 AI 页（`RvAi`）里，中心列与
+/// 底栏里不再有任何 AI 定位层。判据取**宿主归属**：composer 的占位文字必须
+/// 落在右栏里（中心列右缘之右），且整棵壳里只有一份。
 test "AI input lives only inside its host panel" {
-  let model = initial_model()
+  let model = apply_shell(initial_model(), SetRightView(RvAi))
   let widths = shell_chrome_widths(model, 1280.0 - @chrome.ICONBAR_WIDTH)
   let center_left = @chrome.ICONBAR_WIDTH + 2.0 + @chrome.LEFTBAR_WIDTH + 1.0
   let center_right = center_left + widths.center
@@ -522,17 +522,18 @@ test "blocks pane appears only while an event handler is selected" {
 }
 
 ///|
-/// 右栏头的 ✕ **关闭整个右栏**，而不是清空选中。
+/// 右栏头的 ✕ **关闭整个右栏**，而不是清空选中；清空选中在**对象条**里。
 ///
 /// 回归意义（用户报的）：上一版把 `ClearSelection` 放在了右栏头整行的**最右
 /// 端**——那正是「关闭面板」按钮该在的位置（左栏的 ✕ 就在那里）。于是点它
 /// 只是清了选中、面板纹丝不动，读到语义就是「关闭右栏关错了东西」。
-/// 设计稿里两者是分开的：`#clearSel` 是对象芯片内部的小 ✕，面板关闭按钮
-/// 属于窗格头。
 ///
-/// 判据：右栏头必须同时存在两个不同语义的 ✕，且**收起右栏**的那个在更靠右
-/// 的位置；点它之后右栏真的消失（宽度归零、不画分隔线），并且能从图标栏
-/// 重新打开。
+/// 分页后头部还要放页块切换器，所以身份与清空整体下移到正文首段的
+/// **对象条**（`object_strip`）。判据随之分成两半：
+/// 1. 头部里 ≥2 枚 14–24pt 的动作钮，**最右者贴面板右缘**——那就是关闭 ✕
+///    （＋ 新建会话只在 AI 页出现，这里用检查器页，故为 ⚙ + ✕ 两枚）；
+/// 2. 清空 ✕ **不在头部那一条带里**（它在对象条内），所以「最右 = 关闭」这条
+///    几何判据不再可能被一个清空按钮冒充。
 test "the right panel head closes the panel, not the selection" {
   let model = initial_model()
   assert_true(!(model.right_view is RvHidden))
@@ -564,18 +565,18 @@ test "the right panel head closes the panel, not the selection" {
   let back = apply_shell(hidden, SetRightView(RvContext))
   assert_true(!(back.right_view is RvHidden))
   assert_true(shell_has_text(shell_draw(back, 1280.0, 800.0), "快速操作"))
-  // 头的右上角那个 ✕ 是「关闭面板」，它必须比「清空选中」的 ✕ 更靠右。
-  // 两个 ✕ 都是 20/18pt 的小按钮，用图标盒位置区分。
+  // 头部：动作簇全部贴右缘，最右一枚是「关闭整个右栏」。
   let commands = shell_draw(model, 1280.0, 800.0)
   let right_edge = @chrome.ICONBAR_WIDTH +
     2.0 +
     @chrome.LEFTBAR_WIDTH +
     1.0 +
     widths.center
+  let head_top = @chrome.TOPBAR_HEIGHT + 1.0
+  let head_bottom = head_top + @chrome.PANEL_HEAD_HEIGHT
   let close_boxes : Array[Double] = []
   for rect in shell_rects(commands) {
-    let in_head = rect.origin.y >= @chrome.TOPBAR_HEIGHT - 1.0 &&
-      rect.origin.y < @chrome.TOPBAR_HEIGHT + @chrome.PANEL_HEAD_HEIGHT
+    let in_head = rect.origin.y >= head_top - 1.0 && rect.origin.y < head_bottom
     if in_head &&
       rect.origin.x > right_edge &&
       rect.size.width >= 14.0 &&
@@ -586,7 +587,7 @@ test "the right panel head closes the panel, not the selection" {
   close_boxes.sort()
   if close_boxes.length() < 2 {
     fail(
-      "expected two distinct head buttons (clear selection + close panel), found " +
+      "expected two distinct head actions (settings + close panel), found " +
       close_boxes.length().to_string(),
     )
   }

@@ -258,60 +258,50 @@ pub fn side_subject_of(model : Model, t : @i18n.Translator) -> (String, String) 
 }
 
 ///|
-/// Context 面板头（VS Code 侧面板口径）：**标题靠左、动作簇靠右**，整行只有
-/// ghost 字形（不再有 tile 底块——安静头部才是侧面板的形态）。
+/// Context 面板头（VS Code 侧栏口径）：**页块切换器靠左、动作簇靠右**。
 ///
-/// 三段分组与两个 ✕ 的语义分工保持不变（历史 bug 的修正结论，见
-/// `memories/repo/moui-studio.md` 的「右栏头的 ✕」条）：`对象名 + 清除 ✕` 靠左
-/// 成组，然后权重 spacer，右边是种类徽标 + 设置齿轮 + **收起整个右栏**的 ✕。
-/// 清空选中永远紧挨对象名，绝不与关闭按钮互换位置。
+/// 装配走 `@chrome.page_switcher_head`（页块 + 降级逻辑 + 动作簇贴右缘的宽度
+/// 账都在 chrome 侧；那条「两档宽度必须走同一来源」的教训随实现搬了过去）。
+/// 这里只负责注入**这一页的一个特定事实**：AI 页多一枚「＋ 新建会话」。
+///
+/// 对象级动作（清空选中）**不在头部**——它在正文首段的对象条里，见
+/// `object_strip`（头部最右端是「关闭整个右栏」，两者不能挤在同一条带，
+/// 否则就是 2026-09-30 那次「点清空面板不动」的事故形态）。
 fn context_head(
   model : Model,
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let (name, kind) = side_subject_of(model, t)
-  let has_selection = name != text(t, "app.ctx.none")
-  let lead : Array[@moui.View[Msg]] = [
-    @views.text(
-      name,
-      theme=@chrome.studio_theme(),
-      width=(width - 130.0).max(60.0),
-      height=18.0,
-      align=TextStart,
-    ).foreground(@chrome.ide_text()),
-  ]
-  if has_selection {
-    lead.push(
+  let ai_on = plugin_active(model, "ai")
+  let on_ai = model.right_view is RvAi
+  // 动作簇：＋ 新建会话（仅 AI 页）/ 设置齿轮 / 收起整个右栏。
+  // 三枚同为 24×20 的 ghost 字形（`action_widths` 与渲染同源）。
+  let trail : Array[@moui.View[Msg]] = []
+  if ai_on && on_ai {
+    trail.push(
       ghost_icon_button(
-        Close,
-        text(t, "app.ctx.clear"),
+        Plus,
+        text(t, "app.ai.session.new"),
         false,
-        ClearSelection,
-        18.0,
-        18.0,
-        10.0,
-        @chrome.ide_panel_alt(),
+        AiSessionOp(AiSessionCreate(civil_seconds(model.clock))),
+        24.0,
+        20.0,
+        12.0,
+        @chrome.ide_panel(),
         hovered=model.hover_hint,
       ),
     )
   }
-  let trail : Array[@moui.View[Msg]] = []
-  if kind != "" {
-    trail.push(@chrome.count_badge(kind, 4))
-  }
-  // 面板头齿轮（VS Code 侧面板头部同款）：与活动栏齿轮、⌘K 设置入口重复是
-  // IDE 惯例——用户在该面板里想改设置时不必离开它。
   trail.push(
     ghost_icon_button(
       Gear,
       text(t, "app.settings.title"),
       model.settings_open,
       ToggleSettings,
+      24.0,
       20.0,
-      20.0,
-      11.0,
-      @chrome.ide_panel_alt(),
+      12.0,
+      @chrome.ide_panel(),
       hovered=model.hover_hint,
     ),
   )
@@ -321,46 +311,51 @@ fn context_head(
       text(t, "app.right.hide"),
       false,
       SetRightView(RvHidden),
-      20.0,
+      24.0,
       20.0,
       12.0,
-      @chrome.ide_panel_alt(),
+      @chrome.ide_panel(),
       hovered=model.hover_hint,
     ),
   )
-  @views.container(
-    @views.padding_xy(
-      @chrome.fill_row(
-        [
-          @views.row(lead, spacing=4.0, align=Center),
-          @views.spacer(min_length=4.0, weight=1.0),
-          @views.row(trail, spacing=4.0, align=Center),
-        ],
-        (width - 16.0).max(80.0),
-        4.0,
-        Center,
-      ),
-      horizontal=8.0,
-      vertical=0.0,
-    ),
-    background=@chrome.ide_panel_alt(),
-    height=@chrome.PANEL_HEAD_HEIGHT,
-    width~,
-    padding=0.0,
+  let widths : Array[Double] = []
+  for item in trail {
+    ignore(item)
+    widths.push(24.0)
+  }
+  // 页块：检查器恒在；AI 页只在插件启用时存在（能力缺席就不留空页）。
+  let pages : Array[@chrome.PageSpec] = [
+    @chrome.PageSpec::{
+      icon: Sidebar,
+      label: text(t, "app.right.page.inspector"),
+    },
+  ]
+  if ai_on {
+    pages.push(@chrome.PageSpec::{
+      icon: Chat,
+      label: text(t, "app.right.page.ai"),
+    })
+  }
+  let selected = if on_ai { 1 } else { 0 }
+  @chrome.page_switcher_head(
+    pages,
+    selected,
+    i => SetRightView(if i == 0 { RvContext } else { RvAi }),
+    trail,
+    widths,
+    width,
+    hint => HoverHint(hint),
+    hovered=model.hover_hint,
   )
 }
 
 ///|
 /// 六页签条：属性/状态/数据/动作/依赖/运行时。每页签宽度均分。
 ///
-/// **VS Code 视图切换器口径**：扁平文字页签，没有每格的填充底——活动态只由
-/// 「亮一档的文字 + 2pt 强调色下划线」表达（旧版用 `ide_selection()` 填满格子，
-/// 六个方块连排是「不协调」的主因）。页签行与面板头同底色连成一条带，下划线
-/// 即两条带之间的边界。
-///
-/// 等宽格子**沿用既有公式**（不改成内容宽）：窄窗紧急收缩可把右栏压到 170pt，
-/// 内容宽页签在那里必然溢出。`cell` 宽把 5 个间隙与左右内垫一起算进去——旧版
-/// 只减了内垫忘了间隙，「依赖」页签正好顶到右边缘被切掉半个字（实测截图）。
+/// 装配本身走 `@chrome.sub_tab_row`（等宽格子 + 活动态 2pt 下划线 + 显式底色；
+/// 那条「等宽公式必须把 5 个间隙与内垫一起算进去」的教训随实现一起搬去了
+/// chrome——窄窗紧急收缩档 170pt 下内容宽页签必然溢出，是最长那个被切半个字
+/// 的实测成因）。这里只负责把 app 的页签枚举映射成**标签 + 选中位 + 消息**。
 fn context_tabs(
   model : Model,
   t : @i18n.Translator,
@@ -374,69 +369,56 @@ fn context_tabs(
     (CtxDeps, text(t, "app.ctx.deps")),
     (CtxRuntime, text(t, "app.ctx.runtime")),
   ]
-  let cell_width = ((width - 12.0 - 5.0 * 3.0) / 6.0).max(28.0)
-  let tabs : Array[@moui.View[Msg]] = []
+  let labels : Array[String] = []
+  let mut selected_index = 0
+  let mut index = 0
   for entry in entries {
     let (tab, label) = entry
-    let selected = same_tab(model.ctx_tab, tab)
-    tabs.push(
-      @views.container(
-        // 列必须显式定尺：不定尺的列按内容高测量，下划线会跟着漂。
-        @views.column(
-          [
-            @views.text(
-              label,
-              theme=@chrome.studio_theme(),
-              width=cell_width,
-              height=16.0,
-              align=TextCenter,
-            ).foreground(
-              if selected {
-                @chrome.ide_text()
-              } else {
-                @chrome.ide_text_faint()
-              },
-            ),
-            // 活动态下划线：2pt 强调色条；非活动态同高的「空条」占位，
-            // 六格因此严格等高（高度不随选中跳变）。
-            @views.container(
-              @views.empty(),
-              background=if selected {
-                @chrome.ide_accent()
-              } else {
-                @chrome.ide_panel_alt()
-              },
-              width=(cell_width - 12.0).max(8.0),
-              height=2.0,
-              corner_radius=1.0,
-              padding=0.0,
-            ),
-          ],
-          spacing=3.0,
-          align=Center,
-        ).frame(width=cell_width, height=22.0),
-        // 底色必须显式：无背景 container 在 paint 期回落到环境 Base 刷子，
-        // 与页签行的 `ide_panel_alt()` 不同色就会在每个格子里露一块异色
-        // （本仓反复踩的 ambient 坑）。
-        background=@chrome.ide_panel_alt(),
-        width=cell_width,
-        height=22.0,
-        padding=0.0,
-      )
-      .accessibility_label(label)
-      .on_tap(SetContextTab(tab)),
-    )
+    labels.push(label)
+    if same_tab(model.ctx_tab, tab) {
+      selected_index = index
+    }
+    index = index + 1
   }
-  @views.container(
-    @views.padding_xy(
-      @chrome.fill_row(tabs, (width - 12.0).max(80.0), 3.0, Center),
-      horizontal=6.0,
-      vertical=0.0,
-    ),
-    background=@chrome.ide_panel_alt(),
-    height=RIGHT_TAB_HEIGHT,
-    width~,
-    padding=0.0,
+  @chrome.sub_tab_row(
+    labels,
+    selected_index,
+    i => SetContextTab(entries[i].0),
+    width,
+    @chrome.ide_panel_alt(),
+  )
+}
+
+///|
+/// 对象条（检查器正文首段）：当前对象的身份 + 清空选中的出口。
+///
+/// **为什么不在头部**：头部最右端是「关闭整个右栏」的 ✕（2026-09-30 事故的
+/// 修正结论——把 `ClearSelection` 放在整行最右端时，点它面板纹丝不动，用户
+/// 读到的语义是「关闭右栏关错了东西」）。分页后头部还要放页块切换器，身份
+/// 信息只能下移。放在正文首段有三个好处：① 与它描述的内容（下面的属性字段）
+/// 贴在一起；② 滚动区首段天然有分区头节奏；③ 头部只剩「页块 / spacer /
+/// 动作簇」三段，语义各自干净。
+///
+/// 装配走 `@chrome.object_strip`（chrome 侧的通用「分区头 + 身份行」原子）；
+/// 这里只负责把 `side_subject_of` 的**单一判据**结果与清除消息注入进去——
+/// 判据与输入卡的对象芯片同源，两处永不漂移。
+fn object_strip(
+  model : Model,
+  t : @i18n.Translator,
+  width : Double,
+) -> @moui.View[Msg] {
+  let (name, kind) = side_subject_of(model, t)
+  let has_selection = name != text(t, "app.ctx.none")
+  @chrome.object_strip(
+    text(t, "app.right.object"),
+    name,
+    kind,
+    has_selection,
+    ClearSelection,
+    text(t, "app.ctx.clear"),
+    width,
+    hint => HoverHint(hint),
+    hovered=model.hover_hint,
   )
 }
 

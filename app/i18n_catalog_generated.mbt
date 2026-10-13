@@ -334,6 +334,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.recent.align", GeneratedI18nMessage::Text("aligned")),
       ("app.recent.empty", GeneratedI18nMessage::Text("No changes yet")),
       ("app.recent.title", GeneratedI18nMessage::Text("Recent changes")),
+      ("app.right.object", GeneratedI18nMessage::Text("Object")),
       (
         "app.run.gate.ask",
         GeneratedI18nMessage::Text("The program asks: {prompt}"),
@@ -428,6 +429,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.props.visible", GeneratedI18nMessage::Text("Shown")),
       ("app.qa.align_left", GeneratedI18nMessage::Text("Align left (24)")),
+      ("app.right.page.ai", GeneratedI18nMessage::Text("AI")),
       ("app.run.variables", GeneratedI18nMessage::Text("Variables")),
       ("app.runtime.title", GeneratedI18nMessage::Text("Runtime snapshot")),
       ("app.settings.dark", GeneratedI18nMessage::Text("Dark")),
@@ -676,7 +678,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.props.align_end", GeneratedI18nMessage::Text("Right")),
       ("app.qa.align_center", GeneratedI18nMessage::Text("Center horizontally")),
-      ("app.right.ai_thread", GeneratedI18nMessage::Text("AI thread")),
       ("app.run.gate.reject", GeneratedI18nMessage::Text("Reject")),
       (
         "app.run.gate.submit",
@@ -764,6 +765,10 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.command.file.new", GeneratedI18nMessage::Text("New blank program")),
       ("app.command.group.ai", GeneratedI18nMessage::Text("AI layer")),
+      (
+        "app.command.right.ai",
+        GeneratedI18nMessage::Text("Right panel: AI chat"),
+      ),
       ("app.command.run.stop", GeneratedI18nMessage::Text("Stop current run")),
       ("app.command.settings", GeneratedI18nMessage::Text("Open settings")),
       (
@@ -1335,6 +1340,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         "app.recent.action.resize",
         GeneratedI18nMessage::Text("Resized control"),
       ),
+      ("app.right.page.inspector", GeneratedI18nMessage::Text("Inspector")),
       (
         "app.run.gate.answer_hint",
         GeneratedI18nMessage::Text("Type an answer and press Enter"),
@@ -2269,6 +2275,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.recent.align", GeneratedI18nMessage::Text("对齐")),
       ("app.recent.empty", GeneratedI18nMessage::Text("还没有修改记录")),
       ("app.recent.title", GeneratedI18nMessage::Text("最近修改")),
+      ("app.right.object", GeneratedI18nMessage::Text("对象")),
       (
         "app.run.gate.ask",
         GeneratedI18nMessage::Text("程序在提问：{prompt}"),
@@ -2363,6 +2370,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.props.visible", GeneratedI18nMessage::Text("显示")),
       ("app.qa.align_left", GeneratedI18nMessage::Text("左对齐（24）")),
+      ("app.right.page.ai", GeneratedI18nMessage::Text("AI")),
       ("app.run.variables", GeneratedI18nMessage::Text("变量")),
       ("app.runtime.title", GeneratedI18nMessage::Text("运行时快照")),
       ("app.settings.dark", GeneratedI18nMessage::Text("暗色")),
@@ -2609,7 +2617,6 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.props.align_end", GeneratedI18nMessage::Text("右")),
       ("app.qa.align_center", GeneratedI18nMessage::Text("水平居中")),
-      ("app.right.ai_thread", GeneratedI18nMessage::Text("AI 会话")),
       ("app.run.gate.reject", GeneratedI18nMessage::Text("拒绝")),
       (
         "app.run.gate.submit",
@@ -2697,6 +2704,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ),
       ("app.command.file.new", GeneratedI18nMessage::Text("新建空白程序")),
       ("app.command.group.ai", GeneratedI18nMessage::Text("AI 层")),
+      ("app.command.right.ai", GeneratedI18nMessage::Text("右栏：AI 会话")),
       ("app.command.run.stop", GeneratedI18nMessage::Text("停止当前运行")),
       ("app.command.settings", GeneratedI18nMessage::Text("打开设置")),
       ("app.command.ws.empty", GeneratedI18nMessage::Text("切到空舞台")),
@@ -3235,6 +3243,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.recent.action.insert", GeneratedI18nMessage::Text("插入控件")),
       ("app.recent.action.rename", GeneratedI18nMessage::Text("重命名")),
       ("app.recent.action.resize", GeneratedI18nMessage::Text("调整尺寸")),
+      ("app.right.page.inspector", GeneratedI18nMessage::Text("检查器")),
       (
         "app.run.gate.answer_hint",
         GeneratedI18nMessage::Text("输入回答后按回车"),

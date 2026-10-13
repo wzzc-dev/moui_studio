@@ -57,7 +57,12 @@ pub fn icon_button(
     // 与 `on_hover` 写状态同源——同一时刻只有被悬停的那个按钮可见。
     .on_hover(active => HoverHint(if active { tip } else { "" }))
     .on_tap(on_click)
-  @views.tooltip(button, tip, visible=tip != "" && hovered == tip)
+  @views.tooltip(
+    button,
+    tip,
+    visible=tip != "" && hovered == tip,
+    theme=@chrome.studio_theme(),
+  )
 }
 
 ///|
@@ -102,7 +107,12 @@ pub fn ghost_icon_button(
     // `hovered` 由组合根传 `model.hover_hint`，同一时刻只有被悬停者可见）。
     .on_hover(active => HoverHint(if active { tip } else { "" }))
     .on_tap(on_click)
-  @views.tooltip(button, tip, visible=tip != "" && hovered == tip)
+  @views.tooltip(
+    button,
+    tip,
+    visible=tip != "" && hovered == tip,
+    theme=@chrome.studio_theme(),
+  )
 }
 
 ///|

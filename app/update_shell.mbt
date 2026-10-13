@@ -761,16 +761,30 @@ fn remove_project_at(model : Model, index : Int) -> Model {
 }
 
 ///|
-/// 右栏当前视图（M2）：右栏头的 ✕ 关（RvHidden），重开与换视图走命令
-/// 面板逃生口（studio.right.context 等）。幂等。
+/// 右栏当前视图（M2）：右栏头的 ✕ 关（RvHidden），重开与换页走页块切换器
+/// 与命令面板（studio.right.context / studio.right.ai 等）。幂等。
 ///
-/// AI 输入面只有一个宿主（右栏底部），所以这里**不需要**再为「切到停靠档时
-/// 把底栏的 stale AI 页签复位」打补丁——底栏根本没有 AI 页签了。
+/// 输入面（只有 `RvAi` 与 `PsAi` 中心有）随视图自动进出场——不需要再为
+/// 「切页时把别处的 stale AI 页签复位」打补丁，底栏根本没有 AI 页签。
 fn set_right_view(
   model : Model,
   view : RightView,
 ) -> (Model, @moui.Effect[Msg]) {
   ({ ..model, right_view: view, }, @moui.Effect::none())
+}
+
+///|
+/// 能力缺席归一化：AI 插件被禁用时，停在 `RvAi` 的右栏退回检查器页。
+///
+/// 与「禁用终端时 `BtTerminal` 退回 `BtAudit`」「禁用 AI 时 `PsAi` 退回
+/// `PsVisual`」同一条纪律：**能力没了就把状态从那个入口搬走**，否则会留下
+/// 一个「切过去什么都没有」的死页（AI 页的转录与输入面全部由插件贡献）。
+/// `TogglePlugin` 与 boot 恢复（`PluginsLoaded`）两条路径共用。
+pub fn normalize_disabled_plugins(model : Model) -> Model {
+  if !plugin_active(model, "ai") && model.right_view is RvAi {
+    return { ..model, right_view: RvContext, }
+  }
+  model
 }
 
 ///|
@@ -1189,7 +1203,7 @@ fn run_studio_command(model : Model, id : String) -> (Model, @moui.Effect[Msg]) 
         SetRightView(
           if model.right_view is RvHidden {
             // AI 模式展开 = 工作区面板（更改/文件——VS Code 智能体模式口径）;
-            // 其余模式 = 检查器
+            // 其余模式 = 检查器页
             if model.perspective is PsAi {
               RvWorkspace
             } else {
@@ -1200,7 +1214,10 @@ fn run_studio_command(model : Model, id : String) -> (Model, @moui.Effect[Msg]) 
           },
         ),
       )
+    // 右栏两页各一条直达命令（页块切换器的命令面板镜像——与 studio.left.*
+    // 同一口径：图标栏/页块能做的，命令面板也能做）。
     "studio.right.context" => update_pure(model, SetRightView(RvContext))
+    "studio.right.ai" => update_pure(model, SetRightView(RvAi))
     "studio.ctx.runtime" => update_pure(model, SetContextTab(CtxRuntime))
     "studio.code.complete" => update_pure(model, TriggerCompletion)
     "studio.code.jump" => update_pure(model, JumpToDeclaration)

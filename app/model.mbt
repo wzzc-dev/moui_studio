@@ -290,12 +290,23 @@ pub extend RightPanelTab with Eq::{not_equal, equal}
 /// 的 2×2 组合——单一枚举消除两状态互拉（历史上出过「收起底栏 AI 自己跑
 /// 去右栏」的事故，根因就是两个独立状态描述同一件事）。
 ///
-/// `RvContext` 与旧 `RvAi` 已合并：AI 输入面只有一个宿主（右栏底部），
-/// 「检查器」与「检查器 + AI 卡钉底」不再需要两个状态来描述同一块区域。
+/// **三页 + 收起（VS Code 侧栏口径）**：右栏是一条**分页**的面板，页由面板头
+/// 的页块切换器选。旧版把检查器与 AI 输入面塞在同一页（输入面钉在检查器
+/// 底部），那是「一个宿主」时代的折中；分页后各归其位：
+///
+/// - `RvContext` = 检查器页：六个子页签 + 对象条 + 快速操作 + 运行时监视。
+///   **不含输入面**——检查器不该为聊天让出常驻高度。
+/// - `RvAi` = AI 页：会话转录（滚动）+ 底部圆角输入卡 + 状态行。会话管理与
+///   输入面都在这一页，对应 VS Code 侧栏的「聊天」页。
+/// - `RvWorkspace` = AI 工作台模式（`PsAi`）右栏：更改/文件双页签。这是
+///   **另一个产品面**（审阅 agent 改动），不属侧栏分页体系，故独立成档。
+/// - `RvHidden` = 右栏不占宽。
 pub(all) enum RightView {
-  /// Context 检查器 + 钉底 composer（VS Code 侧面板口径）
+  /// 检查器页：六个子页签 + 对象条 + 快速操作 + 运行时监视
   RvContext
-  /// AI 模式工作区面板：更改（提案历史）/ 文件（工程树）双页签
+  /// AI 页：会话转录 + 底部输入卡（VS Code 侧栏「聊天」页）
+  RvAi
+  /// AI 工作台模式的右栏：更改（提案历史）/ 文件（工程树）双页签
   RvWorkspace
   /// 右栏不占宽
   RvHidden
@@ -614,8 +625,8 @@ pub(all) struct Model {
   // 组合 profile（M7）：Teaching = 只开放图形化模式 + 无终端
   profile : StudioProfile
   // 右栏当前视图（M2）：取代 right_visible × ai_anchor 的 2×2 组合。
-  // AI 输入面只有一个宿主（RvContext 的右栏底部；AI 工作台模式另在中心），
-  // 所以右栏视图不再参与「输入面在哪」的推导。
+  // 分页后它同时决定**正文画哪一页**与**输入面在不在场**（只有 RvAi 与
+  // PsAi 中心有输入面）——单一状态，不再需要「输入面在哪」的独立推导。
   right_view : RightView
   // 沉浸式无边框：true 时顶栏之上多一条窗控条（信号点 + 拖拽区）。
   // 平台入口按自己有没有无边框窗口决定——Web 恒 false。
@@ -694,7 +705,7 @@ pub(all) struct Model {
   // 逐步推进——Scratch/Figma 的「拖到边缘自动滚动」，长链条拖拽的必需项
   // （不自动滚就只能拖到可视区内，链尾的块永远拖不动）。
   blocks_scroll_y : Double
-  // AI 输入面：宿主由 right_view × perspective 推导（M2）/ 线程卡是否折叠
+  // AI 页：转录里的「已工作 N」折叠组是否收起（右栏 AI 页与 PsAi 中心共用）
   ai_cards_folded : Bool
   // 流式生成进行中（M4）：StreamChunk 分片只在为真时追加（停止即截断）
   ai_streaming : Bool

@@ -422,52 +422,56 @@ fn workspace_content(
 pub const RIGHT_TAB_HEIGHT : Double = 30.0
 
 ///|
-/// 右栏主体（VS Code 侧面板形态）。
+/// 右栏主体（VS Code 侧栏形态，**分页**）。
 ///
-/// 高度预算：面板头 30 + 页签行 30 + 钉底块（`ai_docked_height` 单点算）+
-/// 滚动正文（剩余，下限 100）。**正文之外的块都定高**，正文吃掉剩余——列也
-/// 必须显式定尺，否则容器盒会把整列居中（右栏头会掉到中间）。
+/// 两页共用一个 30pt 面板头（页块切换器 + 动作簇，见 `context_head`），正文
+/// 各归其位：
 ///
-/// AI 插件被禁用（教学版 profile / G7.3 插件管理）时**整块不出**：没有输入面
-/// 就没有宿主，正文吃满整高。这与活动栏 AI 模式、底栏 AI 页签走同一个谓词
-/// （`plugin_active`）——能力缺席时不出「点了必失败」的假按钮。
+/// - `RvContext`（检查器页）：页签行 30 + 单一滚动区（对象条 / 积木编辑卡 /
+///   当前页签 / 快速操作 / 运行时监视）。**没有钉底块**——分页的意义正在于此：
+///   检查器不必为聊天让出 148pt。
+/// - `RvAi`（AI 页）：会话转录 + 钉底输入卡（`ai_page` 自己算高度）。
+/// - `RvWorkspace` 由 `ide_root` 的调用方分派给 `ai_workspace_panel`
+///   （那是另一个产品面，不属侧栏分页体系）。
+///
+/// 列必须显式定尺，否则容器盒会把整列居中（右栏头会掉到中间）。
+///
+/// AI 插件被禁用（教学版 profile / G7.3 插件管理）时 AI 页整块不存在：
+/// 页块不画、`RvAi` 被 `normalize_disabled_plugins` 归一化回检查器页——
+/// 与活动栏 AI 模式、底栏终端页签走同一条「能力缺席就不留空页」的纪律。
 pub fn ide_right_panel(
   model : Model,
   t : @i18n.Translator,
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
-  let ctx_head = context_head(model, t, width)
-  let tabs = context_tabs(model, t, width)
-  let ai_on = plugin_active(model, "ai")
-  // 钉底块夹取：与旧 `ai_slice` 同纪律——窗口极矮时宁可裁 composer 脚注，
-  // 也不让正文塌成 0（正常 800pt 窗不可能触发）。
-  let docked_h = if ai_on {
-    ai_docked_height(model, width).min(
-      (height - @chrome.PANEL_HEAD_HEIGHT - RIGHT_TAB_HEIGHT - 100.0).max(0.0),
+  let head = context_head(model, t, width)
+  if model.right_view is RvAi {
+    return @views.container(
+      @views.column(
+        [head, ai_page(model, t, width, height - @chrome.PANEL_HEAD_HEIGHT)],
+        spacing=0.0,
+      ).frame(width~, height~),
+      background=@chrome.ide_panel(),
+      width~,
+      height~,
+      padding=0.0,
     )
-  } else {
-    0.0
   }
-  let body_height = (height -
-  @chrome.PANEL_HEAD_HEIGHT -
-  RIGHT_TAB_HEIGHT -
-  docked_h).max(100.0)
-  let docked : Array[@moui.View[Msg]] = if ai_on {
-    [@chrome.hairline(), ai_docked_block(model, t, width, docked_h)]
-  } else {
-    []
-  }
+  let tabs = context_tabs(model, t, width)
+  let body_height = (height - @chrome.PANEL_HEAD_HEIGHT - RIGHT_TAB_HEIGHT).max(
+    100.0,
+  )
   @views.container(
     @views.column(
       [
-        ctx_head,
+        head,
         tabs,
         @views.container(
           @views.scroll_view(
             context_sections(model, t, width),
             width~,
-            height~,
+            height=body_height,
             shows_indicator=true,
           ),
           background=@chrome.ide_panel(),
@@ -475,8 +479,7 @@ pub fn ide_right_panel(
           height=body_height,
           padding=0.0,
         ),
-      ] +
-      docked,
+      ],
       spacing=0.0,
     ).frame(width~, height~),
     background=@chrome.ide_panel(),
@@ -487,26 +490,26 @@ pub fn ide_right_panel(
 }
 
 ///|
-/// 正文分区序列（单一滚动区的内容）。顺序即优先级：
+/// 检查器页正文分区序列（单一滚动区的内容）。顺序即优先级：
 ///
-/// 1. **AI 会话**（仅当本会话有线程卡）——它只在该有内容时存在，所以默认态
-///    检查器的视觉与改造前完全一致；出现时紧贴页签行可见，对应 VS Code
-///    「转录在正文顶部、输入在底部」的口径。
+/// 1. **对象条**（`object_strip`）——身份与「清空选中」的出口。分页后它从
+///    面板头下移到正文首段：头部最右端是「关闭整个右栏」的 ✕（2026-09-30
+///    事故的修正结论），而头部还要放页块切换器，两件事不能挤在一起。
 /// 2. **积木编辑卡**（仅当有选中积木）——「当前选中积木」的编辑面，与下面
 ///    几个「当前选中控件」的切面是两个对象，所以不做成第七个页签（页签是
 ///    同一对象的不同切面），而是常驻在正文里——选中积木时立刻可见、无需再点。
 /// 3. **当前页签内容**——不加分区头：页签行已经是它的标签（VS Code 的视图
 ///    切换器下方也不重复一行同名标题）。
-/// 4. **快速操作** / 5. **运行时监视**——原固定块，现为分区。
+/// 4. **快速操作** / 5. **运行时监视**——面板级固定块改成的分区。
+///
+/// **AI 会话已不在这一页**：转录归 AI 页（`ai_page`）。检查器因此不再被聊天
+/// 内容整体下移，「有 AI 内容时检查器变形」的旧形态一并消失。
 fn context_sections(
   model : Model,
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let sections : Array[@moui.View[Msg]] = []
-  if plugin_active(model, "ai") && has_ai_thread(model) {
-    sections.push(ai_thread_section(model, t, width))
-  }
+  let sections : Array[@moui.View[Msg]] = [object_strip(model, t, width)]
   match context_block_editor(model, t, width) {
     Some(editor) => sections.push(editor)
     None => ()

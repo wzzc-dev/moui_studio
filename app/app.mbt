@@ -292,7 +292,8 @@ pub fn update_with_services(
         removed
       }
       let toggled = { ..model, plugin_disabled: next, }
-      // 归一化:禁用终端/AI 时若正停在其入口,先退回无害页签/模式
+      // 归一化:禁用终端/AI 时若正停在其入口,先退回无害页签/模式/页。
+      // 右栏的 RvAi 归一化收在 `normalize_disabled_plugins`（boot 恢复同源）。
       let normalized = if id == "terminal" &&
         !plugin_active(toggled, "terminal") &&
         toggled.bottom_tab is BtTerminal {
@@ -300,9 +301,9 @@ pub fn update_with_services(
       } else if id == "ai" &&
         !plugin_active(toggled, "ai") &&
         toggled.perspective is PsAi {
-        apply_perspective_preset(toggled, PsVisual)
+        normalize_disabled_plugins(apply_perspective_preset(toggled, PsVisual))
       } else {
-        toggled
+        normalize_disabled_plugins(toggled)
       }
       (
         normalized,
@@ -322,12 +323,14 @@ pub fn update_with_services(
           // 与 Toggle 同款归一化（boot 恢复也可能带来禁用态）
           let normalized = if !plugin_active(restored, "terminal") &&
             restored.bottom_tab is BtTerminal {
-            { ..restored, bottom_tab: BtAudit, }
+            normalize_disabled_plugins({ ..restored, bottom_tab: BtAudit, })
           } else if !plugin_active(restored, "ai") &&
             restored.perspective is PsAi {
-            apply_perspective_preset(restored, PsVisual)
+            normalize_disabled_plugins(
+              apply_perspective_preset(restored, PsVisual),
+            )
           } else {
-            restored
+            normalize_disabled_plugins(restored)
           }
           (normalized, @moui.Effect::none())
         }

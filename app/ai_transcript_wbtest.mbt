@@ -317,33 +317,40 @@ test "empty session composer is vertically centered in a tall window" {
 }
 
 ///|
-/// 右栏钉底块的高度账必须装下「面板头 + 页签行 + 钉底块 + 100pt 正文」。
+/// 钉底块的高度账必须装下「面板头 + 钉底块 + 100pt 转录」。
 ///
 /// 真机缺陷回归（旧底栏版）：高度账漏算芯片行（≥420 宽才渲染，28+2），脚注被
-/// 裁。宿主唯一化后同一纪律搬到右栏——`ai_docked_height` 是唯一来源，视图层
-/// 与这里都必须从它取，两处各算一份就会把 composer 顶出右栏。
+/// 裁。分页后同一纪律搬到 AI 页——`ai_docked_height` 是唯一来源，视图层与这里
+/// 都必须从它取，两处各算一份就会把输入卡顶出右栏。
+///
+/// **每一段都走具名常量**：手写数字正是这条测试要防的「双算账」——卡片化时
+/// 漏记卡内衬 12pt，状态行被顶出面板，就是这条断言抓到的。
 test "the docked composer block reserves room for its own chrome" {
   let model = apply_ai(initial_model(), TogglePaneBlocks)
   for width in [@chrome.RIGHTBAR_MIN_WIDTH, @chrome.RIGHTBAR_WIDTH, 560.0] {
     let docked = ai_docked_height(model, width)
-    // 逐段对齐视图：内衬 + 上下文芯片 + composer 块 + 决策条足迹
-    let needed = AI_CARD_PAD * 2.0 +
+    // 逐段对齐视图：外衬 + 卡内衬 + 上下文芯片 + composer 块 + 决策条足迹
+    // + 卡与状态行的间距 + 状态行。
+    let needed = AI_DOCK_PAD_V * 2.0 +
+      AI_CARD_INSET * 2.0 +
       AI_SUBJECT_CHIP_HEIGHT +
-      2.0 +
+      AI_CARD_ROW_GAP * 2.0 +
       composer_block_height(width) +
       (if has_decision_content(model) {
         decision_bar_height(model) + 12.0
       } else {
         0.0
-      })
+      }) +
+      AI_DOCK_GAP +
+      POSTURE_HEIGHT
     assert_true(
       docked + 0.001 >= needed,
       msg="docked height under-books its own chrome at width=" +
         width.to_string(),
     )
-    // 面板头 + 页签行 + 钉底块 + 100pt 正文必须放得进一个 800pt 窗口
+    // 面板头 + 钉底块 + 100pt 转录必须放得进一个 800pt 窗口
     assert_true(
-      @chrome.PANEL_HEAD_HEIGHT + RIGHT_TAB_HEIGHT + docked + 100.0 <=
+      @chrome.PANEL_HEAD_HEIGHT + docked + 100.0 <=
       800.0 - @chrome.STATUSBAR_HEIGHT - @chrome.TOPBAR_HEIGHT - 1.0,
       msg="right panel chrome does not fit the window at width=" +
         width.to_string(),

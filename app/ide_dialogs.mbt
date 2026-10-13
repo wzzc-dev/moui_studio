@@ -686,6 +686,12 @@ pub fn studio_commands(t : @i18n.Translator) -> Array[StudioCommand] {
       hint: "",
     },
     StudioCommand::{
+      id: "studio.right.ai",
+      label: text(t, "app.command.right.ai"),
+      group: group_pane,
+      hint: "",
+    },
+    StudioCommand::{
       id: "studio.ctx.runtime",
       label: text(t, "app.command.ctx.runtime"),
       group: group_pane,

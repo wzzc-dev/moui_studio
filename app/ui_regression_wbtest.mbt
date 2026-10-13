@@ -1,13 +1,16 @@
 ///|
-/// 本轮 UI 批次的回归断言：右栏钉底 composer / 舞台产品主题 / 提示换行。
+/// 本轮 UI 批次的回归断言：右栏 AI 页的钉底输入卡 / 舞台产品主题 / 提示换行。
 /// 复用 shell_layout_wbtest 的白盒助手（同包共享）。
 
 ///|
+/// 输入卡是 AI 页底部的钉底块，必须**完整落在右栏**内——不能越到中心列，
+/// 也不能溢出窗口右缘。历史：浮动锚点按中心列居中、卡片宽度是设计值；
+/// 分页后宽度由右栏决定，判据仍是「落在右栏区间内」。
+///
+/// **须先切到 AI 页**（`RvAi`）：输入面只在那一页，检查器页按严格 VS Code
+/// 口径不画它——这条断言的对象是「有输入面时它在哪」，不是「它无处不在」。
 test "the docked AI composer stays inside the right panel" {
-  // 输入盒是右栏底部的钉底块，必须**完整落在右栏**内——不能越到中心列，
-  // 也不能溢出窗口右缘。历史：浮动锚点按中心列居中、卡片宽度是设计值；
-  // 钉到右栏后宽度由右栏决定，判据也随之改为「落在右栏区间内」。
-  let model = initial_model()
+  let model = apply_shell(initial_model(), SetRightView(RvAi))
   let width = 1280.0
   let commands = shell_draw(model, width, 800.0)
   let chrome = shell_chrome_widths(model, width - @chrome.ICONBAR_WIDTH)
@@ -194,8 +197,12 @@ test "design stage fills the pane with a centered stage and full lattice" {
 }
 
 ///|
-/// 钉底块预算上限：上下文芯片 + 两行输入盒不得长成旧版 ~190pt 的三层
-/// chrome。预算涨回去，检查器正文就被吃穿。
+/// 钉底块预算上限：输入卡（上下文芯片 + 两行输入盒）+ 卡下状态行，不得长成
+/// 旧版 ~190pt 的三层 chrome。预算涨回去，AI 页的转录区就被吃穿。
+///
+/// 分页后这条只约束 AI 页——检查器页没有钉底块，所以「检查器正文被吃穿」
+/// 这个动机已随分页消失，但**转录区**仍然会被吃穿，上限继续有效。
+/// `~148` = 内衬 16 + 芯片 22 + 间距 2 + 输入块 88 + 状态行 20。
 test "the docked composer block stays compact" {
   let model = initial_model()
   let height = ai_docked_height(model, @chrome.RIGHTBAR_WIDTH)
@@ -203,7 +210,7 @@ test "the docked composer block stays compact" {
     fail(
       "the docked composer block grew too tall: " +
       height.to_string() +
-      " (chip + two-line composer budget is ~124)",
+      " (chip + two-line composer + posture budget is ~148)",
     )
   }
 }

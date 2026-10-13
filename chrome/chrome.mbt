@@ -53,7 +53,16 @@ pub const LEFTBAR_MAX_WIDTH : Double = 480.0
 
 ///|
 /// 右栏**默认**宽度（可拖拽改宽，同左栏）。
-pub const RIGHTBAR_WIDTH : Double = 272.0
+///
+/// 272 → **340**（用户反馈「默认宽一点」）。272 是「只有属性字段」时代的宽度：
+/// 字段行（标签 + 输入框）在那个宽度下刚好排得下。分页后这一栏还要装**会话
+/// 转录**（气泡 / 卡片 / diff 行）——那些内容的自然宽度远大于表单字段，272 下
+/// 每一段长文本都被迫截断或折行，读起来局促。340 ≈ VS Code 侧栏聊天页的默认
+/// 观感，且仍在「不抢中心工作区」的范围内（1280 宽窗口下中心仍有 ~640）。
+///
+/// 它只是**默认值**：用户拖拽后的宽度存 `model.right_width`，`shell_chrome_widths`
+/// 按那个分配；窄窗的紧急收缩档（232 / 170）也不受影响。
+pub const RIGHTBAR_WIDTH : Double = 340.0
 
 ///|
 pub const RIGHTBAR_MIN_WIDTH : Double = 200.0
@@ -706,6 +715,12 @@ pub fn[Msg] progress_bar(percent : Int, width : Double) -> @moui.View[Msg] {
 
 ///|
 /// 差分行：diff 卡的 ± 行（等宽，前缀着色）。
+///
+/// **必须自己截断**：`@views.text` 的宽是**最小值**（布局取
+/// `max(声明宽, 实测宽)`，见 `moui/views/text/text.mbt`），所以一段长代码行
+/// 会**自己长宽**并越过外层裁剪区——在窄宿主（右栏 AI 页转录 248pt）里表现
+/// 为「文字被面板右缘切掉半行」，而且只有长行才触发（短行一切正常）。
+/// `fit_label` 是本仓为这一类问题定的截断口径（带省略号 + 95% 安全余量）。
 pub fn[Msg] diff_row(
   marker : String,
   text : String,
@@ -716,6 +731,8 @@ pub fn[Msg] diff_row(
     "-" => ide_danger()
     _ => ide_text_faint()
   }
+  // 文本可用宽 = 行宽 − 行号槽 12 − 间距 2 − 安全余量 2。
+  let text_w = (width - 16.0).max(40.0)
   @views.row(
     [
       @views.text(
@@ -726,10 +743,10 @@ pub fn[Msg] diff_row(
         height=16.0,
       ).foreground(color),
       @views.text(
-        text,
+        fit_label(text, text_w),
         theme=studio_theme(),
         role=Mono,
-        width=(width - 30.0).max(40.0),
+        width=text_w,
         height=16.0,
         align=TextStart,
       ).foreground(if marker == " " { ide_text_muted() } else { ide_text() }),
