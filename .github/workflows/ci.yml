@@ -37,6 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      # moon check 只做类型检查，不触发依赖 prebuild，所以不需要系统包。
       - name: Set up MoonBit
         uses: ./.github/actions/setup-moonbit
 
@@ -60,6 +61,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Set up Linux native dependencies
+        uses: ./.github/actions/setup-linux-native-deps
+
       - name: Set up MoonBit
         uses: ./.github/actions/setup-moonbit
 
@@ -78,6 +82,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Set up Linux native dependencies
+        uses: ./.github/actions/setup-linux-native-deps
 
       - name: Set up MoonBit
         uses: ./.github/actions/setup-moonbit
@@ -100,6 +107,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Set up Linux native dependencies
+        uses: ./.github/actions/setup-linux-native-deps
+
       - name: Set up MoonBit
         uses: ./.github/actions/setup-moonbit
 
@@ -118,6 +128,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Set up Linux native dependencies
+        uses: ./.github/actions/setup-linux-native-deps
 
       - name: Set up MoonBit
         uses: ./.github/actions/setup-moonbit
@@ -139,6 +152,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Set up Linux native dependencies
+        uses: ./.github/actions/setup-linux-native-deps
 
       - name: Set up MoonBit
         uses: ./.github/actions/setup-moonbit

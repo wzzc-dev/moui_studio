@@ -1,0 +1,27 @@
+name: Set up Linux native dependencies
+description: Install the system packages required by wzzc-dev/window prebuilds on Linux.
+
+# `moon test --target native` 触发依赖模块 wzzc-dev/window 的 prebuild，它在
+# Linux 上用 wayland-scanner 从 wayland-protocols 的 XML 生成 protocol C 代码，
+# 并通过 pkg-config 解析 wayland-client / X11 链接 flag。ubuntu runner 默认
+# 没有这些包，prebuild 会直接失败（包列表与母仓库 scripts/set_linux_deps.sh
+# 的 base + wayland + x11 集合一致；studio 测试不链接窗口后端，冒烟/运行时
+# 用的额外包这里不需要）。
+
+runs:
+  using: composite
+  steps:
+    - name: Install Wayland and X11 development packages
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          pkg-config \
+          libwayland-dev \
+          libwayland-bin \
+          wayland-protocols \
+          libx11-dev \
+          libxext-dev \
+          libxrandr-dev
