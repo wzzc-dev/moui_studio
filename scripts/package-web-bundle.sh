@@ -81,9 +81,11 @@ mkdir -p "$BUNDLE_DIR/web_wasm"
 cp web_wasm/index.html "$BUNDLE_DIR/web_wasm/index.html"
 
 # 2) The ES-module runtimes: moui_web_renderer's runtime.js (+ its Canvas2D
-#    fallback, loaded on demand) and moui's browser_runtime.js, at the exact
-#    relative paths the imports expect under .mooncakes/.
-RUNTIME_DIR="$BUNDLE_DIR/.mooncakes/wzzc-dev"
+#    fallback, loaded on demand) and moui's browser_runtime.js, under
+#    mooncakes/ (no dot prefix: GitHub Pages does not serve dot-directories).
+#    The entry page tries ../.mooncakes/ first (local checkouts) and falls
+#    back to ../mooncakes/ (this bundle).
+RUNTIME_DIR="$BUNDLE_DIR/mooncakes/wzzc-dev"
 mkdir -p "$RUNTIME_DIR/moui_web_renderer/canvas2d" "$RUNTIME_DIR/moui/backend/web"
 for js in runtime.js canvas2d_runtime.js; do
   if [ -f ".mooncakes/wzzc-dev/moui_web_renderer/$js" ]; then
@@ -134,9 +136,11 @@ cat > "$BUNDLE_DIR/README.txt" <<'EOF'
 MoUI Studio (Web, wasm-gc)
 ==========================
 
-This bundle mirrors the checkout root (web_wasm/ + .mooncakes/ + _build/)
+This bundle mirrors the checkout root (web_wasm/ + mooncakes/ + _build/)
 because the entry page loads its ES-module runtimes and the wasm module via
-checkout-root-relative paths.
+checkout-root-relative paths. The runtime directory is mooncakes/ without
+the dot prefix because GitHub Pages does not serve dot-directories; the
+entry page tries .mooncakes/ (local checkouts) before mooncakes/.
 
 Serve this directory with any static file server, then open /web_wasm/:
 

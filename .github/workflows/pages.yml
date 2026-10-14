@@ -51,10 +51,10 @@ jobs:
       - name: Verify bundle layout
         run: |
           test -f dist/pages/moui-studio-web/web_wasm/index.html
-          test -f dist/pages/moui-studio-web/.mooncakes/wzzc-dev/moui_web_renderer/runtime.js
-          test -f dist/pages/moui-studio-web/.mooncakes/wzzc-dev/moui_web_renderer/canvas2d_runtime.js
-          test -f dist/pages/moui-studio-web/.mooncakes/wzzc-dev/moui_web_renderer/canvas2d/canvas2d_runtime.js
-          test -f dist/pages/moui-studio-web/.mooncakes/wzzc-dev/moui/backend/web/browser_runtime.js
+          test -f dist/pages/moui-studio-web/mooncakes/wzzc-dev/moui_web_renderer/runtime.js
+          test -f dist/pages/moui-studio-web/mooncakes/wzzc-dev/moui_web_renderer/canvas2d_runtime.js
+          test -f dist/pages/moui-studio-web/mooncakes/wzzc-dev/moui_web_renderer/canvas2d/canvas2d_runtime.js
+          test -f dist/pages/moui-studio-web/mooncakes/wzzc-dev/moui/backend/web/browser_runtime.js
           test -f dist/pages/moui-studio-web/_build/wasm-gc/release/build/web_wasm/web_wasm.wasm
 
       - name: Upload GitHub Pages artifact

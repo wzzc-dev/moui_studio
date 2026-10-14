@@ -10,7 +10,26 @@
     #status { position: fixed; left: 12px; bottom: 12px; color: #9aa4b0; font: 13px system-ui; }
   </style>
   <script type="module">
-    import { bootMouiWasmGcApp } from "../.mooncakes/wzzc-dev/moui_web_renderer/runtime.js";
+    // Web 运行时在本地 checkout 里位于 .mooncakes/（mooncakes 依赖目录）；
+    // 分发 bundle 与 GitHub Pages 部署把它放在去掉点前缀的 mooncakes/
+    // （Pages 不服务点目录）。两个候选基路径按序尝试。
+    let bootMouiWasmGcApp;
+    let runtimeError = null;
+    for (const base of ["../.mooncakes/", "../mooncakes/"]) {
+      try {
+        bootMouiWasmGcApp = (await import(base + "wzzc-dev/moui_web_renderer/runtime.js")).bootMouiWasmGcApp;
+        break;
+      } catch (error) {
+        runtimeError = error;
+      }
+    }
+    if (!bootMouiWasmGcApp) {
+      const failed = document.getElementById("status");
+      if (failed) {
+        failed.textContent = "加载失败: Web 运行时不可达（" + (runtimeError?.message ?? "unknown") + "）";
+      }
+      throw runtimeError ?? new Error("web runtime not found");
+    }
     const status = document.getElementById("status");
     // `moon build web_wasm --target wasm-gc` lays the artifact out under the
     // owning module's name, so the path differs between the standalone
