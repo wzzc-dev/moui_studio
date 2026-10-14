@@ -1,0 +1,54 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/plugins/code"
+
+import {
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui_studio/domain/ir",
+  "wzzc-dev/moui_studio/domain/studio_lang",
+}
+
+// Values
+pub fn apply_completion(String, Int, String) -> (String, Int)
+
+pub fn code_ui_feature() -> @core.Feature[CodeUiState, CodeUiMsg]
+
+pub fn completions_for(@studio_lang.Language, Array[@ir.Control], String, String) -> Array[String]
+
+pub fn declaration_line_of(@studio_lang.Language, String, Int) -> Int
+
+pub fn dsl_indent_for_newline(@studio_lang.Language, String, Int) -> String
+
+pub fn file_tab_label(String) -> String
+
+pub fn mono_code_font() -> @core.FontSpec
+
+pub fn split_line_texts(String) -> Array[String]
+
+pub fn update_code_ui(CodeUiState, CodeUiMsg) -> (CodeUiState, @core.Effect[CodeUiMsg])
+
+pub fn word_at_caret(String, Int) -> (String, Int)
+
+// Errors
+
+// Types and methods
+pub(all) enum CodeUiMsg {
+  CaretMoved(Int, @core.TextRange?)
+  Scrolled(Double)
+  DismissCompletion
+  SetCompletions(Array[String])
+  ApplyCompletion(Int)
+  GoToLine(Int, Double)
+}
+
+pub(all) struct CodeUiState {
+  mut caret : Int
+  mut selection : @core.TextRange?
+  mut scroll : @core.Point
+  mut completions : Array[String]
+  mut completion_open : Bool
+}
+pub fn CodeUiState::new() -> Self
+
+// Type aliases
+
+// Traits

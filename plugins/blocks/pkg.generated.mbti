@@ -4,12 +4,16 @@ package "wzzc-dev/moui_studio/plugins/blocks"
 import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/views/common",
+  "wzzc-dev/moui_i18n",
+  "wzzc-dev/moui_studio/domain/studio_lang",
 }
 
 // Values
 pub const BLOCKS_EDGE_ZONE : Double = 24.0
 
 pub const BLOCKS_NOTE_HEIGHT : Double = 22.0
+
+pub const BLOCKS_UI_AUTOSCROLL_STEP : Double = 28.0
 
 pub fn block_outline_path(Double, Double, Double, Double, Bool, Bool) -> Array[@core.PathVerb]
 
@@ -43,13 +47,29 @@ pub fn blocks_slot_hit(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Arr
 
 pub fn blocks_slot_rects(@wzzc-dev/moui_studio/domain/blocks.BlockItem, @core.Rect, (String) -> Double, lead? : Double) -> Array[(@wzzc-dev/moui_studio/domain/blocks.TextSegment, @core.Rect)]
 
+pub fn blocks_ui_feature() -> @core.Feature[BlocksUiState, BlocksUiMsg]
+
 pub fn blocks_value_hit(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], Double, Double, (String) -> Double, y_offset? : Double, lead_texts? : Array[String]) -> SlotHit?
 
 pub fn blocks_visual_rects(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect]) -> Array[@core.Rect]
 
+pub fn category_at(Int) -> @wzzc-dev/moui_studio/domain/blocks.BlockCategory?
+
+pub fn expression_templates() -> Array[ExpressionTemplate]
+
 pub fn no_text_measure(String) -> Double
 
 pub fn paint_block_outline(@common.PaintContext, Double, Double, Double, Double, @wzzc-dev/moui_studio/domain/blocks.BlockKind, Bool, Bool) -> Unit
+
+pub fn statement_palette_title(@moui_i18n.Translator) -> String
+
+pub fn statement_templates() -> Array[StatementTemplate]
+
+pub fn template_index_of(Int, String) -> Int?
+
+pub fn templates_for_category(@wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> Array[StatementTemplate]
+
+pub fn update_blocks_ui(BlocksUiState, BlocksUiMsg) -> (BlocksUiState, @core.Effect[BlocksUiMsg])
 
 // Errors
 
@@ -74,11 +94,49 @@ pub(all) enum BlocksDrawOp {
   SlotHole(Double, Double, Double, Double, Bool, Bool)
 }
 
+pub(all) enum BlocksUiMsg {
+  ToggleStatementPalette(Int)
+  SelectCategory(Int)
+  BlocksScrolled(Double)
+  BlocksAutoScroll(Int)
+  BlockValueInput(String)
+  BlockValueCancel
+  PaletteDragStart(Int, Int)
+  PaletteExprDragStart(Int)
+  BlocksContextMenuClose
+}
+
+pub(all) struct BlocksUiState {
+  mut selected_category : Int
+  mut statement_palette_open : Bool
+  mut blocks_scroll_y : Double
+  mut block_value_edit : (Int, Array[Int], String)?
+  mut block_menu : (Int, Double, Double)?
+  mut palette_drag : (Int, Int)?
+  mut expr_drag : Int?
+}
+pub fn BlocksUiState::new() -> Self
+
+pub(all) struct ExpressionTemplate {
+  label_key : String
+  skeleton_zh : String
+  skeleton_en : String
+}
+pub fn ExpressionTemplate::skeleton(Self, @studio_lang.Language) -> String
+
 pub(all) struct SlotHit {
   block_index : Int
   expr_path : Array[Int]
   rect : @core.Rect
 }
+
+pub(all) struct StatementTemplate {
+  category : @wzzc-dev/moui_studio/domain/blocks.BlockCategory
+  label_key : String
+  skeleton_zh : String
+  skeleton_en : String
+}
+pub fn StatementTemplate::skeleton(Self, @studio_lang.Language) -> String
 
 // Type aliases
 

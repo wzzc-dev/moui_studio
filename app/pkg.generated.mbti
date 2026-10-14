@@ -14,6 +14,7 @@ import {
   "wzzc-dev/moui_studio/domain/studio_lang",
   "wzzc-dev/moui_studio/kernel",
   "wzzc-dev/moui_studio/plugins/ai",
+  "wzzc-dev/moui_studio/plugins/code",
   "wzzc-dev/moui_studio/plugins/run",
   "wzzc-dev/moui_studio/plugins/terminal",
   "wzzc-dev/moui_studio/services/blocks_code",
@@ -21,7 +22,6 @@ import {
   "wzzc-dev/moui_studio/services/compiled_runtime",
   "wzzc-dev/moui_studio/services/export",
   "wzzc-dev/moui_studio/services/form_designer",
-  "wzzc-dev/moui_studio/services/markdown",
   "wzzc-dev/moui_webview/host",
 }
 
@@ -38,21 +38,11 @@ pub const AI_DOCK_GAP : Double = 2.0
 
 pub const AI_DOCK_PAD_V : Double = 6.0
 
-pub const AI_SESSION_HEADER_HEIGHT : Double = 34.0
-
-pub const AI_SESSION_ROW_HEIGHT : Double = 36.0
-
 pub const AI_SUBJECT_CHIP_HEIGHT : Double = 22.0
-
-pub const AI_WS_ENTRY_HEIGHT : Double = 44.0
-
-pub const AI_WS_HEAD_HEIGHT : Double = 34.0
 
 pub const ALIGN_MARGIN : Int = 24
 
 pub const AUDIT_LIMIT : Int = 200
-
-pub const BLOCKS_AUTOSCROLL_STEP : Double = 28.0
 
 pub const BLOCK_ROW_HEIGHT : Double = 40.0
 
@@ -116,23 +106,15 @@ pub fn active_project_of(Model) -> @wzzc-dev/moui_studio/plugins/project.Project
 
 pub fn ai_center(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
-pub fn ai_docked_block(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
-
 pub fn ai_docked_height(Model, Double) -> Double
 
 pub fn ai_history_dialog(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
 pub fn ai_page(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
-pub fn ai_session_list(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
-
-pub fn ai_workspace_panel(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
-
 pub fn any_file_dirty(Model) -> Bool
 
 pub fn app_running(Model) -> Bool
-
-pub fn apply_completion(String, Int, String) -> (String, Int)
 
 pub fn artifact_done_key(ArtifactAction) -> String
 
@@ -178,8 +160,6 @@ pub fn button_label_width(String) -> Double
 
 pub fn card_text_by_seq(Model, Int) -> String?
 
-pub fn category_at(Int) -> @wzzc-dev/moui_studio/domain/blocks.BlockCategory?
-
 pub fn category_rail(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
 pub fn center_width_of(Model, Double) -> Double
@@ -194,45 +174,21 @@ pub fn clamp_bottom_height(Double) -> Double
 
 pub fn clear_selection(Model) -> Model
 
-pub fn clone_path(Array[Int]) -> Array[Int]
-
 pub fn close_open_file_at(Model, Int) -> Model
 
 pub fn code_lines(Model) -> Array[CodeLine]
 
-pub fn code_project_files(@ir.StudioProgram) -> CodeProjectFiles
-
-pub fn code_project_target(@wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> String?
-
-pub fn code_project_text(@ir.StudioProgram) -> String
-
 pub fn code_project_write_effect(@services.FileServices, dir~ : String, form_mbt~ : String, handlers_mbt~ : String, project_data~ : String) -> @core.Effect[Msg]
-
-pub fn code_text_diff(String, String) -> Array[(String, String)]
 
 pub fn code_workspace(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn command_palette_dialog(Model, @moui_i18n.Translator) -> @core.View[Msg]
-
-pub fn compile_action_bar(Model, @moui_i18n.Translator) -> @core.View[Msg]
-
-pub fn compile_active_phase(Array[@export.CompileProgress]) -> @export.CompilePhase?
-
-pub fn compile_progress_counts(Array[@export.CompileProgress]) -> (Int, Int)
-
-pub fn compile_report_card(Model, @moui_i18n.Translator) -> @core.View[Msg]
-
-pub fn compile_step_state(Array[@export.CompileProgress], @export.CompilePhase) -> Bool?
 
 pub fn compile_submit_needed(Model, Model) -> Bool
 
 pub fn compiled_audit_op_rank(@compiled_runtime.StepOp) -> Int
 
 pub fn compiled_error_message(@moui_i18n.Translator, @compiled_runtime.ErrorDetails) -> String
-
-pub fn compiled_run_header(Model, @moui_i18n.Translator) -> @core.View[Msg]
-
-pub fn completions_for(Model, String) -> Array[String]
 
 pub fn composer_block_height(Double) -> Double
 
@@ -248,8 +204,6 @@ pub fn control_events(@ir.Control) -> Array[@ir.EventKind]
 
 pub fn control_kind_key(@ir.ControlKind) -> String
 
-pub fn control_rect(@ir.Control) -> @core.Rect
-
 pub fn current_handler(Model) -> @ir.Handler?
 
 pub fn current_target(Model) -> EditTarget?
@@ -257,8 +211,6 @@ pub fn current_target(Model) -> EditTarget?
 pub fn data_file_entries(Model) -> Array[DataFileEntry]
 
 pub fn decision_bar_height(Model) -> Double
-
-pub fn declaration_line_of(Model, Int) -> Int
 
 pub fn declaration_strip(Model, Double) -> @core.View[Msg]
 
@@ -270,19 +222,9 @@ pub fn default_studio_clock() -> StudioClock
 
 pub fn default_viewport_size() -> @core.Size
 
-pub fn design_backdrop_plan() -> Array[DesignDrawOp]
-
-pub fn design_overlay_plan(@ir.StudioProgram, String, String?, multi_selected? : Array[String]) -> Array[DesignDrawOp]
-
-pub fn design_stage(@ir.StudioProgram, String, String?, Array[@core.View[Msg]], Array[@core.Rect], String, String, multi_selected? : Array[String]) -> @core.View[Msg]
-
-pub let design_total_height : Double
-
 pub fn dir_is_writable(String) -> Result[Unit, String]
 
 pub fn direct_scan(String, on_progress? : (@wzzc-dev/moui_studio/services/project.WalkProgress) -> Unit) -> Result[@wzzc-dev/moui_studio/services/project.ProjectScanOutput, String]
-
-pub fn dirname_of(String) -> String
 
 pub fn emit_code_project_write(Model) -> Model
 
@@ -318,8 +260,6 @@ pub fn explorer_rows_for_test(Model) -> Array[String]
 
 pub fn explorer_section_expanded(Model, String) -> Bool
 
-pub fn expression_templates() -> Array[ExpressionTemplate]
-
 pub fn file_icon_for_test(String) -> @style.IconName
 
 pub fn file_is_dirty(@wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> Bool
@@ -334,8 +274,6 @@ pub fn first_control_name(Array[@ir.Control]) -> String
 
 pub fn first_handler_key(Array[@ir.Handler]) -> String
 
-pub fn fit_scale(Double, Double, Double, Double) -> Double
-
 pub fn folder_url_of(String) -> String
 
 pub fn follow_transcript(Model) -> Model
@@ -345,6 +283,8 @@ pub fn form_design_apply_move(FormDesignerSession, Int, Double, Double) -> (Form
 pub fn form_design_apply_resize(FormDesignerSession, Int, Double, Double) -> (FormDesignerSession, Bool)
 
 pub fn form_design_canvas(FormDesignerSession, Int?, Double, Double) -> @core.View[Msg]
+
+pub fn form_design_drag_commit(Array[@core.Rect], Int?, Double, Double, Double, Double) -> Msg
 
 pub fn form_design_load_task(@services.FileServices, String, String) -> @services.ServiceTask[String]
 
@@ -360,7 +300,7 @@ pub fn gate_pending(Model) -> Bool
 
 pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog]
 
-pub fn ghost_icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, @core.Color, hovered? : String) -> @core.View[Msg]
+pub fn ghost_icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, @core.Color) -> @core.View[Msg]
 
 pub fn group_can_create(String) -> Bool
 
@@ -368,13 +308,11 @@ pub fn group_children(Array[TreeNode], String) -> Array[TreeNode]
 
 pub fn handler_key(String, String) -> String
 
+pub fn has_decision_content(Model) -> Bool
+
 pub fn hhmm_of_stamp(Int) -> String
 
-pub fn hit_test_control(Array[@ir.Control], Double, Double) -> @ir.Control?
-
-pub fn hit_test_handle(@ir.Control, Double, Double) -> @ir.DragCorner?
-
-pub fn icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, tile? : Bool, hovered? : String) -> @core.View[Msg]
+pub fn icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, tile? : Bool) -> @core.View[Msg]
 
 pub fn ide_bottom_bar(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -421,12 +359,6 @@ pub fn log_line(Model, LogLevel, String) -> Model
 pub fn mark_ai_sessions_dirty(Model) -> Unit
 
 pub fn mark_projects_dirty(Model) -> Unit
-
-pub fn markdown_blocks_view(Array[@markdown.MarkdownBlock], Double) -> @core.View[Msg]
-
-pub fn middle_ellipsis(String, Double) -> String
-
-pub fn migrate_studio_source(String, String) -> Result[MigrationOutcome, String]
 
 pub fn moonbit_line_ranged(String, Int) -> Array[RangedToken]
 
@@ -530,8 +462,6 @@ pub fn runtime_sample_arrived(Model, RuntimeInspectSample) -> Model
 
 pub fn same_category(@wzzc-dev/moui_studio/domain/blocks.BlockCategory, @wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> Bool
 
-pub fn same_path(Array[Int], Array[Int]) -> Bool
-
 pub fn search_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn seed_code_draft(Model) -> Model
@@ -562,23 +492,11 @@ pub fn shortcut_icon_button(@style.IconName, String, Msg, @core.KeyboardShortcut
 
 pub fn side_subject_of(Model, @moui_i18n.Translator) -> (String, String)
 
-pub fn snap_move_position(Array[@ir.Control], String, Double, Double, Double, Double) -> (Double, Double)
-
-pub fn snap_resize_position(Array[@ir.Control], String, @ir.Control, @ir.DragCorner, Double, Double) -> (Double, Double)
-
-pub fn split_line_texts(String) -> Array[String]
-
 pub fn split_lines(String) -> Array[String]
 
 pub fn splitter(Double, Double) -> @core.View[Msg]
 
-pub fn[Msg] stage_layout(Array[@core.View[Msg]], Array[@core.Rect]) -> @core.View[Msg]
-
 pub fn statement_palette_panel(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
-
-pub fn statement_palette_title(@moui_i18n.Translator) -> String
-
-pub fn statement_templates() -> Array[StatementTemplate]
 
 pub fn status_build_label(Model) -> String
 
@@ -594,19 +512,13 @@ pub fn studio_program_commands(Model) -> Array[@core.ProgramCommand[Msg]]
 
 pub fn target_note(Model) -> String
 
-pub fn template_index_of(Int, String) -> Int?
-
 pub fn template_program(Int) -> @ir.StudioProgram
-
-pub fn templates_for_category(@wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> Array[StatementTemplate]
 
 pub fn terminal_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn text(@moui_i18n.Translator, String) -> String
 
 pub fn text_with(@moui_i18n.Translator, String, Array[(String, String)]) -> String
-
-pub let title_bar_height : Double
 
 pub fn toast_host(@core.View[Msg], Model) -> @core.View[Msg]
 
@@ -684,8 +596,6 @@ pub fn with_md_session(rel~ : String, content~ : String) -> @moui_richtext.Markd
 
 pub fn with_notice(Model, String, Bool) -> Model
 
-pub fn word_at_caret(String, Int) -> (String, Int)
-
 pub fn workspace_display_name(String) -> String
 
 // Errors
@@ -738,11 +648,6 @@ pub(all) struct CodeLine {
   tokens : Array[CodeToken]
 }
 
-pub(all) struct CodeProjectFiles {
-  form_mbt : String
-  handlers_mbt : String
-}
-
 pub(all) struct CodeToken {
   kind : CodeTokenKind
   text : String
@@ -756,16 +661,6 @@ pub(all) enum CodeTokenKind {
   TokComment
   TokPlain
 }
-
-pub(all) enum ComposerMode {
-  ComposeEdit
-  ComposeGenerate
-  ComposeExplain
-  ComposeRepair
-  ComposeChat
-} derive(Eq)
-pub fn ComposerMode::equal(Self, Self) -> Bool
-pub fn ComposerMode::not_equal(Self, Self) -> Bool
 
 pub(all) enum ConfirmKind {
   CkDeleteControl(String)
@@ -792,20 +687,6 @@ pub(all) struct DataFileEntry {
   preview : String
 }
 
-pub(all) enum DesignDrawOp {
-  WindowFrame(@core.Rect)
-  GridDot(@core.Rect)
-  WindowTitleBar(@core.Rect)
-  TrafficLight(@core.Rect, Int)
-  BoundsOutline(@core.Rect)
-  GhostName(@core.Rect, String)
-  SelectionStroke(@core.Rect)
-  SelectedNamePill(@core.Rect, String)
-  SelectionHandle(@core.Rect)
-  GuideV(Double)
-  GuideH(Double)
-}
-
 pub(all) enum DragKind {
   Move(Int, Int)
   Resize(@ir.DragCorner)
@@ -821,13 +702,6 @@ pub(all) struct EditTarget {
   body : Array[@ir.Stmt]
   is_function : Bool
 }
-
-pub(all) struct ExpressionTemplate {
-  label_key : String
-  skeleton_zh : String
-  skeleton_en : String
-}
-pub fn ExpressionTemplate::skeleton(Self, @studio_lang.Language) -> String
 
 pub(all) struct FormDesignerSession {
   root : String
@@ -874,13 +748,6 @@ pub(all) struct LogLine {
   text : String
 }
 
-pub(all) struct MigrationOutcome {
-  program : @ir.StudioProgram
-  form_path : String
-  handlers_path : String
-  files : CodeProjectFiles
-}
-
 pub(all) enum Mode {
   ModeDesign
   ModeBlocks
@@ -907,12 +774,8 @@ pub(all) struct Model {
   side_target : SideTarget?
   code_draft : String
   code_error : String
-  code_caret : Int
-  code_selection : @core.TextRange?
-  code_scroll : @core.Point
   code_diagnostics : Array[@code_editor.CodeDiagnostic]
-  completions : Array[String]
-  completion_open : Bool
+  code_ui : @code.CodeUiState
   pending_confirm : ConfirmKind?
   open_confirmed : Bool
   runtime_report : RuntimeInspectSample?
@@ -925,21 +788,14 @@ pub(all) struct Model {
   compile_report : @export.CompileReport?
   compile_busy : Bool
   compile_progress : Array[@export.CompileProgress]
-  compile_output_open : Bool
   command_palette_open : Bool
   command_palette_query : String
   hover_studio_command : String
   hover_hint : String
-  pending : PendingProposal?
+  pending : @ai.PendingProposal?
   ai_sessions : @ai.AiSessions
-  composer_mode : ComposerMode
-  composer_mode_picker_open : Bool
-  right_panel_tab : RightPanelTab
+  mut ai_ui : @ai.AiUiState
   prompt_error : String
-  provider_endpoint : String
-  provider_model : String
-  provider_key : String
-  provider_key_revealed : Bool
   ai_available : Bool
   dirty : Bool
   saved_encoding : String
@@ -951,7 +807,7 @@ pub(all) struct Model {
   ai_busy : Bool
   selected_block : Int
   block_draft : String
-  block_value_edit : (Int, Array[Int], String)?
+  mut blocks_ui : @wzzc-dev/moui_studio/plugins/blocks.BlocksUiState
   gate_answer_draft : String
   hover_path : Array[Int]?
   drag : DragState?
@@ -975,8 +831,6 @@ pub(all) struct Model {
   profile : StudioProfile
   right_view : RightView
   immersive : Bool
-  tree_query : String
-  tree_collapsed : Array[String]
   project_state : @wzzc-dev/moui_studio/plugins/project.ProjectState
   projects_restore_pending : Int
   restore_active_root : String
@@ -986,7 +840,6 @@ pub(all) struct Model {
   multi_selected : Array[String]
   ui_dark : Bool
   breakpoints : Array[Int]
-  search_query : String
   search_hits : Array[SearchHit]
   search_busy : Bool
   last_build : @build.BuildReport?
@@ -997,7 +850,7 @@ pub(all) struct Model {
   semantic_draft : String
   form_designer : FormDesignerSession?
   selected_form_control : Int?
-  preview_mode : PreviewMode
+  run_ui : @run.RunUiState
   preview_web_url : String?
   preview_web_opened : Bool
   ctx_tab : ContextTab
@@ -1010,32 +863,16 @@ pub(all) struct Model {
   log_seq : Int
   recent_changes : Array[@wzzc-dev/moui_studio/plugins/project.RecentChange]
   recent_seq : Int
-  block_menu : (Int, Double, Double)?
-  palette_drag : (Int, Int)?
-  expr_drag : Int?
-  blocks_scroll_y : Double
-  ai_cards_folded : Bool
   ai_streaming : Bool
   clock : StudioClock
-  mut transcript_scroll : @core.Point
-  mut transcript_scroll_seq : Int
-  mut transcript_follow : Bool
-  ai_sessions_search_open : Bool
-  ai_sessions_query : String
-  ai_session_hover : Int
-  session_rename : (Int, String)?
   terminal : @terminal.TerminalState
   mut terminal_open : Bool
   mut terminal_scroll : @core.Point
   mut terminal_scroll_seq : Int
-  settings_open : Bool
-  ai_history_open : Bool
   toasts : Array[ToastEntry]
-  selected_category : Int
-  statement_palette_open : Bool
-  tree_create_group : String
   ir_highlight : Array[Int]
 }
+pub fn Model::preview_mode(Self) -> PreviewMode
 
 pub(all) enum Msg {
   ProjectOp(@wzzc-dev/moui_studio/plugins/project.ProjectMsg)
@@ -1047,15 +884,8 @@ pub(all) enum Msg {
   SaveProjectFile
   SaveAllFiles
   ProjectFileSaveFinished(String, @services.ServiceTaskResult[Unit])
-  SelectFileTab(Int)
-  CloseFileTab(Int)
-  FileCreateDraft(String)
   FileCreateCommit
-  FileCreateDismiss
-  FileRenameStart(String)
-  FileRenameDraft(String)
   FileRenameCommit
-  FileRenameDismiss
   ProjectFileCreated(String, @services.ServiceTaskResult[Unit])
   ProjectRenameRead(String, String, @services.ServiceTaskResult[String])
   ProjectRenameWritten(String, String, @services.ServiceTaskResult[Unit])
@@ -1074,7 +904,6 @@ pub(all) enum Msg {
   UiDarkLoaded(@services.ServiceTaskResult[String?])
   ToggleBreakpoint(Int)
   RunToBreakpoint
-  SearchQueryDraft(String)
   SearchRun
   SearchFinished(@services.ServiceTaskResult[Array[SearchHit]])
   SearchHitClicked(String)
@@ -1085,7 +914,6 @@ pub(all) enum Msg {
   SelectSide(SideTarget)
   SetWindowTitle(String)
   SetTimerInterval(String)
-  ToggleTreeCreate(String)
   AddVariable
   RenameVariable(String, String)
   SetVariableInit(String, String)
@@ -1105,22 +933,16 @@ pub(all) enum Msg {
   SelectHandler(String)
   CreateHandler(String, @ir.EventKind)
   EditCode(String)
-  EditorCaretMoved(Int, @core.TextRange?)
-  EditorScrolled(Double)
   RuntimeRefresh
   TriggerCompletion
   ApplyCompletion(String)
   JumpToDeclaration
-  DismissCompletion
+  CodeUiOp(@code.CodeUiMsg)
   RequestConfirm(ConfirmKind)
   ConfirmAccepted
   ConfirmDismissed
   Undo
   Redo
-  SetPrompt(String)
-  SetComposerMode(ComposerMode)
-  ToggleComposerModePicker
-  SetRightPanelTab(RightPanelTab)
   ComposerRun
   RealGenerationFinished(Result[String, String])
   ChatSubmit
@@ -1133,22 +955,15 @@ pub(all) enum Msg {
   DuplicateBlock
   DeleteBlock
   SelectBlockStep(Int)
-  ToggleStatementPalette(Int)
   InsertStatement(Int, Int)
-  PaletteDragStart(Int, Int)
-  PaletteExprDragStart(Int)
   RunSingleBlock
-  BlocksAutoScroll(Int)
-  BlocksScrolled(Double)
   AddFunction
   EditTargetNote(String)
   RenameFunction(String, String)
   EditBlockValue(Int, Array[Int])
   GateAnswerInput(String)
   GateAnswerSubmit
-  BlockValueInput(String)
   BlockValueCommit
-  BlockValueCancel
   ExpressionDrop(Int, Array[Int])
   DropExpression(Int, Int, Array[Int])
   PaletteDrop(Double, Double, Double)
@@ -1156,10 +971,6 @@ pub(all) enum Msg {
   GenerateProposal
   AcceptProposal
   RejectProposal
-  SetProviderEndpoint(String)
-  SetProviderModel(String)
-  SetProviderKey(String)
-  ToggleProviderKeyReveal
   DraftLoaded(@services.ServiceTaskResult[String?])
   RunStart
   RunStop
@@ -1169,7 +980,6 @@ pub(all) enum Msg {
   CompileRunFailed(String)
   CompileStopped
   CompileJump(Int)
-  ToggleCompileOutput
   CompileProgress(@export.CompileProgress)
   CopyArtifactPath(String)
   RevealArtifact(String)
@@ -1185,7 +995,6 @@ pub(all) enum Msg {
   ToastTick
   ControlInputDone(String)
   BlocksContextMenu(Int, Double, Double)
-  BlocksContextMenuClose
   BlocksMenuAction(Msg)
   RunStep
   RunResume
@@ -1242,7 +1051,7 @@ pub(all) enum Msg {
   FormDesignSaved(@services.ServiceTaskResult[Unit])
   FormDesignExternalCheck
   FormDesignExternalChecked(@services.ServiceTaskResult[String])
-  SetPreviewMode(PreviewMode)
+  RunUiOp(@run.RunUiMsg)
   PreviewNavigate(String)
   PreviewReload
   ExportRequested
@@ -1253,6 +1062,7 @@ pub(all) enum Msg {
   SnapshotWriteRequested(String, String)
   BuildDispatchRequested(ProjectBuildRequest)
   AiSessionOp(@ai.AiSessionMsg)
+  AiUiOp(@ai.AiUiMsg)
   TerminalOutput(String)
   TerminalSpawned(Int?)
   TerminalClose
@@ -1265,15 +1075,8 @@ pub(all) enum Msg {
   CopyAiMessage(Int)
   EditUserPrompt(Int)
   RetryUserPrompt(Int)
-  TranscriptScrolled(@core.Point)
-  TranscriptScrollToBottom
-  ToggleAiSessionSearch
-  SetAiSessionsQuery(String)
-  AiSessionHover(Int, Bool)
   AiSessionRenameStart(Int)
-  AiSessionRenameDraft(String)
   AiSessionRenameCommit
-  AiSessionRenameDismiss
   AiSessionsStoreLoaded(@services.ServiceTaskResult[String])
   AiSessionsStoreWriteRequested
   AiSessionsStoreSaved(@services.ServiceTaskResult[Unit])
@@ -1285,15 +1088,12 @@ pub(all) enum Msg {
   SetSplitRatio(Double)
   SetPerspective(StudioPerspective)
   SetLeftView(LeftView)
-  SetTreeQuery(String)
-  ToggleTreeGroup(String)
   SetRightView(RightView)
   ResizeLeftPanel(Double)
   ResizeRightPanel(Double)
   SetContextTab(ContextTab)
   SetBottomTab(BottomTab)
   SetBottomHeight(Double)
-  TerminalScrolled(@core.Point)
   GotoProblem(String, Int)
   ToggleBottom
   AuditOpen(Int)
@@ -1304,15 +1104,12 @@ pub(all) enum Msg {
   WindowMinimize
   WindowZoom
   WindowDragBy(Double)
-  ToggleAiCardsFold
   AlignControlLeft(String)
   AlignControlCenter(String)
   AlignControlRight(String)
-  ToggleSettings
-  ToggleAiHistory
   DismissToast(Int)
   StudioCommandRun(String)
-  SelectBlockCategory(Int)
+  BlocksUiOp(@wzzc-dev/moui_studio/plugins/blocks.BlocksUiMsg)
   HighlightIrPath(Array[Int])
   HoverIrPath(Array[Int]?)
   RestoreCodeDraft
@@ -1329,15 +1126,6 @@ pub(all) struct PaneHeadLayout {
   title_width : Double
   subtitle_width : Double
   tail_width : Double
-}
-
-pub(all) struct PendingProposal {
-  proposal : @proposals.ProposalV1
-  diff : Array[@proposals.DiffEntry]
-  code_diff : Array[(String, String)]
-  summary : String
-  errors : Array[String]
-  valid : Bool
 }
 
 pub(all) enum PreviewMode {
@@ -1382,13 +1170,6 @@ pub(all) struct RangedToken {
   kind : CodeTokenKind
 }
 
-pub(all) enum RightPanelTab {
-  RpChanges
-  RpFiles
-} derive(Eq)
-pub fn RightPanelTab::equal(Self, Self) -> Bool
-pub fn RightPanelTab::not_equal(Self, Self) -> Bool
-
 pub(all) enum RightView {
   RvContext
   RvAi
@@ -1426,14 +1207,6 @@ pub(all) enum SideTarget {
   SideData(String)
   SideFunction(String)
 }
-
-pub(all) struct StatementTemplate {
-  category : @wzzc-dev/moui_studio/domain/blocks.BlockCategory
-  label_key : String
-  skeleton_zh : String
-  skeleton_en : String
-}
-pub fn StatementTemplate::skeleton(Self, @studio_lang.Language) -> String
 
 pub(all) struct StudioClock {
   year : Int
@@ -1549,11 +1322,15 @@ pub type CompileSubmit = (String, String, (@export.CompileProgress) -> Unit, (Re
 
 pub using @run {type CompiledRun}
 
+pub using @ai {type ComposerMode}
+
 pub type LaunchSubmit = (String, (Result[Unit, String]) -> Unit) -> Unit
 
 pub using @wzzc-dev/moui_studio/plugins/project {type OpenProjectFile}
 
 pub using @wzzc-dev/moui_studio/plugins/project {type OutlineSymbol}
+
+pub using @ai {type PendingProposal}
 
 pub using @run {type PreviewFrame}
 
@@ -1568,6 +1345,8 @@ pub using @kernel {type ProviderRequestSpec}
 pub type ProviderSubmit = (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit
 
 pub using @wzzc-dev/moui_studio/plugins/project {type RecentChange}
+
+pub using @ai {type RightPanelTab}
 
 pub using @run {type RunModel}
 

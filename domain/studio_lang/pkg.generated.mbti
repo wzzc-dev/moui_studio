@@ -175,6 +175,7 @@ pub(all) struct Keywords {
   case_kw : String
   enum_kw : String
 }
+pub fn Keywords::empty() -> Self
 
 pub(all) enum LangErrorKind {
   UnterminatedString

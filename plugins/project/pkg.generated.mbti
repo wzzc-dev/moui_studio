@@ -7,6 +7,7 @@ import {
   "wzzc-dev/moui_i18n",
   "wzzc-dev/moui_richtext",
   "wzzc-dev/moui_studio/chrome",
+  "wzzc-dev/moui_studio/domain/ir",
 }
 
 // Values
@@ -20,9 +21,21 @@ pub fn active_project_file(ExplorerData) -> OpenProjectFile?
 
 pub fn child_dirs_of(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
 
+pub fn close_open_file(ProjectState, Int) -> ProjectState
+
+pub fn code_project_files(@ir.StudioProgram) -> CodeProjectFiles
+
+pub fn code_project_target(ProjectRecord) -> String?
+
+pub fn code_project_text(@ir.StudioProgram) -> String
+
+pub fn code_text_diff(String, String) -> Array[(String, String)]
+
 pub fn collapse_all_tree_keys(ProjectState) -> Array[String]
 
 pub fn dir_collapsed(ExplorerData, String) -> Bool
+
+pub fn dirname_of(String) -> String
 
 pub fn explorer_child_dirs_for_test(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
 
@@ -41,6 +54,8 @@ pub fn file_is_dirty(OpenProjectFile) -> Bool
 pub fn file_tint(String) -> @chrome.IconTint
 
 pub fn join_rel(String, String) -> String
+
+pub fn migrate_studio_source(String, String) -> Result[MigrationOutcome, String]
 
 pub fn outline_symbols(String, String) -> Array[OutlineSymbol]
 
@@ -83,6 +98,11 @@ pub fn workspace_display_name(String) -> String
 // Errors
 
 // Types and methods
+pub(all) struct CodeProjectFiles {
+  form_mbt : String
+  handlers_mbt : String
+}
+
 pub(all) struct ExplorerData {
   projects : Array[ProjectRecord]
   active_project : Int
@@ -109,6 +129,13 @@ pub(all) enum ExplorerRow {
   EditorRow(Int, String, Bool, Bool)
   OutlineRow(String, Int, Int)
   TimelineRow(String, Bool, String)
+}
+
+pub(all) struct MigrationOutcome {
+  program : @ir.StudioProgram
+  form_path : String
+  handlers_path : String
+  files : CodeProjectFiles
 }
 
 pub(all) struct OpenProjectFile {
@@ -141,6 +168,17 @@ pub(all) enum ProjectMsg {
   ProjectFileCaretMoved(Int, @core.TextRange?)
   EditProjectFile(String)
   ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
+  SelectFileTab(Int)
+  CloseFileTab(Int)
+  FileCreateDraft(String)
+  FileCreateDismiss
+  FileRenameStart(String)
+  FileRenameDraft(String)
+  FileRenameDismiss
+  SetSearchQuery(String)
+  ToggleTreeCreate(String)
+  SetTreeQuery(String)
+  ToggleTreeGroup(String)
 }
 
 pub(all) struct ProjectRecord {
@@ -167,6 +205,10 @@ pub(all) struct ProjectState {
   file_rename_open : String?
   folder_create_open : Bool
   file_name_draft : String
+  mut tree_query : String
+  mut tree_collapsed : Array[String]
+  mut tree_create_group : String
+  mut search_query : String
 }
 pub fn ProjectState::new() -> Self
 

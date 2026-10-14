@@ -1,0 +1,68 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/plugins/design"
+
+import {
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui_studio/domain/ir",
+  "wzzc-dev/moui_studio/services/form_designer",
+}
+
+// Values
+pub fn canvas_height_of(@form_designer.FormModel, Double) -> Double
+
+pub fn canvas_width_of(@form_designer.FormModel, Double) -> Double
+
+pub fn control_rect(@ir.Control) -> @core.Rect
+
+pub fn design_backdrop_plan() -> Array[DesignDrawOp]
+
+pub fn design_overlay_plan(@ir.StudioProgram, String, String?, multi_selected? : Array[String]) -> Array[DesignDrawOp]
+
+pub fn[Msg] design_stage(@ir.StudioProgram, String, String?, Array[@core.View[Msg]], Array[@core.Rect], String, String, @core.Color?, on_tap~ : (Double, Double) -> Msg, on_drag~ : (@core.DragGesturePhase, Double, Double) -> Msg, multi_selected? : Array[String]) -> @core.View[Msg]
+
+pub let design_total_height : Double
+
+pub fn fit_scale(Double, Double, Double, Double) -> Double
+
+pub fn[Msg] form_design_canvas(@form_designer.FormModel, Int?, Double, Double, noop~ : Msg, on_select~ : (Int) -> Msg, on_drag~ : (Int, Double, Double) -> Msg, on_resize~ : (Int, Double, Double) -> Msg) -> @core.View[Msg]
+
+pub fn[Msg] form_design_drag_commit(Array[@core.Rect], Int?, Double, Double, Double, Double, noop~ : Msg, on_resize~ : (Int, Double, Double) -> Msg, on_drag~ : (Int, Double, Double) -> Msg) -> Msg
+
+pub fn form_design_handle_hit(Array[@core.Rect], Int, Double, Double) -> Bool
+
+pub fn form_design_hit_index(Array[@core.Rect], Double, Double) -> Int
+
+pub let handle_hit_radius : Double
+
+pub fn hit_test_control(Array[@ir.Control], Double, Double) -> @ir.Control?
+
+pub fn hit_test_handle(@ir.Control, Double, Double) -> @ir.DragCorner?
+
+pub fn snap_move_position(Array[@ir.Control], String, Double, Double, Double, Double) -> (Double, Double)
+
+pub fn snap_resize_position(Array[@ir.Control], String, @ir.Control, @ir.DragCorner, Double, Double) -> (Double, Double)
+
+pub fn[Msg] stage_layout(Array[@core.View[Msg]], Array[@core.Rect]) -> @core.View[Msg]
+
+pub let title_bar_height : Double
+
+// Errors
+
+// Types and methods
+pub(all) enum DesignDrawOp {
+  WindowFrame(@core.Rect)
+  GridDot(@core.Rect)
+  WindowTitleBar(@core.Rect)
+  TrafficLight(@core.Rect, Int)
+  BoundsOutline(@core.Rect)
+  GhostName(@core.Rect, String)
+  SelectionStroke(@core.Rect)
+  SelectedNamePill(@core.Rect, String)
+  SelectionHandle(@core.Rect)
+  GuideV(Double)
+  GuideH(Double)
+}
+
+// Type aliases
+
+// Traits

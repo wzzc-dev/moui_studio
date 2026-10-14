@@ -4,19 +4,33 @@ package "wzzc-dev/moui_studio/plugins/run"
 import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/services",
+  "wzzc-dev/moui/views/style",
   "wzzc-dev/moui_i18n",
   "wzzc-dev/moui_studio/domain/studio_lang",
   "wzzc-dev/moui_studio/services/compiled_runtime",
+  "wzzc-dev/moui_studio/services/export",
 }
 
 // Values
+pub fn compile_active_phase(Array[@export.CompileProgress]) -> @export.CompilePhase?
+
+pub fn compile_progress_counts(Array[@export.CompileProgress]) -> (Int, Int)
+
+pub fn compile_step_state(Array[@export.CompileProgress], @export.CompilePhase) -> Bool?
+
+pub fn[Msg] compiled_run_header(CompileViewsParams[Msg], @moui_i18n.Translator) -> @core.View[Msg]
+
 pub fn draw_command_from_json(Json) -> Result[@core.DrawCommand, String]
 
 pub fn find_literal_span(String, String) -> (Int, Int)?
 
+pub fn middle_ellipsis(String, Double) -> String
+
 pub fn parse_preview_frame(String) -> Result[PreviewFrame, String]
 
 pub fn[Msg] preview_replay_canvas(PreviewFrame, Int?, Double, on_select~ : (Int) -> Msg) -> @core.View[Msg]
+
+pub fn run_ui_feature() -> @core.Feature[RunUiState, RunUiMsg]
 
 pub fn semantic_hit_index(Array[SemanticHitNode], Double, Double) -> Int
 
@@ -26,9 +40,27 @@ pub fn semantic_label_patch_task(@services.FileServices, SemanticPatchRequest) -
 
 pub fn[Msg] semantic_property_strip(PreviewFrame?, Int?, String, @moui_i18n.Translator, Double, on_label_input~ : (String) -> Msg, on_label_commit~ : Msg) -> @core.View[Msg]
 
+pub fn update_run_ui(RunUiState, RunUiMsg) -> (RunUiState, @core.Effect[RunUiMsg])
+
 // Errors
 
 // Types and methods
+pub(all) struct CompileViewsParams[Msg] {
+  busy : Bool
+  track_available : Bool
+  output_open : Bool
+  progress : Array[@export.CompileProgress]
+  report : @export.CompileReport?
+  ghost_icon : (@style.IconName, String, Bool, Msg) -> @core.View[Msg]
+  on_run : Msg
+  on_cancel : Msg
+  on_toggle_output : Msg
+  on_run_artifact : (String) -> Msg
+  on_copy_path : (String) -> Msg
+  on_reveal : (String) -> Msg
+  on_jump : (Int) -> Msg
+}
+
 pub(all) struct CompiledRun {
   handler_label : String
   runtime : @compiled_runtime.Runtime
@@ -50,6 +82,17 @@ pub(all) struct RunModel {
   checks : Map[String, Bool]
   single_step : Bool
 }
+
+pub(all) enum RunUiMsg {
+  ToggleCompileOutput
+  SetPreviewMode(Bool)
+}
+
+pub(all) struct RunUiState {
+  mut compile_output_open : Bool
+  mut web_preview : Bool
+}
+pub fn RunUiState::new() -> Self
 
 pub(all) struct SemanticHitNode {
   role : String
