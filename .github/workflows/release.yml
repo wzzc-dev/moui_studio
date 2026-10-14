@@ -112,6 +112,14 @@ jobs:
           moon version --all
           moon update
 
+      # moon update only refreshes the registry index; module zips land in
+      # the registry cache on first resolve. The packaging shim needs the
+      # pinned wzzc-dev/moui zip for its MSVC helper, so resolve the entry
+      # package's dependency graph (type-check only, no MSVC env needed).
+      - name: Resolve dependency graph
+        shell: bash
+        run: moon check windows_skia --target native
+
       - name: Package Windows portable folder
         shell: pwsh
         run: |
