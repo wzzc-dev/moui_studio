@@ -130,8 +130,16 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 . (Join-Path $scriptDir "webview2_sdk.ps1")
 
-$packageLeaf = Split-Path -Leaf (Convert-PackagePath $Package)
-$packageParent = Split-Path -Leaf (Split-Path -Parent (Convert-PackagePath $Package))
+$convertedPackage = Convert-PackagePath $Package
+$packageLeaf = Split-Path -Leaf $convertedPackage
+# Top-level packages (e.g. "windows_skia") have no parent directory; fall
+# back to the package leaf so the default app name stays non-empty.
+$packageParentPath = Split-Path -Parent $convertedPackage
+$packageParent = if ([string]::IsNullOrEmpty($packageParentPath)) {
+  $packageLeaf
+} else {
+  Split-Path -Leaf $packageParentPath
+}
 if ([string]::IsNullOrWhiteSpace($AppName)) {
   $AppName = $packageParent
 }
