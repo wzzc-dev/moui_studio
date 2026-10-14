@@ -1082,8 +1082,8 @@ pub fn update_with_services(
     NewProjectRequested(index) => new_project_requested(model, index, services)
     NewProjectRootPicked(result) =>
       new_project_root_picked(model, result, services)
-    NewProjectFileWritten(result) =>
-      new_project_file_written(model, result, services)
+    NewProjectQueueResult(result) =>
+      new_project_queue_result(model, result, services)
     // 激活工程：纯转移照走 update_pure；带 IR 快照的工程异步读取恢复
     // （folder projects 的「重开继续编辑」）；回执处理见 new_project.mbt。
     ProjectOp(SetActiveProject(index)) =>

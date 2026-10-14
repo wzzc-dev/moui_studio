@@ -237,7 +237,9 @@ fn ds_scan_module(
 
     for name in sources {
       let source = ds_read_text("\{abs}/\{pkg_rel}/\{name}")
-      if source.contains("pub fn program") {
+      // 与 walk 同口径：只认声明 `pub fn program(`，排除
+      // `pub fn program_signature(...)` 这类内核函数名
+      if source.contains("pub fn program(") {
         has_program = true
       }
     }

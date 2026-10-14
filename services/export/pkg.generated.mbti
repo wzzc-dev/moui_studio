@@ -10,6 +10,8 @@ pub fn abi_mbt() -> String
 
 pub fn app_pkg(String) -> String
 
+pub fn bundle_dependency_versions() -> Array[(String, String)]
+
 pub fn codec_pkg(String) -> String
 
 pub fn compile_phase_total() -> Int

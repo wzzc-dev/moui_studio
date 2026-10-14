@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/json",
+  "wzzc-dev/moui_cli/scaffold_plan" @plan,
   "wzzc-dev/moui_studio/domain/ir",
   "wzzc-dev/moui_studio/domain/studio_lang",
   "wzzc-dev/moui_studio/domain/codec",

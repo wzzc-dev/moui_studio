@@ -76,8 +76,6 @@ pub const PLUGINS_SETTINGS_KEY : String = "studio.plugins"
 
 pub const POSTURE_HEIGHT : Double = 20.0
 
-pub const PROGRAM_SNAPSHOT_REL : String = ".studio/program.json"
-
 pub const RECENT_LIMIT : Int = 24
 
 pub const RIGHT_TAB_HEIGHT : Double = 30.0
@@ -130,8 +128,6 @@ pub fn block_category(@wzzc-dev/moui_studio/domain/blocks.BlockKind) -> @wzzc-de
 
 pub fn block_category_entries(Model) -> Array[BlockCategoryEntry]
 
-pub fn block_category_first(Array[BlockCategoryEntry], Int) -> Int
-
 pub fn block_category_label_key(@wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> String
 
 pub fn block_chain_of(Model) -> Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem]
@@ -162,15 +158,11 @@ pub fn card_text_by_seq(Model, Int) -> String?
 
 pub fn category_rail(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
-pub fn center_width_of(Model, Double) -> Double
-
 pub fn chat_history(Model) -> Array[(String, String)]
 
 pub fn chat_system_prompt() -> String
 
 pub fn civil_seconds(StudioClock) -> Int
-
-pub fn clamp_bottom_height(Double) -> Double
 
 pub fn clear_selection(Model) -> Model
 
@@ -222,15 +214,11 @@ pub fn default_studio_clock() -> StudioClock
 
 pub fn default_viewport_size() -> @core.Size
 
-pub fn dir_is_writable(String) -> Result[Unit, String]
-
 pub fn direct_scan(String, on_progress? : (@wzzc-dev/moui_studio/services/project.WalkProgress) -> Unit) -> Result[@wzzc-dev/moui_studio/services/project.ProjectScanOutput, String]
 
 pub fn emit_code_project_write(Model) -> Model
 
 pub fn emit_program_snapshot(Model) -> Model
-
-pub fn empty_program() -> @ir.StudioProgram
 
 pub fn empty_provider_config() -> ProviderConfig
 
@@ -239,10 +227,6 @@ pub fn empty_stage(Model, @moui_i18n.Translator, Double, Double) -> @core.View[M
 pub fn encode_plugin_disabled(Model) -> String
 
 pub fn encode_project_store(Model) -> String
-
-pub fn ensure_dir_under(String) -> Unit
-
-pub fn ensure_skeleton_dirs(Array[(String, String)]) -> Unit
 
 pub fn error_message(@moui_i18n.Translator, @studio_lang.LangError) -> String
 
@@ -342,8 +326,6 @@ pub fn ir_span_at(Array[IrLineSpan], Array[Int]) -> IrLineSpan?
 
 pub fn ir_span_for_line(Array[IrLineSpan], Int) -> IrLineSpan?
 
-pub fn is_studio_app_bundle(@wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> Bool
-
 pub fn join_rel(String, String) -> String
 
 pub fn live_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
@@ -361,10 +343,6 @@ pub fn mark_ai_sessions_dirty(Model) -> Unit
 pub fn mark_projects_dirty(Model) -> Unit
 
 pub fn moonbit_line_ranged(String, Int) -> Array[RangedToken]
-
-pub fn new_project_module_name(String) -> String
-
-pub fn new_project_skeleton_files(String, String, @ir.StudioProgram) -> Array[(String, String)]
 
 pub fn normalize_disabled_plugins(Model) -> Model
 
@@ -512,8 +490,6 @@ pub fn studio_program_commands(Model) -> Array[@core.ProgramCommand[Msg]]
 
 pub fn target_note(Model) -> String
 
-pub fn template_program(Int) -> @ir.StudioProgram
-
 pub fn terminal_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn text(@moui_i18n.Translator, String) -> String
@@ -545,8 +521,6 @@ pub fn tree_group_expanded(Model, String) -> Bool
 pub fn tree_group_functions() -> String
 
 pub fn tree_group_handlers() -> String
-
-pub fn tree_group_has_children(Array[TreeNode], String) -> Bool
 
 pub fn tree_group_label_key(String) -> String
 
@@ -1010,7 +984,7 @@ pub(all) enum Msg {
   ControlChanged(String, String)
   NewProjectRequested(Int)
   NewProjectRootPicked(@services.ServiceTaskResult[String])
-  NewProjectFileWritten(@services.ServiceTaskResult[Unit])
+  NewProjectQueueResult(@services.ServiceTaskResult[Unit])
   ProjectProgramLoaded(@services.ServiceTaskResult[String])
   SnapshotWriteSaved(@services.ServiceTaskResult[Unit])
   SaveRequested
@@ -1118,8 +1092,11 @@ pub(all) enum Msg {
 pub(all) struct NewProjectDraft {
   template_index : Int
   program : @ir.StudioProgram
-  files : Array[(String, String)]
+  root : String
+  module_name : String
+  mut files : Array[(String, String)]
   mut done : Int
+  mut rolling_back : Bool
 }
 
 pub(all) struct PaneHeadLayout {
@@ -1283,7 +1260,6 @@ pub(all) enum UiLanguage {
   En
 }
 pub fn UiLanguage::dsl_language(Self) -> @studio_lang.Language
-pub fn UiLanguage::other_language_label(Self) -> String
 pub fn UiLanguage::tag(Self) -> String
 
 pub(all) struct UndoEntry {

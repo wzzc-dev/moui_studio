@@ -42,6 +42,31 @@ pub fn code_project_target(project : ProjectRecord) -> String? {
 }
 
 ///|
+/// 工程是否为「Studio 应用骨架」布局：首个 `pub fn program` 包带 runner.mbt
+/// （内核快照的标记文件）。决定提案采纳时要不要连 project_data.mbt 一起
+/// 刷新——编译面里的内嵌 IR 若不跟随提案，构建产物会停在旧程序上。
+pub fn is_studio_app_bundle(project : ProjectRecord) -> Bool {
+  match code_project_target(project) {
+    Some(first) =>
+      match package_files_of(project, first) {
+        Some(files) => files.contains("runner.mbt")
+        None => false
+      }
+    None => false
+  }
+}
+
+///|
+fn package_files_of(project : ProjectRecord, rel : String) -> Array[String]? {
+  for pkg in project.scanned.packages {
+    if pkg.rel_path == rel {
+      return Some(pkg.files)
+    }
+  }
+  None
+}
+
+///|
 /// 代码真源文本 diff（M6②）：行级前缀/后缀裁剪——中间的删改以
 /// 「- 旧行 / + 新行」成对输出。提案卡与采纳历史的 diff 都从这里来，
 /// 与结构化 DiffEntry（IR 层预览用）并存：**显示层展示的是代码 diff**。

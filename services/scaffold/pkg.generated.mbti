@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/services/scaffold"
+
+import {
+  "wzzc-dev/moui_studio/domain/ir",
+}
+
+// Values
+pub const PROGRAM_SNAPSHOT_REL : String = ".studio/program.json"
+
+pub fn dir_is_writable(String) -> Result[Unit, String]
+
+pub fn ensure_parent_dirs(Array[(String, String)]) -> Unit
+
+pub fn module_name_from_root(String) -> String
+
+pub fn skeleton_files(String, String, @ir.StudioProgram) -> Array[(String, String)]
+
+pub fn template_program(Int) -> @ir.StudioProgram
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

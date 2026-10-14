@@ -31,34 +31,59 @@ test "导出的包包含全部必需文件" {
 ///|
 test "模块名安全化" {
   assert_eq(@export.sanitize_name("My App"), "My-App")
-  assert_eq(@export.sanitize_name("点名册 小工具"), "-")
-  assert_eq(@export.sanitize_name(""), "studio-export")
+  // 退化输入给可用兜底名：中文名整体折叠会成 "-"，而 "-" 作模块名会让
+  // 生成的工程连包路径都解析不了
+  assert_eq(@export.sanitize_name("点名册 小工具"), "moui-app")
+  assert_eq(@export.sanitize_name(""), "moui-app")
+  // 数字开头非法：加前缀而不是原样交给 moon.mod
+  assert_eq(@export.sanitize_name("3D viewer"), "app-3D-viewer")
+  // 首尾分隔符不进结果
+  assert_eq(@export.sanitize_name("  hello__  "), "hello")
 }
 
 ///|
-/// 导出 moon.mod 必须与 Studio 自己的 moon.mod **同版本**。
+/// 导出 moon.mod 的版本**从 Studio 自己的 moon.mod 派生**：唯一事实源是
+/// `bundle_dependency_versions()`（`tools/sync_versions` 生成），漂开由
+/// `moon run moui_studio/tools/sync_versions --target native -- --check` 挡。
 ///
-/// 回归意义：bundle 里的代码全部从 Studio workspace 拷出，只有依赖去注册表
-/// 拉。两边版本一错开就会「Studio 编得过、导出项目编不过」——实测 pin 在
-/// `moui@0.1.12` 时，那一版自己在新工具链下就过不了类型检查，整条 native
-/// GUI 构建失败（用户看到的是「编译成功但运行没有界面」）。
-/// 这里逐项钉住版本，漂开即失败。
-test "moon.mod 与 Studio 同版本（导出可构建的前提）" {
+/// 为什么改这条断言：旧版钉的是 export.mbt 里一组**硬编码字面量**，于是
+/// Studio bump 到 0.2.3 之后生成工程仍 pin 0.2.0，测试照样绿——它守的是
+/// 「常量等于自己」而不是「与 Studio 同源」，正是它注释里声称要防的事故。
+/// 回归意义不变：bundle 的代码全部从 Studio workspace 拷出、只有依赖去注册表
+/// 拉，版本一错开就是「Studio 编得过、导出项目编不过」（实测旧线 `moui@0.1.12`
+/// 的源码在新工具链下过不了类型检查，整条 native GUI 构建失败）。
+test "moon.mod 版本从 Studio moon.mod 派生（导出可构建的前提）" {
+  let table = @export.bundle_dependency_versions()
+  // 表必须覆盖 IDE 与产物共同依赖的六项（缺项 = 生成器白名单漏了）
+  assert_true(table.length() >= 6)
+  let mut expected_imports = ""
+  for pair in table {
+    let (path, version) = pair
+    // 旧线不得回归：0.1.x 自己的源码在新工具链下过不了检查
+    assert_false(version.has_prefix("0.1."))
+    expected_imports = expected_imports + "  \"\{path}@\{version}\",\n"
+  }
   let files = @export.export_bundle(SAMPLE_PROJECT, "demo")
   let manifest = bundle_file(files, "/moon.mod")
-  assert_true(manifest.contains("wzzc-dev/moui@0.2.0"))
-  assert_true(manifest.contains("wzzc-dev/window@0.5.4-0.2.0"))
-  assert_true(manifest.contains("wzzc-dev/moui_skia_renderer@0.2.0"))
-  assert_true(manifest.contains("wzzc-dev/moui_web_renderer@0.2.0"))
-  assert_true(manifest.contains("moonbitlang/async@0.22.4"))
-  assert_true(manifest.contains("moonbitlang/x@0.5.5"))
-  // 旧线不得回归：0.1.x 自己的源码在新工具链下过不了检查
-  assert_false(manifest.contains("moui@0.1"))
-  // deps.txt 与 moon.mod 是同一组事实，不能一处新一处旧
+  assert_true(manifest.contains(expected_imports))
+  // deps.txt 与 moon.mod 同一组事实：逐行都必须命中表，不能一处新一处旧
   let deps = bundle_file(files, "/deps.txt")
-  assert_true(deps.contains("wzzc-dev/moui@0.2.0"))
-  assert_true(deps.contains("wzzc-dev/moui_skia_renderer@0.2.0"))
-  assert_true(deps.contains("wzzc-dev/moui_web_renderer@0.2.0"))
+  for view in deps.split("\n") {
+    let line = view.trim(chars=" \t\r").to_owned()
+    if line == "" {
+      continue
+    }
+    let mut matched = false
+    for pair in table {
+      let (path, version) = pair
+      if line == "\{path}@\{version}" {
+        matched = true
+      }
+    }
+    assert_true(matched)
+  }
+  assert_true(deps.contains("wzzc-dev/moui_web_renderer@"))
+  assert_true(deps.contains("wzzc-dev/moui_skia_renderer@"))
 }
 
 ///|

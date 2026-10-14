@@ -84,30 +84,42 @@ pub fn export_bundle(
 }
 
 ///|
-/// 模块名只保留字母数字，其余折叠为连字符（MoonBit 模块名友好）。
+/// 模块名归一：非字母数字折叠为连字符，并保证结果是**可用**的模块名。
+///
+/// 旧口径只做字符折叠，两个退化情形会写进 `moon.mod` 才在外部构建里炸：
+/// 中文工程名（`点名册 小工具`）折叠成 `"-"`，数字开头名（`3D viewer`）保留
+/// 非法首字符。生成的工程模块名同时是包导入路径的前缀（`<name>/compiled_runtime`），
+/// `"-"` 会让整个工程无法解析。护栏口径与 `moui_cli/scaffold_plan/naming.mbt` 的
+/// `project_id_from_path` 一致：去首尾分隔符、退化给稳定兜底名、数字开头加前缀。
 pub fn sanitize_name(name : String) -> String {
   let mut out = ""
+  // 分隔符延迟到下一个合法字符才落：首尾分隔符与重复分隔符都不会进结果
+  let mut pending = false
   for c in name {
     if (c >= 'a' && c <= 'z') ||
       (c >= 'A' && c <= 'Z') ||
       (c >= '0' && c <= '9') {
+      if pending && out != "" {
+        out = out + "-"
+      }
       out = out + c.to_string()
+      pending = false
     } else {
-      out = out + "-"
+      pending = true
     }
   }
-  while out.contains("--") {
-    out = out.replace(old="--", new="-")
-  }
-  if out.is_empty() {
-    "studio-export"
+  if out == "" {
+    "moui-app"
+  } else if out[0] >= '0' && out[0] <= '9' {
+    "app-\{out}"
   } else {
     out
   }
 }
 
 ///|
-/// 导出项目的 moon.mod：**与 Studio 自己的 moon.mod 同一组版本**。
+/// 导出项目的 moon.mod：**版本从 Studio 自己的 moon.mod 派生**（唯一事实源是
+/// 生成的 `bundle_dependency_versions()` 表，由 `tools/sync_versions` 维护）。
 ///
 /// 为什么必须同版本：bundle 里所有代码（内核快照、生成源码、GUI 组合根）
 /// 都从 Studio 的 workspace 里拷出来，只有依赖是去注册表拉的。两边版本一
@@ -117,10 +129,17 @@ pub fn sanitize_name(name : String) -> String {
 /// 过不了类型检查（`@fs.read_dir` 现在返回 `ArrayView`），于是**整个 native
 /// GUI 构建失败**。0.2.0 线才是与 Studio 同步的那条。
 ///
-/// 版本号在本仓是**两份事实**（Studio moon.mod + 这里），
-/// `export_test` 的同源断言保证它们不会悄悄漂开。
+/// 这里刻意**不再写版本号字面量**：旧做法在 Studio bump 到 0.2.3 之后仍让
+/// 生成工程 pin 0.2.0，而 `export_test` 断言的是那组硬编码字面量，于是
+/// 「同源断言」只保证常量等于它自己，漂开无声。现在版本由表渲染，漂开由
+/// `moon run moui_studio/tools/sync_versions --target native -- --check` 挡。
 pub fn moon_mod(name : String) -> String {
-  "name = \"\{name}\"\n\nversion = \"0.1.0\"\n\npreferred_target = \"native\"\n\nimport {\n  \"wzzc-dev/moui@0.2.0\",\n  \"wzzc-dev/window@0.5.4-0.2.0\",\n  \"wzzc-dev/moui_skia_renderer@0.2.0\",\n  \"wzzc-dev/moui_web_renderer@0.2.0\",\n  \"moonbitlang/async@0.22.4\",\n  \"moonbitlang/x@0.5.5\",\n}\n"
+  let mut imports = ""
+  for pair in bundle_dependency_versions() {
+    let (path, version) = pair
+    imports = imports + "  \"\{path}@\{version}\",\n"
+  }
+  "name = \"\{name}\"\n\nversion = \"0.1.0\"\n\npreferred_target = \"native\"\n\nimport {\n\{imports}}\n"
 }
 
 ///|
@@ -200,83 +219,18 @@ pub fn escape_mbt(text : String) -> String {
 }
 
 ///|
+/// Web 入口包清单：与 `moui new` 的骨架共用 `@plan` 生成器，唯一差别是组合根
+/// 导入别名（导出 bundle 用 `@exported_app`，避免和 `@app` 语义混淆）。
 pub fn web_pkg(name : String) -> String {
-  "import {\n  \"wzzc-dev/moui/backend/web\",\n  \"wzzc-dev/moui_web_renderer\" @webgpu_adapter,\n  \"wzzc-dev/moui/runtime\",\n  \"\{name}/app\" @exported_app,\n}\n\nsupported_targets = \"wasm-gc\"\n\npkgtype(kind: \"executable\")\n\noptions(\n  link: {\n    \"wasm-gc\": {\n      \"exports\": [\n        \"web_dispatch_event\",\n        \"web_dispatch_pointer_input\",\n        \"web_dispatch_semantics_action\",\n        \"web_dispatch_route\",\n        \"web_complete_async_clipboard_read\",\n        \"web_complete_async_file_dialog\",\n      ],\n    },\n  },\n  targets: { \"main.mbt\": [ \"wasm-gc\" ] },\n)\n"
+  @plan.web_pkg_text(name, app_alias="exported_app")
 }
 
 ///|
 /// 可执行包的 ABI 垫片：Moon 的 wasm 链接器只导出「可执行包自身定义」的函数，
 /// 因此 `moon.pkg` 的 `link.exports` 列出的宿主入口必须在本包内定义，
-/// 再转发到 `moui/backend/web`。保持纯机械转发，不放平台/应用逻辑。
+/// 再转发到 `moui/backend/web`。名单与转发都在 `@plan`，两条生成链共用。
 pub fn abi_mbt() -> String {
-  let abi =
-    #|///|
-    #|// Moon only exports functions defined by the executable package. Keep this
-    #|// mechanical ABI shim free of platform or application logic.
-    #|pub fn web_dispatch_event(
-    #|  kind : Int,
-    #|  raw_id : Int,
-    #|  arg0 : Int,
-    #|  arg1 : Int,
-    #|  argd : Double,
-    #|  text_id : Int,
-    #|) -> Unit {
-    #|  @web.web_dispatch_event(kind, raw_id, arg0, arg1, argd, text_id)
-    #|}
-    #|
-    #|///|
-    #|pub fn web_dispatch_pointer_input(
-    #|  raw_id : Int,
-    #|  kind : Int,
-    #|  x_px : Double,
-    #|  y_px : Double,
-    #|  delta_x_px : Double,
-    #|  delta_y_px : Double,
-    #|  button : Int,
-    #|  modifiers : Int,
-    #|) -> Int {
-    #|  @web.web_dispatch_pointer_input(
-    #|    raw_id, kind, x_px, y_px, delta_x_px, delta_y_px, button, modifiers,
-    #|  )
-    #|}
-    #|
-    #|///|
-    #|pub fn web_dispatch_route(source_code : Int, text_id : Int) -> Unit {
-    #|  @web.web_dispatch_route(source_code, text_id)
-    #|}
-    #|
-    #|///|
-    #|pub fn web_dispatch_semantics_action(
-    #|  raw_id : Int,
-    #|  node_id_text_id : Int,
-    #|  generation_text_id : Int,
-    #|  action_code : Int,
-    #|  value_id : Int,
-    #|  direction_code : Int,
-    #|) -> Unit {
-    #|  @web.web_dispatch_semantics_action(
-    #|    raw_id, node_id_text_id, generation_text_id, action_code, value_id, direction_code,
-    #|  )
-    #|}
-    #|
-    #|///|
-    #|pub fn web_complete_async_clipboard_read(
-    #|  request_id : Int,
-    #|  ok : Bool,
-    #|  text_id : Int,
-    #|) -> Unit {
-    #|  @web.web_complete_async_clipboard_read(request_id, ok, text_id)
-    #|}
-    #|
-    #|///|
-    #|pub fn web_complete_async_file_dialog(
-    #|  request_id : Int,
-    #|  ok : Bool,
-    #|  text_id : Int,
-    #|) -> Unit {
-    #|  @web.web_complete_async_file_dialog(request_id, ok, text_id)
-    #|}
-  abi
+  @plan.web_abi_shim_mbt()
 }
 
 ///|
@@ -426,6 +380,29 @@ pub fn native_smoke_main() -> String {
 }
 
 ///|
+/// deps.txt 的条目顺序（产物实际链接的三个运行时模块）。
+let deps_txt_order : ReadOnlyArray[String] = [
+  "wzzc-dev/moui", "wzzc-dev/moui_web_renderer", "wzzc-dev/moui_skia_renderer",
+]
+
+///|
+/// 从版本表取某依赖的版本；表由 `tools/sync_versions` 从 Studio moon.mod 生成。
+fn dependency_version(path : String) -> String {
+  for pair in bundle_dependency_versions() {
+    let (candidate, version) = pair
+    if candidate == path {
+      return version
+    }
+  }
+  ""
+}
+
+///|
+/// deps.txt 与 moon.mod 是**同一组事实**：版本同样从表渲染，不另写一份字面量。
 pub fn deps_txt() -> String {
-  "wzzc-dev/moui@0.2.0\nwzzc-dev/moui_web_renderer@0.2.0\nwzzc-dev/moui_skia_renderer@0.2.0\n"
+  let mut out = ""
+  for path in deps_txt_order {
+    out = out + "\{path}@\{dependency_version(path)}\n"
+  }
+  out
 }

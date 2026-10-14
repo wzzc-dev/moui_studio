@@ -53,6 +53,8 @@ pub fn file_is_dirty(OpenProjectFile) -> Bool
 
 pub fn file_tint(String) -> @chrome.IconTint
 
+pub fn is_studio_app_bundle(ProjectRecord) -> Bool
+
 pub fn join_rel(String, String) -> String
 
 pub fn migrate_studio_source(String, String) -> Result[MigrationOutcome, String]

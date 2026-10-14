@@ -1,0 +1,14 @@
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs" @x/fs,
+  "moonbitlang/x/sys",
+  "wzzc-dev/moui_studio/services/project" @scan,
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+options(
+  targets: { },
+)

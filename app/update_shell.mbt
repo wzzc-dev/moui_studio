@@ -980,12 +980,6 @@ pub fn push_recent(
 /// 推导出的状态天然自洽，没有需要收敛的矛盾态。
 
 ///|
-/// 底栏高度兜底钳制（视图层按窗口高度精确钳后，update 再兜底）。
-pub fn clamp_bottom_height(height : Double) -> Double {
-  height.clamp(min=100.0, max=1200.0)
-}
-
-///|
 fn select_bottom_tab(model : Model, tab : BottomTab) -> Model {
   // 终端页签（M8）：**关闭态**再点 = 重开（terminal_open 恢复，句柄已清
   // → 下次 update 重派生）；选中态的关闭走 TerminalTabClose（kill 需要

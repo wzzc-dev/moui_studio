@@ -280,17 +280,6 @@ pub fn program_tree(model : Model) -> Array[TreeNode] {
 }
 
 ///|
-/// 分组是否有可见子节点（分组头徽标：0 时灰显）。
-pub fn tree_group_has_children(nodes : Array[TreeNode], group : String) -> Bool {
-  for node in nodes {
-    if node.group == group && !(node.kind is TnGroup) {
-      return true
-    }
-  }
-  false
-}
-
-///|
 /// 分组展开态：搜索非空时全部展开（否则命中结果被折叠藏起来）。
 pub fn tree_group_expanded(model : Model, group : String) -> Bool {
   if model.project_state.tree_query.trim().to_owned() != "" {
@@ -750,19 +739,6 @@ pub fn same_category(
   b : @blocks.BlockCategory,
 ) -> Bool {
   @blocks.category_color_key(a) == @blocks.category_color_key(b)
-}
-
-///|
-/// 积木分类条同一行的定位下标：分类条点「流程」时滚动到该分类首块。
-pub fn block_category_first(
-  entries : Array[BlockCategoryEntry],
-  index : Int,
-) -> Int {
-  if index < 0 || index >= entries.length() {
-    -1
-  } else {
-    entries[index].first_index
-  }
 }
 
 ///|

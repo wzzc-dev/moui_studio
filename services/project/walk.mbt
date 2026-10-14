@@ -736,7 +736,10 @@ fn walk_pkg_sources_step(
   ).start(result => {
     match result {
       Success(text) => {
-        if text.contains("pub fn program") {
+        // 带左括号：只认 `pub fn program(` 的声明。少了它，
+        // `pub fn program_signature(...)`（内核 domain/ir 就有）会被当成
+        // 程序包，预览 harness 于是把 domain/ir 当 @user_app 导入。
+        if text.contains("pub fn program(") {
           state.current_has_program = true
         }
         walk_run(state, complete)

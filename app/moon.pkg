@@ -28,6 +28,7 @@ import {
   "wzzc-dev/moui_studio/domain/proposals",
   "wzzc-dev/moui_studio/domain/blocks",
   "wzzc-dev/moui_studio/services/export",
+  "wzzc-dev/moui_studio/services/scaffold",
   "wzzc-dev/moui_studio/services/blocks_code",
   "wzzc-dev/moui_studio/services/compiled_runtime",
   "wzzc-dev/moui_studio/services/project",

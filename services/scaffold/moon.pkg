@@ -1,0 +1,13 @@
+import {
+  "moonbitlang/x/fs" @x/fs,
+  "wzzc-dev/moui_studio/domain/ir",
+  "wzzc-dev/moui_studio/domain/codec",
+  "wzzc-dev/moui_studio/domain/proposals",
+  "wzzc-dev/moui_studio/services/export",
+}
+
+supported_targets = "native+wasm-gc"
+
+options(
+  targets: { },
+)

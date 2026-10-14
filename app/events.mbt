@@ -66,12 +66,12 @@ pub fn emit_code_project_write(model : Model) -> Model {
 fn emit_code_project_write_to(model : Model, dir : String) -> Model {
   let files = @proj.code_project_files(model.program)
   // Studio 应用骨架布局（首程序包带 runner.mbt）：编译面里的内嵌 IR
-  // 必须跟随提案刷新，而 form.mbt 不参与该布局（见 new_project.mbt）——
+  // 必须跟随提案刷新，而 form.mbt 不参与该布局（见 `@scaffold`）——
   // form 载荷置空 = 组合根跳过；普通导入工程相反：写 form/handlers，
   // 不塞 project_data。
   let (form_mbt, project_data) = match active_project_of(model) {
     Some(project) =>
-      if is_studio_app_bundle(project) {
+      if @proj.is_studio_app_bundle(project) {
         ("", @export.project_data_mbt(@codec.encode_program(model.program)))
       } else {
         (files.form_mbt, "")
@@ -101,7 +101,7 @@ pub fn emit_program_snapshot(model : Model) -> Model {
     Some(root) => {
       model.outbox.push(
         EvProgramSnapshotWrite(
-          "\{root}/\{PROGRAM_SNAPSHOT_REL}",
+          "\{root}/\{@scaffold.PROGRAM_SNAPSHOT_REL}",
           @codec.encode_program(model.program),
         ),
       )

@@ -962,11 +962,11 @@ pub(all) enum Msg {
   ControlChanged(String, String)
   /// 新建工程（folder projects）：参数 = 模板下标（-1 = 空白程序）。
   /// 链条：NewProjectRequested（脏程序确认后选目录）→ NewProjectRootPicked
-  /// （目录确定：算骨架文件集）→ NewProjectFileWritten × N（逐文件落盘，
-  /// 游标推进）→ 完成态注册工程 + 装载模板程序 + IR 快照已随队落盘。
+  /// （目录确定：算骨架文件集）→ NewProjectQueueResult × N（写盘队列游标推进；
+  /// 中断翻到删除相回滚）→ 完成态注册工程 + 装载模板程序 + IR 快照落盘。
   NewProjectRequested(Int)
   NewProjectRootPicked(@services.ServiceTaskResult[String])
-  NewProjectFileWritten(@services.ServiceTaskResult[Unit])
+  NewProjectQueueResult(@services.ServiceTaskResult[Unit])
   /// 工程程序快照回执（SetActiveProject 恢复流）：读 `<root>/.studio/program.json`。
   ProjectProgramLoaded(@services.ServiceTaskResult[String])
   /// IR 快照落盘回执（EvProgramSnapshotWrite 翻译而来；失败才说话）。
@@ -1182,12 +1182,6 @@ pub(all) enum Msg {
 /// handler 定位键：控件名@事件标签（选中态在模型里用字符串携带）。
 pub fn handler_key(control : String, event : String) -> String {
   "\{control}@\{event}"
-}
-
-///|
-/// 空程序（新建项目的起点）。
-pub fn empty_program() -> @ir.StudioProgram {
-  @ir.empty_program()
 }
 
 ///|

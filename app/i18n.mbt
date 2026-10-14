@@ -40,15 +40,6 @@ pub fn UiLanguage::dsl_language(self : UiLanguage) -> @studio_lang.Language {
 }
 
 ///|
-/// 对方语言的显示名（切换按钮显示目标语言）。
-pub fn UiLanguage::other_language_label(self : UiLanguage) -> String {
-  match self {
-    ZhHans => "English"
-    En => "中文"
-  }
-}
-
-///|
 /// 数据源 app/i18n/{zh-Hans,en}.json 经 scripts/generate-i18n-catalogs.mjs
 /// 生成为 i18n_catalog_generated.mbt（DO NOT EDIT；--check 在 pr profile）。
 fn studio_messages() -> Array[@i18n.Message] {

@@ -391,12 +391,6 @@ fn shell_chrome_widths(model : Model, width : Double) -> ShellChromeWidths {
 }
 
 ///|
-/// 中心列宽（只读快照，供避让带计算与测试使用）。
-pub fn center_width_of(model : Model, width : Double) -> Double {
-  shell_chrome_widths(model, width).center
-}
-
-///|
 /// 中心内容：AI 工作区（PsAi 优先）——可视化 / 代码 / 预览 / 空舞台。
 /// M2 过渡态：AI 模式的中心 = 全幅 composer（线程卡 + 输入盒），
 /// M3 升级为会话流。

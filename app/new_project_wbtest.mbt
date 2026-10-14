@@ -1,124 +1,56 @@
 ///|
-/// 新建工程（folder projects）测试：骨架文件集、模块名归一、目录守卫、
-/// 应用骨架布局探测、form 支撑面与 render_form 属性集同步。
+/// 新建工程的壳侧测试：完成态的工程身份、写盘事务相位、快照恢复。生成面
+/// （骨架文件集、模块名归一、目录守卫、模板下标）的测试随代码住在
+/// `services/scaffold`。
 
 ///|
-test "skeleton files form a self-contained moonbit module" {
-  let root = "/tmp/folder-projects-smoke"
-  let files = new_project_skeleton_files(
+/// 完成态的工程身份按**路径**从落盘计划推：每个带 moon.pkg 的目录都是包，
+/// `pub fn program` 由内容探测（与 walk 同口径）。旧口径读队列下标 +
+/// 硬编码文件名，骨架加文件就会静默改掉身份。
+test "project identity derives from planned paths, not queue positions" {
+  let root = "/tmp/folder-projects-identity"
+  let module_name = @scaffold.module_name_from_root(root)
+  let files = @scaffold.skeleton_files(
     root,
-    "my-app",
+    module_name,
     @proposals.sample_hello(),
   )
-  // 路径前缀与关键文件齐备
-  assert_true(files.length() > 10)
-  let mut has_mod = false
-  let mut has_pkg = false
-  let mut has_runner = false
-  let mut has_handlers = false
-  let mut has_snapshot = false
-  let mut has_kernel_runtime = false
-  for pair in files {
-    let (path, content) = pair
-    if path == "\{root}/moon.mod" {
-      has_mod = true
-      assert_true(content.contains("name = \"my-app\""))
-      assert_true(content.contains("preferred_target = \"native\""))
-    }
-    if path == "\{root}/app/moon.pkg" {
-      has_pkg = true
-      // app 包以本地路径导入内核（自包含，不依赖未发布的 moui_studio）
-      assert_true(content.contains("my-app/compiled_runtime"))
-      assert_true(!content.contains("wzzc-dev/moui_studio"))
-    }
-    if path == "\{root}/app/runner.mbt" {
-      has_runner = true
-      assert_true(content.contains("pub fn program()"))
-    }
-    if path == "\{root}/app/handlers.mbt" {
-      has_handlers = true
-      assert_true(content.contains("studio_dispatch_handler"))
-    }
-    if path == "\{root}/.studio/program.json" {
-      has_snapshot = true
-      assert_true(content.contains("\"format\""))
-    }
-    if path == "\{root}/compiled_runtime/runtime.mbt" {
-      has_kernel_runtime = true
+  let source = @project.project_source_from_plan(root, files)
+  assert_eq(source.root, root)
+  assert_true(source.module_manifest.contains("name = \"\{module_name}\""))
+  let rels : Array[String] = []
+  for entry in source.package_sources {
+    rels.push(entry.0)
+  }
+  // 内核包 + app + 两个入口包都在；`.studio` 无 moon.pkg 不算包
+  assert_true(rels.contains("app"))
+  assert_true(rels.contains("native_app"))
+  assert_true(rels.contains("web_wasm"))
+  assert_true(rels.contains("domain/ir"))
+  assert_false(rels.contains(".studio"))
+  // 程序包探测只看内容：组合根是唯一的 `pub fn program` 挂载点
+  let program_rels : Array[String] = []
+  for entry in source.package_sources {
+    if entry.2 {
+      program_rels.push(entry.0)
     }
   }
-  assert_true(has_mod)
-  assert_true(has_pkg)
-  assert_true(has_runner)
-  assert_true(has_handlers)
-  assert_true(has_snapshot)
-  assert_true(has_kernel_runtime)
-}
-
-///|
-test "folder name folds into a moonbit-friendly module name" {
-  assert_eq(new_project_module_name("/tmp/my_app"), "my-app")
-  // 非字母数字全折叠为连字符（每个字符一个 -，重复折叠为单 -）
-  assert_eq(new_project_module_name("/tmp/点名册"), "-")
-  assert_eq(new_project_module_name("/tmp/hello"), "hello")
-  // 无分隔符的裸名原样归一
-  assert_eq(new_project_module_name("demo"), @export.sanitize_name("demo"))
-}
-
-///|
-/// 递归删测试夹具目录（测试专用的最小 rm -rf；路径是本测试写死的 /tmp 前缀）。
-fn rm_rf(path : String) -> Unit {
-  let entries = @x/fs.read_dir(path) catch { _ => return }
-  for name in entries {
-    let child = path + "/" + name
-    let child_is_dir = @x/fs.is_dir(child) catch { _ => false }
-    if child_is_dir {
-      rm_rf(child)
-    } else {
-      let _ = @x/fs.remove_file(child) catch { _ => () }
+  assert_eq(program_rels, ["app"])
+  let app_files : Array[String] = []
+  for entry in source.package_sources {
+    if entry.0 == "app" {
+      for name in entry.3 {
+        app_files.push(name)
+      }
     }
   }
-  let _ = @x/fs.remove_dir(path) catch { _ => () }
-}
-
-///|
-test "dir guard rejects existing modules and missing dirs" {
-  // 不存在的目录拒绝
-  match dir_is_writable("/tmp/folder-projects-definitely-missing") {
-    Err(_) => ()
-    Ok(_) => fail("缺失目录应拒绝")
+  assert_true(app_files.contains("handlers.mbt"))
+  assert_true(app_files.contains("runner.mbt"))
+  // 骨架布局探测（插件侧）：首个程序包带 runner.mbt → 提案采纳要刷新内嵌 IR
+  match project_record_from_source(source) {
+    Ok(record) => assert_true(@proj.is_studio_app_bundle(record))
+    Err(reason) => fail("骨架应能建成工程记录：\{reason}")
   }
-  // 已有 moon.mod 的目录拒绝（防覆盖用户工程）
-  let existing = "/tmp/folder-projects-guard-fixture"
-  rm_rf(existing)
-  @x/fs.create_dir(existing)
-  let _ = @x/fs.write_string_to_file(
-    "\{existing}/moon.mod",
-    "name = \"taken\"\n",
-  ) catch {
-    _ => ()
-  }
-  match dir_is_writable(existing) {
-    Err(message) => assert_true(message.contains("moon.mod"))
-    Ok(_) => fail("已有模块的目录应拒绝")
-  }
-  // 空目录放行
-  let empty = "/tmp/folder-projects-guard-empty"
-  rm_rf(empty)
-  @x/fs.create_dir(empty)
-  assert_true(dir_is_writable(empty) is Ok(_))
-  rm_rf(existing)
-  rm_rf(empty)
-}
-
-///|
-test "template index maps to built-in samples or blank" {
-  assert_eq(template_program(-1).controls.length(), 0)
-  let samples = @proposals.all_samples()
-  assert_eq(template_program(0).window.title, samples[0].window.title)
-  assert_eq(template_program(2).window.title, samples[2].window.title)
-  // 越界回退空白
-  assert_eq(template_program(99).controls.length(), 0)
 }
 
 ///|
@@ -145,4 +77,69 @@ test "program snapshot restores the stored program" {
       @services.AppServices::new(),
     ).0
   assert_true(broken.notice.contains("快照"))
+}
+
+///|
+/// 事务边界：写盘中途失败（或取消）不再留「半套骨架」——草稿翻到删除相，
+/// 队列截成已写前缀、游标归零，删除回执逐条推进，删完才清草稿。
+/// 这里断的是**状态机**（相位/截断/收尾）；`delete_file` 的真落盘在假
+/// FileServices 下不执行，由 native 手工验收覆盖。
+test "an aborted skeleton write switches to the delete phase" {
+  let root = "/tmp/folder-projects-rollback"
+  let draft : NewProjectDraft = {
+    template_index: -1,
+    program: @proposals.sample_hello(),
+    root,
+    module_name: "folder-projects-rollback",
+    files: [(root + "/moon.mod", "a"), (root + "/app/moon.pkg", "b")],
+    done: 2,
+    rolling_back: false,
+  }
+  let model = { ..initial_model(), new_project: Some(draft), }
+  let services = @services.AppServices::new()
+  let error = @services.ServiceError::new(code="fs", message="磁盘只读")
+  let (rolling, _effect) = update_with_services(
+    model,
+    NewProjectQueueResult(Failure(error)),
+    services,
+  )
+  match rolling.new_project {
+    Some(draft) => {
+      assert_true(draft.rolling_back)
+      assert_eq(draft.done, 0)
+      // 队列截成已写前缀；通知给的是失败原因
+      assert_eq(draft.files.length(), 2)
+      assert_true(rolling.notice.contains("磁盘只读"), msg=rolling.notice)
+    }
+    None => fail("删除相要留草稿推进游标")
+  }
+  let (half, _e) = update_with_services(
+    rolling,
+    NewProjectQueueResult(Success(())),
+    services,
+  )
+  match half.new_project {
+    Some(draft) => assert_eq(draft.done, 1)
+    None => fail("一条删除回执只推进一格")
+  }
+  let (clean, _e) = update_with_services(
+    half,
+    NewProjectQueueResult(Success(())),
+    services,
+  )
+  assert_true(clean.new_project is None)
+  // 一个字都没写就取消：队列为空，直接清草稿且不弹通知
+  let fresh : NewProjectDraft = {
+    ..draft,
+    files: [],
+    done: 0,
+    rolling_back: false,
+  }
+  let (quiet, _e) = update_with_services(
+    { ..initial_model(), new_project: Some(fresh), },
+    NewProjectQueueResult(Cancelled),
+    services,
+  )
+  assert_true(quiet.new_project is None)
+  assert_eq(quiet.notice, "")
 }

@@ -28,6 +28,8 @@ pub fn parse_package_manifest(rel_path~ : String, String) -> Result[PackageManif
 
 pub fn preview_harness_files(String, String) -> Array[(String, String)]
 
+pub fn project_source_from_plan(String, Array[(String, String)]) -> ProjectSource
+
 pub fn scan_dirs(Array[LayoutEntry]) -> Array[ScannedDir]
 
 pub fn scan_module(ModuleManifest, Array[(String, String, Bool, Array[String])], dirs? : Array[ScannedDir]) -> Result[ScannedModule, String]

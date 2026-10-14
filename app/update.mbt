@@ -603,7 +603,7 @@ fn update_shell_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
 /// EvCodeProjectWrite（组合根按工程布局写代码真源 + 内嵌 IR）与 IR 快照
 /// 事件。`index` = 模板下标（-1 = 空白程序）。
 pub fn load_template_program(model : Model, index : Int) -> Model {
-  let program = template_program(index)
+  let program = @scaffold.template_program(index)
   let label = if index < 0 {
     "app.recent.action.new"
   } else {
