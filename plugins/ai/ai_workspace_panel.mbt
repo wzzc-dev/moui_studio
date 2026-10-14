@@ -1,11 +1,9 @@
 ///|
-/// AI 工作区面板（RvWorkspace,VS Code 智能体模式右栏口径）：
+/// AI 工作区面板（RvWorkspace，VS Code 智能体模式右栏口径）：
 /// 双页签「更改 N（提案历史）/ 文件（工程树）」。
 ///
-/// 「更改」= 提案历史时间线（采纳✓/拒绝✗ + 摘要 + 改动文件 chips）,
-/// 待采纳提案置顶并内嵌采纳/拒绝操作（复用既有通道,不新增执行路径）；
-/// 「文件」= 复用工程探索器（空态自带「还没有导入的工程」提示）。
-/// 页签头 = 双页签 + 计数徽章（提案数）。
+/// 纯视图（S4c 出壳）：不读壳 Model，状态与动作用 `AiWorkspaceParams[Msg]`
+/// 显式注入；「文件」页签的工程树由壳构建后作为 `files_view` 插槽注入。
 
 ///|
 /// 面板头高（与左栏面板头同节奏）。
@@ -16,10 +14,28 @@ pub const AI_WS_HEAD_HEIGHT : Double = 34.0
 pub const AI_WS_ENTRY_HEIGHT : Double = 44.0
 
 ///|
+/// 工作区面板参数（S4c 出壳）：右栏双页签所需的最小状态投影 + 动作。
+/// - `show_changes`：true=「更改」页签活动，false=「文件」页签活动；
+/// - `history`：提案历史（最新追加在尾，渲染时倒序，最新在前）；
+/// - `pending`：待采纳提案（摘要 + 结构化 diff），None 表示无待采纳；
+/// - `files_view`：壳构建好的工程树视图（「文件」页签整页插槽）；
+/// - 四个 on_*：页签切换与采纳/拒绝动作（壳映射成既有 Msg）。
+pub(all) struct AiWorkspaceParams[Msg] {
+  show_changes : Bool
+  history : Array[ProposalRecord]
+  pending : (String, Array[@proposals.DiffEntry])?
+  files_view : @moui.View[Msg]
+  on_select_changes : Msg
+  on_select_files : Msg
+  on_accept : Msg
+  on_reject : Msg
+}
+
+///|
 /// 从提案 diff 的 IR 路径推导改动的**落盘文件**：control/window →
 /// form.mbt（布局）;handler/variable/function/struct → handlers.mbt（逻辑）。
 /// 去重、form 在前——与代码真源的两文件布局一致。
-fn ai_ws_changed_files(diff : Array[@proposals.DiffEntry]) -> Array[String] {
+pub fn ai_ws_changed_files(diff : Array[@proposals.DiffEntry]) -> Array[String] {
   let mut form = false
   let mut handlers = false
   for entry in diff {
@@ -46,29 +62,21 @@ fn ai_ws_changed_files(diff : Array[@proposals.DiffEntry]) -> Array[String] {
 }
 
 ///|
-/// 工作区面板（RvWorkspace 装配入口,ide_root 右栏分支调用）。
-pub fn ai_workspace_panel(
-  model : Model,
+/// 工作区面板（RvWorkspace 装配入口，壳右栏分支调用）。
+pub fn[Msg] ai_workspace_panel(
+  p : AiWorkspaceParams[Msg],
   t : @i18n.Translator,
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
   let inner = (width - 8.0).max(80.0)
-  let body = match model.right_panel_tab {
-    RpChanges => {
-      let tab_h = (height - AI_WS_HEAD_HEIGHT).max(80.0)
-      ai_ws_changes_tab(model, t, inner, tab_h)
-    }
-    RpFiles => {
-      let tab_h = (height - AI_WS_HEAD_HEIGHT).max(80.0)
-      @views.container(
-        project_explorer(model, t, inner, tab_h),
-        width~,
-        padding=0.0,
-      )
-    }
+  let body = if p.show_changes {
+    let tab_h = (height - AI_WS_HEAD_HEIGHT).max(80.0)
+    ai_ws_changes_tab(p, t, inner, tab_h)
+  } else {
+    p.files_view
   }
-  @views.column([ai_ws_tab_header(model, t, inner), body], spacing=0.0).frame(
+  @views.column([ai_ws_tab_header(p, t, inner), body], spacing=0.0).frame(
     width~,
     height~,
   )
@@ -76,19 +84,20 @@ pub fn ai_workspace_panel(
 
 ///|
 /// 页签头：「更改 N」（徽章 = 已落账提案数）+「文件」，活动态强调色。
-fn ai_ws_tab_header(
-  model : Model,
+fn[Msg] ai_ws_tab_header(
+  p : AiWorkspaceParams[Msg],
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
-  let changes_w = (@chrome.text_estimate_width(text(t, "app.ai.ws.changes")) *
+  let changes_w = (@chrome.text_estimate_width(t.translate("app.ai.ws.changes")) *
   1.05 +
   30.0).max(56.0)
-  let files_w = (@chrome.text_estimate_width(text(t, "app.ai.ws.files")) * 1.05 +
+  let files_w = (@chrome.text_estimate_width(t.translate("app.ai.ws.files")) *
+  1.05 +
   16.0).max(48.0)
-  let changes_active = model.right_panel_tab is RpChanges
-  let files_active = model.right_panel_tab is RpFiles
-  let count = model.ai_sessions.current().proposal_history.length()
+  let changes_active = p.show_changes
+  let files_active = !p.show_changes
+  let count = p.history.length()
   @views.container(
     @views.padding_edges(
       @views.row(
@@ -98,7 +107,7 @@ fn ai_ws_tab_header(
               @views.row(
                 [
                   @views.text(
-                    text(t, "app.ai.ws.changes"),
+                    t.translate("app.ai.ws.changes"),
                     theme=@chrome.studio_theme(),
                     width=changes_w - 30.0,
                     height=16.0,
@@ -133,11 +142,11 @@ fn ai_ws_tab_header(
             width=changes_w,
             height=22.0,
             padding=0.0,
-          ).on_tap(SetRightPanelTab(RpChanges)),
+          ).on_tap(p.on_select_changes),
           @views.container(
             @views.center(
               @views.text(
-                text(t, "app.ai.ws.files"),
+                t.translate("app.ai.ws.files"),
                 theme=@chrome.studio_theme(),
                 width=files_w - 8.0,
                 height=16.0,
@@ -160,7 +169,7 @@ fn ai_ws_tab_header(
             width=files_w,
             height=22.0,
             padding=0.0,
-          ).on_tap(SetRightPanelTab(RpFiles)),
+          ).on_tap(p.on_select_files),
           @views.spacer(min_length=6.0, weight=1.0),
         ],
         spacing=6.0,
@@ -177,34 +186,34 @@ fn ai_ws_tab_header(
 }
 
 ///|
-/// 「更改」页签：待采纳提案置顶（内嵌采纳/拒绝）+ 提案历史时间线;
+/// 「更改」页签：待采纳提案置顶（内嵌采纳/拒绝）+ 提案历史时间线；
 /// 空态提示。滚动接管超长历史。
-fn ai_ws_changes_tab(
-  model : Model,
+fn[Msg] ai_ws_changes_tab(
+  p : AiWorkspaceParams[Msg],
   t : @i18n.Translator,
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
   let rows : Array[@moui.View[Msg]] = []
-  // 待采纳提案置顶:摘要 + 改动文件 + 采纳/拒绝（复用既有通道）
-  match model.pending {
-    Some(pending) =>
+  // 待采纳提案置顶：摘要 + 改动文件 + 采纳/拒绝（复用既有通道）
+  match p.pending {
+    Some((summary, diff)) =>
       rows.push(
-        ai_ws_pending_card(model, t, pending.summary, pending.diff, width),
+        ai_ws_pending_card(t, summary, diff, width, p.on_accept, p.on_reject),
       )
     None => ()
   }
   // 提案历史（最新在前）
-  let history = model.ai_sessions.current().proposal_history
+  let history = p.history
   let mut index = history.length()
   while index > 0 {
     index = index - 1
     let record = history[index]
     let files = ai_ws_changed_files(record.diff)
     let state_label = if record.accepted {
-      text(t, "app.ai.hist_accepted")
+      t.translate("app.ai.hist_accepted")
     } else {
-      text(t, "app.ai.hist_rejected")
+      t.translate("app.ai.hist_rejected")
     }
     rows.push(
       @views.container(
@@ -257,7 +266,7 @@ fn ai_ws_changes_tab(
       @views.container(
         @views.center(
           @views.text(
-            text(t, "app.ai.ws.empty"),
+            t.translate("app.ai.ws.empty"),
             theme=@chrome.studio_theme(),
             width=(width - 40.0).max(40.0),
             height=15.0,
@@ -280,14 +289,14 @@ fn ai_ws_changes_tab(
 
 ///|
 /// 待采纳提案卡：摘要 + 改动文件 chips + 采纳/拒绝（既有 Accept/Reject 通道）。
-fn ai_ws_pending_card(
-  model : Model,
+fn[Msg] ai_ws_pending_card(
   t : @i18n.Translator,
   summary : String,
   diff : Array[@proposals.DiffEntry],
   width : Double,
+  on_accept : Msg,
+  on_reject : Msg,
 ) -> @moui.View[Msg] {
-  ignore(model)
   let files = ai_ws_changed_files(diff)
   let rows : Array[@moui.View[Msg]] = [
     @views.text(
@@ -301,14 +310,14 @@ fn ai_ws_pending_card(
     @views.row(
       [
         @chrome.action_chip(
-          text(t, "app.ai.accept"),
-          AcceptProposal,
+          t.translate("app.ai.accept"),
+          on_accept,
           @chrome.Primary,
           22.0,
         ),
         @chrome.action_chip(
-          text(t, "app.ai.reject"),
-          RejectProposal,
+          t.translate("app.ai.reject"),
+          on_reject,
           @chrome.Quiet,
           22.0,
         ),
@@ -334,7 +343,10 @@ fn ai_ws_pending_card(
 
 ///|
 /// 改动文件 chips 行：每个落盘文件一枚 Mono 小芯片（无文件时 0 高）。
-fn file_chips_row(files : Array[String], width : Double) -> @moui.View[Msg] {
+fn[Msg] file_chips_row(
+  files : Array[String],
+  width : Double,
+) -> @moui.View[Msg] {
   if files.length() == 0 {
     return @views.container(
       @views.text("", width=1.0, height=0.0),

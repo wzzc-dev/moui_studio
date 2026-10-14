@@ -30,7 +30,10 @@ fn ai_draw(
 /// AI 模式 + 一轮「提问 → 提案」的会话（用户气泡 + diff 工作卡）。
 fn ai_transcript_model() -> Model {
   let asked = apply_ai(initial_model(), SetPerspective(PsAi))
-  let asked = apply_ai(asked, SetPrompt("帮我做一个班级随机点名册"))
+  let asked = apply_ai(
+    asked,
+    AiSessionOp(@ai.SetPromptDraft("帮我做一个班级随机点名册")),
+  )
   // 假模型移除后，diff 卡经真实回执通道注入（with_pending_roll_call，
   // app_test.mbt 同名助手在独立黑盒包里，wbtest 各留一份）
   with_pending_roll_call(asked)
@@ -87,9 +90,9 @@ test "transcript hides scroll to bottom while following and shows when scrolled 
   // 用户上滚：出现「回到底部」
   let scrolled = apply_ai(
     model,
-    TranscriptScrolled(@geometry.Point::new(x=0.0, y=100.0)),
+    AiUiOp(@ai.TranscriptScrolled(@geometry.Point::new(x=0.0, y=100.0))),
   )
-  assert_false(scrolled.transcript_follow)
+  assert_false(scrolled.ai_ui.transcript_follow)
   let commands = ai_draw(scrolled, 1280.0, 800.0)
   let mut visible = false
   for run in shell_texts(commands) {
@@ -100,11 +103,11 @@ test "transcript hides scroll to bottom while following and shows when scrolled 
   assert_true(visible)
   // 点「回到底部」：恢复跟随。seq 的「before」必须先取值——update 臂对
   // mut 字段是**原地改**，scrolled 与 restored 是同一条记录的别名，
-  // 事后读 scrolled.transcript_scroll_seq 已经是新值（断言恒假）。
-  let seq_before = scrolled.transcript_scroll_seq
-  let restored = apply_ai(scrolled, TranscriptScrollToBottom)
-  assert_true(restored.transcript_follow)
-  assert_true(restored.transcript_scroll_seq > seq_before)
+  // 事后读 scrolled.ai_ui.transcript_scroll_seq 已经是新值（断言恒假）。
+  let seq_before = scrolled.ai_ui.transcript_scroll_seq
+  let restored = apply_ai(scrolled, AiUiOp(@ai.TranscriptScrollToBottom))
+  assert_true(restored.ai_ui.transcript_follow)
+  assert_true(restored.ai_ui.transcript_scroll_seq > seq_before)
 }
 
 ///|
@@ -221,7 +224,10 @@ test "posture chip shows pending count on wide composer" {
 test "session list renders pinned group and default project group with counts" {
   // 会话 0:已置顶 + 有工程戳 + 刚刚活动;会话 1:无工程、未活动
   let base = apply_ai(initial_model(), SetPerspective(PsAi))
-  let asked = apply_ai(base, SetPrompt("帮我做一个随机点名册"))
+  let asked = apply_ai(
+    base,
+    AiSessionOp(@ai.SetPromptDraft("帮我做一个随机点名册")),
+  )
   let ran = apply_ai(asked, ComposerRun)
   let pinned = apply_ai(ran, AiSessionOp(AiSessionPin(0, true)))
   let created = apply_ai(pinned, AiSessionOp(AiSessionCreate(0)))
@@ -252,10 +258,10 @@ test "session list search row filters by query" {
   let created = apply_ai(base, AiSessionOp(AiSessionCreate(0)))
   // 新建会话的默认名「会话 2」;原会话改名为点名册讨论
   let renamed = apply_ai(created, AiSessionRenameStart(0))
-  let drafted = apply_ai(renamed, AiSessionRenameDraft("点名册讨论"))
+  let drafted = apply_ai(renamed, AiUiOp(@ai.SetRenameDraft("点名册讨论")))
   let committed = apply_ai(drafted, AiSessionRenameCommit)
-  let opened = apply_ai(committed, ToggleAiSessionSearch)
-  let queried = apply_ai(opened, SetAiSessionsQuery("点名"))
+  let opened = apply_ai(committed, AiUiOp(@ai.ToggleSessionSearch))
+  let queried = apply_ai(opened, AiUiOp(@ai.SetSessionsQuery("点名")))
   let commands = ai_draw(queried, 1280.0, 800.0)
   let mut hit = false
   let mut miss = false
@@ -388,7 +394,10 @@ test "ai workspace panel shows changes and files tabs on right expand" {
 ///|
 test "workspace changes tab lists proposal history with file chips" {
   let base = apply_ai(initial_model(), SetPerspective(PsAi))
-  let asked = apply_ai(base, SetPrompt("帮我做一个随机点名册"))
+  let asked = apply_ai(
+    base,
+    AiSessionOp(@ai.SetPromptDraft("帮我做一个随机点名册")),
+  )
   let ran = with_pending_roll_call(asked)
   let accepted = apply_ai(ran, AcceptProposal)
   let expanded = apply_ai(accepted, StudioCommandRun("studio.right.toggle"))
@@ -423,7 +432,7 @@ test "user bubble stays inside the transcript at every width" {
   // 真机反馈:气泡右缘被窗口裁切。契约:气泡右缘 ≤ 窗口右缘 − 8（转录
   // 区右内垫）。三种宽度全测——窄窗布局变化最容易挤出界。
   let model = apply_ai(initial_model(), SetPerspective(PsAi))
-  let asked = apply_ai(model, SetPrompt("你好"))
+  let asked = apply_ai(model, AiSessionOp(@ai.SetPromptDraft("你好")))
   let ran = apply_ai(asked, ComposerRun)
   for width in [1280.0, 1600.0, 2000.0] {
     let commands = ai_draw(ran, width, 800.0)

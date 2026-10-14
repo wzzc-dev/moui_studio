@@ -31,7 +31,7 @@ fn composer_run(model : Model) -> (Model, @moui.Effect[Msg]) {
     stamped
   }
   mark_ai_sessions_dirty(with_prompt)
-  match with_prompt.composer_mode {
+  match with_prompt.ai_ui.composer_mode {
     // 解释需要「当前子程序」才有话说：没选中就先选第一个子程序
     // （与左栏点选同一语义），否则讲解恒为空——点了没反应。
     ComposeExplain => {
@@ -420,9 +420,11 @@ pub fn proposal_from_completion(model : Model, completion : String) -> Model {
       // 代码真源文本 diff（M6②）：把提案应用到 IR 副本，前后各生成一次
       // 代码工程文本，行级 ± 即用户在 diff 卡看到的「改了哪几行」。
       // 校验链不变：apply_proposal 只在纯函数副本上预演。
-      let code_diff = code_text_diff(
-        code_project_text(model.program),
-        code_project_text(@proposals.apply_proposal(model.program, proposal)),
+      let code_diff = @proj.code_text_diff(
+        @proj.code_project_text(model.program),
+        @proj.code_project_text(
+          @proposals.apply_proposal(model.program, proposal),
+        ),
       )
       let summary = match model.language {
         ZhHans => proposal.summary_zh
@@ -590,34 +592,9 @@ pub fn structural_error_text(
 /// AI 域消息处理：未命中的消息返回 None 交还链式分发。
 fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
   match msg {
-    SetPrompt(value) => {
-      // 草稿进**当前会话**（M3 会话切片化）
-      model.ai_sessions.amend({
-        ..model.ai_sessions.current(),
-        prompt_draft: value,
-      })
-      Some(({ ..model, prompt_error: "", }, @moui.Effect::none()))
-    }
-    // 选模式即收起下拉（V4）：脚注从四选一胶囊行切回单芯片
-    SetComposerMode(mode) =>
-      Some(
-        (
-          { ..model, composer_mode: mode, composer_mode_picker_open: false, },
-          @moui.Effect::none(),
-        ),
-      )
-    SetRightPanelTab(tab) =>
-      Some(({ ..model, right_panel_tab: tab, }, @moui.Effect::none()))
-    ToggleComposerModePicker =>
-      Some(
-        (
-          {
-            ..model,
-            composer_mode_picker_open: !model.composer_mode_picker_open,
-          },
-          @moui.Effect::none(),
-        ),
-      )
+    // composer 输入草稿（SetPrompt）已并入 AiSessionOp(SetPromptDraft)
+    //（S5h 会话切片），由 update_shell 的会话委托承接并清 prompt_error。
+    // 选模式 / 模式下拉 / 工作区页签 已迁 AiUiOp（S4d 状态切片）。
     // 「发送」按当前模式分流到既有通道——模式只改**入口路由**，
     // 不新增执行路径（提案仍走校验链，讲解/聊天走真实 provider）。
     ComposerRun => Some(composer_run(model))
@@ -719,25 +696,7 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
           )
         }
       }
-    SetProviderEndpoint(value) =>
-      Some(({ ..model, provider_endpoint: value, }, @moui.Effect::none()))
-    SetProviderModel(value) =>
-      Some(({ ..model, provider_model: value, }, @moui.Effect::none()))
-    // 掩码态下 text_field 的 on_input 送来的是星号串，直接写会毁掉真值：
-    // 未展开时忽略编辑，用户点「显示」后再改。
-    SetProviderKey(value) =>
-      if model.provider_key_revealed {
-        Some(({ ..model, provider_key: value, }, @moui.Effect::none()))
-      } else {
-        Some((model, @moui.Effect::none()))
-      }
-    ToggleProviderKeyReveal =>
-      Some(
-        (
-          { ..model, provider_key_revealed: !model.provider_key_revealed, },
-          @moui.Effect::none(),
-        ),
-      )
+    // provider endpoint/model/key 与显隐已迁 AiUiOp（S4d 状态切片）。
     // 墙钟刷新：纯状态转移（订阅只在 AI 模式活跃，见 run_subscription）
     ClockUpdated(clock) => Some(({ ..model, clock, }, @moui.Effect::none()))
     // 会话存储加载回执（M5）：Success 解码替换（坏文件 with_notice 不静默）；
@@ -747,12 +706,12 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
         Success(payload) =>
           match @ai.decode_ai_sessions(payload) {
             Ok(container) => {
-              let restored : Model = {
-                ..model,
-                ai_sessions: container,
-                transcript_follow: true,
-                transcript_scroll: @geometry.Point::new(x=0.0, y=0.0),
-              }
+              let restored : Model = { ..model, ai_sessions: container, }
+              restored.ai_ui.transcript_follow = true
+              restored.ai_ui.transcript_scroll = @geometry.Point::new(
+                x=0.0,
+                y=0.0,
+              )
               // **恢复时清掉 in-flight 卡**：`app.ai.busy` 那张「正在生成提案…」
               // 与空的流式「回复」卡都是**进行中**的瞬时状态（回执/分片到达时
               // 才收尾）。但「提交后、回执前」存盘是可能的（未结算卡被如实写进
@@ -761,7 +720,8 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
               // 终态」，任何 in-flight 卡到这里都已经无效，所以统一摘除，
               // 不依赖它是被哪条路径写进去的。有内容的未结算卡原样保留。
               let dropped = drop_in_flight_cards(restored)
-              dropped.transcript_scroll_seq = dropped.transcript_scroll_seq + 1
+              dropped.ai_ui.transcript_scroll_seq = dropped.ai_ui.transcript_scroll_seq +
+                1
               Some((dropped, @moui.Effect::none()))
             }
             Err(error) =>
@@ -797,69 +757,18 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
         Some(composer_run(restored))
       }
     }
-    // 时间线受控滚动（终端同款）：上滚 = 关自动跟随（出现「回到底部」），
-    // 下滚 = 恢复跟随；新内容追加时只在跟随态强制贴底。
-    TranscriptScrolled(offset) => {
-      let was = model.transcript_scroll.y
-      model.transcript_scroll = offset
-      if offset.y < was - 2.0 {
-        model.transcript_follow = false
-      } else if offset.y > was + 2.0 {
-        model.transcript_follow = true
-      }
-      Some((model, @moui.Effect::none()))
-    }
-    // === 左栏会话列表（M4）：搜索 / 悬停 / 行内改名 ===
-    ToggleAiSessionSearch => {
-      let opening = !model.ai_sessions_search_open
-      Some(
-        (
-          {
-            ..model,
-            ai_sessions_search_open: opening,
-            ai_sessions_query: if opening {
-              model.ai_sessions_query
-            } else {
-              ""
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    }
-    SetAiSessionsQuery(value) =>
-      Some(({ ..model, ai_sessions_query: value, }, @moui.Effect::none()))
-    AiSessionHover(index, entered) =>
-      Some(
-        (
-          { ..model, ai_session_hover: if entered { index } else { -1 }, },
-          @moui.Effect::none(),
-        ),
-      )
+    // 时间线受控滚动/回到底部、会话列表搜索/悬停/改名草稿 已迁 AiUiOp
+    //（S4d）。改名 Start/Commit/Dismiss 读会话或触发存储，仍住壳。
     AiSessionRenameStart(index) =>
       match model.ai_sessions.session_at(index) {
-        Some(session) =>
-          Some(
-            (
-              { ..model, session_rename: Some((index, session.title)), },
-              @moui.Effect::none(),
-            ),
-          )
-        None => Some((model, @moui.Effect::none()))
-      }
-    AiSessionRenameDraft(value) =>
-      match model.session_rename {
-        Some((index, _)) =>
-          Some(
-            (
-              { ..model, session_rename: Some((index, value)), },
-              @moui.Effect::none(),
-            ),
-          )
+        Some(session) => {
+          model.ai_ui.session_rename = Some((index, session.title))
+          Some((model, @moui.Effect::none()))
+        }
         None => Some((model, @moui.Effect::none()))
       }
     AiSessionRenameCommit =>
-      match model.session_rename {
+      match model.ai_ui.session_rename {
         Some((index, draft)) => {
           let trimmed = draft.trim().to_owned()
           if trimmed != "" {
@@ -868,18 +777,12 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
             model.ai_sessions.touch(civil_seconds(model.clock))
             mark_ai_sessions_dirty(model)
           }
-          Some(({ ..model, session_rename: None, }, @moui.Effect::none()))
+          model.ai_ui.session_rename = None
+          Some((model, @moui.Effect::none()))
         }
         None => Some((model, @moui.Effect::none()))
       }
-    AiSessionRenameDismiss =>
-      Some(({ ..model, session_rename: None, }, @moui.Effect::none()))
-    TranscriptScrollToBottom => {
-      model.transcript_follow = true
-      model.transcript_scroll = @geometry.Point::new(x=0.0, y=1000000000.0)
-      model.transcript_scroll_seq = model.transcript_scroll_seq + 1
-      Some((model, @moui.Effect::none()))
-    }
+    // 改名放弃（清空）已迁 AiUiOp(ClearRename)；改名 Start/Commit 住壳。
     _ => None
   }
 }
@@ -888,9 +791,9 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
 /// 自动贴底：跟随态下新内容追加后强制滚到底部（ScrollRequest offset 用
 /// 1e9 由容器钳底，终端先例）。非跟随态不动——用户正在上滚看历史。
 pub fn follow_transcript(model : Model) -> Model {
-  if model.transcript_follow {
-    model.transcript_scroll = @geometry.Point::new(x=0.0, y=1000000000.0)
-    model.transcript_scroll_seq = model.transcript_scroll_seq + 1
+  if model.ai_ui.transcript_follow {
+    model.ai_ui.transcript_scroll = @geometry.Point::new(x=0.0, y=1000000000.0)
+    model.ai_ui.transcript_scroll_seq = model.ai_ui.transcript_scroll_seq + 1
   }
   model
 }

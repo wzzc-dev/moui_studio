@@ -274,7 +274,7 @@ test "dragging a statement into an if body moves it across layers" {
   // 选中第一条，插入一条 if 骨架（落在选中块之后）
   let with_if = apply(
     apply(model, SelectBlockStep(1)),
-    InsertStatement(2, @app.template_index_of(2, "app.stmt.tpl.if").unwrap()),
+    InsertStatement(2, @blk.template_index_of(2, "app.stmt.tpl.if").unwrap()),
   )
   let chain = @app.block_chain_of(with_if)
   // 找到 if 头所在行（分类 2 = 流程；该分类首条模板是 if）
@@ -366,23 +366,23 @@ test "block context menu selects the hit block and closes on action" {
   assert_true(baseline >= 0)
   // 右键空白（下标 -1）：菜单开，选中不变
   let on_empty = apply(with_sel, BlocksContextMenu(-1, 40.0, 40.0))
-  assert_true(on_empty.block_menu is Some(_))
+  assert_true(on_empty.blocks_ui.block_menu is Some(_))
   assert_eq(on_empty.selected_block, baseline)
   // 关菜单
-  let closed = apply(on_empty, BlocksContextMenuClose)
-  assert_false(closed.block_menu is Some(_))
+  let closed = apply(on_empty, BlocksUiOp(@blk.BlocksContextMenuClose))
+  assert_false(closed.blocks_ui.block_menu is Some(_))
   // 右键某一块：菜单开 + 选中切到它
   let on_block = apply(with_sel, BlocksContextMenu(0, 20.0, 20.0))
-  assert_true(on_block.block_menu is Some(_))
+  assert_true(on_block.blocks_ui.block_menu is Some(_))
   assert_eq(on_block.selected_block, 0)
   // 菜单动作：复制——先关菜单，且真的多出一条语句
   let chain_before = @app.block_chain_of(on_block).length()
   let after_dup = apply(on_block, BlocksMenuAction(DuplicateBlock))
-  assert_false(after_dup.block_menu is Some(_))
+  assert_false(after_dup.blocks_ui.block_menu is Some(_))
   assert_eq(@app.block_chain_of(after_dup).length(), chain_before + 1)
   // 菜单动作：删除——先关菜单，且真的少一条
   let after_del = apply(on_block, BlocksMenuAction(DeleteBlock))
-  assert_false(after_del.block_menu is Some(_))
+  assert_false(after_del.blocks_ui.block_menu is Some(_))
   assert_eq(@app.block_chain_of(after_del).length(), chain_before - 1)
 }
 
@@ -436,8 +436,8 @@ test "dragging a palette skeleton onto the canvas inserts at the pointer" {
   let model = @app.load_template_program(@app.initial_model(), 2)
   let before = @app.block_chain_of(model).length()
   // 开始拖一条骨架（流程分类第 0 条 = if 骨架）
-  let dragging = apply(model, PaletteDragStart(2, 0))
-  assert_true(dragging.palette_drag is Some(_))
+  let dragging = apply(model, BlocksUiOp(@blk.PaletteDragStart(2, 0)))
+  assert_true(dragging.blocks_ui.palette_drag is Some(_))
   let rects = @blk.blocks_item_rects(
     @app.block_chain_of(dragging),
     avail_width=470.0,
@@ -449,7 +449,7 @@ test "dragging a palette skeleton onto the canvas inserts at the pointer" {
     PaletteDrop(r0.origin.x + 20.0, r0.origin.y + r0.size.height * 0.75, 470.0),
   )
   // 拖动源已清（不能悬着影响下一次拖动）
-  assert_false(dropped.palette_drag is Some(_))
+  assert_false(dropped.blocks_ui.palette_drag is Some(_))
   let after = @app.block_chain_of(dropped)
   assert_true(after.length() > before)
   // 新语句在第 0 行之后：if 骨架自带子块，所以断言「第 0 行之后出现了 if 头」
@@ -485,7 +485,7 @@ test "an invalid drop is rejected and leaves the program untouched" {
     // 位置下标整体平移，用例会突然开始测另一条（且失败信息指不到原因）。
     InsertStatement(
       2,
-      @app.template_index_of(2, "app.stmt.tpl.repeat").unwrap(),
+      @blk.template_index_of(2, "app.stmt.tpl.repeat").unwrap(),
     ),
   )
   let chain0 = @app.block_chain_of(with_loop)
@@ -522,7 +522,7 @@ test "an invalid drop is rejected and leaves the program untouched" {
   )
   let with_break = apply(
     in_loop,
-    InsertStatement(2, @app.template_index_of(2, "app.stmt.tpl.break").unwrap()),
+    InsertStatement(2, @blk.template_index_of(2, "app.stmt.tpl.break").unwrap()),
   )
   let chain = @app.block_chain_of(with_break)
   // 找那条 break（跳出循环）
@@ -610,20 +610,20 @@ test "an invalid drop is rejected and leaves the program untouched" {
 test "dragging near the canvas edge auto-scrolls and clamps at the top" {
   let model = @app.load_template_program(@app.initial_model(), 2)
   // 顶部再往上滚：夹在 0
-  let up = apply(model, BlocksAutoScroll(-1))
-  assert_eq(up.blocks_scroll_y, 0.0)
+  let up = apply(model, BlocksUiOp(@blk.BlocksAutoScroll(-1)))
+  assert_eq(up.blocks_ui.blocks_scroll_y, 0.0)
   // 向下滚：真的推进
-  let down = apply(model, BlocksAutoScroll(1))
-  assert_true(down.blocks_scroll_y > 0.0)
+  let down = apply(model, BlocksUiOp(@blk.BlocksAutoScroll(1)))
+  assert_true(down.blocks_ui.blocks_scroll_y > 0.0)
   // 连滚多档继续推进（每档一个常量）
-  let more = apply(down, BlocksAutoScroll(1))
-  assert_true(more.blocks_scroll_y > down.blocks_scroll_y)
+  let more = apply(down, BlocksUiOp(@blk.BlocksAutoScroll(1)))
+  assert_true(more.blocks_ui.blocks_scroll_y > down.blocks_ui.blocks_scroll_y)
   // 手动滚动回报进模型（受控滚动的另一半：不回写就会被下一次重渲弹回）
-  let manual = apply(more, BlocksScrolled(120.0))
-  assert_eq(manual.blocks_scroll_y, 120.0)
+  let manual = apply(more, BlocksUiOp(@blk.BlocksScrolled(120.0)))
+  assert_eq(manual.blocks_ui.blocks_scroll_y, 120.0)
   // 负的手动回报也夹到 0
-  let clamped = apply(manual, BlocksScrolled(-50.0))
-  assert_eq(clamped.blocks_scroll_y, 0.0)
+  let clamped = apply(manual, BlocksUiOp(@blk.BlocksScrolled(-50.0)))
+  assert_eq(clamped.blocks_ui.blocks_scroll_y, 0.0)
 }
 
 ///|
@@ -668,7 +668,7 @@ test "running a decorative block explains why nothing runs" {
   // 插一条 if 骨架（流程分类 0 号模板），它会带出 end 装饰块
   let with_if = apply(
     apply(model, SelectBlockStep(1)),
-    InsertStatement(2, @app.template_index_of(2, "app.stmt.tpl.if").unwrap()),
+    InsertStatement(2, @blk.template_index_of(2, "app.stmt.tpl.if").unwrap()),
   )
   let chain = @app.block_chain_of(with_if)
   let mut end_index = -1
@@ -702,7 +702,7 @@ test "an empty container still shows an insert mark" {
   // 先把那一行删掉，得到真正的空体。
   let with_if = apply(
     apply(model, SelectBlockStep(1)),
-    InsertStatement(2, @app.template_index_of(2, "app.stmt.tpl.if").unwrap()),
+    InsertStatement(2, @blk.template_index_of(2, "app.stmt.tpl.if").unwrap()),
   )
   let chain = @app.block_chain_of(with_if)
   let mut if_index = -1

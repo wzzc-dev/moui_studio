@@ -5,6 +5,10 @@
 /// 窗格是两条独立的展示路径，按「窗格」拆文件比按「视图/辅助」拆更贴近
 /// 阅读顺序。
 
+// 包级视图构造器：积木画布/选中描边的自绘原语（原随 canvas.mbt 的 using
+// 引入，设计画布几何出壳 plugins/design 后由本文件承接，wbtest 亦可见）。
+using @views {draw_text, fill_rounded_rect, stroke_rounded_rect}
+
 ///|
 /// 积木行的**展示文本**与**引导文本**（一份产出，两处消费）：
 /// - 展示 = 引导 + 语句文本——画布上的整行文字；
@@ -35,7 +39,7 @@ pub fn block_row_texts(
 
 ///|
 /// 积木窗格：分类条 + 积木画布（选中块处就地展开编辑卡）。
-/// 分类条点分类滚动到该类首块（选中分类记忆在 model.selected_category）。
+/// 分类条点分类滚动到该类首块（选中分类记忆在 model.blocks_ui.selected_category）。
 pub fn blocks_pane(
   model : Model,
   t : @i18n.Translator,
@@ -94,9 +98,9 @@ pub fn blocks_pane(
   // 语句插入面板：分类轨点开时，在轨与画布之间插一列骨架卡片（240pt）。
   // 宽度必须从 canvas_width **扣**：画布是自适应测量节点，让它先占满再把
   // 面板塞进去，面板会被挤到窗格外。顺序不能反（先算宽度、再建画布）。
-  let palette_open = model.statement_palette_open &&
-    model.selected_category >= 0 &&
-    category_at(model.selected_category) is Some(_)
+  let palette_open = model.blocks_ui.statement_palette_open &&
+    model.blocks_ui.selected_category >= 0 &&
+    @blk.category_at(model.blocks_ui.selected_category) is Some(_)
   // 面板宽度**自适应**：积木窗格常是中心列的两个窗格之一（实测 1280 窗口
   // 下只有 ~374pt），固定 240pt 会把画布挤到 ~44pt（内容全被裁）。
   // 取可用宽的一半并双向夹取，保证画布永远有可用的最小宽度。
@@ -178,8 +182,8 @@ pub fn blocks_pane(
           canvas_width,
           canvas_height,
           text(t, "app.blocks.canvas"),
-          palette_drag=model.palette_drag is Some(_),
-          expr_drag=model.expr_drag is Some(_),
+          palette_drag=model.blocks_ui.palette_drag is Some(_),
+          expr_drag=model.blocks_ui.expr_drag is Some(_),
           script_note~,
           note_height~,
           lead_texts~,
@@ -189,9 +193,9 @@ pub fn blocks_pane(
         // **受控滚动**：偏移来自模型，拖到边缘时由 `BlocksAutoScroll`
         // 推进。不受控的话自动滚动无处落笔（滚动位置是控件内部状态，
         // update 层看不到也改不了）。
-        offset=@core.Point::new(x=0.0, y=model.blocks_scroll_y),
+        offset=@core.Point::new(x=0.0, y=model.blocks_ui.blocks_scroll_y),
         // 手动滚动要回报，否则下一次重渲会把用户滚到的位置弹回模型值。
-        on_scroll=Some(offset => BlocksScrolled(offset.y)),
+        on_scroll=Some(offset => BlocksUiOp(@blk.BlocksScrolled(offset.y))),
         shows_indicator=true,
       )
     }
@@ -254,13 +258,13 @@ pub fn category_rail(
     category_rail_row(
       text(t, "app.blocks.cat.all"),
       @chrome.ide_text_muted(),
-      model.selected_category < 0,
-      SelectBlockCategory(-1),
+      model.blocks_ui.selected_category < 0,
+      BlocksUiOp(@blk.SelectCategory(-1)),
     ),
   ]
   let mut index = 0
   for entry in entries {
-    let selected = model.selected_category == index
+    let selected = model.blocks_ui.selected_category == index
     let has_blocks = entry.first_index >= 0
     rows.push(
       category_rail_row(
@@ -274,7 +278,7 @@ pub fn category_rail(
         // 点分类 = 打开该分类的**语句插入面板**（此前只改一个高亮标志位，
         // 画布纹丝不动——分类轨长得像 Scratch 的积木调色板却点不出东西）。
         // 「全部」仍是纯过滤（它没有可插入的语义）。
-        ToggleStatementPalette(index),
+        BlocksUiOp(@blk.ToggleStatementPalette(index)),
       ),
     )
     index = index + 1
@@ -304,15 +308,15 @@ pub fn statement_palette_panel(
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
-  let category = category_at(model.selected_category)
+  let category = @blk.category_at(model.blocks_ui.selected_category)
   let templates = match category {
-    None => ([] : Array[StatementTemplate])
-    Some(category) => templates_for_category(category)
+    None => ([] : Array[@blk.StatementTemplate])
+    Some(category) => @blk.templates_for_category(category)
   }
   let rows : Array[@moui.View[Msg]] = [
     @views.padding_xy(
       @views.text(
-        @chrome.fit_label(statement_palette_title(t), width - 28.0),
+        @chrome.fit_label(@blk.statement_palette_title(t), width - 28.0),
         theme=@chrome.studio_theme(),
         width=(width - 24.0).max(60.0),
         height=18.0,
@@ -371,7 +375,7 @@ pub fn statement_palette_panel(
       ),
     )
     let mut expr_index = 0
-    for template in expression_templates() {
+    for template in @blk.expression_templates() {
       let label = text(t, template.label_key)
       rows.push(
         @views.container(
@@ -394,7 +398,7 @@ pub fn statement_palette_panel(
         )
         // 只可拖，不可点：表达式不能单独成句。拖动时记下模板下标，
         // 落点（哪个洞）由画布侧按指针算。
-        .on_drag(_event => PaletteExprDragStart(expr_index))
+        .on_drag(_event => BlocksUiOp(@blk.PaletteExprDragStart(expr_index)))
         .accessibility_label(label),
       )
       expr_index = expr_index + 1
@@ -436,10 +440,14 @@ pub fn statement_palette_panel(
           height=28.0,
           padding=0.0,
         )
-        .on_tap(InsertStatement(model.selected_category, index))
+        .on_tap(InsertStatement(model.blocks_ui.selected_category, index))
         // 拖动 = 从调色板拖到画布（Scratch 的字面手势）。这里只记下
         // 「拖动源」，落点由画布侧按指针算——两个视图互相看不到对方的帧。
-        .on_drag(_event => PaletteDragStart(model.selected_category, index))
+        .on_drag(_event => {
+          BlocksUiOp(
+            @blk.PaletteDragStart(model.blocks_ui.selected_category, index),
+          )
+        })
         .accessibility_label(label),
       )
       index = index + 1
@@ -558,7 +566,7 @@ fn category_rail_row(
 /// 编辑卡上的按钮载体，这里只是把同一批动作搬到指针处。**不新开执行路径**：
 /// 菜单是「同一动作的第二个入口」，不是第二套语义。
 ///
-/// 每一项都先发 `BlocksContextMenuClose`（见各行的 `on_tap` 串联）——
+/// 每一项都先发 `BlocksUiOp(@blk.BlocksContextMenuClose)`（见各行的 `on_tap` 串联）——
 /// 点完不关菜单，用户会以为没生效。
 pub fn block_context_menu(
   model : Model,
@@ -598,7 +606,9 @@ pub fn block_context_menu(
       menu_action_row(
         text(t, "app.blocks.rail.hint"),
         @chrome.ide_text_muted(),
-        ToggleStatementPalette(model.selected_category),
+        BlocksUiOp(
+          @blk.ToggleStatementPalette(model.blocks_ui.selected_category),
+        ),
         true,
       ),
     )
@@ -641,7 +651,7 @@ fn menu_action_row(
     if enabled {
       BlocksMenuAction(action)
     } else {
-      BlocksContextMenuClose
+      BlocksUiOp(@blk.BlocksContextMenuClose)
     },
   )
 }
@@ -1092,9 +1102,9 @@ pub fn blocks_canvas(
       // 只在**拖动中**触发（`Changed`），松手后不再滚。
       let auto = if event.phase == @views.DragGesturePhase::Changed {
         if ly < @blk.BLOCKS_EDGE_ZONE {
-          Msg::BlocksAutoScroll(-1)
+          Msg::BlocksUiOp(@blk.BlocksAutoScroll(-1))
         } else if ly > height - @blk.BLOCKS_EDGE_ZONE {
-          Msg::BlocksAutoScroll(1)
+          Msg::BlocksUiOp(@blk.BlocksAutoScroll(1))
         } else {
           Msg::Noop
         }
@@ -1151,7 +1161,7 @@ pub fn blocks_canvas(
       } else if event.phase == @views.DragGesturePhase::Changed {
         // 边缘时优先滚动（否则长链拖不到头）；不在边缘才是普通拖动。
         match auto {
-          Msg::BlocksAutoScroll(_) => auto
+          Msg::BlocksUiOp(@blk.BlocksAutoScroll(_)) => auto
           _ => Msg::BlocksCanvasDragTo(lx, ly, width)
         }
       } else {

@@ -8,6 +8,11 @@ fn apply(model : @app.Model, msg : @app.Msg) -> @app.Model {
 }
 
 ///|
+fn set_prompt(model : @app.Model, text : String) -> @app.Model {
+  apply(model, AiSessionOp(@ai.SetPromptDraft(text)))
+}
+
+///|
 /// 推进运行直到终止态（测试环境没有计时器订阅，手动 tick）。
 fn drain(model : @app.Model) -> @app.Model {
   let mut stepped = model
@@ -398,10 +403,7 @@ test "run gate pauses submit and confirm completes" {
 
 ///|
 test "proposal validates, diffs and applies" {
-  let model = apply(
-    @app.initial_model(),
-    SetPrompt("帮我做一个随机点名"),
-  )
+  let model = set_prompt(@app.initial_model(), "帮我做一个随机点名")
   let generated = with_pending_roll_call(model)
   match generated.pending {
     None => fail("应产生待采纳提案")
@@ -419,7 +421,7 @@ test "proposal validates, diffs and applies" {
 
 ///|
 test "rejected proposal keeps program" {
-  let model = apply(@app.initial_model(), SetPrompt("口算练习"))
+  let model = set_prompt(@app.initial_model(), "口算练习")
   let generated = with_pending_roll_call(model)
   let rejected = apply(generated, RejectProposal)
   assert_true(rejected.pending is None)
@@ -428,7 +430,7 @@ test "rejected proposal keeps program" {
 
 ///|
 test "invalid proposal from real model is rejected wholesale" {
-  let model = apply(@app.initial_model(), SetPrompt("随便"))
+  let model = set_prompt(@app.initial_model(), "随便")
   // 直接喂一个坏 JSON（绕过假模型）：整单拒绝
   let broken = @app.proposal_from_completion(model, "这不是提案")
   assert_true(broken.pending is None)
@@ -586,7 +588,7 @@ test "explanation prompt payload covers every template in both languages" {
 
 ///|
 test "exported bundle never carries the provider key" {
-  let model = { ..@app.initial_model(), provider_key: "SENTINEL-SECRET-KEY", }
+  let model = model_with_key("SENTINEL-SECRET-KEY")
   let encoded = @codec.encode_program(model.program)
   let bundle = @app.bundle_files(encoded, "x")
   assert_true(bundle.length() > 10)
@@ -821,22 +823,22 @@ test "canvas tap selects on click and stays quiet during drag release" {
 test "design canvas plan draws grid, handles and alignment guides" {
   let program = @proposals.sample_hello()
   // 无拖拽：网格点阵 + 选中描边 + 4 角手柄，无参考线
-  let plan = @app.design_backdrop_plan()
+  let plan = @design.design_backdrop_plan()
   // 覆盖层：选中描边/名牌/手柄（无拖拽时无参考线）
-  let overlay = @app.design_overlay_plan(program, "按钮", None)
+  let overlay = @design.design_overlay_plan(program, "按钮", None)
   let mut grid_dots = 0
   let mut handles = 0
   let mut guides = 0
   for op in plan {
     match op {
-      @app.DesignDrawOp::GridDot(_) => grid_dots = grid_dots + 1
+      @design.DesignDrawOp::GridDot(_) => grid_dots = grid_dots + 1
       _ => ()
     }
   }
   for op in overlay {
     match op {
-      @app.DesignDrawOp::SelectionHandle(_) => handles = handles + 1
-      @app.DesignDrawOp::GuideV(_) | @app.DesignDrawOp::GuideH(_) =>
+      @design.DesignDrawOp::SelectionHandle(_) => handles = handles + 1
+      @design.DesignDrawOp::GuideV(_) | @design.DesignDrawOp::GuideH(_) =>
         guides = guides + 1
       _ => ()
     }
@@ -860,11 +862,11 @@ test "design canvas plan draws grid, handles and alignment guides" {
   }
   let dragged = @ir.Control::{ ..anchor, id: 2, name: "拖块", x: 103, y: 40, }
   let pair = @ir.StudioProgram::{ ..base, controls: [anchor, dragged], }
-  let dragging = @app.design_overlay_plan(pair, "拖块", Some("拖块"))
+  let dragging = @design.design_overlay_plan(pair, "拖块", Some("拖块"))
   let mut vertical_guides = 0
   for op in dragging {
     match op {
-      @app.DesignDrawOp::GuideV(x) => {
+      @design.DesignDrawOp::GuideV(x) => {
         vertical_guides = vertical_guides + 1
         // 同宽控件整体偏移 3px：左缘/中心/右缘三条参考线全部命中
         // （100/115/130），push_unique 保证位置不重复
@@ -890,17 +892,17 @@ test "handle hit test resolves corners within radius" {
     items: [],
     props: @ir.ControlProps::default(),
   }
-  match @app.hit_test_handle(control, 100.0, 100.0) {
+  match @design.hit_test_handle(control, 100.0, 100.0) {
     Some(corner) => assert_true(corner is @ir.CornerNW)
     None => fail("左上角手柄应命中")
   }
-  match @app.hit_test_handle(control, 160.0, 140.0) {
+  match @design.hit_test_handle(control, 160.0, 140.0) {
     Some(corner) => assert_true(corner is @ir.CornerSE)
     None => fail("右下角手柄应命中")
   }
   // 半径外（10px）与控件中心不命中
-  assert_true(@app.hit_test_handle(control, 110.0, 100.0) is None)
-  assert_true(@app.hit_test_handle(control, 130.0, 120.0) is None)
+  assert_true(@design.hit_test_handle(control, 110.0, 100.0) is None)
+  assert_true(@design.hit_test_handle(control, 130.0, 120.0) is None)
 }
 
 ///|
@@ -955,13 +957,13 @@ test "snap move position aligns near edges only within tolerance" {
   }
   let pair = [anchor, dragged]
   // 左缘距锚点左缘 2px（≤4 容差）→ 吸附精确对齐；y 无参考线命中 → 落网格
-  let (sx, sy) = @app.snap_move_position(
+  let (sx, sy) = @design.snap_move_position(
     pair, "拖块", 102.0, 40.0, 30.0, 30.0,
   )
   assert_eq(sx, 100.0)
   assert_eq(sy, 32.0)
   // 双轴均超参考线容差 → 双轴落网格（106 → 96，40 → 32）
-  let (fx, fy) = @app.snap_move_position(
+  let (fx, fy) = @design.snap_move_position(
     pair, "拖块", 106.0, 40.0, 30.0, 30.0,
   )
   assert_eq(fx, 96.0)
@@ -1063,9 +1065,9 @@ test "deleting an unselected control preserves the current selection" {
 /// 再落 diff/错误卡，时间线不留永远转圈的卡。
 test "real generation shows busy card until result arrives" {
   let services = @services.AppServices::new()
-  let asked = apply(
-    { ..@app.initial_model(), provider_key: "k", },
-    SetPrompt("把按钮文案改成开始抽签"),
+  let asked = set_prompt(
+    model_with_key("k"),
+    "把按钮文案改成开始抽签",
   )
   let counted = asked.ai_sessions.current().card_seq
   // 走程序级臂（真实 provider 通道）：noop submit 不发回执，卡的状态由
@@ -1123,7 +1125,7 @@ test "real generation shows busy card until result arrives" {
 
 ///|
 test "real generation result becomes pending proposal, failure surfaces" {
-  let model = { ..@app.initial_model(), provider_key: "k", }
+  let model = model_with_key("k")
   // 真实生成成功：补全文本走校验链 → 待采纳提案；busy 复位
   let completion = @proposals.encode_proposal(
     @proposals.proposal_from_program(
@@ -1259,7 +1261,7 @@ test "duplicate control copies props with offset and undo removes it" {
 ///|
 test "undo reverts accepted proposal" {
   let model = @app.initial_model()
-  let prompted = apply(model, SetPrompt("做一个查询成绩的表单"))
+  let prompted = set_prompt(model, "做一个查询成绩的表单")
   let generated = with_pending_roll_call(prompted)
   match generated.pending {
     None => fail("应产出待采纳提案")
@@ -1688,7 +1690,7 @@ test "proposal diff shows code text and accept triggers codegen write" {
       ProjectScanCompleted(Success(Ok(Single(counter_source())))),
       @services.AppServices::new(),
     ).0
-  let model = apply(imported, SetPrompt("帮我做一个随机点名"))
+  let model = set_prompt(imported, "帮我做一个随机点名")
   let generated = with_pending_roll_call(model)
   match generated.pending {
     None => fail("应产生待采纳提案")
@@ -1719,9 +1721,9 @@ test "proposal diff shows code text and accept triggers codegen write" {
 ///|
 test "code text diff trims common prefix and suffix" {
   // 完全相同 → 空 diff
-  assert_eq(@app.code_text_diff("a\nb\n", "a\nb\n").length(), 0)
+  assert_eq(@proj.code_text_diff("a\nb\n", "a\nb\n").length(), 0)
   // 单行改动：中间一行 - 旧 + 新
-  let diff = @app.code_text_diff(
+  let diff = @proj.code_text_diff(
     "let x = 1\nlet y = 2\nlet z = 3\n", "let x = 1\nlet y = 20\nlet z = 3\n",
   )
   assert_eq(diff.length(), 2)
@@ -1734,7 +1736,7 @@ test "code text diff trims common prefix and suffix" {
 ///|
 test "code project text joins form and handlers with a boundary" {
   let program = @proposals.sample_hello()
-  let text = @app.code_project_text(program)
+  let text = @proj.code_project_text(program)
   assert_true(text.contains("=== handlers.mbt ==="))
   assert_true(text.contains("stage(640, 480"))
   assert_true(text.contains("fn studio_"))
@@ -1823,10 +1825,8 @@ test "project file opens editable and saves" {
         None => fail("保存后文件应仍打开")
       }
       // 关闭:回到 IR 编辑面
-      let closed = apply(
-        saved,
-        CloseFileTab(saved.project_state.open_file_index),
-      )
+      let close_idx = saved.project_state.open_file_index
+      let closed = apply(saved, ProjectOp(@proj.CloseFileTab(close_idx)))
       assert_true(closed.project_state.open_project_files.is_empty())
       assert_eq(closed.project_state.open_file_index, -1)
     }
@@ -1847,7 +1847,7 @@ test "ai perspective walks prompt to proposal to accept with isolated sessions" 
   assert_true(in_mode.left_view is LeftAiSessions)
   assert_true(in_mode.right_view is RvHidden)
   // 提问：草稿进当前会话
-  let asked = apply(in_mode, SetPrompt("帮我做一个随机点名"))
+  let asked = set_prompt(in_mode, "帮我做一个随机点名")
   assert_eq(
     asked.ai_sessions.current().prompt_draft,
     "帮我做一个随机点名",
@@ -1894,7 +1894,7 @@ test "ai perspective walks prompt to proposal to accept with isolated sessions" 
 test "real explanation streams chunks and stop truncates cleanly" {
   let services = @services.AppServices::new()
   // 密钥掩码态会忽略 SetProviderKey 输入——测试直接展开字段
-  let model = { ..@app.initial_model(), provider_key: "k", }
+  let model = model_with_key("k")
   // 启动流式讲解：流式卡就位（空 body）+ 标志为真
   let (streaming, _effect) = @app.update_with_launch_for_test(
     model,
@@ -1935,8 +1935,9 @@ test "real explanation streams chunks and stop truncates cleanly" {
   )
   // 正常完成路径：RealExplanationFinished 结算流式卡并复位标志
   // （会话切片共享可变，避免与前段别名）
+  let provisioned = model_with_key("k")
   let (fresh_stream, _) = @app.update_with_launch_for_test(
-    { ..@app.initial_model(), provider_key: "k", },
+    provisioned,
     ExplainHandler,
     services,
     fn(_path, _done) { () },

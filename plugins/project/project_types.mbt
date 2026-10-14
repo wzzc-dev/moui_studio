@@ -86,4 +86,11 @@ pub(all) struct ProjectState {
   file_rename_open : String?
   folder_create_open : Bool
   file_name_draft : String
+  /// 左栏结构树（程序对象树）搜索查询与展开分组集合（S5f 并入切片）。
+  mut tree_query : String
+  mut tree_collapsed : Array[String]
+  /// 结构树里展开着「新建」菜单的分组（"" = 没有）。
+  mut tree_create_group : String
+  /// G4 全文搜索查询草稿（命中集/忙碌标记是服务态，仍住壳）。
+  mut search_query : String
 }

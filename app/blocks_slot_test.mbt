@@ -117,12 +117,11 @@ test "dropping a reporter into a slot replaces that subexpression" {
   assert_true(item.path.length() > 0)
   // 表达式模板 0 = 加法 `1 + 1`
   let before = @app.block_chain_of(picked)[picked.selected_block].text
-  let dropped = apply(
-    { ..picked, expr_drag: Some(0), },
-    ExpressionDrop(picked.selected_block, []),
-  )
+  let dragging = { ..picked, }
+  dragging.blocks_ui.expr_drag = Some(0)
+  let dropped = apply(dragging, ExpressionDrop(picked.selected_block, []))
   // 拖动源已清
-  assert_false(dropped.expr_drag is Some(_))
+  assert_false(dropped.blocks_ui.expr_drag is Some(_))
   let after = @app.block_chain_of(dropped)[dropped.selected_block].text
   // 根表达式被换掉：`1 + 1` 出现在文本里（模板可解析 → 真的写进了 IR）
   assert_true(after != before)
@@ -136,9 +135,11 @@ test "dropping a reporter into a slot replaces that subexpression" {
 test "dropping a reporter outside a slot is reported and changes nothing" {
   let model = @app.load_template_program(@app.initial_model(), 2)
   let before = @app.block_chain_of(model).map(item => item.text)
-  let dropped = apply({ ..model, expr_drag: Some(0), }, ExpressionDrop(-1, []))
+  let with_drag = { ..model, }
+  with_drag.blocks_ui.expr_drag = Some(0)
+  let dropped = apply(with_drag, ExpressionDrop(-1, []))
   assert_true(dropped.notice != "")
-  assert_false(dropped.expr_drag is Some(_))
+  assert_false(dropped.blocks_ui.expr_drag is Some(_))
   let after = @app.block_chain_of(dropped).map(item => item.text)
   assert_eq(before.length(), after.length())
   let mut i = 0
@@ -155,7 +156,7 @@ test "dropping a reporter outside a slot is reported and changes nothing" {
 /// （随后运行才报错，用户不知道自己做错了什么）。
 test "expression templates are not inserted as statements" {
   // 表达式模板表是**另一张表**，语句骨架表里不含报告块
-  let exprs = @app.expression_templates()
+  let exprs = @blk.expression_templates()
   assert_true(exprs.length() > 0)
   // 表达式骨架本身不是合法**语句**：`1 + 1` 作为语句解析应失败
   let parsed = @studio_lang.parse_handler_body(
@@ -164,7 +165,7 @@ test "expression templates are not inserted as statements" {
   )
   assert_true(parsed is Err(_))
   // 语句骨架表（运算分类）里那一条是**完整语句**（赋值），不是裸表达式
-  let stmts = @app.templates_for_category(@blocks.CatExpression)
+  let stmts = @blk.templates_for_category(@blocks.CatExpression)
   for template in stmts {
     let body = @studio_lang.parse_handler_body(
       template.skeleton(@studio_lang.ZhHans),
@@ -194,14 +195,14 @@ test "editing a value changes only that leaf" {
       @blocks.expr_at(handler.body, blocks[index].path, []).unwrap(),
     )
     is Some(_)
-  assert_eq(opened.block_value_edit is Some(_), is_leaf)
-  if opened.block_value_edit is Some(_) {
+  assert_eq(opened.blocks_ui.block_value_edit is Some(_), is_leaf)
+  if opened.blocks_ui.block_value_edit is Some(_) {
     // 输入新值并提交
     let committed = apply(
-      apply(opened, BlockValueInput("42")),
+      apply(opened, BlocksUiOp(@blk.BlockValueInput("42"))),
       BlockValueCommit,
     )
-    assert_false(committed.block_value_edit is Some(_))
+    assert_false(committed.blocks_ui.block_value_edit is Some(_))
     let after = @app.block_chain_of(committed)[index].text
     assert_true(after != before)
     assert_true(after.contains("42"))
@@ -218,7 +219,8 @@ test "value editing refuses non-leaf positions" {
   let index = picked.selected_block
   // 越界路径
   assert_false(
-    apply(picked, EditBlockValue(index, [7])).block_value_edit is Some(_),
+    apply(picked, EditBlockValue(index, [7])).blocks_ui.block_value_edit
+    is Some(_),
   )
   // 指向一个**洞**（调用语句的第 0 个实参若是调用，则它是洞）
   let chain = @app.block_chain_of(picked)
@@ -229,7 +231,7 @@ test "value editing refuses non-leaf positions" {
         match segment.expr_path {
           Some(path) =>
             assert_false(
-              apply(picked, EditBlockValue(index, path)).block_value_edit
+              apply(picked, EditBlockValue(index, path)).blocks_ui.block_value_edit
               is Some(_),
             )
           None => ()
@@ -249,9 +251,9 @@ test "cancelling a value edit leaves the program untouched" {
   let index = picked.selected_block
   let before = @app.block_chain_of(picked).map(item => item.text)
   let opened = apply(picked, EditBlockValue(index, []))
-  let typed = apply(opened, BlockValueInput("999"))
-  let cancelled = apply(typed, BlockValueCancel)
-  assert_false(cancelled.block_value_edit is Some(_))
+  let typed = apply(opened, BlocksUiOp(@blk.BlockValueInput("999")))
+  let cancelled = apply(typed, BlocksUiOp(@blk.BlockValueCancel))
+  assert_false(cancelled.blocks_ui.block_value_edit is Some(_))
   let after = @app.block_chain_of(cancelled).map(item => item.text)
   assert_eq(before.length(), after.length())
   let mut i = 0
@@ -273,7 +275,7 @@ test "cancelling a value edit leaves the program untouched" {
 /// 语句真的调用那个内建——只断言「文本里出现过名字」会漏掉写错参数个数的
 /// 骨架（那种骨架点下去只会报解析错误）。
 test "every command builtin is reachable from the palette" {
-  let palette = @app.templates_for_category(@blocks.CatCommand)
+  let palette = @blk.templates_for_category(@blocks.CatCommand)
   let reachable : Array[String] = []
   for template in palette {
     let body = @studio_lang.parse_handler_body(
@@ -321,7 +323,7 @@ test "every command builtin is reachable from the palette" {
 /// 表达式真的调用那个内建（不是「文本里出现过名字」——那会漏掉参数写错的
 /// 骨架，那种骨架拖进洞只会报解析错误）。
 test "every function builtin is reachable from the reporter palette" {
-  let palette = @app.expression_templates()
+  let palette = @blk.expression_templates()
   let reachable : Array[String] = []
   for template in palette {
     let expr = match
@@ -385,7 +387,7 @@ fn collect_calls(expr : @ir.Expr, out : Array[String]) -> Unit {
 test "every palette skeleton parses in both UI languages" {
   let languages = [@studio_lang.ZhHans, @studio_lang.En]
   for language in languages {
-    for template in @app.statement_templates() {
+    for template in @blk.statement_templates() {
       let result = @studio_lang.parse_handler_body(
         template.skeleton(language),
         language,
@@ -396,7 +398,7 @@ test "every palette skeleton parses in both UI languages" {
         )
       }
     }
-    for template in @app.expression_templates() {
+    for template in @blk.expression_templates() {
       let result = @studio_lang.parse_expression_text(
         template.skeleton(language),
         language,
@@ -541,7 +543,7 @@ test "a custom block body is editable on the blocks canvas" {
     added,
     InsertStatement(
       1,
-      @app.template_index_of(1, "app.stmt.tpl.declare").unwrap(),
+      @blk.template_index_of(1, "app.stmt.tpl.declare").unwrap(),
     ),
   )
   let after = @app.block_chain_of(with_stmt)
@@ -566,7 +568,7 @@ test "deleting a statement inside a custom block writes back to the function" {
     added,
     InsertStatement(
       1,
-      @app.template_index_of(1, "app.stmt.tpl.declare").unwrap(),
+      @blk.template_index_of(1, "app.stmt.tpl.declare").unwrap(),
     ),
   )
   let before = @app.block_chain_of(with_stmt).length()
@@ -660,8 +662,11 @@ test "calling an undefined name is still an error" {
 test "escape dismisses the completion popup and never double-fires" {
   let model = @app.load_template_program(@app.initial_model(), 2)
   // 打开补全弹层（在代码视图里触发）
-  let opened = { ..model, completion_open: true, }
-  assert_true(opened.completion_open)
+  let opened = {
+    ..model,
+    code_ui: { ..model.code_ui, completion_open: true, },
+  }
+  assert_true(opened.code_ui.completion_open)
   // Escape 的两条绑定此刻只应有「收起补全」是启用的
   let commands = @app.studio_program_commands(opened)
   let enabled_ids : Array[String] = []
@@ -684,8 +689,8 @@ test "escape dismisses the completion popup and never double-fires" {
   assert_eq(enabled_ids.length(), 1)
   assert_eq(enabled_ids[0], "收起补全")
   // 真的收得掉
-  let dismissed = apply(opened, DismissCompletion)
-  assert_false(dismissed.completion_open)
+  let dismissed = apply(opened, CodeUiOp(@code.DismissCompletion))
+  assert_false(dismissed.code_ui.completion_open)
 }
 
 ///|
@@ -782,7 +787,7 @@ test "the if-else skeleton produces a real else branch" {
     apply(model, SelectBlockStep(1)),
     InsertStatement(
       2,
-      @app.template_index_of(2, "app.stmt.tpl.if_else").unwrap(),
+      @blk.template_index_of(2, "app.stmt.tpl.if_else").unwrap(),
     ),
   )
   let chain = @app.block_chain_of(with_if_else)
@@ -808,7 +813,7 @@ test "the if-else skeleton produces a real else branch" {
   // 把示例名改成自己的名字后成立。
   assert_true(
     @studio_lang.parse_handler_body(
-      @app.templates_for_category(@blocks.CatFlow)[@app.template_index_of(
+      @blk.templates_for_category(@blocks.CatFlow)[@blk.template_index_of(
         2, "app.stmt.tpl.if_else",
       ).unwrap()].skeleton(@studio_lang.ZhHans),
       @studio_lang.ZhHans,
@@ -824,8 +829,8 @@ test "the if-else skeleton produces a real else branch" {
 /// 否则「重复直到 X」会变成「当 X 循环」——条件写反是循环里最难查的错，
 /// 而且它会**正常跑完**（只是迭代次数完全不同），不会报任何错。
 test "repeat-until negates its condition" {
-  let index = @app.template_index_of(2, "app.stmt.tpl.repeat_until").unwrap()
-  let skeleton = @app.templates_for_category(@blocks.CatFlow)[index].skeleton(
+  let index = @blk.template_index_of(2, "app.stmt.tpl.repeat_until").unwrap()
+  let skeleton = @blk.templates_for_category(@blocks.CatFlow)[index].skeleton(
     @studio_lang.ZhHans,
   )
   let parsed = @studio_lang.parse_handler_body(skeleton, @studio_lang.ZhHans)
@@ -858,8 +863,8 @@ test "repeat-until negates its condition" {
 /// 挂住宿主（浏览器/应用），用户除了强杀没有别的出路——比「报个误差」
 /// 糟糕得多。断言它**在预算内终止并报错**，而不是断言「能跑」。
 test "forever terminates at the step budget instead of hanging" {
-  let index = @app.template_index_of(2, "app.stmt.tpl.forever").unwrap()
-  let skeleton = @app.templates_for_category(@blocks.CatFlow)[index].skeleton(
+  let index = @blk.template_index_of(2, "app.stmt.tpl.forever").unwrap()
+  let skeleton = @blk.templates_for_category(@blocks.CatFlow)[index].skeleton(
     @studio_lang.ZhHans,
   )
   let stmts = match
@@ -897,9 +902,9 @@ test "every flow and command skeleton parses in Chinese" {
   let languages = [@studio_lang.ZhHans, @studio_lang.En]
   for language in languages {
     for category_index in [1, 2, 3] {
-      let templates = match @app.category_at(category_index) {
+      let templates = match @blk.category_at(category_index) {
         None => []
-        Some(category) => @app.templates_for_category(category)
+        Some(category) => @blk.templates_for_category(category)
       }
       for template in templates {
         let skeleton = template.skeleton(language)

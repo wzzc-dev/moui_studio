@@ -1,10 +1,16 @@
 import {
+  "wzzc-dev/moui",
+  "wzzc-dev/moui/core",
   "wzzc-dev/moui/views",
+  "wzzc-dev/moui/views/style",
+  "wzzc-dev/moui/geometry",
+  "wzzc-dev/moui/graphics",
   "wzzc-dev/moui_studio/chrome",
   "wzzc-dev/moui_i18n" @i18n,
-  "wzzc-dev/moui",
   "moonbitlang/core/json",
   "wzzc-dev/moui_studio/domain/proposals",
+  "wzzc-dev/moui_studio/services/markdown",
+  "wzzc-dev/moui_studio/plugins/code",
 }
 
 supported_targets = "native+wasm-gc"

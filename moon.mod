@@ -1,11 +1,11 @@
 name = "wzzc-dev/moui_studio"
 
-version = "0.1.0"
+version = "0.1.1"
 
 preferred_target = "native"
 
 import {
-  "wzzc-dev/moui@0.2.2",
+  "wzzc-dev/moui@0.2.3",
   "wzzc-dev/moui_webview@0.2.1",
   "wzzc-dev/moui_i18n@0.2.1",
   "wzzc-dev/moui_devtools@0.2.1",
@@ -19,3 +19,22 @@ import {
   "moonbitlang/async@0.22.4",
   "moonbitlang/x@0.5.5",
 }
+
+readme = "README.md"
+
+repository = "https://github.com/wzzc-dev/moui_studio.git"
+
+license = "Apache-2.0"
+
+keywords = [
+  "moui",
+  "studio",
+  "ide",
+  "gui",
+  "skia",
+  "low-code",
+  "design",
+  "code",
+]
+
+description = "MoUI Studio: visual + DSL IDE for building MoUI applications"

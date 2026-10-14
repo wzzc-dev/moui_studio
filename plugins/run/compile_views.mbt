@@ -1,31 +1,105 @@
 ///|
-/// 编译轨视图：真编译报告（工具链退出码 + 结构化诊断 + 原始输出）。
-/// 「编译失败不静默降级」的界面半边——失败诊断在此逐条渲染，
-/// 点击跳回对应积木；原始输出默认折叠，诊断优先。
+/// 编译轨视图（S7d 出壳）：真编译动作条 + 报告卡（工具链退出码 + 结构化诊断 +
+/// 原始输出 + 产物旁路）+ 忙态进度卡。「编译失败不静默降级」的界面半边。
+///
+/// 纯视图，不读壳 Model：状态用 `CompileViewsParams[Msg]` 注入，动作走 on_*
+/// 回调；产物旁路上的幽灵图标按钮因携带壳状态提示（HoverHint），由壳以
+/// `ghost_icon` 回调构建后注入。
+
+///|
+/// 编译轨视图参数：5 个 compile_* 状态 + 动作回调 + 幽灵图标按钮构造器。
+pub(all) struct CompileViewsParams[Msg] {
+  busy : Bool
+  track_available : Bool
+  output_open : Bool
+  progress : Array[@export.CompileProgress]
+  report : @export.CompileReport?
+  /// 产物旁路上的幽灵图标按钮（copy/reveal），壳用 ghost_icon_button 构造
+  /// （要发壳的 HoverHint）；固定尺寸 28×22 / 图标 13 / elevated 面。
+  ghost_icon : (@style.IconName, String, Bool, Msg) -> @moui.View[Msg]
+  on_run : Msg
+  on_cancel : Msg
+  on_toggle_output : Msg
+  on_run_artifact : (String) -> Msg
+  on_copy_path : (String) -> Msg
+  on_reveal : (String) -> Msg
+  on_jump : (Int) -> Msg
+}
+
+///|
+/// 某一步在进度序列里的归并态：Some(true)=进行中、Some(false)=已完成、
+/// None=未开始。后到的覆盖先到（finished 最终胜出）。
+pub fn compile_step_state(
+  progress : Array[@export.CompileProgress],
+  phase : @export.CompilePhase,
+) -> Bool? {
+  let mut state : Bool? = None
+  for item in progress {
+    if item.phase.tag() == phase.tag() {
+      state = Some(item.started)
+    }
+  }
+  state
+}
+
+///|
+/// (已完成数, 总步数)。
+pub fn compile_progress_counts(
+  progress : Array[@export.CompileProgress],
+) -> (Int, Int) {
+  let mut done = 0
+  for phase in @export.compile_phases() {
+    match compile_step_state(progress, phase) {
+      Some(false) => done = done + 1
+      _ => ()
+    }
+  }
+  (done, @export.compile_phase_total())
+}
+
+///|
+/// 当前进行中的阶段（无则 None）。
+pub fn compile_active_phase(
+  progress : Array[@export.CompileProgress],
+) -> @export.CompilePhase? {
+  let mut active : @export.CompilePhase? = None
+  for phase in @export.compile_phases() {
+    match compile_step_state(progress, phase) {
+      Some(true) => active = Some(phase)
+      _ => ()
+    }
+  }
+  active
+}
+
+///|
+/// 编译轨头部（触发条 + 报告卡）：预览视图与运行视图共用同一入口。
+pub fn[Msg] compiled_run_header(
+  p : CompileViewsParams[Msg],
+  t : @i18n.Translator,
+) -> @moui.View[Msg] {
+  @views.column([compile_action_bar(p, t), compile_report_card(p, t)])
+}
 
 ///|
 /// 真编译动作条：显式触发（切轨不隐式编译）+ 忙态提示 + 当前轨说明。
-pub fn compile_action_bar(
-  model : Model,
+fn[Msg] compile_action_bar(
+  p : CompileViewsParams[Msg],
   t : @i18n.Translator,
 ) -> @moui.View[Msg] {
-  let trigger = if model.compile_busy {
-    // 编译进行中 = **停止**（不是再点一次编译）：旧实现把忙碌态的按钮也接到
-    // `CompileRun`，点它只会被 `compile_submit_needed` 去重挡掉——按钮看起来
-    // 是活的，实际什么都不做。`CompileStopped` 早已有处理器却无人触发
-    // （死消息，由 validate-dead-messages 抓出），`app.compile.cancel` 文案
-    // 也早已在 catalog 里没被使用。这里把两端接起来：清报告与忙态、
-    // 不切轨、不自动回退解释轨（与既有语义一致）。
+  let trigger = if p.busy {
+    // 编译进行中 = 停止（不是再点一次编译）：清报告与忙态、不切轨、不自动
+    // 回退解释轨（与既有语义一致）。
     @views.button(
-      text(t, "app.compile.cancel"),
-      on_click=CompileStopped,
+      t.translate("app.compile.cancel"),
+      on_click=p.on_cancel,
       variant=Tonal,
       width=140.0,
     )
   } else {
     @views.button(
-      text(t, "app.compile.ok"),
-      on_click=CompileRun,
+      t.translate("app.compile.ok"),
+      on_click=p.on_run,
       variant=Primary,
       width=140.0,
     )
@@ -34,10 +108,10 @@ pub fn compile_action_bar(
     [
       trigger,
       @views.text(
-        if model.compile_track_available {
-          text(t, "app.track.compile_note")
+        if p.track_available {
+          t.translate("app.track.compile_note")
         } else {
-          text(t, "app.track.unavailable_web")
+          t.translate("app.track.unavailable_web")
         },
         role=Caption,
         width=420.0,
@@ -51,22 +125,22 @@ pub fn compile_action_bar(
 
 ///|
 /// 真编译报告卡：无报告且不在编译时渲染空视图（调用方不必分支）。
-pub fn compile_report_card(
-  model : Model,
+fn[Msg] compile_report_card(
+  p : CompileViewsParams[Msg],
   t : @i18n.Translator,
 ) -> @moui.View[Msg] {
-  if model.compile_busy {
-    return compile_progress_card(model, t)
+  if p.busy {
+    return compile_progress_card(p, t)
   }
-  match model.compile_report {
+  match p.report {
     None => @views.text("")
     Some(report) => {
       let badge = @views.badge(
         theme=@chrome.studio_theme(),
         if report.ok {
-          text(t, "app.compile.ok")
+          t.translate("app.compile.ok")
         } else {
-          text(t, "app.compile.failed")
+          t.translate("app.compile.failed")
         },
         tone=if report.ok {
           @style.BadgeTone::Success
@@ -81,11 +155,11 @@ pub fn compile_report_card(
           [
             badge,
             @views.text(
-              "\{text(t, "app.compile.target")}：\{report.target}",
+              "\{t.translate("app.compile.target")}：\{report.target}",
               width=160.0,
             ),
             @views.text(
-              "\{text(t, "app.compile.exit_code")}：\{report.exit_code}",
+              "\{t.translate("app.compile.exit_code")}：\{report.exit_code}",
               width=160.0,
             ),
           ],
@@ -96,20 +170,18 @@ pub fn compile_report_card(
       let errors = report.errors()
       if errors.length() > 0 {
         rows.push(
-          @views.text(text(t, "app.compile.diagnostics"), role=Subtitle),
+          @views.text(t.translate("app.compile.diagnostics"), role=Subtitle),
         )
-        rows.push(@views.text(text(t, "app.compile.jump"), role=Caption))
+        rows.push(@views.text(t.translate("app.compile.jump"), role=Caption))
         for diagnostic in errors {
-          rows.push(diagnostic_row(diagnostic, t))
+          rows.push(diagnostic_row(p, diagnostic, t))
         }
       }
-      // 产物段：真编译「编出了什么」的事实面。没有这一段，工具链输出里
-      // 一个产物路径都不出现，用户读到的是「编译没编出二进制产物」——
-      // 而产物其实一直躺在 TMPDIR 的 bundle 里。
+      // 产物段：真编译「编出了什么」的事实面。
       rows.push(
         @views.row(
           [
-            @views.text(text(t, "app.compile.artifacts"), role=Subtitle),
+            @views.text(t.translate("app.compile.artifacts"), role=Subtitle),
             @views.badge(
               theme=@chrome.studio_theme(),
               report.artifacts.length().to_string(),
@@ -128,22 +200,23 @@ pub fn compile_report_card(
       )
       if report.artifacts.length() == 0 {
         rows.push(
-          @views.text(text(t, "app.compile.artifacts.none"), role=Caption),
+          @views.text(t.translate("app.compile.artifacts.none"), role=Caption),
         )
       } else {
-        rows.push(@views.text(text(t, "app.compile.open_hint"), role=Caption))
+        rows.push(
+          @views.text(t.translate("app.compile.open_hint"), role=Caption),
+        )
         for artifact in report.artifacts {
-          rows.push(artifact_row(artifact, t))
+          rows.push(artifact_row(p, artifact, t))
         }
       }
       if report.work_root != "" {
-        // 工作目录同样给完整读数（中间省略，与产物行同一把尺子）——它是
-        // 「接着去哪找」的第二个入口，截一半同样等于没给。
+        // 工作目录给完整读数（中间省略，与产物行同一把尺子）。
         rows.push(
           @views.row(
             [
               @views.text(
-                text(t, "app.compile.work_root"),
+                t.translate("app.compile.work_root"),
                 role=Caption,
                 width=72.0,
               ),
@@ -153,25 +226,17 @@ pub fn compile_report_card(
                 width=480.0,
                 align=TextStart,
               ),
-              ghost_icon_button(
+              (p.ghost_icon)(
                 Clipboard,
-                text(t, "app.compile.artifact.copy"),
+                t.translate("app.compile.artifact.copy"),
                 false,
-                CopyArtifactPath(report.work_root),
-                28.0,
-                22.0,
-                13.0,
-                @chrome.ide_elevated(),
+                (p.on_copy_path)(report.work_root),
               ),
-              ghost_icon_button(
+              (p.ghost_icon)(
                 FolderOpen,
-                text(t, "app.compile.artifact.reveal"),
+                t.translate("app.compile.artifact.reveal"),
                 false,
-                RevealArtifact(report.work_root),
-                28.0,
-                22.0,
-                13.0,
-                @chrome.ide_elevated(),
+                (p.on_reveal)(report.work_root),
               ),
             ],
             spacing=6.0,
@@ -180,7 +245,7 @@ pub fn compile_report_card(
         )
       }
       let output_lines : Array[@moui.View[Msg]] = []
-      if model.compile_output_open {
+      if p.output_open {
         let output_views : Array[@moui.View[Msg]] = []
         for line in report.output.split("\n") {
           output_views.push(
@@ -213,8 +278,8 @@ pub fn compile_report_card(
             @views.row(
               [
                 @views.button(
-                  text(t, "app.compile.output"),
-                  on_click=ToggleCompileOutput,
+                  t.translate("app.compile.output"),
+                  on_click=p.on_toggle_output,
                   variant=Ghost,
                   width=140.0,
                 ),
@@ -241,29 +306,22 @@ pub fn compile_report_card(
 }
 
 ///|
-/// 编译进度卡：忙态下代替报告卡（两个读数不同时在场）。
-///
-/// 为什么要它：真编译要跑 `moon update/check/build ×2` + 产物自检，实测
-/// 十几秒。旧版忙态只显示一个静态「正在真编译…」徽标——用户读到的现象是
-/// 「点了编译之后什么都没发生（或者卡住了）」。这里把七个**真实步骤**逐格
-/// 画出来：已完成的点满、进行中的高亮、未开始的暗色。
-///
-/// 步骤列表来自 `@export.compile_phases()`（与 worker 推进度用同一张表），
-/// 因此界面永远不会出现「多画一格 / 少画一格」。
-fn compile_progress_card(
-  model : Model,
+/// 编译进度卡：忙态下代替报告卡（两个读数不同时在场）。七个真实步骤逐格画出
+/// ——已完成点满、进行中高亮、未开始暗色。步骤表来自 `@export.compile_phases()`
+/// （与 worker 推进度同一张表），不会多画/少画一格。
+fn[Msg] compile_progress_card(
+  p : CompileViewsParams[Msg],
   t : @i18n.Translator,
 ) -> @moui.View[Msg] {
-  let (done, total) = compile_progress_counts(model.compile_progress)
-  let active = compile_active_phase(model.compile_progress)
+  let (done, total) = compile_progress_counts(p.progress)
+  let active = compile_active_phase(p.progress)
   let steps : Array[@moui.View[Msg]] = []
   for phase in @export.compile_phases() {
-    steps.push(compile_step_row(phase, model.compile_progress, t))
+    steps.push(compile_step_row(phase, p.progress, t))
   }
-  // 当前读数：进行中显式点名（比只点亮一格更好读——用户能读到「正在做什么」）
   let status = match active {
-    Some(phase) => text(t, "app.compile.phase.\{phase.tag()}")
-    None => text(t, "app.compile.running")
+    Some(phase) => t.translate("app.compile.phase.\{phase.tag()}")
+    None => t.translate("app.compile.running")
   }
   @views.card(
     @views.column(
@@ -272,7 +330,7 @@ fn compile_progress_card(
           [
             @views.badge(
               theme=@chrome.studio_theme(),
-              text_with(t, "app.compile.step", [
+              t.translate("app.compile.step", values=[
                 ("done", done.to_string()),
                 ("total", total.to_string()),
               ]),
@@ -286,7 +344,7 @@ fn compile_progress_card(
           align=Center,
         ),
         @views.column(steps, spacing=4.0),
-        @views.text(text(t, "app.track.compile_note"), role=Caption),
+        @views.text(t.translate("app.track.compile_note"), role=Caption),
       ],
       spacing=8.0,
     ),
@@ -297,7 +355,7 @@ fn compile_progress_card(
 
 ///|
 /// 进度里的一步：状态点（完成/进行中/未开始）+ 步骤名 + 状态字。
-fn compile_step_row(
+fn[Msg] compile_step_row(
   phase : @export.CompilePhase,
   progress : Array[@export.CompileProgress],
   t : @i18n.Translator,
@@ -308,13 +366,13 @@ fn compile_step_row(
       (
         @chrome.ide_success(),
         @chrome.ide_text(),
-        text(t, "app.compile.step_done"),
+        t.translate("app.compile.step_done"),
       )
     Some(true) =>
       (
         @chrome.ide_accent(),
         @chrome.ide_text(),
-        text(t, "app.compile.step_active"),
+        t.translate("app.compile.step_active"),
       )
     None => (@chrome.ide_border(), @chrome.ide_text_faint(), "")
   }
@@ -329,7 +387,7 @@ fn compile_step_row(
         padding=0.0,
       ),
       @views.text(
-        text(t, "app.compile.phase.\{phase.tag()}"),
+        t.translate("app.compile.phase.\{phase.tag()}"),
         theme=@chrome.studio_theme(),
         width=380.0,
         height=18.0,
@@ -355,37 +413,19 @@ fn compile_step_row(
 }
 
 ///|
-/// 单条产物行：类型徽标 + **完整路径** + 字节数 + 动作。
-///
-/// 四个历史缺陷都在这一行里：
-/// 1. **路径显示不全**：core 的 `Text` 把声明宽度当**最小值**，实测宽于
-///    声明时盒子会长出去被父容器裁掉——于是 `/var/folders/…/moui_studio-`
-///    这样从中间硬切。修法是主动做**中间省略**（保头保尾，`…` 居中），
-///    让它在声明宽度内本来就放得下：首尾两段才是「哪个盘、哪个文件」的
-///    识别信息，中段（那串随机 TMPDIR）删掉最不伤读。
-/// 2. **没有复制入口**：路径写在界面里却选不中、复制不了，用户只能照着
-///    抄——一个字的错就找不到文件。给「复制路径」按钮。
-/// 3. **没有打开入口**：给「在文件夹中打开」（把产物所在目录交给系统
-///    文件管理器）。
-/// 4. **GUI 应用与无头探针分不清**：旧版把 `native_smoke`（打印标记就退出
-///    的无头探针）标成「native 可执行」，用户运行后没有任何窗口。现在
-///    GUI 应用用强调色徽标 + **运行产物**按钮（直接启动它），无头探针用
-///    中性徽标并写明「不开窗」。
-///
-/// 路径单独占一行（整卡宽），动作与字节数在下一行：路径本身常 80–110
-/// 字符，和徽章/按钮挤一行必然要截断——那正是问题 2 的成因。
-fn artifact_row(
+/// 单条产物行：类型徽标 + 完整路径（中间省略）+ 字节数 + 动作（GUI 多一个
+/// 「运行产物」，其余 = 复制路径 / 在文件夹中打开）。
+fn[Msg] artifact_row(
+  p : CompileViewsParams[Msg],
   artifact : @export.CompileArtifact,
   t : @i18n.Translator,
 ) -> @moui.View[Msg] {
-  // 卡宽 600 − 内垫 10×2 = 580 可用；路径整行吃满。
   let path_width = 580.0
-  // GUI 应用 = 用户真正要跑的东西：强调色徽标 + 多一个「运行产物」。
   let is_gui = artifact.kind == "native-app"
   let badge_label = if is_gui {
-    text(t, "app.compile.artifact.gui")
+    t.translate("app.compile.artifact.gui")
   } else if artifact.kind == "native-smoke" {
-    text(t, "app.compile.artifact.headless")
+    t.translate("app.compile.artifact.headless")
   } else {
     artifact.label
   }
@@ -396,14 +436,11 @@ fn artifact_row(
   }
   let actions : Array[@moui.View[Msg]] = []
   if is_gui {
-    // 「运行产物」= **一键启动**：直接起进程开窗，不再要求用户先去文件夹里
-    // 自己双击。启动是脱离式的（见 services/launch_native）——进程 reparent
-    // 到系统 init，Studio 退出/被关掉都不会带走正在用的导出应用。
-    // 用**带文字的按钮**而不是图标：它是这一行唯一的主行动作，值得占宽度。
+    // 运行产物 = 一键启动（脱离式，Studio 退出不带走导出应用）。
     actions.push(
       @views.button(
-        text(t, "app.compile.run_artifact"),
-        on_click=RunArtifact(artifact.path),
+        t.translate("app.compile.run_artifact"),
+        on_click=(p.on_run_artifact)(artifact.path),
         variant=Primary,
         width=104.0,
         height=22.0,
@@ -411,27 +448,19 @@ fn artifact_row(
     )
   }
   actions.push(
-    ghost_icon_button(
+    (p.ghost_icon)(
       Clipboard,
-      text(t, "app.compile.artifact.copy"),
+      t.translate("app.compile.artifact.copy"),
       false,
-      CopyArtifactPath(artifact.path),
-      28.0,
-      22.0,
-      13.0,
-      @chrome.ide_elevated(),
+      (p.on_copy_path)(artifact.path),
     ),
   )
   actions.push(
-    ghost_icon_button(
+    (p.ghost_icon)(
       FolderOpen,
-      text(t, "app.compile.artifact.reveal"),
+      t.translate("app.compile.artifact.reveal"),
       false,
-      RevealArtifact(artifact.path),
-      28.0,
-      22.0,
-      13.0,
-      @chrome.ide_elevated(),
+      (p.on_reveal)(artifact.path),
     ),
   )
   @views.column(
@@ -463,8 +492,7 @@ fn artifact_row(
         align=Center,
       ),
       @views.row(
-        // 动作行：字节数靠左，动作靠右。数组直接拼装（`@views.row` 收
-        // 数组），这样「GUI 多一颗运行按钮」不必复制两套收尾代码。
+        // 动作行：字节数靠左，动作靠右。
         {
           let cells : Array[@moui.View[Msg]] = [
             @views.text(
@@ -490,14 +518,9 @@ fn artifact_row(
 }
 
 ///|
-/// 中间省略：保头保尾，中段折叠成 `…`。
-///
-/// **为什么不是尾部省略**：产物路径的信息分布是「头（哪个卷）+ 尾（哪个
-/// 文件）」，中段是 TMPDIR 那一长串随机目录名。尾部省略会把最关键的
-/// 文件名切掉，留下最没信息量的随机串——正好读反。
-///
-/// 宽度口径走 `@chrome.text_estimate_width`（ASCII 7.9 / 全角 13.0），与壳里
-/// 其他「按文字实测算宽」的地方同一把尺子。
+/// 中间省略：保头保尾，中段折叠成 `…`。路径信息分布是「头（哪个卷）+ 尾
+/// （哪个文件）」，中段是随机 TMPDIR，尾部省略会切掉最关键的文件名。宽度口径
+/// 走 `@chrome.text_estimate_width`（ASCII 7.9 / 全角 13.0）。
 pub fn middle_ellipsis(label : String, max_width : Double) -> String {
   if @chrome.text_estimate_width(label) <= max_width {
     return label
@@ -507,14 +530,11 @@ pub fn middle_ellipsis(label : String, max_width : Double) -> String {
     chars.push(c)
   }
   let ellipsis_cost = @chrome.text_estimate_width("…")
-  // 预算连省略号都放不下时输出空串：这是唯一不撒谎的读数（「这里什么都
-  // 显示不了」比硬塞一个必然被裁的串诚实）。
   if max_width < ellipsis_cost {
     return ""
   }
   let budget = max_width - ellipsis_cost
-  // 两侧**交替**取字符，因此 head 与 tail 的宽度天然接近——避免预算偏紧
-  // 时一侧把另一侧挤成 0（那样剩下的是纯前缀，又退化成尾部省略的反面）。
+  // 两侧交替取字符，head 与 tail 的宽度天然接近。
   let mut head = 0
   let mut tail = 0
   let mut used = 0.0
@@ -533,8 +553,7 @@ pub fn middle_ellipsis(label : String, max_width : Double) -> String {
     }
     take_head = !take_head
   }
-  // 头段正序 + `…` + 尾段正序（尾段从 `chars.length() - tail` 起**顺序**
-  // 写出：逐字符从末尾倒着追加会把文件名写成镜像串）。
+  // 头段正序 + … + 尾段正序（尾段从 chars.length() - tail 起顺序写出）。
   let buf = StringBuilder()
   let mut i = 0
   while i < head {
@@ -565,11 +584,13 @@ fn byte_size_label(bytes : Int) -> String {
 }
 
 ///|
-/// 单条诊断行：`文件:行:列` + 错误码 + 正文；行号已知时可点击跳积木。
-fn diagnostic_row(
+/// 单条诊断行：`文件:行:列` + 错误码 + 正文；行号已知时可点击跳回积木。
+fn[Msg] diagnostic_row(
+  p : CompileViewsParams[Msg],
   diagnostic : @export.CompileDiagnostic,
   t : @i18n.Translator,
 ) -> @moui.View[Msg] {
+  ignore(t)
   let location = if diagnostic.line > 0 {
     "\{short_file(diagnostic.file)}:\{diagnostic.line}:\{diagnostic.column}"
   } else {
@@ -596,9 +617,8 @@ fn diagnostic_row(
     align=Center,
   )
   if diagnostic.line > 0 {
-    row.on_tap(CompileJump(diagnostic.line))
+    row.on_tap((p.on_jump)(diagnostic.line))
   } else {
-    ignore(t)
     row
   }
 }
@@ -629,14 +649,4 @@ fn short_file(file : String) -> String {
     }
     buf.to_string()
   }
-}
-
-///|
-/// 编译轨头部（触发条 + 报告卡）：预览视图与运行视图共用同一入口，
-/// 视图层只需要一行接线（保持 views.mbt 的行数预算）。
-pub fn compiled_run_header(
-  model : Model,
-  t : @i18n.Translator,
-) -> @moui.View[Msg] {
-  @views.column([compile_action_bar(model, t), compile_report_card(model, t)])
 }

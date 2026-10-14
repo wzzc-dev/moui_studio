@@ -493,120 +493,66 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
       Some((set_target_note(model, note), @moui.Effect::none()))
     EditBlockValue(block_index, expr_path) =>
       // 点值 → 就地编辑。初始文本取该叶子**当前的规范写法**（不是整行草稿），
-      // 这样打开输入框时看到的就是那个值本身。
+      // 这样打开输入框时看到的就是那个值本身。打开需读 program，住壳；
+      // 写进 blocks_ui 切片的值编辑态。
       Some(
         (
           match open_value_edit(model, block_index, expr_path) {
-            Some((next, initial)) =>
-              {
-                ..next,
-                block_value_edit: Some((block_index, expr_path, initial)),
-              }
+            Some((next, initial)) => {
+              next.blocks_ui.block_value_edit = Some(
+                (block_index, expr_path, initial),
+              )
+              next
+            }
             None => model
           },
           @moui.Effect::none(),
         ),
       )
-    BlockValueInput(text) =>
-      Some(
-        (
-          match model.block_value_edit {
-            Some((index, path, _)) =>
-              { ..model, block_value_edit: Some((index, path, text)), }
-            None => model
-          },
-          @moui.Effect::none(),
-        ),
-      )
+    // 值编辑草稿输入（BlockValueInput）/取消（BlockValueCancel）已随
+    // blocks_ui 切片出壳；提交（BlockValueCommit）在壳（提交 IR）。
     BlockValueCommit => Some((commit_value_edit(model), @moui.Effect::none()))
-    BlockValueCancel =>
-      Some(({ ..model, block_value_edit: None, }, @moui.Effect::none()))
-    ToggleStatementPalette(index) =>
-      // 再点同一个分类 = 收起（与图标栏「再点当前项」同一心智）。
-      Some(
-        (
-          {
-            ..model,
-            selected_category: index,
-            statement_palette_open: if model.statement_palette_open &&
-              model.selected_category == index {
-              false
-            } else {
-              true
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
+    // 语句面板开合/分类切换（ToggleStatementPalette）已随 blocks_ui 切片出壳。
     SelectBlockStep(step) =>
       Some((select_block_step(model, step), @moui.Effect::none()))
-    BlocksContextMenu(index, x, y) =>
-      // 右键：先选中被点的块（菜单动作作用于它），再开菜单。点空白处
-      // （index < 0）只开画布级菜单，不动选中——右键空白不该清掉用户
-      // 正在编辑的块。
-      Some(
-        (
-          {
-            ..model,
-            selected_block: if index >= 0 {
-              index
-            } else {
-              model.selected_block
-            },
-            block_menu: Some((index, x, y)),
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    BlocksContextMenuClose =>
-      Some(({ ..model, block_menu: None, }, @moui.Effect::none()))
-    BlocksMenuAction(action) =>
-      // 先关菜单，再把动作消息喂回同一条 update 链——菜单动作与其它入口
-      // （右栏按钮、快捷键）走**完全相同**的处理路径，不复制语义。
-      Some(
-        (
-          update_pure({ ..model, block_menu: None, }, action).0,
-          @moui.Effect::none(),
-        ),
-      )
+    // 右键：先选中被点的块（菜单动作作用于它），再开菜单。点空白处
+    // （index < 0）只开画布级菜单，不动选中——右键空白不该清掉用户
+    // 正在编辑的块。选中块是真源留壳；菜单锚点写进 blocks_ui 切片。
+    BlocksContextMenu(index, x, y) => {
+      let next = if index >= 0 {
+        { ..model, selected_block: index, }
+      } else {
+        model
+      }
+      next.blocks_ui.block_menu = Some((index, x, y))
+      Some((next, @moui.Effect::none()))
+    }
+    // 菜单关闭（BlocksContextMenuClose）随 blocks_ui 切片；打开在本臂上方。
+    // 先关菜单（blocks_ui 切片），再把动作消息喂回同一条 update 链——
+    // 菜单动作与其它入口（右栏按钮、快捷键）走完全相同的处理路径。
+    BlocksMenuAction(action) => {
+      let next = update_pure(model, action).0
+      next.blocks_ui.block_menu = None
+      Some((next, @moui.Effect::none()))
+    }
     RunSingleBlock => Some((run_single_block(model), @moui.Effect::none()))
-    PaletteExprDragStart(template) =>
-      Some(({ ..model, expr_drag: Some(template), }, @moui.Effect::none()))
-    PaletteDragStart(category, template) =>
-      Some(
-        (
-          { ..model, palette_drag: Some((category, template)), },
-          @moui.Effect::none(),
-        ),
-      )
-    BlocksAutoScroll(direction) =>
-      // 拖到边缘时按一档步进滚动。**夹在 >= 0**：滚到顶部再往上拖不该
-      // 出现负偏移（负偏移会把内容推到画布下缘之外，画布看起来「缺了一块」）。
-      // 上界由调用方（长链高度）自然给出，这里不猜内容高。
-      Some(
-        (
-          {
-            ..model,
-            blocks_scroll_y: (model.blocks_scroll_y +
-            direction.to_double() * BLOCKS_AUTOSCROLL_STEP).max(0.0),
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    BlocksScrolled(y) =>
-      Some(({ ..model, blocks_scroll_y: y.max(0.0), }, @moui.Effect::none()))
+    // 语句/表达式拖放的「开始拖骨架」（PaletteDragStart /
+    // PaletteExprDragStart）与画布滚动（BlocksAutoScroll / BlocksScrolled）
+    // 都是纯 UI 瞬态，已随 blocks_ui 切片出壳；落拖（Drop*）在下方提交 IR。
     ExpressionDrop(block_index, expr_path) =>
       // 洞的解析（段级命中）由**画布**完成（`TextSystem` 只在布局上下文里，
       // 而洞的位置必须与绘制用同一把尺）；这里只做落地。
       // `block_index < 0` = 没落在任何洞上：给提示而不是静默。
-      match model.expr_drag {
+      match model.blocks_ui.expr_drag {
         None => Some((model, @moui.Effect::none()))
         Some(template) =>
           if block_index < 0 {
+            let cleared = { ..model, }
+            cleared.blocks_ui.expr_drag = None
             Some(
               (
                 with_notice(
-                  { ..model, expr_drag: None, },
+                  cleared,
                   text(translator(model), "app.expr.drop.no_slot"),
                   true,
                 ),
@@ -614,10 +560,12 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
               ),
             )
           } else {
+            let cleared = { ..model, }
+            cleared.blocks_ui.expr_drag = None
             Some(
               (
                 update_pure(
-                  { ..model, expr_drag: None, },
+                  cleared,
                   DropExpression(template, block_index, expr_path),
                 ).0,
                 @moui.Effect::none(),
@@ -655,7 +603,7 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
     PaletteDrop(x, y, avail_width) =>
       // 落点由**画布**算：调色板只记了「在拖哪条骨架」，指针位置只有这里
       // 才知道。算完派发 `DropStatement`（与点击插入共用同一条落地路径）。
-      match model.palette_drag {
+      match model.blocks_ui.palette_drag {
         None => Some((model, @moui.Effect::none()))
         Some((category, template)) => {
           let blocks = block_chain_of(model)
@@ -702,10 +650,12 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
             let top : Array[Int] = []
             (top, blocks.length())
           }
+          let cleared = { ..model, }
+          cleared.blocks_ui.palette_drag = None
           Some(
             (
               update_pure(
-                { ..model, palette_drag: None, },
+                cleared,
                 DropStatement(category, template, list_path, at),
               ).0,
               @moui.Effect::none(),
@@ -867,29 +817,37 @@ fn open_value_edit(
 ///
 /// 解析用 `parse_leaf_value`：打什么都存得下去（数字→数字、像变量名的→
 /// 变量、其余→文本），不报「解析失败」——值格子里报错等于「改了没反应」。
+/// 关闭值就地编辑（blocks_ui 切片嵌套字段的清空包装；提交/失败/取消统一用）。
+fn clear_value_edit(model : Model) -> Model {
+  let next = { ..model, }
+  next.blocks_ui.block_value_edit = None
+  next
+}
+
+///|
 fn commit_value_edit(model : Model) -> Model {
-  let (block_index, expr_path, draft) = match model.block_value_edit {
+  let (block_index, expr_path, draft) = match model.blocks_ui.block_value_edit {
     None => return model
     Some(state) => state
   }
   let target = match current_target(model) {
-    None => return { ..model, block_value_edit: None, }
+    None => return clear_value_edit(model)
     Some(target) => target
   }
   let chain = block_chain_of(model)
   let item = match block_at(chain, block_index) {
-    None => return { ..model, block_value_edit: None, }
+    None => return clear_value_edit(model)
     Some(item) => item
   }
   let parsed = @blocks.parse_leaf_value(draft, model.language.dsl_language())
   let updated = match
     @blocks.replace_expr_at(target.body, item.path, expr_path, parsed) {
     Some(body) => body
-    None => return { ..model, block_value_edit: None, }
+    None => return clear_value_edit(model)
   }
   let next = replace_target_body(model, target.label, updated)
   let synced = sync_code_draft(next)
-  { ..select_block(synced, block_index), block_value_edit: None, }
+  clear_value_edit(select_block(synced, block_index))
 }
 
 ///|
@@ -902,10 +860,8 @@ fn insert_statement(
   insert_statement_at(model, category_index, template_index, None)
 }
 
-///|
-/// 拖到画布边缘时每档滚动的像素（约 3/4 个块行高：够快，又不至于一帧跳过
-/// 一整屏）。
-pub const BLOCKS_AUTOSCROLL_STEP : Double = 28.0
+// （BLOCKS_AUTOSCROLL_STEP 随 blocks_ui 切片迁入 plugins/blocks 的
+// BLOCKS_UI_AUTOSCROLL_STEP。）
 
 ///|
 /// 报告块落入洞的落地实现（与 `insert_statement_at` 同一纪律：先解析校验、
@@ -919,7 +875,7 @@ fn drop_expression(
   block_index : Int,
   expr_path : Array[Int],
 ) -> Model {
-  let templates = expression_templates()
+  let templates = @blk.expression_templates()
   if template_index < 0 || template_index >= templates.length() {
     return model
   }
@@ -993,11 +949,11 @@ fn insert_statement_at(
       )
     Some(target) => target
   }
-  let category = match category_at(category_index) {
+  let category = match @blk.category_at(category_index) {
     None => return model
     Some(category) => category
   }
-  let templates = templates_for_category(category)
+  let templates = @blk.templates_for_category(category)
   if template_index < 0 || template_index >= templates.length() {
     return model
   }
@@ -1061,9 +1017,7 @@ fn insert_statement_at(
     new_path.push(part)
   }
   new_path.push(at)
-  let selected = select_block_by_path(
-    { ..synced, statement_palette_open: false, },
-    new_path,
-  )
+  synced.blocks_ui.statement_palette_open = false
+  let selected = select_block_by_path(synced, new_path)
   { ..selected, notice: "", }
 }

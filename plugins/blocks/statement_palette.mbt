@@ -11,7 +11,7 @@
 /// → 点骨架 → 插入到选中块之后（无选中则末尾）。
 ///
 /// **零新语义**：骨架是 DSL 文本，插入路径复用 `parse_handler_body` 校验
-/// 与 `@blocks.insert_stmt_at` 手术，与既有编辑链完全同一条。
+/// 与 `@blk.insert_stmt_at` 手术，与既有编辑链完全同一条。
 ///
 /// 模板只提供**最常用的最小骨架**（带占位名），不是完整语法树——
 /// 参数编辑仍走右栏的语句编辑卡（选中块 → 改写）。这样面板不需要理解
@@ -21,7 +21,7 @@
 /// 一条可插入的语句骨架。
 pub(all) struct StatementTemplate {
   /// 该骨架所属分类（与分类轨一一对应）。
-  category : @blocks.BlockCategory
+  category : @blk.BlockCategory
   /// i18n 键：面板里显示的名字（说明这条语句是干什么的）。
   label_key : String
   /// 插入用的 DSL 骨架，**两种语言各一份**：关键字表是按语言互斥的
@@ -55,32 +55,32 @@ pub fn statement_templates() -> Array[StatementTemplate] {
     // 事件分类没有可插入项（事件头由控件决定），保留分类但不给骨架。
     // 变量
     StatementTemplate::{
-      category: @blocks.CatVariable,
+      category: @blk.CatVariable,
       label_key: "app.stmt.tpl.declare",
       skeleton_zh: "变量 计数 = 0",
       skeleton_en: "let count = 0",
     },
     StatementTemplate::{
-      category: @blocks.CatVariable,
+      category: @blk.CatVariable,
       label_key: "app.stmt.tpl.assign",
       skeleton_zh: "计数 = 1",
       skeleton_en: "count = 1",
     },
     StatementTemplate::{
-      category: @blocks.CatVariable,
+      category: @blk.CatVariable,
       label_key: "app.stmt.tpl.set_index",
       skeleton_zh: "名单[1] = \"张三\"",
       skeleton_en: "roster[1] = \"alice\"",
     },
     // 流程
     StatementTemplate::{
-      category: @blocks.CatFlow,
+      category: @blk.CatFlow,
       label_key: "app.stmt.tpl.if",
       skeleton_zh: "如果 计数 > 0 则\n  set_text(标签, \"\") \n结束",
       skeleton_en: "if count > 0 then\n  set_text(label, \"\") \nend",
     },
     StatementTemplate::{
-      category: @blocks.CatFlow,
+      category: @blk.CatFlow,
       label_key: "app.stmt.tpl.if_else",
       skeleton_zh: "如果 计数 > 0 则\n  set_text(标签, \"正\") \n否则\n  set_text(标签, \"负\") \n结束",
       skeleton_en: "if count > 0 then\n  set_text(label, \"pos\") \nelse\n  set_text(label, \"neg\") \nend",
@@ -90,25 +90,25 @@ pub fn statement_templates() -> Array[StatementTemplate] {
     // 只有「如果…结束」——用户想要 else 分支只能先插 if 再手写代码。
     // 这是 Scratch 最基本的控制流之一，缺入口等于缺能力。
     StatementTemplate::{
-      category: @blocks.CatFlow,
+      category: @blk.CatFlow,
       label_key: "app.stmt.tpl.repeat",
       skeleton_zh: "计次循环 3 次\n  set_text(标签, \"\") \n结束",
       skeleton_en: "repeat 3 times\n  set_text(label, \"\") \nend",
     },
     StatementTemplate::{
-      category: @blocks.CatFlow,
+      category: @blk.CatFlow,
       label_key: "app.stmt.tpl.for_each",
       skeleton_zh: "遍历 名单 中的每个 元素\n  set_text(标签, 元素) \n结束",
       skeleton_en: "foreach roster as item\n  set_text(label, item) \nend",
     },
     StatementTemplate::{
-      category: @blocks.CatFlow,
+      category: @blk.CatFlow,
       label_key: "app.stmt.tpl.while",
       skeleton_zh: "当 计数 < 10 循环\n  计数 = 计数 + 1\n结束",
       skeleton_en: "while count < 10 do\n  count = count + 1\nend",
     },
     StatementTemplate::{
-      category: @blocks.CatFlow,
+      category: @blk.CatFlow,
       label_key: "app.stmt.tpl.forever",
       skeleton_zh: "当 真 循环\n  message_box(\"一直做\")\n结束",
       skeleton_en: "while true do\n  message_box(\"keep going\")\nend",
@@ -120,7 +120,7 @@ pub fn statement_templates() -> Array[StatementTemplate] {
     // 编译轨有同一预算，超了报 `StepBudget`。所以「永远」是相对用户语义
     // 的，运行时仍有硬上限（教学场景里比挂死浏览器好得多）。
     StatementTemplate::{
-      category: @blocks.CatFlow,
+      category: @blk.CatFlow,
       label_key: "app.stmt.tpl.repeat_until",
       skeleton_zh: "当 非(计数 > 10) 循环\n  计数 = 计数 + 1\n结束",
       skeleton_en: "while not count > 10 do\n  count = count + 1\nend",
@@ -133,51 +133,51 @@ pub fn statement_templates() -> Array[StatementTemplate] {
     // compiled_runtime/kernel 六处，而语义完全等价——用骨架表达是
     // 「零成本对齐」。
     StatementTemplate::{
-      category: @blocks.CatFlow,
+      category: @blk.CatFlow,
       label_key: "app.stmt.tpl.break",
       skeleton_zh: "跳出循环",
       skeleton_en: "break",
     },
     // 命令（内建名语言中立，写规范 id）
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.message",
       skeleton_zh: "message_box(\"你好\")",
       skeleton_en: "message_box(\"hello\")",
     },
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.set_text",
       skeleton_zh: "set_text(标签, \"你好\")",
       skeleton_en: "set_text(label, \"hello\")",
     },
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.append_row",
       skeleton_zh: "append_row(表格, \"\")",
       skeleton_en: "append_row(table, \"\")",
     },
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.submit",
       skeleton_zh: "submit_data(计数, \"演示目标\")",
       skeleton_en: "submit_data(count, \"demo\")",
     },
     // G7.1 列表操作命令（可解析性由 blocks_slot 不变式守住）
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.insert_list",
       skeleton_zh: "insert_list(名单, 1, \"新项\")",
       skeleton_en: "insert_list(roster, 1, \"new\")",
     },
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.remove_list",
       skeleton_zh: "remove_list(名单, 1)",
       skeleton_en: "remove_list(roster, 1)",
     },
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.replace_list",
       skeleton_zh: "replace_list(名单, 1, \"替换\")",
       skeleton_en: "replace_list(roster, 1, \"swap\")",
@@ -186,14 +186,14 @@ pub fn statement_templates() -> Array[StatementTemplate] {
     // 于是「广播消息」与「往列表里加一项」在积木界面里**够不着**——
     // 这正是「积木界面覆盖 Scratch 能力」的缺口：能力在、入口不在。
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.wait",
       skeleton_zh: "wait(1)",
       skeleton_en: "wait(1)",
     },
     // `等待 N 秒`：执行到那里挂起若干帧再继续（Scratch 的「等待」）。
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.ask",
       skeleton_zh: "ask(\"你叫什么名字？\")",
       skeleton_en: "ask(\"What is your name?\")",
@@ -202,19 +202,19 @@ pub fn statement_templates() -> Array[StatementTemplate] {
     // 与 `submit_data` 同一条 Gate 通道。它此前已实现却没有面板入口，
     // 于是「问一句再按回答分支」这种基本交互在积木界面里做不到。
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.stop_all",
       skeleton_zh: "stop_all()",
       skeleton_en: "stop_all()",
     },
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.broadcast",
       skeleton_zh: "broadcast(\"开始\")",
       skeleton_en: "broadcast(\"start\")",
     },
     StatementTemplate::{
-      category: @blocks.CatCommand,
+      category: @blk.CatCommand,
       label_key: "app.stmt.tpl.append_list",
       skeleton_zh: "append_list(列表, \"\")",
       skeleton_en: "append_list(items, \"\")",
@@ -222,7 +222,7 @@ pub fn statement_templates() -> Array[StatementTemplate] {
     // 运算：单独一条运算语句没有意义（运算只作为表达式嵌在别的语句里），
     // 所以给一条「赋值 + 运算」的可用骨架，让分类不是空的。
     StatementTemplate::{
-      category: @blocks.CatExpression,
+      category: @blk.CatExpression,
       label_key: "app.stmt.tpl.assign_expr",
       skeleton_zh: "计数 = 计数 + 1",
       skeleton_en: "count = count + 1",
@@ -447,12 +447,12 @@ pub fn template_index_of(category_index : Int, label_key : String) -> Int? {
 ///|
 /// 某个分类下的骨架（保持表内顺序）。
 pub fn templates_for_category(
-  category : @blocks.BlockCategory,
+  category : @blk.BlockCategory,
 ) -> Array[StatementTemplate] {
   let matched : Array[StatementTemplate] = []
   for template in statement_templates() {
-    if @blocks.category_color_key(template.category) ==
-      @blocks.category_color_key(category) {
+    if @blk.category_color_key(template.category) ==
+      @blk.category_color_key(category) {
       matched.push(template)
     }
   }
@@ -462,13 +462,13 @@ pub fn templates_for_category(
 ///|
 /// 分类轨的固定顺序（下标 → 分类）。分类轨视图与插入面板共用同一顺序，
 /// 两处各写一份就会「点第三个分类出现第二个分类的模板」。
-pub fn category_at(index : Int) -> @blocks.BlockCategory? {
+pub fn category_at(index : Int) -> @blk.BlockCategory? {
   match index {
-    0 => Some(@blocks.CatEvent)
-    1 => Some(@blocks.CatVariable)
-    2 => Some(@blocks.CatFlow)
-    3 => Some(@blocks.CatCommand)
-    4 => Some(@blocks.CatExpression)
+    0 => Some(@blk.CatEvent)
+    1 => Some(@blk.CatVariable)
+    2 => Some(@blk.CatFlow)
+    3 => Some(@blk.CatCommand)
+    4 => Some(@blk.CatExpression)
     _ => None
   }
 }
@@ -476,5 +476,5 @@ pub fn category_at(index : Int) -> @blocks.BlockCategory? {
 ///|
 /// 面板标题（分类名 + 用途），走 i18n。
 pub fn statement_palette_title(t : @i18n.Translator) -> String {
-  text(t, "app.stmt.palette.title")
+  t.translate("app.stmt.palette.title")
 }

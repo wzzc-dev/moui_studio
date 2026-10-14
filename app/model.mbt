@@ -39,17 +39,9 @@ pub(all) enum RunTrack {
 }
 
 ///|
-/// 待采纳提案：diff 预览 + 校验结果（valid=false 时展示全部原因）。
-pub(all) struct PendingProposal {
-  proposal : @proposals.ProposalV1
-  diff : Array[@proposals.DiffEntry]
-  /// 代码真源文本 diff（M6②）：handlers.mbt/form.mbt 前后逐行 ±，
-  /// 显示层展示的是代码 diff 而非结构化条目。
-  code_diff : Array[(String, String)]
-  summary : String
-  errors : Array[String]
-  valid : Bool
-}
+/// 待采纳提案类型已随 S4b AI 视图迁入 plugins/ai/ai_state.mbt；
+/// app 保留公开别名，既有 update 引用零改动。
+pub type PendingProposal = @ai.PendingProposal
 
 ///|
 /// 撤销深度上限（快照式 undo 栈，超过丢弃最旧条目）。
@@ -161,6 +153,17 @@ pub(all) enum PreviewMode {
 }
 
 ///|
+/// 预览渲染档位（S5i 后落在运行域 UI 切片的 web_preview 布尔上）：壳内视图
+/// 与服务层仍按枚举读，这里做布尔→档位的边界换转。
+pub fn Model::preview_mode(model : Model) -> PreviewMode {
+  if model.run_ui.web_preview {
+    PmWeb
+  } else {
+    PmFrame
+  }
+}
+
+///|
 /// 组合 profile（M7）：完整版（默认）/ 教学版（只保留图形化模式——
 /// 无终端、无工程、会话精简；这是「无特权内核」的验收证明：教学版 =
 /// 组合根少注册能力与模式，产品功能自洽地缺席而非崩溃）。
@@ -244,17 +247,8 @@ pub(all) enum SideTarget {
 /// - 修改/生成 → GenerateProposal（生成是「以空程序为基」的修改）
 /// - 解释      → ExplainHandler（本地确定性讲解，native 可走真实模型）
 /// - 修复      → RestoreCodeDraft（把代码草稿重置回 IR 的规范渲染）
-pub(all) enum ComposerMode {
-  ComposeEdit
-  ComposeGenerate
-  ComposeExplain
-  ComposeRepair
-  /// 纯聊天（G1）：不走提案校验链,回复为普通 markdown 消息
-  ComposeChat
-} derive(Eq)
-
-///|
-pub extend ComposerMode with Eq::{not_equal, equal}
+/// 类型本体随 S4b AI 视图迁入 plugins/ai/ai_state.mbt（含 Eq）；app 保留别名。
+pub type ComposerMode = @ai.ComposerMode
 
 ///|
 /// 任务模式（M2 三模式工作台）：活动栏唯一职责——「我在哪个任务里」。
@@ -277,13 +271,10 @@ pub extend StudioPerspective with Eq::{not_equal, equal}
 
 ///|
 /// AI 工作区面板（RvWorkspace）的页签：更改（提案历史）/ 文件（工程树）。
-pub(all) enum RightPanelTab {
-  RpChanges
-  RpFiles
-} derive(Eq)
 
 ///|
-pub extend RightPanelTab with Eq::{not_equal, equal}
+/// 右栏 AI 工作区页签（S4d 状态切片移 plugins/ai）。
+pub type RightPanelTab = @ai.RightPanelTab
 
 ///|
 /// 右栏当前视图：取代旧 `right_visible`（布尔）与 `ai_anchor` 的 AiDocked 档
@@ -494,16 +485,11 @@ pub(all) struct Model {
   side_target : SideTarget?
   code_draft : String
   code_error : String
-  // 代码编辑器（richtext 受控面）的光标/选区/滚动：光标驱动脚注的行列
-  // 读数与后续补全锚点；滚动是「行号槽 / IR 竖尺 ↔ 编辑面」同步的唯一事实。
-  code_caret : Int
-  code_selection : @core.TextRange?
-  code_scroll : @geometry.Point
-  // 当前草稿的实时语法诊断（编辑即校验；提交/切换时重算）
+  // 代码编辑器（richtext 受控面）的光标/选区/滚动与补全弹层（候选词/开关）
+  // 已在 S5g 并入 plugins/code 的 CodeUiState 切片（单一 code_ui 字段）。
+  // 当前草稿的实时语法诊断（编辑即校验；提交/切换时重算）仍是跨域读数，住壳。
   code_diagnostics : Array[@code_editor.CodeDiagnostic]
-  // 补全弹层（切片 H）：候选词与开关
-  completions : Array[String]
-  completion_open : Bool
+  code_ui : @code.CodeUiState
   // 破坏性操作待确认卡（None = 无）。见 confirm.mbt 的纪律说明。
   pending_confirm : ConfirmKind?
   // 「打开项目」覆盖确认后的一次性放行标记（确认 → Effect 重投时绕过
@@ -529,8 +515,7 @@ pub(all) struct Model {
   // 真编译进度（每一步开始/结束各推一条）：空 = 尚未开始或已收尾。
   // 只 busy 期间有内容——完成/失败后进度条让位给报告，避免两个读数打架。
   compile_progress : Array[@export.CompileProgress]
-  // 工具链原始输出展开态（默认折叠：诊断优先，日志按需看）
-  compile_output_open : Bool
+  // 工具链原始输出展开态已迁 run_ui 切片（RunUiState.compile_output_open，S5i）。
   // 命令面板（技术风 IDE 的键盘优先入口）：显隐 + 过滤查询
   command_palette_open : Bool
   command_palette_query : String
@@ -545,18 +530,10 @@ pub(all) struct Model {
   // AI 会话切片（M3 插件化）：草稿/线程卡/提案历史按会话隔离，
   // 见 plugins/ai；`pending` 提案与审计仍走全局通道（契约 4）
   ai_sessions : @ai.AiSessions
-  composer_mode : ComposerMode
-  // 模式下拉展开态（V4,VS Code 的 Agent ⌄ 口径）：收起 = 单芯片,
-  // 展开 = 脚注原位切回四选一胶囊行；SetComposerMode 后收起。
-  composer_mode_picker_open : Bool
-  // AI 工作区面板（RvWorkspace）当前页签
-  right_panel_tab : RightPanelTab
+  // AI 域 UI 状态切片（S4d）：composer/provider/转录滚动/会话列表 UI/
+  // 对话框开合等纯界面偏好，见 plugins/ai 的 AiUiState。
+  mut ai_ui : @ai.AiUiState
   prompt_error : String
-  provider_endpoint : String
-  provider_model : String
-  provider_key : String
-  // 密钥显隐（password_field 的展开态；掩码态下忽略输入防星号写穿）
-  provider_key_revealed : Bool
   // AI 能力可用性（组合根声明）：浏览器入口没有 HTTP 通道，显式降级——
   // composer 隐藏 + 引导文案，不出「点了必失败」的假按钮。
   ai_available : Bool
@@ -578,9 +555,11 @@ pub(all) struct Model {
   // 积木视图编辑态：选中块（block_chain 下标，-1 = 无）与语句草稿
   selected_block : Int
   block_draft : String
-  // 正在编辑的**值**：语句链下标 + 表达式路径 + 当前输入文本。
-  // `None` = 没有值编辑在进行（此时画布不画行内输入框）。
-  block_value_edit : (Int, Array[Int], String)?
+  // 积木域 UI 状态切片（S5e）：语句面板开合/分类、画布滚动、值编辑草稿、
+  // 拖放骨架、右键菜单锚点，见 plugins/blocks 的 BlocksUiState。
+  // 打开值编辑/提交/落拖/画布手势等需读 program 几何或提交 IR 的臂仍住壳，
+  // 经组合根直接读写本切片嵌套字段（与 ai_ui 同形态）。
+  mut blocks_ui : @blk.BlocksUiState
   // `询问` 闸门的回答草稿（用户正在输入的内容）。
   gate_answer_draft : String
   // 悬停中的 IR 路径（None = 没有悬停）。绘制时与 `ir_highlight` 取并集。
@@ -631,10 +610,7 @@ pub(all) struct Model {
   // 沉浸式无边框：true 时顶栏之上多一条窗控条（信号点 + 拖拽区）。
   // 平台入口按自己有没有无边框窗口决定——Web 恒 false。
   immersive : Bool
-  // 左栏结构树搜索查询
-  tree_query : String
-  // 结构树展开的分组集合（g 值文本；设计稿只在会话内记忆）
-  tree_collapsed : Array[String]
+  // （左栏结构树搜索查询 / 展开分组集合已并入 project_state 切片，见下）
   // 工程域状态切片(S2b-1,ADR 0038/0039):资源管理器与
   // 工程 tab 的全部状态住在 plugins/project 的 ProjectState。
   project_state : @proj.ProjectState
@@ -654,8 +630,8 @@ pub(all) struct Model {
   ui_dark : Bool
   // G7.4 解释轨断点:当前 handler 的源码行号集合;RunStart/换 handler 清空
   breakpoints : Array[Int]
-  // G4 全文搜索:查询草稿 + 命中集 + 进行中标记（结果面板挂 BtSearch 页签）
-  search_query : String
+  // G4 全文搜索:命中集 + 进行中标记（查询草稿已并入 project_state.search_query，
+  // 运行与回执在服务层；结果面板挂 BtSearch 页签）。
   search_hits : Array[SearchHit]
   search_busy : Bool
   // 构建服务(M0-7):最近一次构建报告(诊断汇进 Problems)与进行中标记。
@@ -673,8 +649,9 @@ pub(all) struct Model {
   // 表单设计器会话(M4-2):form.mbt 加载/编辑/保存
   form_designer : FormDesignerSession?
   selected_form_control : Int?
-  // 预览模式条(M2-2):画布快览 / web 实时(webview)
-  preview_mode : PreviewMode
+  // 预览模式条（画布快览 / web 实时）+ 编译输出展开态已并入运行域 UI 切片
+  //（@run.RunUiState，S5i）；web 预览 URL/打开标记由服务层驱动，仍住壳。
+  run_ui : @run.RunUiState
   preview_web_url : String?
   preview_web_opened : Bool
   // 右栏 Context 页签
@@ -693,39 +670,12 @@ pub(all) struct Model {
   // 最近修改（会话内，最多保留 RECENT_LIMIT 条）
   recent_changes : Array[RecentChange]
   recent_seq : Int
-  // 积木上下文菜单：打开时记录命中的链下标与锚点（画布局部坐标）
-  block_menu : (Int, Double, Double)?
-  // 正在从调色板拖动的骨架（分类下标, 模板下标）；None = 没在拖
-  palette_drag : (Int, Int)?
-  // 正在拖动的**报告块**（表达式模板下标）；None = 没在拖表达式。
-  // 与 `palette_drag` 分开：语句拖放与表达式拖放的落点语义不同
-  // （插一行 vs 换一个洞），合成一个字段就无法区分意图。
-  expr_drag : Int?
-  // 积木画布的滚动偏移（受控）。拖到画布上下缘附近时按 `Msg::BlocksAutoScroll`
-  // 逐步推进——Scratch/Figma 的「拖到边缘自动滚动」，长链条拖拽的必需项
-  // （不自动滚就只能拖到可视区内，链尾的块永远拖不动）。
-  blocks_scroll_y : Double
-  // AI 页：转录里的「已工作 N」折叠组是否收起（右栏 AI 页与 PsAi 中心共用）
-  ai_cards_folded : Bool
+  // （积木上下文菜单/拖放骨架/画布滚动均已并入 blocks_ui 切片，见上）
   // 流式生成进行中（M4）：StreamChunk 分片只在为真时追加（停止即截断）
   ai_streaming : Bool
   // 墙钟快照（对白转录）：组合根注入 wall_clock 闭包时每秒经 ClockUpdated
   // 刷新；默认常数钟（clock.mbt）——时间戳/时长/相对时间的唯一来源
   clock : StudioClock
-  // AI 模式时间线的受控滚动（终端同款）：用户手动滚动回写 offset，
-  // 新内容追加时按 seq 强制贴底；离底显示浮动「回到底部」
-  mut transcript_scroll : @geometry.Point
-  mut transcript_scroll_seq : Int
-  // 自动贴底开关：用户上滚即关，点「回到底部」或手动滚到底即开
-  mut transcript_follow : Bool
-  // === 左栏会话列表（对白转录 M4）===
-  // 搜索过滤（本地,title 子串）
-  ai_sessions_search_open : Bool
-  ai_sessions_query : String
-  // 悬停中的会话行下标（-1 = 无）：✕/置顶动作只在悬停行出现
-  ai_session_hover : Int
-  // 行内改名编辑态:(下标, 草稿);None = 没有在改名
-  session_rename : (Int, String)?
   // 终端插件状态切片（M5）：全模式底栏可用（M8）；web = unavailable 空态
   terminal : @terminal.TerminalState
   /// 终端页签开合（M8）：开 = 页签可选、选中显示交互终端；关 = 已 kill、
@@ -735,19 +685,10 @@ pub(all) struct Model {
   /// 请求序号（新输出时自增 → 强制滚到底部，scroll 容器 clamp）
   mut terminal_scroll : @geometry.Point
   mut terminal_scroll_seq : Int
-  // 设置对话框 / AI 历史对话框
-  settings_open : Bool
-  ai_history_open : Bool
   // toast：文本 + 是否警告（会话内，最多 TOAST_LIMIT 条）
   toasts : Array[ToastEntry]
-  // 命令面板 Canvas（设计稿把积木分类条单独成条：选中的分类下标，-1 = 全部）
-  selected_category : Int
-  // 语句插入面板：是否展开（分类轨点击）。展开时列出该分类可插入的语句骨架。
-  statement_palette_open : Bool
-  // 结构树里展开着「新建」菜单的分组（"" = 没有）。分组头的「+」点开它，
-  // 列出该组可创建的对象——创建入口贴着它创建的东西，而不是面板底部
-  // 一个与上下文无关的按钮块。
-  tree_create_group : String
+  // （积木分类条选中分类 / 语句插入面板开合已并入 blocks_ui 切片，见上）
+  // （结构树「新建」菜单分组已并入 project_state.tree_create_group）
   // IR↔代码行映射高亮：当前高亮的语句路径（空 = 无）
   ir_highlight : Array[Int]
 }
@@ -765,19 +706,15 @@ pub(all) enum Msg {
   SaveProjectFile // 保存 active tab（写盘）
   SaveAllFiles // 保存全部脏 tab（G4 多标签）
   ProjectFileSaveFinished(String, @services.ServiceTaskResult[Unit]) // 保存回执(rel 定位 tab)
-  // tab 导航（G4 多标签）：切换 / 关闭（脏 tab 经确认流放行）
-  SelectFileTab(Int)
-  CloseFileTab(Int)
+  // tab 切换 / 关闭（SelectFileTab/CloseFileTab）已并入 project_state 切片
+  // 的 ProjectOp（纯 tab 态；脏 tab 经确认流放行）。
   // === 文件 CRUD（G4）：新建 / 重命名（inline 输入 + 服务链）===
   // 新建 = write_text → 回执开 tab + 重扫;改名 = read→write→delete 三步链,
   // 每步回执驱动,失败结构化提示已到哪步（半完成不静默）。
-  FileCreateDraft(String)
+  // 草稿/开合/取消（FileCreateDraft/Dismiss、FileRenameStart/Draft/Dismiss）
+  // 已并入 project_state 切片；提交（*Commit）与回执仍住壳（写盘服务链）。
   FileCreateCommit
-  FileCreateDismiss
-  FileRenameStart(String)
-  FileRenameDraft(String)
   FileRenameCommit
-  FileRenameDismiss
   ProjectFileCreated(String, @services.ServiceTaskResult[Unit])
   ProjectRenameRead(String, String, @services.ServiceTaskResult[String])
   ProjectRenameWritten(String, String, @services.ServiceTaskResult[Unit])
@@ -799,7 +736,8 @@ pub(all) enum Msg {
   UiDarkLoaded(@services.ServiceTaskResult[String?])
   ToggleBreakpoint(Int)
   RunToBreakpoint
-  SearchQueryDraft(String)
+  // 全文搜索查询草稿（SearchQueryDraft）已并入 project_state 切片；
+  // 运行 / 回执 / 命中跳转（SearchRun/SearchFinished/SearchHitClicked）住壳。
   SearchRun
   SearchFinished(@services.ServiceTaskResult[Array[SearchHit]])
   SearchHitClicked(String)
@@ -814,8 +752,7 @@ pub(all) enum Msg {
   /// 窗口标题都读它。
   SetWindowTitle(String)
   SetTimerInterval(String)
-  /// 点开/收起某个分组头的新建菜单（"" = 全部收起；同一组再点 = 收起）。
-  ToggleTreeCreate(String)
+  // 分组头「新建」菜单开合（ToggleTreeCreate）已并入 project_state 切片。
   /// 新建一个程序变量（分组头「变量 +」）。名称自动去重（`变量1`、`变量2`…），
   /// 初值取空串——与 `Declare` 语句的空文本初值同一口径。
   AddVariable
@@ -844,27 +781,24 @@ pub(all) enum Msg {
   SelectHandler(String)
   CreateHandler(String, @ir.EventKind)
   EditCode(String)
-  EditorCaretMoved(Int, @core.TextRange?)
-  EditorScrolled(Double)
+  // 编辑器光标/选区/滚动/补全弹层开合（EditorCaretMoved/EditorScrolled/
+  // DismissCompletion）已并入 plugins/code 的 CodeUiState 切片（CodeUiOp）。
   // 运行时检查器：按需采样（打开页签 / 点击刷新）
   RuntimeRefresh
-  // 代码情报（切片 H）：补全 / 应用补全 / 跳到声明
+  // 代码情报：触发/应用补全/跳到声明需读 code_draft/program 计算，仍住壳；
+  // 候选回写与弹层开合走 CodeUiOp。
   TriggerCompletion
   ApplyCompletion(String)
   JumpToDeclaration
-  DismissCompletion
+  CodeUiOp(@code.CodeUiMsg)
   // 破坏性操作确认流：请求 / 接受（续行原消息）/ 取消
   RequestConfirm(ConfirmKind)
   ConfirmAccepted
   ConfirmDismissed
   Undo
   Redo
-  SetPrompt(String)
-  SetComposerMode(ComposerMode)
-  /// 开/关 composer 的模式下拉（V4）：收起态单芯片 ↔ 展开态四选一胶囊行
-  ToggleComposerModePicker
-  /// 切换 AI 工作区面板页签（更改/文件）
-  SetRightPanelTab(RightPanelTab)
+  // composer 输入草稿（SetPrompt）已并入 AiSessionOp(SetPromptDraft)（S5h）。
+  // composer 模式/下拉、右栏工作区页签已迁 AiUiOp（S4d 状态切片）
   ComposerRun
   RealGenerationFinished(Result[String, String])
   /// 纯聊天回复回执（G1）：成功 = markdown 文本,失败 = 错误卡
@@ -880,22 +814,13 @@ pub(all) enum Msg {
   /// 键盘在积木链里上下移动选中（Scratch/IDE 口径：↑/↓ 走上/下一块）。
   /// 参数是步长（+1 / -1）。没有选中时从链首开始（+1）或链尾（-1）。
   SelectBlockStep(Int)
-  /// 打开/关闭语句插入面板（分类轨点击；Scratch 积木调色板口径）。
-  /// 面板给出该分类可插入的**语句骨架**，点一条即插入到当前选中块之后
-  /// （没有选中则插到末尾）。这是「无 AI 也能写程序」的核心入口——
-  /// 此前 `commit_block` 只能**替换**已有语句，用户从零写不出任何逻辑。
-  ToggleStatementPalette(Int)
+  // 打开/关闭语句插入面板（ToggleStatementPalette）已并入 blocks_ui 切片
+  // （BlocksUiOp）；面板开合/分类是纯 UI，插入语句（InsertStatement）仍住壳。
   /// 插入一条语句骨架：参数是分类下标与分类内模板下标。
   InsertStatement(Int, Int)
   /// 从调色板**开始拖**一条骨架（Scratch 的字面手势）。
-  ///
-  /// 调色板与画布是**兄弟视图**，各自只能看到自己的帧；拖动中的指针位置
-  /// 由画布侧的消息补全。所以分两步：按下时记下「正在拖哪条骨架」，
-  /// 画布收到拖动/松手时按指针算落点并派发 `DropStatement`。
-  PaletteDragStart(Int, Int)
-  /// 从调色板**开始拖**一个报告块（表达式）。与语句拖放分开：表达式只能
-  /// 落进**洞**里（替换子表达式），不能插成一行。
-  PaletteExprDragStart(Int)
+  // 调色板拖放的「开始拖骨架」（PaletteDragStart / PaletteExprDragStart）
+  // 已并入 blocks_ui 切片的 BlocksUiOp；落拖的 Drop* 仍住壳（提交 IR）。
   /// **只运行选中的那一条语句**（Scratch 的「点积木就跑它」）。
   ///
   /// 语义边界（刻意收窄，避免造出第二套执行模型）：
@@ -906,10 +831,7 @@ pub(all) enum Msg {
   /// - 是一次**有界沙箱执行**（沿用 `DEFAULT_MAX_STEPS` 与闸门），不是新的
   ///   执行通道。
   RunSingleBlock
-  /// 拖拽中指针停在画布上下缘附近 → 自动滚动一档（参数 = 方向：-1 上 / +1 下）。
-  BlocksAutoScroll(Int)
-  /// 用户手动滚动积木画布（受控偏移回报）。
-  BlocksScrolled(Double)
+  // 积木画布自动滚动 / 手动滚动已并入 blocks_ui 切片（BlocksUiOp）。
   /// **新建自定义积木**（Scratch 的「制作一个积木」）。
   ///
   /// 语言层 / 解释器 / 编译运行时**早就支持** `FuncDef`（`return` 关键字、
@@ -942,12 +864,10 @@ pub(all) enum Msg {
   GateAnswerInput(String)
   /// 提交闸门回答（带当前输入的文本）。
   GateAnswerSubmit
-  /// 值编辑的输入变化（正在编辑的文本）。
-  BlockValueInput(String)
+  // 值编辑的输入变化 / 取消（BlockValueInput、BlockValueCancel）已并入
+  // blocks_ui 切片；打开（EditBlockValue）与提交（BlockValueCommit）住壳。
   /// 值编辑提交。
   BlockValueCommit
-  /// 值编辑取消（Escape / 点别处）。
-  BlockValueCancel
   /// 拖动报告块在画布上松手：**画布已解析出**目标洞（语句链下标 + 表达式
   /// 路径），这里只做落地。
   ///
@@ -972,10 +892,7 @@ pub(all) enum Msg {
   GenerateProposal
   AcceptProposal
   RejectProposal
-  SetProviderEndpoint(String)
-  SetProviderModel(String)
-  SetProviderKey(String)
-  ToggleProviderKeyReveal
+  // provider endpoint/model/key 与显隐已迁 AiUiOp（S4d 状态切片）
   DraftLoaded(@services.ServiceTaskResult[String?])
   RunStart
   RunStop
@@ -986,7 +903,7 @@ pub(all) enum Msg {
   /// 停止真编译：清报告与忙态，不切轨、不自动回退解释轨。
   CompileStopped
   CompileJump(Int)
-  ToggleCompileOutput
+  // 编译输出展开开关已迁 RunUiOp(ToggleCompileOutput)（S5i 运行域切片）。
   /// worker 推来的一条编译进度（步开始/步结束）
   CompileProgress(@export.CompileProgress)
   /// 复制某条产物的绝对路径到剪贴板
@@ -1017,8 +934,7 @@ pub(all) enum Msg {
   /// 在积木上右键（Scratch/IDE 口径的上下文菜单）。参数是点中的**链下标**
   /// 与画布内坐标（菜单锚点）。下标 -1 = 点空白处（只显示画布级动作）。
   BlocksContextMenu(Int, Double, Double)
-  /// 关闭积木上下文菜单（点其他地方 / Escape）。
-  BlocksContextMenuClose
+  // 关闭积木上下文菜单（BlocksContextMenuClose）已并入 blocks_ui 切片。
   /// 菜单动作：**先关菜单再执行动作**，一条消息搞定两件事。
   ///
   /// 为什么合成一条：`@views` 的 `on_tap` 每个视图只保留一个（后设的覆盖
@@ -1123,9 +1039,9 @@ pub(all) enum Msg {
   // 外部改动重载（M8）：手动刷新入口读 form.mbt → 比对 → 提示/重载
   FormDesignExternalCheck
   FormDesignExternalChecked(@services.ServiceTaskResult[String])
-  // 预览模式条(M2-2):Frame/Web 切换;Web 构建回执后 wrapper 派发
-  // navigate/reload(经注入的 webview 控制器闭包)
-  SetPreviewMode(PreviewMode)
+  // 预览 Frame/Web 切换 + 编译输出展开已迁 RunUiOp（运行域 UI 切片，S5i）；
+  // Web 构建回执后 wrapper 派发 navigate/reload（经注入的 webview 控制器闭包）。
+  RunUiOp(@run.RunUiMsg)
   PreviewNavigate(String)
   PreviewReload
   ExportRequested
@@ -1145,6 +1061,9 @@ pub(all) enum Msg {
   /// AI 会话操作（M3 插件化）：新建/切换/删除，经 Feature::scope 委托
   /// 给 plugins/ai 的状态切片
   AiSessionOp(@ai.AiSessionMsg)
+  /// AI 域纯 UI 偏好（S4d 状态切片）：composer/provider/转录滚动/会话列表
+  /// 搜索悬停/对话框开合，经 Feature::scope 委托给 plugins/ai 的 AiUiState。
+  AiUiOp(@ai.AiUiMsg)
   /// 终端（M5 插件）：PTY 输出增量 / 派生回执 / 关闭会话
   TerminalOutput(String)
   TerminalSpawned(Int?)
@@ -1173,25 +1092,14 @@ pub(all) enum Msg {
   /// 重发一轮：把该条 AI 消息**之前的用户提问**回填草稿并立即重跑
   /// （ComposerRun 语义，不是第二条执行通道）。
   RetryUserPrompt(Int)
-  /// 时间线受控滚动回写（终端同款）。
-  TranscriptScrolled(@geometry.Point)
-  /// 「回到底部」浮动按钮：强制贴底 + 恢复自动跟随。
-  TranscriptScrollToBottom
+  // 时间线受控滚动 / 回到底部、会话列表搜索/悬停/改名草稿 已迁 AiUiOp
+  //（S4d）；改名 Start/Commit/Dismiss 因读会话或触发存储，仍住壳。
   // === 左栏会话列表（M4）===
-  /// 开/关会话搜索过滤行（关闭时清空查询）
-  ToggleAiSessionSearch
-  /// 会话过滤查询输入
-  SetAiSessionsQuery(String)
-  /// 悬停进入/离开某会话行（参数 = 下标, 是否进入）
-  AiSessionHover(Int, Bool)
   /// 行内改名：进入编辑态（参数 = 会话下标）
   AiSessionRenameStart(Int)
-  /// 行内改名草稿
-  AiSessionRenameDraft(String)
   /// 行内改名提交（Enter）
   AiSessionRenameCommit
-  /// 行内改名放弃（Escape / 点击别处）
-  AiSessionRenameDismiss
+  // 行内改名放弃（旧 AiSessionRenameDismiss）已随 S4d 迁 AiUiOp(ClearRename)。
   /// 会话存储读取回执（M5,仅组合根配置了存储路径时发起）
   AiSessionsStoreLoaded(@services.ServiceTaskResult[String])
   /// 会话存储写盘请求（总线从 EvAiSessionsDirty 翻译而来）
@@ -1211,10 +1119,9 @@ pub(all) enum Msg {
   SetSplitRatio(Double)
   // 任务模式切换（M2）：进模式按预设置位四区域；同值再点 no-op
   SetPerspective(StudioPerspective)
-  // 左栏：视图切换 / 关闭 / 搜索 / 分组展开折叠
+  // 左栏：视图切换 / 关闭；结构树搜索 / 分组展开折叠（SetTreeQuery/
+  // ToggleTreeGroup）已并入 project_state 切片。
   SetLeftView(LeftView)
-  SetTreeQuery(String)
-  ToggleTreeGroup(String)
   /// 显式设置右栏当前视图（M2）：关闭入口在右栏头的 ✕（只可能关 →
   /// RvHidden），重开与换视图走命令面板逃生口（studio.right.* / studio.ai.*）。
   SetRightView(RightView)
@@ -1229,8 +1136,8 @@ pub(all) enum Msg {
   SetBottomTab(BottomTab)
   /// 底栏高度拖拽（M8 用户反馈③）：sash 位置 → 钳制后的高度
   SetBottomHeight(Double)
-  /// 终端屏滚动（M8②）：用户手动滚动（受控 offset 跟随）
-  TerminalScrolled(@geometry.Point)
+  // 终端屏手动滚动旧消息 TerminalScrolled(Point) 无 update 承接（scroll_view
+  // 自管手动位置，受控 offset 只由 PTY 输出的自动跟随驱动），S5i 作为死消息删除。
   // 问题面板：跳到某子程序草稿的某行（选中 handler + 光标 + 滚动对齐）
   GotoProblem(String, Int)
   ToggleBottom
@@ -1247,19 +1154,18 @@ pub(all) enum Msg {
   WindowMinimize
   WindowZoom
   WindowDragBy(Double)
-  ToggleAiCardsFold
+  // AI 工作卡折叠开关已迁 AiUiOp（S4d 状态切片）
   // 快速操作：对齐左/居中/对齐右（设计稿 x=24 边距口径）
   AlignControlLeft(String)
   AlignControlCenter(String)
   AlignControlRight(String)
-  // 对话框 / 历史 / toast
-  ToggleSettings
-  ToggleAiHistory
+  // 设置 / AI 历史对话框开合已迁 AiUiOp（S4d 状态切片）
   DismissToast(Int)
   // 命令面板 Studio 命令（比 10 个文本命令更宽的自有表）
   StudioCommandRun(String)
-  // 积木分类条：选中分类（-1 = 全部）
-  SelectBlockCategory(Int)
+  // 积木域 UI 子消息委托（S5e 状态切片，Feature::scope）：语句面板开合/分类、
+  // 画布滚动、值编辑草稿、拖放骨架、右键菜单等纯 UI 态。
+  BlocksUiOp(@blk.BlocksUiMsg)
   // IR↔代码行映射高亮：按语句路径
   HighlightIrPath(Array[Int])
   // 悬停联动（设计稿 `irHl`）：指针进/出代码行或积木块时高亮对应路径。
@@ -1356,12 +1262,8 @@ pub fn initial_model(
     side_target: None,
     code_draft: "",
     code_error: "",
-    code_caret: 0,
-    code_selection: None,
-    code_scroll: @geometry.Point::new(x=0.0, y=0.0),
     code_diagnostics: [],
-    completions: [],
-    completion_open: false,
+    code_ui: @code.CodeUiState::new(),
     pending_confirm: None,
     open_confirmed: false,
     runtime_report: None,
@@ -1374,7 +1276,6 @@ pub fn initial_model(
     compile_report: None,
     compile_busy: false,
     compile_progress: [],
-    compile_output_open: false,
     command_palette_open: false,
     command_palette_query: "",
     hover_studio_command: "",
@@ -1382,14 +1283,8 @@ pub fn initial_model(
     pending: None,
     ai_sessions: @ai.AiSessions::new(),
     profile,
-    composer_mode: ComposeEdit,
-    composer_mode_picker_open: false,
-    right_panel_tab: RpChanges,
+    ai_ui: @ai.AiUiState::new(endpoint, model_name, config.api_key),
     prompt_error: "",
-    provider_endpoint: endpoint,
-    provider_model: model_name,
-    provider_key: config.api_key,
-    provider_key_revealed: false,
     ai_available,
     dirty: false,
     saved_encoding: encoding,
@@ -1402,7 +1297,7 @@ pub fn initial_model(
     selected_block: -1,
     hover_path: None,
     block_draft: "",
-    block_value_edit: None,
+    blocks_ui: @blk.BlocksUiState::new(),
     gate_answer_draft: "",
     drag: None,
     runtime_values: @studio_lang.initial_values(program),
@@ -1424,8 +1319,6 @@ pub fn initial_model(
     perspective: PsVisual,
     right_view: RvContext,
     immersive,
-    tree_query: "",
-    tree_collapsed: [],
     project_state: @proj.ProjectState::new(),
     projects_restore_pending: 0,
     restore_active_root: "",
@@ -1435,7 +1328,6 @@ pub fn initial_model(
     multi_selected: [],
     ui_dark: true,
     breakpoints: [],
-    search_query: "",
     search_hits: [],
     search_busy: false,
     last_build: None,
@@ -1446,7 +1338,7 @@ pub fn initial_model(
     semantic_draft: "",
     form_designer: None,
     selected_form_control: None,
-    preview_mode: PmFrame,
+    run_ui: @run.RunUiState::new(),
     preview_web_url: None,
     preview_web_opened: false,
     ctx_tab: CtxProps,
@@ -1462,20 +1354,8 @@ pub fn initial_model(
     log_seq: 3,
     recent_changes: [],
     recent_seq: 0,
-    block_menu: None,
-    palette_drag: None,
-    expr_drag: None,
-    blocks_scroll_y: 0.0,
-    ai_cards_folded: false,
     ai_streaming: false,
     clock: default_studio_clock(),
-    transcript_scroll: @geometry.Point::new(x=0.0, y=0.0),
-    transcript_scroll_seq: 0,
-    transcript_follow: true,
-    ai_sessions_search_open: false,
-    ai_sessions_query: "",
-    ai_session_hover: -1,
-    session_rename: None,
     // 教学版 profile 强制无终端（组合根与直调 initial_model 的测试同口径）
     terminal: @terminal.TerminalState::new(
       available=pty_available && !(profile is Teaching),
@@ -1483,12 +1363,7 @@ pub fn initial_model(
     terminal_open: true,
     terminal_scroll: @geometry.Point::new(x=0.0, y=0.0),
     terminal_scroll_seq: 0,
-    settings_open: false,
-    ai_history_open: false,
     toasts: [],
-    selected_category: -1,
-    statement_palette_open: false,
-    tree_create_group: "",
     ir_highlight: [],
   }
   seed_code_draft(model)

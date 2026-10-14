@@ -6,7 +6,15 @@ import {
   "wzzc-dev/moui_studio/chrome",
   "wzzc-dev/moui_richtext",
   "wzzc-dev/moui_studio/services/project" @scan,
+  "wzzc-dev/moui_studio/domain/ir",
+  "wzzc-dev/moui_studio/domain/codec",
+  "wzzc-dev/moui_studio/services/export",
+  "wzzc-dev/moui_studio/services/form_designer",
 }
+
+import {
+  "wzzc-dev/moui_studio/domain/proposals",
+} for "wbtest"
 
 supported_targets = "native+wasm-gc"
 

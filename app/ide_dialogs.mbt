@@ -163,15 +163,15 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
     group_label(t, "app.settings.group.provider"),
     field_label(t, "app.ai.endpoint", 392.0),
     @views.text_field(
-      model.provider_endpoint,
-      on_input=value => SetProviderEndpoint(value),
+      model.ai_ui.provider_endpoint,
+      on_input=value => AiUiOp(@ai.SetProviderEndpoint(value)),
       width=392.0,
       height=@chrome.FIELD_HEIGHT,
     ),
     field_label(t, "app.ai.model", 392.0),
     @views.text_field(
-      model.provider_model,
-      on_input=value => SetProviderModel(value),
+      model.ai_ui.provider_model,
+      on_input=value => AiUiOp(@ai.SetProviderModel(value)),
       width=392.0,
       height=@chrome.FIELD_HEIGHT,
     ),
@@ -179,18 +179,18 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
     @views.row(
       [
         @views.text_field(
-          if model.provider_key_revealed {
-            model.provider_key
+          if model.ai_ui.provider_key_revealed {
+            model.ai_ui.provider_key
           } else {
-            mask_key(model.provider_key)
+            mask_key(model.ai_ui.provider_key)
           },
-          on_input=value => SetProviderKey(value),
+          on_input=value => AiUiOp(@ai.SetProviderKey(value)),
           width=320.0,
           height=@chrome.FIELD_HEIGHT,
         ),
         @chrome.action_chip(
           text(t, "app.ai.reveal"),
-          ToggleProviderKeyReveal,
+          AiUiOp(@ai.ToggleProviderKeyReveal),
           @chrome.Quiet,
           @chrome.FIELD_HEIGHT,
         ),
@@ -216,7 +216,7 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
         @views.spacer(min_length=4.0, weight=1.0),
         @chrome.action_chip(
           text(t, "app.settings.close"),
-          ToggleSettings,
+          AiUiOp(@ai.ToggleSettings),
           @chrome.Primary,
           28.0,
         ),
@@ -365,7 +365,7 @@ pub fn ai_history_dialog(
         @views.spacer(min_length=4.0, weight=1.0),
         @chrome.action_chip(
           text(t, "app.settings.close"),
-          ToggleAiHistory,
+          AiUiOp(@ai.ToggleAiHistory),
           @chrome.Primary,
           28.0,
         ),

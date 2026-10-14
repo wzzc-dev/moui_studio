@@ -130,6 +130,22 @@ test "ai session feature update handles the three ops" {
 }
 
 ///|
+test "set prompt draft stores into the current session" {
+  let (state, _) = ai_sessions_feature().runtime_init()
+  let (state, effect) = state.update(SetPromptDraft("帮我做一个点名册"))
+  assert_eq(state.current().prompt_draft, "帮我做一个点名册")
+  assert_no_effect_ai(effect)
+  // 覆盖式更新（随打随存，不追加）
+  let (state, _) = state.update(SetPromptDraft("改一下"))
+  assert_eq(state.current().prompt_draft, "改一下")
+  // 切到新会话后，草稿随会话隔离，不污染原会话
+  let (state, _) = state.update(AiSessionCreate(0))
+  assert_eq(state.current().prompt_draft, "")
+  let (state, _) = state.update(AiSessionSwitch(0))
+  assert_eq(state.current().prompt_draft, "改一下")
+}
+
+///|
 fn assert_no_effect_ai(effect : @moui.Effect[AiSessionMsg]) -> Unit {
   match effect {
     @moui.Effect::NoEffect => ()

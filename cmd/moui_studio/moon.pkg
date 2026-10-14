@@ -1,0 +1,34 @@
+import {
+  "moonbitlang/async",
+  "wzzc-dev/window/dpi",
+  "wzzc-dev/moui/backend/macos",
+  "wzzc-dev/moui/services",
+  "wzzc-dev/moui_skia_renderer" @render_skia,
+  "wzzc-dev/moui/runtime",
+  "wzzc-dev/moui_agent" @agent,
+  "wzzc-dev/moui_devtools" @devtools,
+  "wzzc-dev/moui_agent_mcp/stdio" @mcp_stdio,
+  "wzzc-dev/moui_studio/app" @studio_app,
+  "wzzc-dev/moui_studio/kernel",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+  "moonbitlang/async/raw_fd",
+  "wzzc-dev/moui_studio/services/provider_native" @provider,
+  "wzzc-dev/moui_studio/services/compile_native" @compile,
+  "wzzc-dev/moui_studio/services/launch_native" @launch,
+  "wzzc-dev/moui_studio/services/build",
+  "wzzc-dev/moui_studio/services/build_native",
+  "wzzc-dev/moui_studio/services/webpreview",
+  "wzzc-dev/moui_webview/host" @webview_host,
+  "wzzc-dev/moui_webview/backend/macos" @macos_webview,
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+options(
+  "native-stub": [ "pty.c" ],
+  link: { "native": { "cc-link-flags": "" } },
+  targets: { "main.mbt": [ "native" ] },
+)

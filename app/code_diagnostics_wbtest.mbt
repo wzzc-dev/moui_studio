@@ -50,10 +50,10 @@ test "goto problem pins caret to the target line and syncs scroll" {
   let key = model.selected_handler
   let jumped = apply_shell(model, GotoProblem(key, 2))
   // 光标 = 第 2 行行首（第 1 行长度 + 1 个换行符）
-  let lines = split_line_texts(jumped.code_draft)
+  let lines = @code.split_line_texts(jumped.code_draft)
   assert_true(lines.length() >= 2)
-  assert_eq(jumped.code_caret, lines[0].length() + 1)
-  assert_eq(jumped.code_selection, None)
+  assert_eq(jumped.code_ui.caret, lines[0].length() + 1)
+  assert_eq(jumped.code_ui.selection, None)
   // 第 2 行的滚动偏移被夹在 0（(2-3)*20 → max(0)）
-  assert_eq(jumped.code_scroll.y, 0.0)
+  assert_eq(jumped.code_ui.scroll.y, 0.0)
 }

@@ -23,6 +23,67 @@ fn ai_sessions_scope() -> @moui.ScopedFeature[
 }
 
 ///|
+/// AI 域 UI 偏好切片挂载（S4d）：lens 对 + wrap，ai_sessions/project 同构。
+/// composer/provider/转录滚动/会话列表 UI/对话框开合纯态臂住插件，零副作用。
+fn ai_ui_scope() -> @moui.ScopedFeature[Model, @ai.AiUiState, @ai.AiUiMsg, Msg] {
+  @ai.ai_ui_feature().scope(
+    read=model => model.ai_ui,
+    write=(ui, model) => { ..model, ai_ui: ui, },
+    wrap=message => AiUiOp(message),
+  )
+}
+
+///|
+/// 积木域 UI 状态切片挂载（S5e，ADR 0040/0041）：语句面板开合/分类、画布
+/// 滚动、值编辑草稿、拖放骨架、右键菜单锚点等纯 UI 态住在 @blk.BlocksUiState；
+/// 画布手势/值提交/落拖/打开菜单等需读 program 或提交 IR 的臂仍住壳（契约 3）。
+fn blocks_ui_scope() -> @moui.ScopedFeature[
+  Model,
+  @blk.BlocksUiState,
+  @blk.BlocksUiMsg,
+  Msg,
+] {
+  @blk.blocks_ui_feature().scope(
+    read=model => model.blocks_ui,
+    write=(ui, model) => { ..model, blocks_ui: ui, },
+    wrap=message => BlocksUiOp(message),
+  )
+}
+
+///|
+/// 代码编辑器 UI 状态切片挂载（S5g，ADR 0040/0041）：受控编辑面的光标/选区/
+/// 滚动与补全弹层（候选词/开关）住在 @code.CodeUiState；编辑代码、采纳补全、
+/// 触发补全/跳转声明（读 code_draft/program）与 IR 高亮/悬停仍住壳（契约 3）。
+fn code_ui_scope() -> @moui.ScopedFeature[
+  Model,
+  @code.CodeUiState,
+  @code.CodeUiMsg,
+  Msg,
+] {
+  @code.code_ui_feature().scope(
+    read=model => model.code_ui,
+    write=(ui, model) => { ..model, code_ui: ui, },
+    wrap=message => CodeUiOp(message),
+  )
+}
+
+///|
+/// 运行域 UI 切片挂载（S5i）：编译输出展开 + 预览 Frame/Web 档位。
+/// 预览导航/构建回执等服务/Effect 编排仍住壳。
+fn run_ui_scope() -> @moui.ScopedFeature[
+  Model,
+  @run.RunUiState,
+  @run.RunUiMsg,
+  Msg,
+] {
+  @run.run_ui_feature().scope(
+    read=model => model.run_ui,
+    write=(ui, model) => { ..model, run_ui: ui, },
+    wrap=message => RunUiOp(message),
+  )
+}
+
+///|
 /// 工程域插件的会话切片挂载(S2b-2):lens 对 + wrap,ai_sessions 同构。
 /// 14 个纯态臂住在插件 update;跨域臂(装载/保存/扫描/导入/改名/构建/
 /// 存储)仍是壳消息,不经包装直接路由。
@@ -82,9 +143,10 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
       let next = match op {
         // 新建/切换/删除都会改变「当前时间线」——滚动复位 + 恢复跟随
         AiSessionCreate(_) | AiSessionSwitch(_) | AiSessionRemove(_) => {
-          next.transcript_scroll = @geometry.Point::new(x=0.0, y=0.0)
-          next.transcript_scroll_seq = next.transcript_scroll_seq + 1
-          next.transcript_follow = true
+          next.ai_ui.transcript_scroll = @geometry.Point::new(x=0.0, y=0.0)
+          next.ai_ui.transcript_scroll_seq = next.ai_ui.transcript_scroll_seq +
+            1
+          next.ai_ui.transcript_follow = true
           // 结构性事件：会话存储脏标（切换也存——active 指针在存储里）
           mark_ai_sessions_dirty(next)
           next
@@ -93,9 +155,35 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           mark_ai_sessions_dirty(next)
           next
         }
+        // composer 重新输入即清上一次的校验/发送错误（错误态跨域，仍住壳）。
+        SetPromptDraft(_) => { ..next, prompt_error: "", }
         _ => next
       }
       Some((next, effect))
+    }
+    // AI 域纯 UI 偏好切片（S4d）：零副作用，effect 原样丢弃。
+    AiUiOp(op) => {
+      let scope = ai_ui_scope()
+      let (next, _) = scope.update(model, op)
+      Some((next, @moui.Effect::none()))
+    }
+    // 积木域纯 UI 状态切片（S5e）：零副作用，effect 原样丢弃。
+    BlocksUiOp(op) => {
+      let scope = blocks_ui_scope()
+      let (next, _) = scope.update(model, op)
+      Some((next, @moui.Effect::none()))
+    }
+    // 代码编辑器纯 UI 状态切片（S5g）：零副作用，effect 原样丢弃。
+    CodeUiOp(op) => {
+      let scope = code_ui_scope()
+      let (next, _) = scope.update(model, op)
+      Some((next, @moui.Effect::none()))
+    }
+    // 运行域 UI 切片（S5i）：编译输出展开、预览 Frame/Web 档位，零副作用。
+    RunUiOp(op) => {
+      let scope = run_ui_scope()
+      let (next, _) = scope.update(model, op)
+      Some((next, @moui.Effect::none()))
     }
     SetPerspective(p) => Some(set_perspective(model, p))
     SetWorkSpace(workspace) => Some(set_workspace(model, workspace))
@@ -180,104 +268,9 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           Some((with_notice(model, error.message, true), @moui.Effect::none()))
         Cancelled => Some((model, @moui.Effect::none()))
       }
-    SelectFileTab(index) =>
-      if index >= 0 && index < model.project_state.open_project_files.length() {
-        Some(
-          (
-            {
-              ..model,
-              project_state: { ..model.project_state, open_file_index: index, },
-            },
-            @moui.Effect::none(),
-          ),
-        )
-      } else {
-        Some((model, @moui.Effect::none()))
-      }
-    CloseFileTab(index) =>
-      Some((close_open_file_at(model, index), @moui.Effect::none()))
-    // 文件 CRUD 输入态（G4）：新建/改名共用一行式输入,Dismiss 清态;
-    // Draft 只在对应模式打开时接受（防串台）。打开入口是 `FileCreateAt`
-    // （带目标目录,VS Code 就地新建口径）——没有单独的「Start」变体:
-    // 它不带目录,与就入口径重复。
-    FileCreateDraft(value) =>
-      if model.project_state.file_create_open {
-        Some(
-          (
-            {
-              ..model,
-              project_state: { ..model.project_state, file_name_draft: value, },
-            },
-            @moui.Effect::none(),
-          ),
-        )
-      } else {
-        Some((model, @moui.Effect::none()))
-      }
-    FileCreateDismiss =>
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              file_create_open: false,
-              file_name_draft: "",
-              file_create_dir: "",
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    FileRenameStart(rel) =>
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              // 改名草稿要**只填文件名**:输入行提交时按 file_create_dir 拼
-              // 回目录（与新建同一条口径）。填整个 rel 会让提交把目录拼两次。
-              file_rename_open: Some(rel),
-              file_create_open: false,
-              folder_create_open: false,
-              file_name_draft: rel_path_last_segment(rel),
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    FileRenameDraft(value) =>
-      if model.project_state.file_rename_open is Some(_) {
-        Some(
-          (
-            {
-              ..model,
-              project_state: { ..model.project_state, file_name_draft: value, },
-            },
-            @moui.Effect::none(),
-          ),
-        )
-      } else {
-        Some((model, @moui.Effect::none()))
-      }
-    FileRenameDismiss =>
-      Some(
-        (
-          {
-            ..model,
-            project_state: {
-              ..model.project_state,
-              file_rename_open: None,
-              file_name_draft: "",
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
-    // 全文搜索（G4 F3）:查询草稿纯转移;运行与回执在服务层
-    SearchQueryDraft(value) =>
-      Some(({ ..model, search_query: value, }, @moui.Effect::none()))
+    // tab 切换/关闭（SelectFileTab/CloseFileTab）、文件 CRUD 输入态
+    // （FileCreateDraft/Dismiss、FileRenameStart/Draft/Dismiss）与全文搜索
+    // 草稿（SearchQueryDraft）均已并入 project_state 切片（ProjectOp 委托）。
     // 断点（G7.4）：行号槽点击切换断点集
     ToggleBreakpoint(line) => {
       let next : Array[Int] = if model.breakpoints.contains(line) {
@@ -410,8 +403,7 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     }
     SemanticLabelInput(text) =>
       Some(({ ..model, semantic_draft: text, }, @moui.Effect::none()))
-    SetPreviewMode(mode) =>
-      Some(({ ..model, preview_mode: mode, }, @moui.Effect::none()))
+    // 预览 Frame/Web 切换已迁 RunUiOp(SetPreviewMode)（S5i 运行域切片）。
     // 直达目标外观（实测反馈：单个循环胶囊太隐蔽，用户找不到 DSL 入口）
     SetCodeAppearance(appearance) =>
       Some(
@@ -475,66 +467,51 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
           @moui.Effect::none(),
         ),
       )
-    SetTreeQuery(query) =>
-      Some(({ ..model, tree_query: query, }, @moui.Effect::none()))
-    ToggleTreeGroup(group) => {
-      let collapsed : Array[String] = []
-      let mut removed = false
-      for item in model.tree_collapsed {
-        if item == group {
-          removed = true
-        } else {
-          collapsed.push(item)
-        }
-      }
-      if !removed {
-        collapsed.push(group)
-      }
-      Some(({ ..model, tree_collapsed: collapsed, }, @moui.Effect::none()))
-    }
+    // 结构树搜索/分组折叠（SetTreeQuery/ToggleTreeGroup）已并入
+    // project_state 切片（ProjectOp 委托）。
     TriggerCompletion => {
-      let (word, _) = word_at_caret(model.code_draft, model.code_caret)
-      let candidates = completions_for(model, word)
+      let (word, _) = @code.word_at_caret(model.code_draft, model.code_ui.caret)
+      let candidates = @code.completions_for(
+        model.language.dsl_language(),
+        model.program.controls,
+        model.code_draft,
+        word,
+      )
       if candidates.length() > 0 {
-        Some(
-          (
-            { ..model, completions: candidates, completion_open: true, },
-            @moui.Effect::none(),
-          ),
+        let (next, _) = code_ui_scope().update(
+          model,
+          @code.SetCompletions(candidates),
         )
+        Some((next, @moui.Effect::none()))
       } else {
         Some((model, @moui.Effect::none()))
       }
     }
     ApplyCompletion(word) => {
-      let (text, caret) = apply_completion(
+      let (text, caret) = @code.apply_completion(
         model.code_draft,
-        model.code_caret,
+        model.code_ui.caret,
         word,
       )
-      Some(
-        (
-          with_draft_diagnostics({
-            ..model,
-            code_draft: text,
-            code_caret: caret,
-            code_selection: None,
-            completion_open: false,
-          }),
-          @moui.Effect::none(),
-        ),
+      let (next, _) = code_ui_scope().update(
+        with_draft_diagnostics({ ..model, code_draft: text, }),
+        @code.ApplyCompletion(caret),
       )
+      Some((next, @moui.Effect::none()))
     }
     JumpToDeclaration => {
-      let line = declaration_line_of(model, model.code_caret)
+      let line = @code.declaration_line_of(
+        model.language.dsl_language(),
+        model.code_draft,
+        model.code_ui.caret,
+      )
       if line > 0 {
         Some((goto_line(model, line), @moui.Effect::none()))
       } else {
         Some((model, @moui.Effect::none()))
       }
     }
-    DismissCompletion =>
-      Some(({ ..model, completion_open: false, }, @moui.Effect::none()))
+    // 补全弹层关闭（DismissCompletion）已并入 code_ui 切片（CodeUiOp）。
     SetContextTab(tab) =>
       Some(({ ..model, ctx_tab: tab, }, @moui.Effect::none()))
     SetBottomTab(tab) =>
@@ -562,37 +539,16 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     AuditSettle(index, note) => Some(settle_audit(model, index, note))
     AuditSettleAll(note) => Some(settle_all_audit(model, note))
     ClearConsole => Some(({ ..model, log_lines: [], }, @moui.Effect::none()))
-    ToggleAiCardsFold =>
-      Some(
-        (
-          { ..model, ai_cards_folded: !model.ai_cards_folded, },
-          @moui.Effect::none(),
-        ),
-      )
+    // 工作卡折叠 / 设置 / 历史对话框开合已迁 AiUiOp（S4d 状态切片）。
     AlignControlLeft(name) => Some(align_control(model, name, AlignLeft))
     AlignControlCenter(name) => Some(align_control(model, name, AlignCenter))
     AlignControlRight(name) => Some(align_control(model, name, AlignRight))
-    ToggleSettings =>
-      Some(
-        (
-          { ..model, settings_open: !model.settings_open, },
-          @moui.Effect::none(),
-        ),
-      )
-    ToggleAiHistory =>
-      Some(
-        (
-          { ..model, ai_history_open: !model.ai_history_open, },
-          @moui.Effect::none(),
-        ),
-      )
     DismissToast(index) => Some(dismiss_toast(model, index))
     ToastTick => Some((age_toasts(model), @moui.Effect::none()))
     StudioCommandRun(id) => Some(run_studio_command(model, id))
-    SelectBlockCategory(index) =>
-      Some(({ ..model, selected_category: index, }, @moui.Effect::none()))
+    // 积木分类条切换（SelectBlockCategory）已随 blocks_ui 切片（BlocksUiOp）。
     HighlightIrPath(path) => {
-      let same = same_path(model.ir_highlight, path)
+      let same = @blk.blocks_same_path(model.ir_highlight, path)
       Some(
         (
           { ..model, ir_highlight: if same { [] } else { path }, },
@@ -1236,9 +1192,9 @@ fn run_studio_command(model : Model, id : String) -> (Model, @moui.Effect[Msg]) 
         model,
         AiSessionOp(AiSessionCreate(civil_seconds(model.clock))),
       )
-    "studio.ai.search" => update_pure(model, ToggleAiSessionSearch)
-    "studio.ai.history" => update_pure(model, ToggleAiHistory)
-    "studio.settings" => update_pure(model, ToggleSettings)
+    "studio.ai.search" => update_pure(model, AiUiOp(@ai.ToggleSessionSearch))
+    "studio.ai.history" => update_pure(model, AiUiOp(@ai.ToggleAiHistory))
+    "studio.settings" => update_pure(model, AiUiOp(@ai.ToggleSettings))
     "studio.run.start" => update_pure(model, RunStart)
     "studio.run.stop" => update_pure(model, RunStop)
     "studio.compile.run" => update_pure(model, CompileRun)

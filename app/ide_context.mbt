@@ -119,25 +119,25 @@ fn context_block_editor(
             // 用户点的还是积木上那个数，编辑框就该在同一个位置。
             @views.padding_xy(
               @views.text_field(
-                match model.block_value_edit {
+                match model.blocks_ui.block_value_edit {
                   Some((_, _, draft)) => draft
                   None => model.block_draft
                 },
                 on_input=source => {
-                  match model.block_value_edit {
-                    Some(_) => BlockValueInput(source)
+                  match model.blocks_ui.block_value_edit {
+                    Some(_) => BlocksUiOp(@blk.BlockValueInput(source))
                     None => EditBlock(source)
                   }
                 },
                 on_submit=Some(
-                  match model.block_value_edit {
+                  match model.blocks_ui.block_value_edit {
                     Some(_) => BlockValueCommit
                     None => CommitBlock
                   },
                 ),
                 placeholder=text(
                   t,
-                  match model.block_value_edit {
+                  match model.blocks_ui.block_value_edit {
                     Some(_) => "app.block.value_hint"
                     None => "app.block.editor_hint"
                   },
@@ -292,8 +292,8 @@ fn context_head(
     ghost_icon_button(
       Gear,
       text(t, "app.settings.title"),
-      model.settings_open,
-      ToggleSettings,
+      model.ai_ui.settings_open,
+      AiUiOp(@ai.ToggleSettings),
       24.0,
       20.0,
       12.0,

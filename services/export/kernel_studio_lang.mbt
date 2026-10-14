@@ -185,6 +185,40 @@ pub fn kernel_studio_lang_keywords_mbt() -> String {
     #|}
     #|
     #|///|
+    #|/// 永不匹配的关键字表：所有字段置 `\u{0}`（NUL 不会出现在源码里）。
+    #|/// 工程文件不做 DSL 着色，但块结构必须与已验证的 IR 编辑器一致
+    #|///（S5i/S7c 自壳移入域包）。
+    #|pub fn Keywords::empty() -> Keywords {
+    #|  let nul = "\u{0}"
+    #|  {
+    #|    declare_kw: nul,
+    #|    if_kw: nul,
+    #|    then_kw: nul,
+    #|    else_if_kw: nul,
+    #|    else_kw: nul,
+    #|    end_kw: nul,
+    #|    count_kw: nul,
+    #|    times_kw: nul,
+    #|    foreach_kw: nul,
+    #|    each_in_kw: nul,
+    #|    as_kw: nul,
+    #|    while_kw: nul,
+    #|    do_kw: nul,
+    #|    break_kw: nul,
+    #|    true_kw: nul,
+    #|    false_kw: nul,
+    #|    and_kw: nul,
+    #|    or_kw: nul,
+    #|    not_kw: nul,
+    #|    return_kw: nul,
+    #|    struct_kw: nul,
+    #|    match_kw: nul,
+    #|    case_kw: nul,
+    #|    enum_kw: nul,
+    #|  }
+    #|}
+    #|
+    #|///|
     #|pub fn keywords_for(language : Language) -> Keywords {
     #|  match language {
     #|    ZhHans =>

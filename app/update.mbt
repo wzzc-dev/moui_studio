@@ -437,7 +437,7 @@ fn lang_error_line_range(
   error : @studio_lang.LangError,
 ) -> @core.TextRange {
   let line = error.line()
-  let lines = split_line_texts(source)
+  let lines = @code.split_line_texts(source)
   if line <= 0 || line > lines.length() {
     return { start: 0, end: source.length(), }
   }
@@ -585,20 +585,8 @@ fn update_shell_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
           @moui.Effect::none(),
         ),
       )
-    EditorCaretMoved(caret, selection) =>
-      Some(
-        (
-          { ..model, code_caret: caret, code_selection: selection, },
-          @moui.Effect::none(),
-        ),
-      )
-    EditorScrolled(y) =>
-      Some(
-        (
-          { ..model, code_scroll: @geometry.Point::new(x=0.0, y~), },
-          @moui.Effect::none(),
-        ),
-      )
+    // 编辑器光标/选区/滚动（EditorCaretMoved/EditorScrolled）已并入
+    // plugins/code 的 CodeUiState 切片（CodeUiOp 委托）。
     // notice 的消费入口也走同一漏斗（非空文本补推 toast）——settings
     // 写入的哑回调传空串，只清字段不弹 toast。
     SetNotice(notice) =>
@@ -753,7 +741,7 @@ fn update_design_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
     CanvasPress(x, y) => {
       // 手柄优先：角手柄只画在选中控件上，按上手柄即进入缩放拖拽
       let handle_hit : @ir.DragCorner? = match find_selected_control(model) {
-        Some(selected) => hit_test_handle(selected, x, y)
+        Some(selected) => @design.hit_test_handle(selected, x, y)
         None => None
       }
       match handle_hit {
@@ -772,7 +760,7 @@ fn update_design_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
           )
         None =>
           // 命中控件即选中并建立移动拖拽态：记录按下点相对控件原点的偏移
-          match hit_test_control(model.program.controls, x, y) {
+          match @design.hit_test_control(model.program.controls, x, y) {
             Some(control) =>
               Some(
                 (
@@ -812,7 +800,7 @@ fn update_design_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
                     let controls : Array[@ir.Control] = []
                     for control in m.program.controls {
                       if control.name == drag.control {
-                        let (snapped_x, snapped_y) = snap_move_position(
+                        let (snapped_x, snapped_y) = @design.snap_move_position(
                           m.program.controls,
                           drag.control,
                           (x.to_int() - offset_x).to_double(),
@@ -842,7 +830,7 @@ fn update_design_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
                     for control in m.program.controls {
                       if control.name == drag.control {
                         // 缩放边缘吸附：移动边向参考线/网格钳制后再缩放
-                        let (snapped_x, snapped_y) = snap_resize_position(
+                        let (snapped_x, snapped_y) = @design.snap_resize_position(
                           m.program.controls,
                           drag.control,
                           control,
@@ -873,7 +861,7 @@ fn update_design_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
     CanvasTap(x, y) =>
       // 单击点选。拖拽松手也会触发 tap（同一 Up 事件）：drag 仍在时说明
       // 这是一次拖拽结束，不要改动选中态。
-      match hit_test_control(model.program.controls, x, y) {
+      match @design.hit_test_control(model.program.controls, x, y) {
         Some(control) =>
           if model.drag is Some(_) {
             Some((model, @moui.Effect::none()))
@@ -1606,38 +1594,30 @@ fn goto_problem_program(
 ) -> (Model, @moui.Effect[Msg]) {
   let committed = commit_code(model)
   let next = sync_code_draft(select_handler_key(committed, key))
-  let lines = split_line_texts(next.code_draft)
+  let lines = @code.split_line_texts(next.code_draft)
   let target = if line >= 1 && line <= lines.length() { line } else { 1 }
   let mut caret = 0
   for index in 0..<(target - 1) {
     caret = caret + lines[index].length() + 1
   }
   let scroll_y = ((target - 3).to_double() * 20.0).max(0.0)
-  (
-    {
-      ..next,
-      code_caret: caret,
-      code_selection: None,
-      code_scroll: @geometry.Point::new(x=0.0, y=scroll_y),
-    },
-    @moui.Effect::none(),
+  let (jumped, _) = code_ui_scope().update(
+    next,
+    @code.GoToLine(caret, scroll_y),
   )
+  (jumped, @moui.Effect::none())
 }
 
 ///|
 /// 把光标钉到目标行行首并滚动对齐（GotoProblem 的共用核心）。
 fn goto_line(model : Model, line : Int) -> Model {
-  let lines = split_line_texts(model.code_draft)
+  let lines = @code.split_line_texts(model.code_draft)
   let target = if line >= 1 && line <= lines.length() { line } else { 1 }
   let mut caret = 0
   for index in 0..<(target - 1) {
     caret = caret + lines[index].length() + 1
   }
   let scroll_y = ((target - 3).to_double() * 20.0).max(0.0)
-  {
-    ..model,
-    code_caret: caret,
-    code_selection: None,
-    code_scroll: @geometry.Point::new(x=0.0, y=scroll_y),
-  }
+  let (next, _) = code_ui_scope().update(model, @code.GoToLine(caret, scroll_y))
+  next
 }

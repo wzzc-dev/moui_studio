@@ -729,13 +729,7 @@ fn update_run_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
     // 再按路径定位块（路径是稳定坐标，链下标随展开块变化）。
     CompileJump(line) =>
       Some((jump_to_compile_line(model, line), @moui.Effect::none()))
-    ToggleCompileOutput =>
-      Some(
-        (
-          { ..model, compile_output_open: !model.compile_output_open, },
-          @moui.Effect::none(),
-        ),
-      )
+    // 编译输出展开开关已迁 RunUiOp(ToggleCompileOutput)（S5i 运行域切片）。
     // 进度累加：同一步的 started 会被后来的 finished 覆盖掉（见
     // `compile_step_states` 的归并规则），所以这里只做无脑追加——
     // 归并是纯函数，视图与测试读同一份结果。
@@ -1228,54 +1222,9 @@ fn append_progress(
 }
 
 ///|
-/// 单步状态：`None` 未开始 / `Some(true)` 进行中 / `Some(false)` 已完成。
-///
-/// 编译进度条的唯一读取口径——视图与测试都走这里，避免「两处各算一份」
-/// 让进度格与真实执行错位。
-pub fn compile_step_state(
-  progress : Array[@export.CompileProgress],
-  phase : @export.CompilePhase,
-) -> Bool? {
-  let mut state : Bool? = None
-  for item in progress {
-    if item.phase.tag() == phase.tag() {
-      // 后到的覆盖先到的：finished(false) 最终胜出
-      state = Some(item.started)
-    }
-  }
-  state
-}
-
-///|
-/// 已**完成**的步数（进度条点满的格数）与总步数。
-pub fn compile_progress_counts(
-  progress : Array[@export.CompileProgress],
-) -> (Int, Int) {
-  let mut done = 0
-  for phase in @export.compile_phases() {
-    match compile_step_state(progress, phase) {
-      Some(false) => done = done + 1
-      _ => ()
-    }
-  }
-  (done, @export.compile_phase_total())
-}
-
-///|
-/// 当前正在执行的步（最后一条 started=true 且尚未 finished 的步）。
-/// 全部未开始或全部结束时返回 None。
-pub fn compile_active_phase(
-  progress : Array[@export.CompileProgress],
-) -> @export.CompilePhase? {
-  let mut active : @export.CompilePhase? = None
-  for phase in @export.compile_phases() {
-    match compile_step_state(progress, phase) {
-      Some(true) => active = Some(phase)
-      _ => ()
-    }
-  }
-  active
-}
+/// 单步状态 / 完成计数 / 活跃步的读取口径（compile_step_state /
+/// compile_progress_counts / compile_active_phase）已随 S7d 迁
+/// plugins/run/compile_views.mbt，视图与白盒测试同口径。
 
 ///|
 /// 广播总线（切片 G）：事件收尾时排空——每条广播文案依次投递给
@@ -1426,4 +1375,40 @@ fn fire_onstart_compiled(
       let _ = @compiled_runtime.run_handler(runtime, compiled_handler)
     }
   }
+}
+
+///|
+/// 编译轨头部壳薄包装（S7d 出壳）：纯视图在 @run 插件，这里把 compile_*
+/// 状态投影成参数，把动作映射成 Msg，并用壳的 ghost_icon_button 构造产物
+/// 旁路按钮（要发壳状态提示 HoverHint）。
+fn compiled_run_header(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
+  @run.compiled_run_header(
+    {
+      busy: model.compile_busy,
+      track_available: model.compile_track_available,
+      output_open: model.run_ui.compile_output_open,
+      progress: model.compile_progress,
+      report: model.compile_report,
+      ghost_icon: fn(icon, tip, selected, on_click) {
+        ghost_icon_button(
+          icon,
+          tip,
+          selected,
+          on_click,
+          28.0,
+          22.0,
+          13.0,
+          @chrome.ide_elevated(),
+        )
+      },
+      on_run: CompileRun,
+      on_cancel: CompileStopped,
+      on_toggle_output: RunUiOp(@run.ToggleCompileOutput),
+      on_run_artifact: fn(path) { RunArtifact(path) },
+      on_copy_path: fn(path) { CopyArtifactPath(path) },
+      on_reveal: fn(path) { RevealArtifact(path) },
+      on_jump: fn(line) { CompileJump(line) },
+    },
+    t,
+  )
 }

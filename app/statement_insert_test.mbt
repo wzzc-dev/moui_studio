@@ -10,7 +10,7 @@ test "insert statement lands right after the selected block" {
     selected,
     InsertStatement(
       3,
-      @app.template_index_of(3, "app.stmt.tpl.message").unwrap(),
+      @blk.template_index_of(3, "app.stmt.tpl.message").unwrap(),
     ),
   )
   let after = @app.block_chain_of(inserted)
@@ -29,7 +29,7 @@ test "inserted statement is undoable" {
     model,
     InsertStatement(
       3,
-      @app.template_index_of(3, "app.stmt.tpl.message").unwrap(),
+      @blk.template_index_of(3, "app.stmt.tpl.message").unwrap(),
     ),
   )
   assert_eq(@app.block_chain_of(inserted).length(), count + 1)
@@ -46,7 +46,7 @@ test "insert statement without a handler is a safe no-op" {
     model,
     InsertStatement(
       3,
-      @app.template_index_of(3, "app.stmt.tpl.message").unwrap(),
+      @blk.template_index_of(3, "app.stmt.tpl.message").unwrap(),
     ),
   )
   assert_eq(inserted.program.handlers.length(), before)
@@ -70,20 +70,20 @@ test "insert statement ignores out-of-range indices" {
 /// 点另一个分类 = 直接切换（不要求先收起）。
 test "statement palette toggles on the same category and switches on another" {
   let model = @app.load_template_program(@app.initial_model(), 2)
-  let opened = apply(model, ToggleStatementPalette(3))
-  assert_true(opened.statement_palette_open)
-  let closed = apply(opened, ToggleStatementPalette(3))
-  assert_true(!closed.statement_palette_open)
-  let switched = apply(opened, ToggleStatementPalette(2))
-  assert_true(switched.statement_palette_open)
-  assert_eq(switched.selected_category, 2)
+  let opened = apply(model, BlocksUiOp(@blk.ToggleStatementPalette(3)))
+  assert_true(opened.blocks_ui.statement_palette_open)
+  let closed = apply(opened, BlocksUiOp(@blk.ToggleStatementPalette(3)))
+  assert_true(!closed.blocks_ui.statement_palette_open)
+  let switched = apply(opened, BlocksUiOp(@blk.ToggleStatementPalette(2)))
+  assert_true(switched.blocks_ui.statement_palette_open)
+  assert_eq(switched.blocks_ui.selected_category, 2)
 }
 
 ///|
 /// 每个分类的骨架都必须能被双语解析器接受——骨架表是数据，写错一条
 /// 就会在运行时变成「点了没反应」。这条锁定整表。
 test "every statement template parses in both languages" {
-  for template in @app.statement_templates() {
+  for template in @blk.statement_templates() {
     for language in [@studio_lang.ZhHans, @studio_lang.En] {
       let language_name = if language is @studio_lang.ZhHans {
         "zh-Hans"
@@ -120,7 +120,7 @@ test "category index mapping matches the rail order" {
   ]
   let mut index = 0
   for category in expected {
-    match @app.category_at(index) {
+    match @blk.category_at(index) {
       Some(actual) =>
         assert_true(
           @blocks.category_color_key(actual) ==
@@ -130,5 +130,5 @@ test "category index mapping matches the rail order" {
     }
     index = index + 1
   }
-  assert_true(@app.category_at(5) is None)
+  assert_true(@blk.category_at(5) is None)
 }

@@ -1,0 +1,13 @@
+import {
+  "wzzc-dev/moui",
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/views",
+  "wzzc-dev/moui/geometry",
+  "wzzc-dev/moui/graphics",
+  "wzzc-dev/moui/text",
+  "wzzc-dev/moui_studio/chrome",
+  "wzzc-dev/moui_studio/domain/ir",
+  "wzzc-dev/moui_studio/services/form_designer",
+}
+
+supported_targets = "native+wasm-gc"

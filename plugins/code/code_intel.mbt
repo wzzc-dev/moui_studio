@@ -1,10 +1,34 @@
 ///|
 /// 代码情报（切片 H）：补全与跳转声明。
 ///
-/// 为什么不做 LSP：本视图编辑的是** DSL 源码**（IR 的渲染投影），不是
+/// 为什么不做 LSP：本视图编辑的是 **DSL 源码**（IR 的渲染投影），不是
 /// 自由 MoonBit——DSL 的「语言服务器」就是域包本身：关键字表、内建目录、
 /// 草稿分词器与 IR 全部在进程内。Ctrl+Space 补全与「跳到声明」直接读
 /// 这些结构，零网络零子进程。
+///
+/// 出壳说明：不读 app Model；语言、控件名、草稿由壳显式传入。
+
+///|
+/// 按换行切分（保留空行——行号必须与真实行一一对应，
+/// 否则 IR 行映射与光标位置会错位）。
+pub fn split_line_texts(source : String) -> Array[String] {
+  let lines : Array[String] = []
+  let buf = StringBuilder()
+  for c in source {
+    if c == '\n' {
+      lines.push(buf.to_string())
+      buf.reset()
+    } else if c != '\r' {
+      buf.write_char(c)
+    }
+  }
+  lines.push(buf.to_string())
+  if lines.length() == 1 && lines[0] == "" {
+    []
+  } else {
+    lines
+  }
+}
 
 ///|
 /// 光标处的词（标识符；中文/ASCII 同口径）：返回 (词, 词首偏移)。
@@ -33,9 +57,13 @@ pub fn word_at_caret(source : String, caret : Int) -> (String, Int) {
 ///|
 /// 补全候选：当前语言关键字 + 内建显示名 + 草稿里声明过的变量/控件名，
 /// 按光标词前缀过滤（空词 = 全量，前 12 条）。
-pub fn completions_for(model : Model, prefix : String) -> Array[String] {
+pub fn completions_for(
+  language : @studio_lang.Language,
+  controls : Array[@ir.Control],
+  code_draft : String,
+  prefix : String,
+) -> Array[String] {
   let candidates : Array[String] = []
-  let language = model.language.dsl_language()
   let keywords = @studio_lang.keywords_for(language)
   for
     keyword in [
@@ -61,11 +89,11 @@ pub fn completions_for(model : Model, prefix : String) -> Array[String] {
       },
     )
   }
-  for control in model.program.controls {
+  for control in controls {
     candidates.push(control.name)
   }
   // 草稿中的局部声明（变量 x / let x）
-  for line_text in split_line_texts(model.code_draft) {
+  for line_text in split_line_texts(code_draft) {
     let trimmed = line_text.trim().to_owned()
     let declare_kw_prefix = keywords.declare_kw + " "
     if trimmed.has_prefix(declare_kw_prefix) &&
@@ -112,13 +140,17 @@ pub fn apply_completion(
 ///|
 /// 跳到声明：光标词在草稿中的首次声明行（`变量 词` / `let 词`），
 /// 找不到声明行时找首次出现行。返回 1 起行号（0 = 无处可跳）。
-pub fn declaration_line_of(model : Model, caret : Int) -> Int {
-  let (word, _) = word_at_caret(model.code_draft, caret)
+pub fn declaration_line_of(
+  language : @studio_lang.Language,
+  code_draft : String,
+  caret : Int,
+) -> Int {
+  let (word, _) = word_at_caret(code_draft, caret)
   if word == "" {
     return 0
   }
-  let lines = split_line_texts(model.code_draft)
-  let keywords = @studio_lang.keywords_for(model.language.dsl_language())
+  let lines = split_line_texts(code_draft)
+  let keywords = @studio_lang.keywords_for(language)
   let declare_kw_prefix = keywords.declare_kw + " "
   let declare_en = "let "
   let mut first_use = 0

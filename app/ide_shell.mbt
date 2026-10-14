@@ -210,8 +210,8 @@ pub fn ide_top_bar(
     icon_button(
       Settings,
       text(t, "app.settings.title"),
-      model.settings_open,
-      ToggleSettings,
+      model.ai_ui.settings_open,
+      AiUiOp(@ai.ToggleSettings),
       28.0,
       26.0,
       14.0,
@@ -370,8 +370,8 @@ pub fn ide_icon_bar(
       icon_button(
         Gear,
         text(t, "app.settings.title"),
-        model.settings_open,
-        ToggleSettings,
+        model.ai_ui.settings_open,
+        AiUiOp(@ai.ToggleSettings),
         28.0,
         28.0,
         17.0,
@@ -430,8 +430,8 @@ pub fn ide_left_panel(
   let search = @views.container(
     @views.padding_xy(
       @views.text_field(
-        model.tree_query,
-        on_input=query => SetTreeQuery(query),
+        model.project_state.tree_query,
+        on_input=query => ProjectOp(@proj.SetTreeQuery(query)),
         placeholder=text(t, "app.left.search"),
         variant=Outline,
         width=(width - 16.0).max(80.0),
@@ -532,7 +532,7 @@ fn group_create_action(
       height=16.0,
       padding=0.0,
     )
-    .on_tap(ToggleTreeCreate(group))
+    .on_tap(ProjectOp(@proj.ToggleTreeCreate(group)))
     .accessibility_label(
       if group == tree_group_variables() {
         text(t, "app.tree.create.variable")
@@ -565,7 +565,7 @@ fn group_create_menu(
   t : @i18n.Translator,
   width : Double,
 ) -> Array[@moui.View[Msg]] {
-  if model.tree_create_group != group {
+  if model.project_state.tree_create_group != group {
     return []
   }
   let rows : Array[@moui.View[Msg]] = []
@@ -643,7 +643,7 @@ fn tree_view_ide(
         children.length() > 0,
         expanded,
         None,
-        Some(ToggleTreeGroup(group)),
+        Some(ProjectOp(@proj.ToggleTreeGroup(group))),
         width,
         trailing=action.0,
         trailing_width=action.1,
@@ -1405,9 +1405,9 @@ pub fn terminal_pane(
       line_index = line_index + 1
     }
   }
-  // 滚动受控（M8 用户反馈②）：offset 跟随模型（用户手动滚动经
-  // TerminalScrolled 回写）；新输出时模型置 (0, 1e9) + 序号自增 →
-  // ScrollRequest 强制滚到底部（容器 clamp）
+  // 滚动受控（M8 用户反馈②）：offset/request 只表达 PTY 输出后的自动跟随
+  //（新输出置贴底 offset + 序号自增 → ScrollRequest 强制滚到底，容器 clamp）；
+  // 用户手动滚动由 scroll_view 自管，无独立回写消息（S5i 删死消息 TerminalScrolled）。
   let screen = @views.container(
     @views.padding_edges(
       @views.scroll_view(
@@ -1415,7 +1415,6 @@ pub fn terminal_pane(
         offset=model.terminal_scroll,
         width=width - 16.0,
         height=screen_height - 16.0,
-        on_scroll=Some(offset => TerminalScrolled(offset)),
         request=@core.ScrollRequest::new(
           id=model.terminal_scroll_seq,
           offset=model.terminal_scroll,
@@ -1442,5 +1441,41 @@ pub fn terminal_pane(
       }
     },
     fn(text) { Some(TerminalWrite(text)) },
+  )
+}
+
+///|
+/// AI 会话列表壳薄包装（S4 出壳）：纯视图在 @ai 插件，这里把 Model 状态
+/// 投影成参数、把 AiSession* 消息作为回调注入。
+fn ai_session_list(
+  model : Model,
+  t : @i18n.Translator,
+  width : Double,
+  height : Double,
+) -> @moui.View[Msg] {
+  let now = civil_seconds(model.clock)
+  @ai.ai_session_list(
+    {
+      sessions: model.ai_sessions,
+      query: model.ai_ui.ai_sessions_query,
+      search_open: model.ai_ui.ai_sessions_search_open,
+      rename: model.ai_ui.session_rename,
+      hover: model.ai_ui.ai_session_hover,
+      now,
+      on_create: AiSessionOp(AiSessionCreate(now)),
+      on_settings: StudioCommandRun("studio.settings"),
+      on_toggle_search: AiUiOp(@ai.ToggleSessionSearch),
+      on_query: fn(value) { AiUiOp(@ai.SetSessionsQuery(value)) },
+      on_rename_start: fn(index) { AiSessionRenameStart(index) },
+      on_rename_draft: fn(value) { AiUiOp(@ai.SetRenameDraft(value)) },
+      on_rename_commit: AiSessionRenameCommit,
+      on_hover: fn(index, entered) { AiUiOp(@ai.SessionHover(index, entered)) },
+      on_pin: fn(index, pinned) { AiSessionOp(AiSessionPin(index, pinned)) },
+      on_remove: fn(index) { AiSessionOp(AiSessionRemove(index)) },
+      on_switch: fn(index) { AiSessionOp(AiSessionSwitch(index)) },
+    },
+    t,
+    width,
+    height,
   )
 }

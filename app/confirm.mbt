@@ -56,7 +56,7 @@ fn confirm_kind_of(msg : Msg) -> ConfirmKind {
     DeleteControl(name) => CkDeleteControl(name)
     DeleteVariable(name) => CkDeleteVariable(name)
     NewProjectRequested(index) => CkNewProject(index)
-    CloseFileTab(index) => CkCloseFileTab(index)
+    ProjectOp(@proj.CloseFileTab(index)) => CkCloseFileTab(index)
     _ => CkOpen
   }
 }
@@ -118,7 +118,7 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
                 CkDeleteProjectFile(_) => OpenRequested
                 CkNewProject(_) => OpenRequested
                 CkOpen => OpenRequested
-                CkCloseFileTab(index) => CloseFileTab(index)
+                CkCloseFileTab(index) => ProjectOp(@proj.CloseFileTab(index))
               }
               Some(update_pure_inner(cleared, follow))
             }
@@ -130,7 +130,7 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     DeleteControl(_)
     | DeleteVariable(_)
     | NewProjectRequested(_)
-    | CloseFileTab(_) =>
+    | ProjectOp(@proj.CloseFileTab(_)) =>
       if model.pending_confirm is Some(_) {
         None
       } else {
@@ -138,7 +138,7 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         // 关闭 tab 只挡脏 tab（干净 tab 直接关,不打扰）。
         let guarded = match msg {
           DeleteControl(_) | DeleteVariable(_) => true
-          CloseFileTab(index) =>
+          ProjectOp(@proj.CloseFileTab(index)) =>
             match model.project_state.open_project_files.get(index) {
               Some(open) => file_is_dirty(open)
               None => false

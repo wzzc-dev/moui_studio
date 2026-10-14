@@ -36,14 +36,14 @@ pub fn preview_workspace(
         [
           mode_strip_button(
             text(t, "app.project.mode.frame"),
-            model.preview_mode is PmFrame,
-            SetPreviewMode(PmFrame),
+            model.preview_mode() is PmFrame,
+            RunUiOp(@run.SetPreviewMode(false)),
           ),
           mode_strip_button(
             text(t, "app.project.mode.web"),
-            model.preview_mode is PmWeb,
+            model.preview_mode() is PmWeb,
             if web_available {
-              SetPreviewMode(PmWeb)
+              RunUiOp(@run.SetPreviewMode(true))
             } else {
               SetNotice(text(t, "app.project.preview_web_unavailable"))
             },
@@ -66,7 +66,7 @@ pub fn preview_workspace(
             @views.text("", width=1.0, height=1.0)
           },
           // 布局页签（M4 收尾）：画布/布局二分，只属于模式一。
-          if model.preview_mode is PmFrame {
+          if model.preview_mode() is PmFrame {
             mode_strip_button(
               text(t, "app.project.design_tab"),
               model.preview_design_open,
@@ -214,7 +214,7 @@ pub fn preview_workspace(
               @views.text("", width=1.0, height=1.0)
             }
             let canvas_width = (width - 226.0).max(120.0)
-            let canvas_area = if model.preview_mode is PmWeb {
+            let canvas_area = if model.preview_mode() is PmWeb {
               match preview_web_controller() {
                 Some(controller) =>
                   @webview_views.web_view(

@@ -700,14 +700,14 @@ fn run_stage(
   }
   // 运行舞台与设计舞台同一套「适应窗口」缩放：窗格比 640×480 窄时
   // 等比缩小，而不是把内容切掉（实测 w=900 时舞台里的标签文字被裁）。
-  let fit = fit_scale(
+  let fit = @design.fit_scale(
     avail_width - 2.0,
     avail_height,
     @ir.DESIGN_WIDTH.to_double(),
     @ir.DESIGN_HEIGHT.to_double(),
   )
   @views.container(
-    stage_layout(stage_widgets, stage_rects),
+    @design.stage_layout(stage_widgets, stage_rects),
     width=@ir.DESIGN_WIDTH.to_double() * fit,
     height=@ir.DESIGN_HEIGHT.to_double() * fit,
     // 运行舞台与设计画布同一底板：运行的就是设计出来的那一块，

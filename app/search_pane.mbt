@@ -12,8 +12,8 @@ pub fn search_pane(
   let input_row = @views.row(
     [
       @views.text_field(
-        model.search_query,
-        on_input=value => SearchQueryDraft(value),
+        model.project_state.search_query,
+        on_input=value => ProjectOp(@proj.SetSearchQuery(value)),
         width=(width - 130.0).max(80.0),
         height=24.0,
       ),

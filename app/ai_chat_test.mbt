@@ -125,8 +125,10 @@ test "submitting stamps default title truncated to 18 chars and updated time" {
   // 24 个全角字符的 prompt → 标题取前 18 个字符
   let asked = apply(
     timed,
-    SetPrompt(
-      "一二三四五六七八九十一二三四五六七八九十一二三",
+    AiSessionOp(
+      SetPromptDraft(
+        "一二三四五六七八九十一二三四五六七八九十一二三",
+      ),
     ),
   )
   let run = apply(asked, ComposerRun)
@@ -149,7 +151,7 @@ test "submit keeps renamed title and stamps active project" {
       @services.AppServices::new(),
     ).0
   let named = apply(imported, AiSessionOp(AiSessionRename(0, "我的会话")))
-  let asked = apply(named, SetPrompt("随机点名"))
+  let asked = apply(named, AiSessionOp(@ai.SetPromptDraft("随机点名")))
   let run = apply(asked, ComposerRun)
   // 用户改过的名字不被自动置题覆盖
   assert_eq(run.ai_sessions.current().title, "我的会话")
@@ -160,7 +162,10 @@ test "submit keeps renamed title and stamps active project" {
 ///|
 test "composer run echoes the prompt as a user bubble card" {
   let model = @app.initial_model()
-  let asked = apply(model, SetPrompt("帮我做一个随机点名册"))
+  let asked = apply(
+    model,
+    AiSessionOp(@ai.SetPromptDraft("帮我做一个随机点名册")),
+  )
   let run = apply(asked, ComposerRun)
   let cards = run.ai_sessions.current().cards
   // 第一张 = 用户提问回显。提案生成本轮只到路由（真实 provider 在
@@ -185,7 +190,10 @@ test "proposal failure pushes an error card into the timeline" {
 ///|
 test "edit and retry restore the prompt draft from the timeline" {
   let model = @app.initial_model()
-  let asked = apply(model, SetPrompt("帮我做一个随机点名册"))
+  let asked = apply(
+    model,
+    AiSessionOp(@ai.SetPromptDraft("帮我做一个随机点名册")),
+  )
   let run = apply(asked, ComposerRun)
   let cards = run.ai_sessions.current().cards
   let user_seq = cards[0].seq
@@ -212,13 +220,19 @@ test "transcript follow toggles by scroll direction and new content" {
   // 先下滚（跟随保持），再上滚（y 变小）→ 关跟随；再下滚 → 恢复
   let lower = apply(
     model,
-    TranscriptScrolled(@geometry.Point::new(x=0.0, y=90.0)),
+    AiUiOp(@ai.TranscriptScrolled(@geometry.Point::new(x=0.0, y=90.0))),
   )
-  assert_true(lower.transcript_follow)
-  let up = apply(lower, TranscriptScrolled(@geometry.Point::new(x=0.0, y=50.0)))
-  assert_false(up.transcript_follow)
-  let down = apply(up, TranscriptScrolled(@geometry.Point::new(x=0.0, y=90.0)))
-  assert_true(down.transcript_follow)
+  assert_true(lower.ai_ui.transcript_follow)
+  let up = apply(
+    lower,
+    AiUiOp(@ai.TranscriptScrolled(@geometry.Point::new(x=0.0, y=50.0))),
+  )
+  assert_false(up.ai_ui.transcript_follow)
+  let down = apply(
+    up,
+    AiUiOp(@ai.TranscriptScrolled(@geometry.Point::new(x=0.0, y=90.0))),
+  )
+  assert_true(down.ai_ui.transcript_follow)
   // 非跟随态：新卡不触发贴底请求；恢复后：新卡强制贴底
   let quiet = @app.push_ai_card(down, @app.AiCard::{
     kind: @ai.CardUserPrompt,
@@ -233,13 +247,13 @@ test "transcript follow toggles by scroll direction and new content" {
     seq: 0,
     at: 0,
   })
-  let seq_before = quiet.transcript_scroll_seq
-  assert_eq(quiet.transcript_scroll_seq, seq_before)
-  let seq_before2 = quiet.transcript_scroll_seq
-  let follower = apply(quiet, TranscriptScrollToBottom)
-  assert_true(follower.transcript_scroll_seq > seq_before2)
+  let seq_before = quiet.ai_ui.transcript_scroll_seq
+  assert_eq(quiet.ai_ui.transcript_scroll_seq, seq_before)
+  let seq_before2 = quiet.ai_ui.transcript_scroll_seq
+  let follower = apply(quiet, AiUiOp(@ai.TranscriptScrollToBottom))
+  assert_true(follower.ai_ui.transcript_scroll_seq > seq_before2)
   // 「before」必须先取值：push 原地改 mut 字段,follower 与 bumped 同记录
-  let seq_before_bump = follower.transcript_scroll_seq
+  let seq_before_bump = follower.ai_ui.transcript_scroll_seq
   let _bumped = @app.push_ai_card(follower, @app.AiCard::{
     kind: @ai.CardUserPrompt,
     title: "",
@@ -253,25 +267,28 @@ test "transcript follow toggles by scroll direction and new content" {
     seq: 0,
     at: 0,
   })
-  assert_true(follower.transcript_scroll_seq > seq_before_bump)
+  assert_true(follower.ai_ui.transcript_scroll_seq > seq_before_bump)
 }
 
 ///|
 test "switching sessions resets transcript scroll to follow" {
   let model = @app.initial_model()
-  let asked = apply(model, SetPrompt("帮我做一个随机点名册"))
+  let asked = apply(
+    model,
+    AiSessionOp(@ai.SetPromptDraft("帮我做一个随机点名册")),
+  )
   let run = apply(asked, ComposerRun)
   let scrolled = apply(
     run,
-    TranscriptScrolled(@geometry.Point::new(x=0.0, y=40.0)),
+    AiUiOp(@ai.TranscriptScrolled(@geometry.Point::new(x=0.0, y=40.0))),
   )
   let scrolled = apply(
     scrolled,
-    TranscriptScrolled(@geometry.Point::new(x=0.0, y=10.0)),
+    AiUiOp(@ai.TranscriptScrolled(@geometry.Point::new(x=0.0, y=10.0))),
   )
-  assert_false(scrolled.transcript_follow)
+  assert_false(scrolled.ai_ui.transcript_follow)
   let created = apply(scrolled, AiSessionOp(AiSessionCreate(0)))
-  assert_true(created.transcript_follow)
+  assert_true(created.ai_ui.transcript_follow)
 }
 
 ///|
@@ -294,22 +311,25 @@ test "relative time buckets by diff" {
 test "inline rename commits trimmed title and stamps activity" {
   let model = @app.initial_model()
   let started = apply(model, AiSessionRenameStart(0))
-  match started.session_rename {
+  match started.ai_ui.session_rename {
     Some((index, draft)) => {
       assert_eq(index, 0)
       assert_eq(draft, "会话 1")
     }
     None => fail("应进入改名态")
   }
-  let drafted = apply(started, AiSessionRenameDraft("  点名册讨论  "))
+  let drafted = apply(
+    started,
+    AiUiOp(@ai.SetRenameDraft("  点名册讨论  ")),
+  )
   let committed = apply(drafted, AiSessionRenameCommit)
   assert_eq(committed.ai_sessions.current().title, "点名册讨论")
-  assert_true(committed.session_rename is None)
+  assert_true(committed.ai_ui.session_rename is None)
   // 提交是结构性事件:盖 updated 戳(clock 默认 0 秒口径 → > 0 之前的 updated 是 0)
   assert_true(committed.ai_sessions.current().updated >= 0)
   // 空白名不生效
   let again = apply(committed, AiSessionRenameStart(0))
-  let blank = apply(again, AiSessionRenameDraft("   "))
+  let blank = apply(again, AiUiOp(@ai.SetRenameDraft("   ")))
   let kept = apply(blank, AiSessionRenameCommit)
   assert_eq(kept.ai_sessions.current().title, "点名册讨论")
 }
@@ -317,37 +337,40 @@ test "inline rename commits trimmed title and stamps activity" {
 ///|
 test "session search toggle and query filter" {
   let model = @app.initial_model()
-  assert_false(model.ai_sessions_search_open)
-  let opened = apply(model, ToggleAiSessionSearch)
-  assert_true(opened.ai_sessions_search_open)
-  let queried = apply(opened, SetAiSessionsQuery("点名"))
-  assert_eq(queried.ai_sessions_query, "点名")
+  assert_false(model.ai_ui.ai_sessions_search_open)
+  let opened = apply(model, AiUiOp(@ai.ToggleSessionSearch))
+  assert_true(opened.ai_ui.ai_sessions_search_open)
+  let queried = apply(opened, AiUiOp(@ai.SetSessionsQuery("点名")))
+  assert_eq(queried.ai_ui.ai_sessions_query, "点名")
   // 关闭即清空查询
-  let closed = apply(queried, ToggleAiSessionSearch)
-  assert_false(closed.ai_sessions_search_open)
-  assert_eq(closed.ai_sessions_query, "")
+  let closed = apply(queried, AiUiOp(@ai.ToggleSessionSearch))
+  assert_false(closed.ai_ui.ai_sessions_search_open)
+  assert_eq(closed.ai_ui.ai_sessions_query, "")
 }
 
 ///|
 test "hover tracks the session row under the pointer" {
   let model = @app.initial_model()
-  let entered = apply(model, AiSessionHover(0, true))
-  assert_eq(entered.ai_session_hover, 0)
-  let left = apply(entered, AiSessionHover(0, false))
-  assert_eq(left.ai_session_hover, -1)
+  let entered = apply(model, AiUiOp(@ai.SessionHover(0, true)))
+  assert_eq(entered.ai_ui.ai_session_hover, 0)
+  let left = apply(entered, AiUiOp(@ai.SessionHover(0, false)))
+  assert_eq(left.ai_ui.ai_session_hover, -1)
 }
 
 ///|
 test "store load replaces sessions and bad payload warns without replacing" {
   let model = @app.initial_model()
-  let asked = apply(model, SetPrompt("帮我做一个随机点名册"))
+  let asked = apply(
+    model,
+    AiSessionOp(@ai.SetPromptDraft("帮我做一个随机点名册")),
+  )
   let ran = apply(asked, ComposerRun)
   // Success + 合法载荷：替换会话容器（恢复存储里的两条会话）
   let payload = "{\"format\": \"moui.studio.ai-sessions\", \"version\": 1, \"active\": 1, \"seq\": 2, \"sessions\": [{\"title\": \"恢复甲\", \"prompt_draft\": \"\", \"project\": \"\", \"pinned\": true, \"updated\": 99, \"card_seq\": 0, \"cards\": [], \"history\": []}, {\"title\": \"恢复乙\", \"prompt_draft\": \"\", \"project\": \"\", \"pinned\": false, \"updated\": 0, \"card_seq\": 0, \"cards\": [], \"history\": []}]}"
   let loaded = apply(ran, AiSessionsStoreLoaded(Success(payload)))
   assert_eq(loaded.ai_sessions.count(), 2)
   assert_eq(loaded.ai_sessions.current().title, "恢复乙")
-  assert_true(loaded.transcript_follow)
+  assert_true(loaded.ai_ui.transcript_follow)
   // Success + 坏载荷：with_notice 报错且保留当前会话（不静默吞）
   let bad = apply(ran, AiSessionsStoreLoaded(Success("{}}}")))
   assert_eq(bad.ai_sessions.count(), ran.ai_sessions.count())
@@ -358,7 +381,10 @@ test "store load replaces sessions and bad payload warns without replacing" {
 test "structural events mark the session store dirty" {
   let model = @app.initial_model()
   // 提交 → outbox 有 EvAiSessionsDirty
-  let asked = apply(model, SetPrompt("帮我做一个随机点名册"))
+  let asked = apply(
+    model,
+    AiSessionOp(@ai.SetPromptDraft("帮我做一个随机点名册")),
+  )
   let ran = apply(asked, ComposerRun)
   assert_true(ran.outbox.any(event => event is EvAiSessionsDirty))
   // 拒绝提案 → 也脏
@@ -394,7 +420,7 @@ test "keyboard n creates a session and palette ids dispatch" {
   )
   assert_eq(via_palette.ai_sessions.count(), 2)
   let searched = apply(model, StudioCommandRun("studio.ai.search"))
-  assert_true(searched.ai_sessions_search_open)
+  assert_true(searched.ai_ui.ai_sessions_search_open)
 }
 
 ///|
@@ -421,7 +447,7 @@ test "create stamps created time and codec keeps it backward compatible" {
 test "session meta time falls back created then updated then just now" {
   // created>0 优先于 updated
   let base = apply(@app.initial_model(), AiSessionOp(AiSessionCreate(1000)))
-  let touched = apply(base, SetPrompt("提问"))
+  let touched = apply(base, AiSessionOp(@ai.SetPromptDraft("提问")))
   let ran = apply(touched, ComposerRun)
   // 提交盖 updated(当前钟 > created) → 元信息时间应来自 updated 而非 created
   let stamp = ran.ai_sessions.current().updated
@@ -436,8 +462,8 @@ test "session meta time falls back created then updated then just now" {
 /// 历史构建——用户气泡与 AI 回复按序进上下文。
 test "纯聊天:无 key 提交给结构化引导" {
   let asked = apply(
-    { ..@app.initial_model(), composer_mode: ComposeChat, },
-    SetPrompt("你好"),
+    model_with_composer_mode(ComposeChat),
+    AiSessionOp(@ai.SetPromptDraft("你好")),
   )
   // 无 key（程序级臂）：composer 下方红字引导（不弹卡、不占转录）
   let ran = @app.update_with_launch_for_test(

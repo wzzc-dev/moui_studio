@@ -55,30 +55,30 @@ fn fd_two_controls() -> @form_designer.FormModel {
 ///|
 test "命中:控件体内命中下标,空白 -1,重叠取最上层" {
   let rects = fd_rects_of(fd_two_controls())
-  assert_eq(form_design_hit_index(rects, 50.0, 30.0), 0)
-  assert_eq(form_design_hit_index(rects, 250.0, 110.0), 1)
-  assert_eq(form_design_hit_index(rects, 500.0, 400.0), -1)
+  assert_eq(@design.form_design_hit_index(rects, 50.0, 30.0), 0)
+  assert_eq(@design.form_design_hit_index(rects, 250.0, 110.0), 1)
+  assert_eq(@design.form_design_hit_index(rects, 500.0, 400.0), -1)
   // 重叠区域:后画的在上(数组最后一个匹配)
   let overlap : Array[@geometry.Rect] = [
     @geometry.Rect::new(x=0.0, y=0.0, width=100.0, height=100.0),
     @geometry.Rect::new(x=50.0, y=50.0, width=100.0, height=100.0),
   ]
-  assert_eq(form_design_hit_index(overlap, 60.0, 60.0), 1)
+  assert_eq(@design.form_design_hit_index(overlap, 60.0, 60.0), 1)
 }
 
 ///|
 test "手柄:仅选中控件右下角 6px 半径内命中" {
   let rects = fd_rects_of(fd_two_controls())
   // 0 号右下角 = (90, 50)
-  assert_true(form_design_handle_hit(rects, 0, 90.0, 50.0))
-  assert_true(form_design_handle_hit(rects, 0, 94.0, 52.0))
+  assert_true(@design.form_design_handle_hit(rects, 0, 90.0, 50.0))
+  assert_true(@design.form_design_handle_hit(rects, 0, 94.0, 52.0))
   // 体内但离角远 → 不是手柄
-  assert_false(form_design_handle_hit(rects, 0, 15.0, 25.0))
+  assert_false(@design.form_design_handle_hit(rects, 0, 15.0, 25.0))
   // 1 号手柄不该被 0 号命中
-  assert_false(form_design_handle_hit(rects, 0, 320.0, 124.0))
+  assert_false(@design.form_design_handle_hit(rects, 0, 320.0, 124.0))
   // 越界下标安全
-  assert_false(form_design_handle_hit(rects, 9, 320.0, 124.0))
-  assert_false(form_design_handle_hit(rects, -1, 90.0, 50.0))
+  assert_false(@design.form_design_handle_hit(rects, 9, 320.0, 124.0))
+  assert_false(@design.form_design_handle_hit(rects, -1, 90.0, 50.0))
 }
 
 ///|
@@ -178,6 +178,37 @@ test "缩放补丁:写源码 + 重解析 + 坐标不动" {
       assert_eq(control.y, 20.0)
       let (_, bad) = form_design_apply_resize(session, -1, 1.0, 1.0)
       assert_false(bad)
+    }
+  }
+}
+
+///|
+test "external reload swaps session on changed source" {
+  let original = "/// form\npub fn layout() -> @moui.View[Msg] {\n  stage(640, 480, [\n    place(@views.button(\"go\"), x=10, y=10, width=80, height=28),\n  ])\n}\n"
+  match @form_designer.parse_form(original) {
+    Err(message) => fail("原始 form 应可解析: \{message}")
+    Ok(parsed) => {
+      let session : FormDesignerSession = {
+        root: "/tmp/proj",
+        form_rel: "app/form.mbt",
+        source: original,
+        parsed,
+      }
+      // 未变化：外部读取同源 → 不重载（同源比对在 app.mbt 收据里，
+      // 这里锁 parse 能力与差异判定所依赖的前提：解析是确定性的）
+      match @form_designer.parse_form(original) {
+        Ok(again) =>
+          assert_true(@form_designer.form_model_eq(again.model, parsed.model))
+        Err(message) => fail("重解析应成功: \{message}")
+      }
+      // 变化：改字面量后解析出不同模型（重载的前提）
+      let changed = original.replace(old="\"go\"", new="\"停止\"")
+      match @form_designer.parse_form(changed) {
+        Ok(next) =>
+          assert_false(@form_designer.form_model_eq(next.model, parsed.model))
+        Err(message) => fail("修改后的 form 应可解析: \{message}")
+      }
+      ignore(session)
     }
   }
 }

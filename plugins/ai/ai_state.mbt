@@ -268,3 +268,35 @@ pub fn AiSessions::append_to_last_card(
   }
   self.amend({ ..session, cards, })
 }
+
+// ============================================================================
+// 作曲家模式 / 待采纳提案（S4b 视图出壳随行：类型随 AI 视图迁入插件；
+// app 侧保留 pub type 别名，既有 update 引用零改动）
+// ============================================================================
+
+///|
+/// 作曲家模式：修改 / 生成 / 解释 / 修复 / 纯聊天。
+pub(all) enum ComposerMode {
+  ComposeEdit
+  ComposeGenerate
+  ComposeExplain
+  ComposeRepair
+  /// 纯聊天（G1）：不走提案校验链，回复为普通 markdown 消息
+  ComposeChat
+} derive(Eq)
+
+///|
+pub extend ComposerMode with Eq::{not_equal, equal}
+
+///|
+/// 待采纳提案：diff 预览 + 校验结果（valid=false 时展示全部原因）。
+pub(all) struct PendingProposal {
+  proposal : @proposals.ProposalV1
+  diff : Array[@proposals.DiffEntry]
+  /// 代码真源文本 diff（M6②）：handlers.mbt/form.mbt 前后逐行 ±，
+  /// 显示层展示的是代码 diff 而非结构化条目。
+  code_diff : Array[(String, String)]
+  summary : String
+  errors : Array[String]
+  valid : Bool
+}

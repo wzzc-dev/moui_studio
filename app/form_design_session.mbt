@@ -160,3 +160,48 @@ pub fn form_design_write_effect(
     }),
   )
 }
+
+///|
+/// 布局设计器画布壳包装：从会话取 FormModel，把手势回调上交 FormDesign*
+/// Msg；几何命中 / 手柄 / 自绘视图已出壳 plugins/design。
+pub fn form_design_canvas(
+  session : FormDesignerSession,
+  selected : Int?,
+  width : Double,
+  height : Double,
+) -> @moui.View[Msg] {
+  @design.form_design_canvas(
+    session.parsed.model,
+    selected,
+    width,
+    height,
+    noop=Noop,
+    on_select=fn(index) { SelectFormControl(index) },
+    on_drag=fn(index, dx, dy) { FormDesignDragEnd(index, dx, dy) },
+    on_resize=fn(index, dx, dy) { FormDesignResizeEnd(index, dx, dy) },
+  )
+}
+
+///|
+/// 布局设计器拖拽提交壳包装（起手点 + 总位移 → FormDesign* Msg），
+/// 供 wbtest 与壳组装复用；纯判定在 plugins/design。
+pub fn form_design_drag_commit(
+  rects : Array[@geometry.Rect],
+  selected : Int?,
+  start_x : Double,
+  start_y : Double,
+  tx : Double,
+  ty : Double,
+) -> Msg {
+  @design.form_design_drag_commit(
+    rects,
+    selected,
+    start_x,
+    start_y,
+    tx,
+    ty,
+    noop=Noop,
+    on_resize=fn(index, dx, dy) { FormDesignResizeEnd(index, dx, dy) },
+    on_drag=fn(index, dx, dy) { FormDesignDragEnd(index, dx, dy) },
+  )
+}

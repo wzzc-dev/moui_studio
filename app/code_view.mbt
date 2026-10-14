@@ -17,7 +17,7 @@
 
 ///|
 /// 代码工作区：行号槽 + 受控编辑面 + IR 行尺 + 脚注。
-/// 三列共用一份滚动状态（`model.code_scroll`）：编辑面是滚动的事实来源，
+/// 三列共用一份滚动状态（`model.code_ui.scroll`）：编辑面是滚动的事实来源，
 /// 行号槽与竖尺是跟随者，行号 ↔ 色块的对应才不会错位。
 pub fn code_workspace(
   model : Model,
@@ -89,7 +89,11 @@ pub fn code_workspace(
                 height=16.0,
               )
               .foreground(@chrome.ide_accent())
-              .on_tap(CloseFileTab(model.project_state.open_file_index)),
+              .on_tap(
+                ProjectOp(
+                  @proj.CloseFileTab(model.project_state.open_file_index),
+                ),
+              ),
             ],
             spacing=6.0,
             align=Center,
@@ -201,7 +205,7 @@ fn code_gutter(
 ) -> @moui.View[Msg] {
   let active_line = @code_editor.code_editor_caret_position(
       model.code_draft,
-      model.code_caret,
+      model.code_ui.caret,
     ).line
   let diagnostic_lines = @code_editor.code_editor_diagnostic_lines(
     model.code_draft,
@@ -285,10 +289,10 @@ fn code_gutter(
   }
   @views.scroll_view(
     @views.column(rows, spacing=0.0),
-    offset=model.code_scroll,
+    offset=model.code_ui.scroll,
     width~,
     height~,
-    on_scroll=Some(offset => EditorScrolled(offset.y)),
+    on_scroll=Some(offset => CodeUiOp(@code.Scrolled(offset.y))),
     shows_indicator=false,
   )
 }
@@ -324,7 +328,7 @@ fn code_editor_surface(
     cursor_color=@chrome.ide_accent(),
     corner_radius=0.0,
     on_selection_change=Some((caret, selection) => {
-      EditorCaretMoved(caret, selection)
+      CodeUiOp(@code.CaretMoved(caret, selection))
     }),
     input_transform=Some((source, caret, _selection, inserted) => {
       if inserted == "\n" {
@@ -334,12 +338,12 @@ fn code_editor_surface(
       }
     }),
     accepts_tab_input=false,
-    visible_scroll_y=model.code_scroll.y,
-    on_scroll=Some(y => EditorScrolled(y)),
+    visible_scroll_y=model.code_ui.scroll.y,
+    on_scroll=Some(y => CodeUiOp(@code.Scrolled(y))),
     visible_viewport_height=height,
     visible_overscan=160.0,
-    selection_caret=model.code_caret,
-    selection_range=model.code_selection,
+    selection_caret=model.code_ui.caret,
+    selection_range=model.code_ui.selection,
     kind="StudioCodeEditor",
     key=Some("studio-code-editor"),
   )
@@ -464,7 +468,11 @@ fn code_newline_transform(
   source : String,
   caret : Int,
 ) -> @moui_richtext.RichTextInputTransform? {
-  let indent = dsl_indent_for_newline(model, source, caret)
+  let indent = @code.dsl_indent_for_newline(
+    model.language.dsl_language(),
+    source,
+    caret,
+  )
   let (text, cursors) = @code_editor.code_insert_text(
     source,
     [@code_editor.CodeCursor::new(position=caret)],
@@ -481,62 +489,6 @@ fn code_newline_transform(
       selection=None,
     ),
   )
-}
-
-///|
-/// DSL 换行缩进：当前行前导空白为基，块首关键字 +2，块尾关键字 -2。
-fn dsl_indent_for_newline(
-  model : Model,
-  source : String,
-  caret : Int,
-) -> String {
-  let chars = source.to_array()
-  let pos = caret.clamp(min=0, max=chars.length())
-  let mut line_start = pos
-  while line_start > 0 && chars[line_start - 1] != '\n' {
-    line_start = line_start - 1
-  }
-  let indent : Array[Char] = []
-  let mut index = line_start
-  while index < pos && (chars[index] == ' ' || chars[index] == '\t') {
-    indent.push(chars[index])
-    index = index + 1
-  }
-  // 行内容（去前导空白后）的第一个词
-  let mut end = pos
-  while end < chars.length() && chars[end] != '\n' {
-    end = end + 1
-  }
-  let trimmed = String::from_array(chars[index:end])
-  let word = StringBuilder()
-  for c in trimmed {
-    if ({
-        let code = c.to_int()
-        code >= 0x80 ||
-        (code >= 0x30 && code <= 0x39) ||
-        (code >= 0x41 && code <= 0x5A) ||
-        (code >= 0x61 && code <= 0x7A) ||
-        code == 0x5F
-      }) {
-      word.write_char(c)
-    } else {
-      break
-    }
-  }
-  let keywords = @studio_lang.keywords_for(model.language.dsl_language())
-  let deeper = match
-    @studio_lang.classify_stmt_keyword(word.to_string(), keywords) {
-    KwIf | KwCountLoop | KwWhile => 2
-    _ => 0
-  }
-  // 块尾关键字回退：结束/跳出循环（双语）
-  let closes = trimmed == keywords.end_kw || trimmed == keywords.break_kw
-  let width = indent.length() + deeper * 2 - (if closes { 2 } else { 0 })
-  let spaces = StringBuilder()
-  for _ in 0..<width.max(0) {
-    spaces.write_char(' ')
-  }
-  spaces.to_string()
 }
 
 ///|
@@ -574,7 +526,7 @@ pub fn ir_ruler(
   height : Double,
 ) -> @moui.View[Msg] {
   // 全部行都画（编辑面是滚动事实来源，竖尺作为跟随者滚动同步）。
-  let line_count = split_line_texts(model.code_draft).length().max(1)
+  let line_count = @code.split_line_texts(model.code_draft).length().max(1)
   let highlight = model.ir_highlight
   let cells : Array[@moui.View[Msg]] = []
   for line in 1..<=line_count {
@@ -591,13 +543,13 @@ pub fn ir_ruler(
         )
       Some(span) => {
         let hovered_bar = match model.hover_path {
-          Some(hover) => same_path(span.path, hover)
+          Some(hover) => @blk.blocks_same_path(span.path, hover)
           None => false
         }
         // 驻留高亮（点击）与悬停（瞬态预览）是**不同**的视觉：
         // 驻留全亮暖黄，悬停半透明——竖尺是映射交互的唯一载体，
         // 两者同色就分不清「我看的是它」和「我选了它」。
-        let pinned = same_path(span.path, highlight)
+        let pinned = @blk.blocks_same_path(span.path, highlight)
         let is_first = line == span.first_line
         let is_last = line == span.last_line
         // 首/末行圆角，中间行方角 —— 相邻贴合成一根长条
@@ -659,10 +611,10 @@ pub fn ir_ruler(
   // `EditorScrolled` 汇入 model，再回填到这里。
   @views.scroll_view(
     @views.column(cells, spacing=0.0),
-    offset=model.code_scroll,
+    offset=model.code_ui.scroll,
     width=IR_RAIL_WIDTH,
     height~,
-    on_scroll=Some(offset => EditorScrolled(offset.y)),
+    on_scroll=Some(offset => CodeUiOp(@code.Scrolled(offset.y))),
     shows_indicator=false,
   )
 }
@@ -749,7 +701,7 @@ fn code_foot_row(
   let gap = 6.0
   let caret = @code_editor.code_editor_caret_position(
     model.code_draft,
-    model.code_caret,
+    model.code_ui.caret,
   )
   let caret_label = text_with(t, "app.code.caret", [
     ("line", "\{caret.line}"),
@@ -991,43 +943,19 @@ pub fn empty_stage(
 // 小工具
 // ============================================================================
 
-///|
-/// 路径同一性：Array[Int] 没有结构相等（MoonBit 数组按引用比较），
-/// 逐元素比对。
-pub fn same_path(a : Array[Int], b : Array[Int]) -> Bool {
-  if a.length() != b.length() {
-    return false
-  }
-  let mut index = 0
-  while index < a.length() {
-    if a[index] != b[index] {
-      return false
-    }
-    index = index + 1
-  }
-  true
-}
-
-///|
-/// 路径副本：路径要进模型（消息载荷），必须拷贝——避免与
-/// blocks 内部的临时数组共享可变引用。
-pub fn clone_path(path : Array[Int]) -> Array[Int] {
-  let copy : Array[Int] = []
-  for value in path {
-    copy.push(value)
-  }
-  copy
-}
+// 路径同一性/副本（S5i 去重）：same_path 与 plugins/blocks 的
+// blocks_same_path 同构，壳统一改调 @blk.blocks_same_path；clone_path 无调用
+// 点（死代码）已删除。
 
 ///|
 /// 补全弹层（切片 H）：候选词胶囊行——点击插入并关闭。
 /// 放在编辑面与说明条之间（不遮正文，不用弹层）。
 fn completion_popup(model : Model, width : Double) -> @moui.View[Msg] {
-  if !model.completion_open {
+  if !model.code_ui.completion_open {
     return @views.text("", width=1.0, height=1.0)
   }
   let chips : Array[@moui.View[Msg]] = []
-  for word in model.completions {
+  for word in model.code_ui.completions {
     let chip_width = (@chrome.text_estimate_width(word) + 12.0).max(28.0)
     chips.push(
       @views.container(
@@ -1070,29 +998,13 @@ fn completion_popup(model : Model, width : Double) -> @moui.View[Msg] {
 }
 
 ///|
-/// 工程文件编辑器的 mono 字体(与 IR 编辑面同一套)。
-fn mono_code_font() -> @text.FontSpec {
-  @text.FontSpec::new(families=@text.FontFamilyStack::monospace(), size=13.0)
-}
-
-///|
-/// tab 标签:rel 末段 + 脏点。
-fn file_tab_label(rel : String) -> String {
-  let mut label = rel
-  for part in rel.split("/") {
-    label = part.to_owned()
-  }
-  label
-}
-
-///|
 /// tab strip（G4 多标签）:一排 tab,active 高亮,× 关闭(脏经确认流)。
 /// 行宽不足时裁切——v1 不做横向滚动,tab 数量由用户控制。
 fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
   let cells : Array[@moui.View[Msg]] = []
   for i, file in model.project_state.open_project_files {
     let active = i == model.project_state.open_file_index
-    let label = file_tab_label(file.rel) +
+    let label = @code.file_tab_label(file.rel) +
       (if file_is_dirty(file) { " ●" } else { "" })
     let cell_width = (@chrome.text_estimate_width(label) + 40.0)
       .min(150.0)
@@ -1123,7 +1035,7 @@ fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
               align=TextCenter,
             )
             .foreground(@chrome.ide_text_faint())
-            .on_tap(CloseFileTab(i)),
+            .on_tap(ProjectOp(@proj.CloseFileTab(i))),
           ],
           spacing=2.0,
           align=Center,
@@ -1136,7 +1048,7 @@ fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
         width=cell_width,
         height=22.0,
         padding=0.0,
-      ).on_tap(SelectFileTab(i)),
+      ).on_tap(ProjectOp(@proj.SelectFileTab(i))),
     )
   }
   @views.row(cells, spacing=2.0, align=Start).frame(
@@ -1207,9 +1119,9 @@ fn project_file_body(
           // M6①：工程文件是用户手改的 MoonBit 源码——着色升级为
           // 内核 MoonBit 词法器（此前 plain：永不匹配的空关键字表）
           format=source => {
-            plain_code_document(source, mono_code_font(), moonbit=true)
+            plain_code_document(source, @code.mono_code_font(), moonbit=true)
           },
-          font=mono_code_font(),
+          font=@code.mono_code_font(),
           foreground=@chrome.ide_text(),
           placeholder_color=@chrome.ide_text_faint(),
           background=@graphics.Brush::solid(@chrome.ide_editor_background()),
@@ -1275,7 +1187,7 @@ fn plain_code_document(
   // 复用 code_line_block（分词/空行/区间约定完全一致）。默认关键字表与
   // 内建表给「永不匹配」的空值；moonbit=true 时改用内核 MoonBit 词法
   // 器（M6①：工程文件是用户手改的 MoonBit 源码）。
-  let no_keywords = empty_keywords()
+  let no_keywords = @studio_lang.Keywords::empty()
   let blocks : Array[@moui_richtext.RichTextBlock] = []
   let chars = source.to_array()
   let mut line_start = 0
@@ -1313,39 +1225,6 @@ fn plain_code_document(
     ),
   )
   @moui_richtext.RichTextDocument::new(blocks~)
-}
-
-///|
-/// 永不匹配的关键字表：所有字段置 \u{0}（NUL 不会出现在源码里）。
-/// 工程文件不做 DSL 着色,但块结构必须与已验证的 IR 编辑器一致。
-fn empty_keywords() -> @studio_lang.Keywords {
-  let nul = "\u{0}"
-  @studio_lang.Keywords::{
-    declare_kw: nul,
-    if_kw: nul,
-    then_kw: nul,
-    else_if_kw: nul,
-    else_kw: nul,
-    end_kw: nul,
-    count_kw: nul,
-    times_kw: nul,
-    foreach_kw: nul,
-    each_in_kw: nul,
-    as_kw: nul,
-    while_kw: nul,
-    do_kw: nul,
-    break_kw: nul,
-    true_kw: nul,
-    false_kw: nul,
-    and_kw: nul,
-    or_kw: nul,
-    not_kw: nul,
-    return_kw: nul,
-    struct_kw: nul,
-    match_kw: nul,
-    case_kw: nul,
-    enum_kw: nul,
-  }
 }
 
 ///|

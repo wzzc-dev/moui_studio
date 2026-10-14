@@ -52,7 +52,7 @@ pub fn emit_code_project_write(model : Model) -> Model {
     None =>
       match active_project_of(model) {
         Some(project) =>
-          match code_project_target(project) {
+          match @proj.code_project_target(project) {
             Some(pkg) =>
               emit_code_project_write_to(model, "\{project.root}/\{pkg}")
             None => model
@@ -64,7 +64,7 @@ pub fn emit_code_project_write(model : Model) -> Model {
 
 ///|
 fn emit_code_project_write_to(model : Model, dir : String) -> Model {
-  let files = code_project_files(model.program)
+  let files = @proj.code_project_files(model.program)
   // Studio 应用骨架布局（首程序包带 runner.mbt）：编译面里的内嵌 IR
   // 必须跟随提案刷新，而 form.mbt 不参与该布局（见 new_project.mbt）——
   // form 载荷置空 = 组合根跳过；普通导入工程相反：写 form/handlers，

@@ -29,6 +29,18 @@ pub(all) enum ProjectMsg {
   EditProjectFile(String) // active tab 草稿编辑
   ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
   // .md tab 的 MoMark 编辑事务
+  // --- S5f 从壳并入的纯 UI 臂（文件 tab/CRUD 输入态 + 结构树 + 搜索草稿） ---
+  SelectFileTab(Int) // 选中已打开的 tab（只切 active，不装载）
+  CloseFileTab(Int) // 关闭 tab 并把 active 收敛到合法范围
+  FileCreateDraft(String) // 新建文件名草稿（仅在新建输入打开时接受）
+  FileCreateDismiss // 关闭新建输入行
+  FileRenameStart(String) // 打开改名输入（带 rel，草稿只填文件名）
+  FileRenameDraft(String) // 改名草稿（仅在改名输入打开时接受）
+  FileRenameDismiss // 关闭改名输入行
+  SetSearchQuery(String) // 全文搜索查询草稿（运行/回执在服务层）
+  ToggleTreeCreate(String) // 结构树「新建」分组菜单开合（同组再点收起）
+  SetTreeQuery(String) // 结构树搜索查询
+  ToggleTreeGroup(String) // 结构树分组折叠翻转
 }
 
 ///|
@@ -52,6 +64,10 @@ pub fn ProjectState::new() -> ProjectState {
     file_rename_open: None,
     folder_create_open: false,
     file_name_draft: "",
+    tree_query: "",
+    tree_collapsed: [],
+    tree_create_group: "",
+    search_query: "",
   }
 }
 
@@ -217,6 +233,78 @@ pub fn update_project(
           )
         }
       }
+    SelectFileTab(index) =>
+      if index >= 0 && index < state.open_project_files.length() {
+        ({ ..state, open_file_index: index, }, none)
+      } else {
+        (state, none)
+      }
+    CloseFileTab(index) => (close_open_file(state, index), none)
+    FileCreateDraft(value) =>
+      if state.file_create_open {
+        ({ ..state, file_name_draft: value, }, none)
+      } else {
+        (state, none)
+      }
+    FileCreateDismiss =>
+      (
+        {
+          ..state,
+          file_create_open: false,
+          file_name_draft: "",
+          file_create_dir: "",
+        },
+        none,
+      )
+    FileRenameStart(rel) =>
+      // 草稿只填文件名：提交时按 file_create_dir 拼回目录（与新建同口径）。
+      (
+        {
+          ..state,
+          file_rename_open: Some(rel),
+          file_create_open: false,
+          folder_create_open: false,
+          file_name_draft: rel_path_last_segment(rel),
+        },
+        none,
+      )
+    FileRenameDraft(value) =>
+      if state.file_rename_open is Some(_) {
+        ({ ..state, file_name_draft: value, }, none)
+      } else {
+        (state, none)
+      }
+    FileRenameDismiss =>
+      ({ ..state, file_rename_open: None, file_name_draft: "", }, none)
+    SetSearchQuery(value) => ({ ..state, search_query: value, }, none)
+    ToggleTreeCreate(group) =>
+      (
+        {
+          ..state,
+          tree_create_group: if state.tree_create_group == group {
+            ""
+          } else {
+            group
+          },
+        },
+        none,
+      )
+    SetTreeQuery(query) => ({ ..state, tree_query: query, }, none)
+    ToggleTreeGroup(group) => {
+      let collapsed : Array[String] = []
+      let mut removed = false
+      for item in state.tree_collapsed {
+        if item == group {
+          removed = true
+        } else {
+          collapsed.push(item)
+        }
+      }
+      if !removed {
+        collapsed.push(group)
+      }
+      ({ ..state, tree_collapsed: collapsed, }, none)
+    }
   }
 }
 
@@ -362,6 +450,29 @@ pub fn tree_rel_under_workspace(
   } else {
     ""
   }
+}
+
+///|
+/// 关闭下标处的 tab 并把 active 收敛到合法范围（S5f 自壳迁入）。
+/// 删的是 active 时停在同位置的下一个 tab，尾部则回退一格。
+pub fn close_open_file(state : ProjectState, index : Int) -> ProjectState {
+  if index < 0 || index >= state.open_project_files.length() {
+    return state
+  }
+  let files : Array[OpenProjectFile] = []
+  for i, file in state.open_project_files {
+    if i != index {
+      files.push(file)
+    }
+  }
+  let next_index = if files.is_empty() {
+    -1
+  } else if index < files.length() {
+    index
+  } else {
+    files.length() - 1
+  }
+  { ..state, open_project_files: files, open_file_index: next_index, }
 }
 
 ///|

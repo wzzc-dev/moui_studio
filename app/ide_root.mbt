@@ -557,9 +557,9 @@ fn studio_overlay_host(
       modality=@views.PresentationModality::Modal,
       dismiss=@views.PresentationDismissPolicy::new(
         outside_tap=true,
-        message=Some(ToggleSettings),
+        message=Some(AiUiOp(@ai.ToggleSettings)),
       ),
-      presented=model.settings_open,
+      presented=model.ai_ui.settings_open,
     ),
     @views.PresentationSpec::new(
       id="studio-ai-history",
@@ -568,9 +568,9 @@ fn studio_overlay_host(
       modality=@views.PresentationModality::Modal,
       dismiss=@views.PresentationDismissPolicy::new(
         outside_tap=true,
-        message=Some(ToggleAiHistory),
+        message=Some(AiUiOp(@ai.ToggleAiHistory)),
       ),
-      presented=model.ai_history_open,
+      presented=model.ai_ui.ai_history_open,
     ),
     // **积木右键菜单**：挂在**顶层**宿主上（viewport 大小），而不是画布
     // 窗格里。
@@ -585,7 +585,7 @@ fn studio_overlay_host(
       id="studio-block-menu",
       kind=@views.PresentationKind::ContextMenu,
       content=block_context_menu(model, t),
-      anchor=match model.block_menu {
+      anchor=match model.blocks_ui.block_menu {
         Some((_, x, y)) =>
           @views.PresentationAnchor::Viewport(@core.Point::new(x~, y~))
         None => @views.PresentationAnchor::HostBase
@@ -610,9 +610,9 @@ fn studio_overlay_host(
       dismiss=@views.PresentationDismissPolicy::new(
         outside_tap=true,
         escape=true,
-        message=Some(BlocksContextMenuClose),
+        message=Some(BlocksUiOp(@blk.BlocksContextMenuClose)),
       ),
-      presented=model.block_menu is Some(_),
+      presented=model.blocks_ui.block_menu is Some(_),
     ),
     // 破坏性操作确认卡：Escape / 点外部 = 取消（confirm.mbt 纪律）。
     @views.PresentationSpec::new(
@@ -630,4 +630,41 @@ fn studio_overlay_host(
   // toast 单独一层（非模态，最上层）：它不该拦输入，也不参与 Escape 顺序
   let with_modals = @views.overlay_host(base, specs)
   toast_host(with_modals, model)
+}
+
+///|
+/// AI 工作区面板壳薄包装（S4c 出壳）：纯视图在 @ai 插件，这里把右栏状态
+/// 投影成参数，把工程树视图作为「文件」页签插槽注入。
+fn ai_workspace_panel(
+  model : Model,
+  t : @i18n.Translator,
+  width : Double,
+  height : Double,
+) -> @moui.View[Msg] {
+  let inner = (width - 8.0).max(80.0)
+  let tab_h = (height - @ai.AI_WS_HEAD_HEIGHT).max(80.0)
+  let files_view = @views.container(
+    project_explorer(model, t, inner, tab_h),
+    width=inner,
+    padding=0.0,
+  )
+  let pending = match model.pending {
+    Some(prop) => Some((prop.summary, prop.diff))
+    None => None
+  }
+  @ai.ai_workspace_panel(
+    {
+      show_changes: model.ai_ui.right_panel_tab is RpChanges,
+      history: model.ai_sessions.current().proposal_history,
+      pending,
+      files_view,
+      on_select_changes: AiUiOp(@ai.SetRightPanelTab(RpChanges)),
+      on_select_files: AiUiOp(@ai.SetRightPanelTab(RpFiles)),
+      on_accept: AcceptProposal,
+      on_reject: RejectProposal,
+    },
+    t,
+    width,
+    height,
+  )
 }

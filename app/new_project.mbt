@@ -460,3 +460,42 @@ fn project_program_loaded(
     Failure(_) | Cancelled => (model, @moui.Effect::none())
   }
 }
+
+///|
+/// 代码工程写盘效果组装：handlers.mbt 恒写；form.mbt / project_data.mbt
+/// 按布局给载荷（空串 = 该布局不含——应用骨架无布局真源、普通导入工程
+/// 无内嵌 IR，见 new_project.mbt 与 events.mbt 的发出点）。
+/// 纯生成逻辑（双腿文本/落点）已在 @proj 插件，本函数只做壳侧写盘编排。
+pub fn code_project_write_effect(
+  files : @services.FileServices,
+  dir~ : String,
+  form_mbt~ : String,
+  handlers_mbt~ : String,
+  project_data~ : String,
+) -> @moui.Effect[Msg] {
+  let form_write = if form_mbt != "" {
+    [
+      files
+      .write_text("\{dir}/form.mbt", form_mbt)
+      .effect(map=r => CodeProjectSaved(r)),
+    ]
+  } else {
+    []
+  }
+  let data_write = if project_data != "" {
+    [
+      files
+      .write_text("\{dir}/project_data.mbt", project_data)
+      .effect(map=r => CodeProjectSaved(r)),
+    ]
+  } else {
+    []
+  }
+  @moui.Effect::batch([
+    @moui.Effect::batch(form_write),
+    files
+    .write_text("\{dir}/handlers.mbt", handlers_mbt)
+    .effect(map=r => CodeProjectSaved(r)),
+    @moui.Effect::batch(data_write),
+  ])
+}

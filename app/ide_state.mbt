@@ -94,7 +94,7 @@ pub fn control_kind_key(kind : @ir.ControlKind) -> String {
 /// 命中的节点所在分组强制展开（collapsed 只作用于空查询态）。
 pub fn program_tree(model : Model) -> Array[TreeNode] {
   let nodes : Array[TreeNode] = []
-  let query = model.tree_query.trim().to_owned()
+  let query = model.project_state.tree_query.trim().to_owned()
   fn matches(query : String, label : String, meta : String) -> Bool {
     if query == "" {
       true
@@ -293,10 +293,10 @@ pub fn tree_group_has_children(nodes : Array[TreeNode], group : String) -> Bool 
 ///|
 /// 分组展开态：搜索非空时全部展开（否则命中结果被折叠藏起来）。
 pub fn tree_group_expanded(model : Model, group : String) -> Bool {
-  if model.tree_query.trim().to_owned() != "" {
+  if model.project_state.tree_query.trim().to_owned() != "" {
     true
   } else {
-    !model.tree_collapsed.contains(group)
+    !model.project_state.tree_collapsed.contains(group)
   }
 }
 
@@ -392,7 +392,7 @@ pub fn code_lines(model : Model) -> Array[CodeLine] {
   let moonbit = model.code_appearance is AppMoonBit
   let keywords = @studio_lang.keywords_for(model.language.dsl_language())
   let builtins = builtin_words(model.language.dsl_language())
-  let texts = split_line_texts(model.code_draft)
+  let texts = @code.split_line_texts(model.code_draft)
   let mut number = 1
   for text in texts {
     let tokens : Array[CodeToken] = if moonbit {
@@ -470,28 +470,6 @@ pub fn builtin_words(language : @studio_lang.Language) -> Array[String] {
     )
   }
   words
-}
-
-///|
-/// 按换行切分（保留空行——行号必须与真实行一一对应，
-/// 否则 IR 行映射与光标位置会错位）。
-pub fn split_line_texts(source : String) -> Array[String] {
-  let lines : Array[String] = []
-  let buf = StringBuilder()
-  for c in source {
-    if c == '\n' {
-      lines.push(buf.to_string())
-      buf.reset()
-    } else if c != '\r' {
-      buf.write_char(c)
-    }
-  }
-  lines.push(buf.to_string())
-  if lines.length() == 1 && lines[0] == "" {
-    []
-  } else {
-    lines
-  }
 }
 
 ///|
@@ -681,8 +659,8 @@ pub fn ir_line_spans(model : Model) -> Array[IrLineSpan] {
       // 「逐条渲染」的差值定位每条语句的起点。
       let mut cursor = 1
       let rendered_all = @studio_lang.render_handler(handler, language)
-      let total_lines = split_line_texts(rendered_all).length()
-      let body_lines = split_line_texts(
+      let total_lines = @code.split_line_texts(rendered_all).length()
+      let body_lines = @code.split_line_texts(
         @studio_lang.render_stmts(handler.body, language),
       ).length()
       // 语句体之前的头部行数（note 注释 + 子程序头）
@@ -690,7 +668,7 @@ pub fn ir_line_spans(model : Model) -> Array[IrLineSpan] {
       let mut index = 0
       for stmt in handler.body {
         let one = @studio_lang.render_stmts([stmt], language)
-        let lines = split_line_texts(one).length()
+        let lines = @code.split_line_texts(one).length()
         let first = cursor
         let last = if lines > 0 { cursor + lines - 1 } else { cursor }
         spans.push(IrLineSpan::{

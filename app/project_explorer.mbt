@@ -604,7 +604,11 @@ fn explorer_input_row(
     explorer_input_action("✓", @chrome.ide_accent(), FileCreateCommit)
   }
   let dismiss_view = if renaming {
-    explorer_input_action("×", @chrome.ide_text_faint(), FileRenameDismiss)
+    explorer_input_action(
+      "×",
+      @chrome.ide_text_faint(),
+      ProjectOp(@proj.FileRenameDismiss),
+    )
   } else if creating_folder {
     explorer_input_action(
       "×",
@@ -612,15 +616,19 @@ fn explorer_input_row(
       ProjectOp(FolderCreateDismiss),
     )
   } else {
-    explorer_input_action("×", @chrome.ide_text_faint(), FileCreateDismiss)
+    explorer_input_action(
+      "×",
+      @chrome.ide_text_faint(),
+      ProjectOp(@proj.FileCreateDismiss),
+    )
   }
   let on_input = value => {
     if renaming {
-      FileRenameDraft(value)
+      ProjectOp(@proj.FileRenameDraft(value))
     } else if creating_folder {
       ProjectOp(FolderCreateDraft(value))
     } else {
-      FileCreateDraft(value)
+      ProjectOp(@proj.FileCreateDraft(value))
     }
   }
   @views.container(
@@ -819,7 +827,7 @@ fn explorer_file_row(
           explorer_row_action(
             FileNew,
             text(t, "app.explorer.rename"),
-            FileRenameStart(rel),
+            ProjectOp(@proj.FileRenameStart(rel)),
           ),
           explorer_row_action(
             Trash,
@@ -862,7 +870,7 @@ fn explorer_editor_row(
     meta=if dirty { "●" } else { "" },
     selected=active,
     width~,
-    on_click=Some(SelectFileTab(index)),
+    on_click=Some(ProjectOp(@proj.SelectFileTab(index))),
     trailing=Some(
       @views.text(
         "×",
@@ -872,7 +880,7 @@ fn explorer_editor_row(
         align=TextCenter,
       )
       .foreground(@chrome.ide_text_faint())
-      .on_tap(CloseFileTab(index)),
+      .on_tap(ProjectOp(@proj.CloseFileTab(index))),
     ),
     trailing_width=18.0,
   )

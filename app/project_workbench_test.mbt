@@ -404,7 +404,10 @@ test "explorer 改名:草稿只填文件名,提交回原目录" {
       ProjectScanCompleted(Success(Ok(Single(counter_source())))),
       services,
     ).0
-  let started = @app.update_pure(imported, FileRenameStart("app/app.mbt")).0
+  let started = @app.update_pure(
+      imported,
+      ProjectOp(@proj.FileRenameStart("app/app.mbt")),
+    ).0
   assert_eq(started.project_state.file_rename_open, Some("app/app.mbt"))
   assert_eq(
     started.project_state.file_name_draft,
@@ -416,7 +419,10 @@ test "explorer 改名:草稿只填文件名,提交回原目录" {
     "app/app.mbt",
   )
   // 根目录下的文件改名:父目录为空,rel 就是文件名本身
-  let root_file = @app.update_pure(imported, FileRenameStart("moon.mod")).0
+  let root_file = @app.update_pure(
+      imported,
+      ProjectOp(@proj.FileRenameStart("moon.mod")),
+    ).0
   assert_eq(root_file.project_state.file_name_draft, "moon.mod")
   assert_eq(@app.parent_of("moon.mod"), "")
 }
@@ -1132,7 +1138,11 @@ test "多标签:并行打开 + 切换 + 脏关闭确认" {
   assert_eq(loaded_b.project_state.open_project_files.length(), 2)
   assert_eq(loaded_b.project_state.open_file_index, 1)
   // 切回 a:active tab 正确,光标随 tab(初始 0)
-  let switched = @app.update_with_services(loaded_b, SelectFileTab(0), services).0
+  let switched = @app.update_with_services(
+      loaded_b,
+      ProjectOp(@proj.SelectFileTab(0)),
+      services,
+    ).0
   match @app.active_project_file(switched) {
     Some(open) => {
       assert_eq(open.rel, "a.md")
@@ -1146,7 +1156,11 @@ test "多标签:并行打开 + 切换 + 脏关闭确认" {
       ProjectOp(EditProjectFile("# A2")),
       services,
     ).0
-  let guarded = @app.update_with_services(edited, CloseFileTab(0), services).0
+  let guarded = @app.update_with_services(
+      edited,
+      ProjectOp(@proj.CloseFileTab(0)),
+      services,
+    ).0
   assert_true(
     guarded.pending_confirm is Some(CkCloseFileTab(0)),
     msg="脏 tab 关闭应进确认",
@@ -1344,11 +1358,9 @@ test "全文搜索:命中落集,点击跳转" {
       ProjectScanCompleted(Success(Ok(Single(counter_source())))),
       services,
     ).0
-  let queried = @app.update_with_services(
-      { ..imported, bottom_tab: BtSearch, search_query: "program", },
-      SearchRun,
-      services,
-    ).0
+  let query_model = { ..imported, bottom_tab: BtSearch, }
+  query_model.project_state.search_query = "program"
+  let queried = @app.update_with_services(query_model, SearchRun, services).0
   assert_true(queried.search_busy)
   let hits : Array[@app.SearchHit] = [
     @app.SearchHit::{

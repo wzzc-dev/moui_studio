@@ -165,7 +165,10 @@ test "the variable palette offers an inline create-variable entry" {
   }
   assert_true(var_index >= 0)
   // 切到变量分类：面板里出现「新建变量」
-  let on_var = apply_shell(model, ToggleStatementPalette(var_index))
+  let on_var = apply_shell(
+    model,
+    BlocksUiOp(@blk.ToggleStatementPalette(var_index)),
+  )
   let var_cmds = shell_draw(on_var, 1280.0, 800.0)
   assert_true(shell_has_text(var_cmds, "新建变量"))
   // 切到流程分类：入口不出现
@@ -181,7 +184,10 @@ test "the variable palette offers an inline create-variable entry" {
     k = k + 1
   }
   assert_true(flow_index >= 0)
-  let on_flow = apply_shell(on_var, ToggleStatementPalette(flow_index))
+  let on_flow = apply_shell(
+    on_var,
+    BlocksUiOp(@blk.ToggleStatementPalette(flow_index)),
+  )
   assert_false(
     shell_has_text(shell_draw(on_flow, 1280.0, 800.0), "新建变量"),
   )
@@ -204,7 +210,7 @@ test "the blocks context menu actually renders its items" {
   assert_false(shell_has_text(closed, "删除语句"))
   // 打开态：两项都在（且绘制指令确实变多——popup 是一层新内容）
   let opened = apply_shell(model, BlocksContextMenu(0, 20.0, 20.0))
-  assert_true(opened.block_menu is Some(_))
+  assert_true(opened.blocks_ui.block_menu is Some(_))
   let drawn = shell_draw(opened, 1280.0, 800.0)
   assert_true(shell_has_text(drawn, "删除语句"))
   assert_true(shell_has_text(drawn, "复制语句"))
@@ -601,7 +607,9 @@ test "the context menu opens at the pointer, not at the host corner" {
   let click_x = 400.0
   let click_y = 300.0
   let opened = apply_shell(model, BlocksContextMenu(0, click_x, click_y))
-  guard opened.block_menu is Some((_, sx, sy)) else { abort("test faild") }
+  guard opened.blocks_ui.block_menu is Some((_, sx, sy)) else {
+    abort("test faild")
+  }
   // 坐标被原样记住（视口坐标，不是画布局部坐标）
   assert_eq(sx, click_x)
   assert_eq(sy, click_y)
@@ -656,13 +664,13 @@ test "the context menu opens at the pointer, not at the host corner" {
 /// 分不清菜单是否关闭——实测就是这么误判过一次（关闭其实成功了，用例仍
 /// 报失败）。
 ///
-/// 走**真实运行时**（不是直接派发 `BlocksContextMenuClose`）：直接发关闭
+/// 走**真实运行时**（不是直接派发 `BlocksUiOp(@blk.BlocksContextMenuClose)`）：直接发关闭
 /// 消息只能证明那个 handler 对，证明不了「点空白处会发出它」——而缺的
 /// 恰恰是后者。
 test "the context menu closes when clicking outside it" {
   let model = load_template_program(initial_model(), 2)
   let opened = apply_shell(model, BlocksContextMenu(0, 400.0, 300.0))
-  assert_true(opened.block_menu is Some(_))
+  assert_true(opened.blocks_ui.block_menu is Some(_))
 
   // 记录 update 收到的消息，并观察模型状态
   let states : Array[Bool] = []
@@ -670,7 +678,7 @@ test "the context menu closes when clicking outside it" {
     init=() => (opened, @moui.Effect::none()),
     update=(current, msg) => {
       let (next, effect) = update_pure(current, msg)
-      states.push(next.block_menu is Some(_))
+      states.push(next.blocks_ui.block_menu is Some(_))
       (next, effect)
     },
     view=(current, env) => view_with_viewport(current, env.viewport_size()),
@@ -713,7 +721,7 @@ test "clicking a menu item runs its action instead of being swallowed" {
   // 直接走「菜单动作」路径（菜单项自身的 on_tap 会先关菜单再发动作）
   let acted = apply_shell(opened, BlocksMenuAction(RunSingleBlock))
   // 菜单关了
-  assert_true(acted.block_menu is None)
+  assert_true(acted.blocks_ui.block_menu is None)
   // 动作真的发生了：单块运行会进入运行态
   assert_true(acted.mode is ModeRun || acted.run is Some(_))
 }

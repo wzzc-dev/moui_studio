@@ -161,6 +161,42 @@ pub fn live_stage_box(width : Double, height : Double) -> (Double, Double) {
 }
 
 ///|
+/// 设计舞台壳包装：解析窗体底色（prop_color），把设计坐标手势转成 app 的
+/// Canvas* Msg；纯几何 / 绘制计划 / StageLayout 节点已出壳 plugins/design。
+fn design_stage(
+  program : @ir.StudioProgram,
+  selection : String,
+  drag_control : String?,
+  stage_widgets : Array[@moui.View[Msg]],
+  stage_rects : Array[@geometry.Rect],
+  semantics_label : String,
+  empty_hint : String,
+  multi_selected? : Array[String] = [],
+) -> @moui.View[Msg] {
+  @design.design_stage(
+    program,
+    selection,
+    drag_control,
+    stage_widgets,
+    stage_rects,
+    semantics_label,
+    empty_hint,
+    prop_color(program.window.back_color),
+    on_tap=fn(x, y) { CanvasTap(x, y) },
+    on_drag=fn(phase, x, y) {
+      if phase == @views.DragGesturePhase::Started {
+        CanvasPress(x, y)
+      } else if phase == @views.DragGesturePhase::Changed {
+        CanvasDragTo(x, y)
+      } else {
+        CanvasRelease(x, y)
+      }
+    },
+    multi_selected~,
+  )
+}
+
+///|
 /// 设计舞台视图（可视化工作区的默认面）：缩放工具条 + 画布。
 /// 与旧设计模式同源——只不过这里是窗格而非整列。
 fn design_stage_view(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
@@ -428,7 +464,7 @@ fn run_badge(
     live_width - 2.0,
     (height - LIVE_PANE_HEAD_FOOT).max(120.0),
   )
-  let percent = (fit_scale(
+  let percent = (@design.fit_scale(
     box_w,
     box_h,
     @ir.DESIGN_WIDTH.to_double(),

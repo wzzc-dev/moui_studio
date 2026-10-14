@@ -688,30 +688,8 @@ pub fn open_file_index_of(files : Array[OpenProjectFile], rel : String) -> Int? 
 /// 关闭下标处的 tab,并把 active 收敛到合法范围（删的是 active 时停在
 /// 同位置的下一个 tab,尾部则回退一格）。
 pub fn close_open_file_at(model : Model, index : Int) -> Model {
-  if index < 0 || index >= model.project_state.open_project_files.length() {
-    return model
-  }
-  let files : Array[OpenProjectFile] = []
-  for i, file in model.project_state.open_project_files {
-    if i != index {
-      files.push(file)
-    }
-  }
-  let next_index = if files.is_empty() {
-    -1
-  } else if index < files.length() {
-    index
-  } else {
-    files.length() - 1
-  }
-  {
-    ..model,
-    project_state: {
-      ..model.project_state,
-      open_project_files: files,
-      open_file_index: next_index,
-    },
-  }
+  // tab 关闭纯态已随 S5f 入 plugins/project；壳包装保留给确认流/服务根臂。
+  { ..model, project_state: @proj.close_open_file(model.project_state, index), }
 }
 
 ///|

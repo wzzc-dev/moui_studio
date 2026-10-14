@@ -1,33 +1,74 @@
 ///|
-/// AI 模式左栏·会话列表（对白转录 M4，从 ide_ai.mbt 按自然边界拆出）：
-/// 区头动作行（新建 ⌘N + 搜索）+ 可选过滤行 + 置顶/工程分组的会话行
-/// （相对时间 + 悬停改名/置顶/删除 + 行内改名）。渲染由壳组装（ide_shell
-/// 的 LeftAiSessions 分支），纯视图层，不改会话状态——状态操作走 AiSessionOp。
+/// AI 模式左栏·会话列表（对白转录 M4，S4 出壳）：区头动作行（新建 ⌘N
+/// + 搜索）+ 可选过滤行 + 置顶/工程分组的会话行（相对时间 + 悬停改名/
+/// 置顶/删除 + 行内改名）。纯视图层：状态以参数进入，行为以 on_*~ 回调
+/// 注入，不改会话状态——状态操作由壳收到回调后走 AiSessionOp。
 
 ///|
 /// 双行会话行高（VS Code 智能体模式口径）：标题行 15 + 元信息行 12 + 间距与内垫。
 pub const AI_SESSION_ROW_HEIGHT : Double = 36.0
 
 ///|
+/// AI 会话头高度（对白转录）：标题 + 置顶/删除动作。
+pub const AI_SESSION_HEADER_HEIGHT : Double = 34.0
+
+///|
+/// 相对时间桶（now/at 为 civil 秒）：返回（文案 key, 计数）。
+fn relative_time_bucket(now : Int, at : Int) -> (String, Int) {
+  let diff = (now - at).max(0)
+  if diff < 60 {
+    ("app.ai.time.just_now", 0)
+  } else if diff < 3600 {
+    ("app.ai.time.minutes", diff / 60)
+  } else if diff < 86400 {
+    ("app.ai.time.hours", diff / 3600)
+  } else {
+    ("app.ai.time.days", diff / 86400)
+  }
+}
+
+///|
+/// 会话列表回调包：行为以 Msg 注入，壳侧映射到 AiSessionOp / 改名 / 搜索等。
+pub(all) struct AiSessionListParams[Msg] {
+  sessions : AiSessions
+  query : String
+  search_open : Bool
+  rename : (Int, String)?
+  hover : Int
+  now : Int
+  on_create : Msg
+  on_settings : Msg
+  on_toggle_search : Msg
+  on_query : (String) -> Msg
+  on_rename_start : (Int) -> Msg
+  on_rename_draft : (String) -> Msg
+  on_rename_commit : Msg
+  on_hover : (Int, Bool) -> Msg
+  on_pin : (Int, Bool) -> Msg
+  on_remove : (Int) -> Msg
+  on_switch : (Int) -> Msg
+}
+
+///|
 /// AI 会话列表（M4 重写，对白转录口径）：区头动作行（新建 ⌘N + 搜索）
 /// + 可选过滤行 + 置顶/工程分组的会话行（相对时间 + 悬停 ✎/★/✕ +
 /// 行内改名）。面板头已有「AI 会话」标题，这里不再重复。
-pub fn ai_session_list(
-  model : Model,
+pub fn[Msg] ai_session_list(
+  p : AiSessionListParams[Msg],
   t : @i18n.Translator,
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
   let header_h = 30.0
-  let search_h = if model.ai_sessions_search_open { 32.0 } else { 0.0 }
+  let search_h = if p.search_open { 32.0 } else { 0.0 }
   let body_h = (height - header_h - search_h).max(80.0)
-  let body : Array[@moui.View[Msg]] = [ai_session_list_header(model, t, width)]
-  if model.ai_sessions_search_open {
-    body.push(ai_session_search_row(model, t, width))
+  let body : Array[@moui.View[Msg]] = [ai_session_list_header(p, t, width)]
+  if p.search_open {
+    body.push(ai_session_search_row(p, t, width))
   }
   body.push(
     @views.scroll_view(
-      @views.column(ai_session_group_rows(model, t, width), spacing=0.0).frame(
+      @views.column(ai_session_group_rows(p, t, width), spacing=0.0).frame(
         width=(width - 8.0).max(80.0),
       ),
       width~,
@@ -41,8 +82,8 @@ pub fn ai_session_list(
 ///|
 /// 区头动作行（VS Code 口径）：新建（描边小按钮 + ⌘N 键帽）+ 模型设置
 /// （滑块/Gear → studio.settings）+ 搜索开关。右对齐——标题在面板头。
-fn ai_session_list_header(
-  model : Model,
+fn[Msg] ai_session_list_header(
+  p : AiSessionListParams[Msg],
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
@@ -51,8 +92,8 @@ fn ai_session_list_header(
       [
         @views.spacer(min_length=0.0, weight=1.0),
         @views.shortcut_button(
-          text(t, "app.ai.session.new_short"),
-          on_click=AiSessionOp(AiSessionCreate(civil_seconds(model.clock))),
+          t.translate("app.ai.session.new_short"),
+          on_click=p.on_create,
           shortcut=@core.KeyboardShortcut::new(
             key="n",
             modifiers=@core.KeyModifiers::new(meta=true),
@@ -73,14 +114,14 @@ fn ai_session_list_header(
           width=22.0,
           height=22.0,
           padding=0.0,
-        ).on_tap(StudioCommandRun("studio.settings")),
+        ).on_tap(p.on_settings),
         @views.container(
           @views.center(
             @views.icon(Search, size=13.0, color=@chrome.ide_text_muted()),
             width=22.0,
             height=22.0,
           ),
-          background=if model.ai_sessions_search_open {
+          background=if p.search_open {
             @chrome.ide_selection()
           } else {
             @chrome.ide_panel_alt()
@@ -89,7 +130,7 @@ fn ai_session_list_header(
           width=22.0,
           height=22.0,
           padding=0.0,
-        ).on_tap(ToggleAiSessionSearch),
+        ).on_tap(p.on_toggle_search),
       ],
       width,
       4.0,
@@ -103,17 +144,17 @@ fn ai_session_list_header(
 
 ///|
 /// 过滤行：title 子串过滤（本地、即时）。
-fn ai_session_search_row(
-  model : Model,
+fn[Msg] ai_session_search_row(
+  p : AiSessionListParams[Msg],
   t : @i18n.Translator,
   width : Double,
 ) -> @moui.View[Msg] {
   @views.container(
     @views.padding_xy(
       @views.text_field(
-        model.ai_sessions_query,
-        on_input=value => SetAiSessionsQuery(value),
-        placeholder=text(t, "app.ai.search.placeholder"),
+        p.query,
+        on_input=value => (p.on_query)(value),
+        placeholder=t.translate("app.ai.search.placeholder"),
         variant=Outline,
         width=(width - 16.0).max(80.0),
         height=24.0,
@@ -130,18 +171,18 @@ fn ai_session_search_row(
 ///|
 /// 分组行构建：置顶组在前，其余按 updated 倒序遍历、连续同工程归组
 /// （组头带计数）。过滤查询命中 title 才参与。
-fn ai_session_group_rows(
-  model : Model,
+fn[Msg] ai_session_group_rows(
+  p : AiSessionListParams[Msg],
   t : @i18n.Translator,
   width : Double,
 ) -> Array[@moui.View[Msg]] {
-  let now = civil_seconds(model.clock)
-  let query = model.ai_sessions_query
-  let total = model.ai_sessions.count()
+  let now = p.now
+  let query = p.query
+  let total = p.sessions.count()
   let indices : Array[Int] = []
   let mut i = 0
   while i < total {
-    match model.ai_sessions.session_at(i) {
+    match p.sessions.session_at(i) {
       Some(session) =>
         if query == "" || session.title.contains(query) {
           indices.push(i)
@@ -153,7 +194,7 @@ fn ai_session_group_rows(
   // updated 倒序（稳定：同 updated 保持原下标序；n 小,插入排序够用）
   let entries : Array[(Int, Int)] = []
   for index in indices {
-    let updated = match model.ai_sessions.session_at(index) {
+    let updated = match p.sessions.session_at(index) {
       Some(s) => s.updated
       None => 0
     }
@@ -179,7 +220,7 @@ fn ai_session_group_rows(
   let pinned : Array[Int] = []
   let rest : Array[Int] = []
   for index in sorted {
-    match model.ai_sessions.session_at(index) {
+    match p.sessions.session_at(index) {
       Some(session) =>
         if session.pinned {
           pinned.push(index)
@@ -191,23 +232,26 @@ fn ai_session_group_rows(
   }
   if pinned.length() > 0 {
     rows.push(
-      ai_group_bar(t, text(t, "app.ai.group.pinned"), pinned.length(), width),
+      ai_group_bar(
+        t,
+        t.translate("app.ai.group.pinned"),
+        pinned.length(),
+        width,
+      ),
     )
     for index in pinned {
-      rows.push(ai_session_row(model, t, index, width, now))
+      rows.push(ai_session_row(p, t, index, width, now))
     }
   }
   // 工程组：连续同 project 归组（排序已按 updated,组序 = 组内最新时间序）
   let mut current_project = ""
   let mut current_group : Array[Int] = []
   for index in rest {
-    match model.ai_sessions.session_at(index) {
+    match p.sessions.session_at(index) {
       Some(session) => {
         if session.project != current_project && current_group.length() > 0 {
           rows.push(
-            ai_project_group(
-              model, t, current_project, current_group, width, now,
-            ),
+            ai_project_group(p, t, current_project, current_group, width, now),
           )
           current_group = []
         }
@@ -219,7 +263,7 @@ fn ai_session_group_rows(
   }
   if current_group.length() > 0 {
     rows.push(
-      ai_project_group(model, t, current_project, current_group, width, now),
+      ai_project_group(p, t, current_project, current_group, width, now),
     )
   }
   rows
@@ -227,17 +271,16 @@ fn ai_session_group_rows(
 
 ///|
 /// 工程分组：组头 = 工程名（空 = 默认工程）+ 计数。
-fn ai_project_group(
-  model : Model,
+fn[Msg] ai_project_group(
+  p : AiSessionListParams[Msg],
   t : @i18n.Translator,
   project : String,
   indices : Array[Int],
   width : Double,
   now : Int,
 ) -> @moui.View[Msg] {
-  ignore(model)
   let label = if project == "" {
-    text(t, "app.ai.group.default_project")
+    t.translate("app.ai.group.default_project")
   } else {
     @chrome.fit_label(project, (width - 60.0).max(60.0))
   }
@@ -245,14 +288,14 @@ fn ai_project_group(
     ai_group_bar(t, label, indices.length(), width),
   ]
   for index in indices {
-    rows.push(ai_session_row(model, t, index, width, now))
+    rows.push(ai_session_row(p, t, index, width, now))
   }
   @views.column(rows, spacing=0.0).frame(width=(width - 8.0).max(80.0))
 }
 
 ///|
 /// 组头：文件夹图标 + 名称 + 计数（淡色）。
-fn ai_group_bar(
+fn[Msg] ai_group_bar(
   t : @i18n.Translator,
   label : String,
   count : Int,
@@ -293,14 +336,14 @@ fn ai_group_bar(
 /// 第二行 = 来源图标 · 相对时间（时间常显：created 优先、回退 updated、
 /// 全 0 显示「刚刚」）。悬停右缘出 ✎改名 / Pin置顶 / ✕删除（时间保留）；
 /// 行内改名态 = text_field（Enter 提交）。非当前行可点切换。
-fn ai_session_row(
-  model : Model,
+fn[Msg] ai_session_row(
+  p : AiSessionListParams[Msg],
   t : @i18n.Translator,
   index : Int,
   width : Double,
   now : Int,
 ) -> @moui.View[Msg] {
-  let session = match model.ai_sessions.session_at(index) {
+  let session = match p.sessions.session_at(index) {
     Some(value) => value
     None =>
       return @views.container(
@@ -312,19 +355,19 @@ fn ai_session_row(
   }
   let row_width = (width - 8.0).max(80.0)
   // 行内改名态
-  match model.session_rename {
+  match p.rename {
     Some((rename_index, draft)) =>
       if rename_index == index {
         return @views.container(
           @views.padding_xy(
             @views.text_field(
               draft,
-              on_input=value => AiSessionRenameDraft(value),
+              on_input=value => (p.on_rename_draft)(value),
               placeholder="",
               variant=Outline,
               width=(row_width - 16.0).max(60.0),
               height=24.0,
-              on_submit=Some(AiSessionRenameCommit),
+              on_submit=Some(p.on_rename_commit),
             ),
             horizontal=4.0,
             vertical=2.0,
@@ -336,8 +379,8 @@ fn ai_session_row(
       }
     None => ()
   }
-  let active = index == model.ai_sessions.active_index()
-  let hovering = model.ai_session_hover == index
+  let active = index == p.sessions.active_index()
+  let hovering = p.hover == index
   // 时间常显回退链：created > updated > 「刚刚」
   let stamp = if session.created > 0 {
     session.created
@@ -346,11 +389,11 @@ fn ai_session_row(
   }
   let (time_key, count) = relative_time_bucket(now, stamp)
   let time_label = if stamp == 0 {
-    text(t, "app.ai.time.just_now")
+    t.translate("app.ai.time.just_now")
   } else if time_key == "app.ai.time.just_now" {
-    text(t, time_key)
+    t.translate(time_key)
   } else {
-    text_with(t, time_key, [("n", count.to_string())])
+    t.translate(time_key, values=[("n", count.to_string())])
   }
   let line_w = (row_width - 118.0).max(60.0)
   // 标题占满「行宽 − 图标 − 间距」:内容恰好填满 frame,行不会因
@@ -428,7 +471,7 @@ fn ai_session_row(
         width=18.0,
         height=AI_SESSION_ROW_HEIGHT,
         padding=0.0,
-      ).on_tap(AiSessionRenameStart(index)),
+      ).on_tap((p.on_rename_start)(index)),
     )
     cells.push(
       @views.container(
@@ -448,7 +491,7 @@ fn ai_session_row(
         width=18.0,
         height=AI_SESSION_ROW_HEIGHT,
         padding=0.0,
-      ).on_tap(AiSessionOp(AiSessionPin(index, !session.pinned))),
+      ).on_tap((p.on_pin)(index, !session.pinned)),
     )
     cells.push(
       @views.container(
@@ -465,7 +508,7 @@ fn ai_session_row(
         width=18.0,
         height=AI_SESSION_ROW_HEIGHT,
         padding=0.0,
-      ).on_tap(AiSessionOp(AiSessionRemove(index))),
+      ).on_tap((p.on_remove)(index)),
     )
   }
   let row = @views.container(
@@ -487,15 +530,11 @@ fn ai_session_row(
     width=row_width,
     height=AI_SESSION_ROW_HEIGHT,
     padding=0.0,
-  ).on_hover(entered => AiSessionHover(index, entered))
+  ).on_hover(entered => (p.on_hover)(index, entered))
   // 非当前会话行才可点切换（当前行再点 = no-op,与既有口径一致）
   if active {
     row
   } else {
-    row.on_tap(AiSessionOp(AiSessionSwitch(index)))
+    row.on_tap((p.on_switch)(index))
   }
 }
-
-///|
-/// AI 会话头高度（对白转录）：标题 + 置顶/删除动作。
-pub const AI_SESSION_HEADER_HEIGHT : Double = 34.0

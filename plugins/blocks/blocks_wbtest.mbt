@@ -84,3 +84,86 @@ test "blocks_slot_rects only yields slot segments" {
   // 空槽也有最小宽度（Scratch 的空槽是一个小胶囊）
   assert_true(holes[0].1.size.width >= 28.0)
 }
+
+///|
+/// 切片助手：对状态施加一条 BlocksUiMsg，返回新状态（effect 恒为纯态 none）。
+fn apply_ui(state : BlocksUiState, msg : BlocksUiMsg) -> BlocksUiState {
+  update_blocks_ui(state, msg).0
+}
+
+///|
+/// 语句面板开合：点分类展开，再点同一分类收起；点别的分类是切换、不收。
+test "blocks_ui palette toggles open and collapses on repeat" {
+  let s0 = BlocksUiState::new()
+  assert_false(s0.statement_palette_open)
+  let s1 = apply_ui(s0, ToggleStatementPalette(3))
+  assert_true(s1.statement_palette_open)
+  assert_eq(s1.selected_category, 3)
+  // 切到另一个分类：仍展开，分类变了
+  let s2 = apply_ui(s1, ToggleStatementPalette(2))
+  assert_true(s2.statement_palette_open)
+  assert_eq(s2.selected_category, 2)
+  // 再点当前分类：收起
+  let s3 = apply_ui(s2, ToggleStatementPalette(2))
+  assert_false(s3.statement_palette_open)
+  assert_eq(s3.selected_category, 2)
+}
+
+///|
+/// 分类条选中与面板开合独立：SelectCategory 只改分类，不展开面板。
+test "blocks_ui SelectCategory only changes category" {
+  let s = apply_ui(BlocksUiState::new(), SelectCategory(1))
+  assert_eq(s.selected_category, 1)
+  assert_false(s.statement_palette_open)
+}
+
+///|
+/// 画布滚动：手动滚动夹到非负；边缘自动滚按步长推进且不产生负偏移。
+test "blocks_ui scroll clamps to non-negative and steps by constant" {
+  let s = BlocksUiState::new()
+  assert_eq(apply_ui(s, BlocksScrolled(-50.0)).blocks_scroll_y, 0.0)
+  assert_eq(apply_ui(s, BlocksScrolled(120.0)).blocks_scroll_y, 120.0)
+  let down = apply_ui(s, BlocksAutoScroll(1))
+  assert_eq(down.blocks_scroll_y, BLOCKS_UI_AUTOSCROLL_STEP)
+  let up = apply_ui(down, BlocksAutoScroll(-1))
+  assert_eq(up.blocks_scroll_y, 0.0)
+  // 继续向上不越过 0
+  let up2 = apply_ui(up, BlocksAutoScroll(-1))
+  assert_eq(up2.blocks_scroll_y, 0.0)
+}
+
+///|
+/// 值编辑草稿：没打开时输入被忽略；打开后输入更新文本，取消清空。
+test "blocks_ui value edit draft is gated and cancellable" {
+  let s0 = BlocksUiState::new()
+  // 未打开值编辑：输入不落
+  let s_none = apply_ui(s0, BlockValueInput("42"))
+  assert_true(s_none.block_value_edit is None)
+  // 打开值编辑（组合根在壳里做，这里直接构造）
+  let open = BlocksUiState::new()
+  open.block_value_edit = Some((1, [0], "1"))
+  let typed = apply_ui(open, BlockValueInput("42"))
+  assert_eq(typed.block_value_edit, Some((1, [0], "42")))
+  let cancelled = apply_ui(typed, BlockValueCancel)
+  assert_true(cancelled.block_value_edit is None)
+}
+
+///|
+/// 拖放骨架：语句拖记 (分类, 模板)，表达式拖记模板下标，互不覆盖。
+test "blocks_ui drag skeletons record statement vs expression" {
+  let s = apply_ui(BlocksUiState::new(), PaletteDragStart(2, 0))
+  assert_eq(s.palette_drag, Some((2, 0)))
+  assert_true(s.expr_drag is None)
+  let e = apply_ui(BlocksUiState::new(), PaletteExprDragStart(3))
+  assert_eq(e.expr_drag, Some(3))
+  assert_true(e.palette_drag is None)
+}
+
+///|
+/// 关闭右键菜单：锚点清空（打开在壳，关闭是纯 UI 瞬态）。
+test "blocks_ui context menu close clears anchor" {
+  let open = BlocksUiState::new()
+  open.block_menu = Some((2, 100.0, 80.0))
+  let closed = apply_ui(open, BlocksContextMenuClose)
+  assert_true(closed.block_menu is None)
+}

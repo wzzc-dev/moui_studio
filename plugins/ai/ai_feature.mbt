@@ -16,6 +16,9 @@ pub(all) enum AiSessionMsg {
   AiSessionRemove(Int)
   AiSessionRename(Int, String)
   AiSessionPin(Int, Bool)
+  /// 当前会话 composer 草稿（S5h 自壳并入）：随打随存进当前会话，零副作用。
+  /// 壳在委托后清一次 prompt_error（错误提示跨域，仍住壳）。
+  SetPromptDraft(String)
 }
 
 ///|
@@ -43,6 +46,10 @@ pub fn AiSessions::update(
     }
     AiSessionPin(index, pinned) => {
       let _ = self.set_pinned(index, pinned)
+      (self, @moui.Effect::none())
+    }
+    SetPromptDraft(value) => {
+      self.amend({ ..self.current(), prompt_draft: value, })
       (self, @moui.Effect::none())
     }
   }

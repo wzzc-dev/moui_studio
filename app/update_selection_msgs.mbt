@@ -457,21 +457,7 @@ pub fn update_selection_msgs(
   match msg {
     SelectSide(target) =>
       Some((select_target(model, target), @moui.Effect::none()))
-    ToggleTreeCreate(group) =>
-      // 同一组再点 = 收起（与图标栏「再点当前项」同一心智）
-      Some(
-        (
-          {
-            ..model,
-            tree_create_group: if model.tree_create_group == group {
-              ""
-            } else {
-              group
-            },
-          },
-          @moui.Effect::none(),
-        ),
-      )
+    // 分组头「新建」菜单开合（ToggleTreeCreate）已并入 project_state 切片。
     SetWindowTitle(title) =>
       Some(
         (

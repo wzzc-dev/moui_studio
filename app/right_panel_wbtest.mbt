@@ -349,7 +349,7 @@ test "the AI thread appears only with thread cards" {
 }
 
 ///|
-/// 转录里的工作卡组**整条可点折叠**（复用既有 `ToggleAiCardsFold`）：折叠后
+/// 转录里的工作卡组**整条可点折叠**（复用既有 `AiUiOp(@ai.ToggleCardsFold)`）：折叠后
 /// 卡组收起，只剩组头的读数。
 ///
 /// 分页前这条钉的是「AI 会话分区头兼折叠条」；分页后转录进了 AI 页，折叠
@@ -358,9 +358,9 @@ test "the AI thread appears only with thread cards" {
 test "the AI thread section head folds the thread" {
   let model = apply_shell(
     with_pending_roll_call(ai_page_model()),
-    ToggleAiCardsFold,
+    AiUiOp(@ai.ToggleCardsFold),
   )
-  assert_true(model.ai_cards_folded)
+  assert_true(model.ai_ui.ai_cards_folded)
   let commands = shell_draw(model, 1280.0, 800.0)
   // 卡组头还在（折叠态仍有入口展开）
   assert_true(shell_has_text(commands, "Agent"))
@@ -371,8 +371,8 @@ test "the AI thread section head folds the thread" {
     msg="folded thread must not draw its cards",
   )
   // 展开后回来
-  let expanded = apply_shell(model, ToggleAiCardsFold)
-  assert_false(expanded.ai_cards_folded)
+  let expanded = apply_shell(model, AiUiOp(@ai.ToggleCardsFold))
+  assert_false(expanded.ai_ui.ai_cards_folded)
   assert_true(
     shell_count_text(shell_draw(expanded, 1280.0, 800.0), "随机点名") > 1,
   )
@@ -861,7 +861,7 @@ test "see all sessions appears only with a long thread list" {
     shell_has_text(shell_draw(on_ai, 1280.0, 800.0), "查看全部会话 →"),
   )
   // 转录折叠后工作卡组收起，出口也收起
-  let folded = apply_shell(on_ai, ToggleAiCardsFold)
+  let folded = apply_shell(on_ai, AiUiOp(@ai.ToggleCardsFold))
   assert_false(
     shell_has_text(shell_draw(folded, 1280.0, 800.0), "查看全部会话 →"),
   )
@@ -1177,7 +1177,7 @@ test "the right panel head pops no pointer tooltips" {
     load_template_program(inspector_model(), 2),
     BlocksContextMenu(0, 400.0, 300.0),
   )
-  if menu_open.block_menu is None {
+  if menu_open.blocks_ui.block_menu is None {
     fail("expected the block context menu to open")
   }
   assert_true(

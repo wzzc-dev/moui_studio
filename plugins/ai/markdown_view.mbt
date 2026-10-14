@@ -8,7 +8,7 @@
 /// - 列表项每项一行；标题按级别用字号/角色区分；分隔线 = 发丝线。
 
 ///|
-pub fn markdown_blocks_view(
+pub fn[Msg] markdown_blocks_view(
   blocks : Array[@markdown.MarkdownBlock],
   width : Double,
 ) -> @moui.View[Msg] {
@@ -53,7 +53,7 @@ pub fn markdown_blocks_view(
           )
         }
       MbCodeBlock(_lang, code) =>
-        for line in split_line_texts(code) {
+        for line in @code.split_line_texts(code) {
           rows.push(
             @views.container(
               @views.padding_edges(
@@ -87,7 +87,7 @@ pub fn markdown_blocks_view(
 
 ///|
 /// 行内片段行：相邻文本视图（估宽），样式用颜色/角色区分。
-fn markdown_inline_row(
+fn[Msg] markdown_inline_row(
   pieces : Array[@markdown.MarkdownInline],
   width : Double,
 ) -> @moui.View[Msg] {

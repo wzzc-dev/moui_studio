@@ -131,11 +131,11 @@ test "compile stop clears report without switching tracks" {
 ///|
 test "compile output toggle flips the fold state" {
   let model = @app.initial_model(compile_track_available=true)
-  assert_false(model.compile_output_open)
-  let opened = compile_apply(model, ToggleCompileOutput)
-  assert_true(opened.compile_output_open)
-  let closed = compile_apply(opened, ToggleCompileOutput)
-  assert_false(closed.compile_output_open)
+  assert_false(model.run_ui.compile_output_open)
+  let opened = compile_apply(model, RunUiOp(@run.ToggleCompileOutput))
+  assert_true(opened.run_ui.compile_output_open)
+  let closed = compile_apply(opened, RunUiOp(@run.ToggleCompileOutput))
+  assert_false(closed.run_ui.compile_output_open)
 }
 
 ///|

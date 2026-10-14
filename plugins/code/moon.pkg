@@ -1,0 +1,10 @@
+import {
+  "wzzc-dev/moui",
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/geometry",
+  "wzzc-dev/moui/text",
+  "wzzc-dev/moui_studio/domain/ir",
+  "wzzc-dev/moui_studio/domain/studio_lang",
+}
+
+supported_targets = "native+wasm-gc"

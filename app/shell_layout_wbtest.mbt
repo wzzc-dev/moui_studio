@@ -268,7 +268,7 @@ test "AI input bar lives in the right panel and never covers the status bar" {
   }
   // 收起态 = 单「修改 ⌄」下拉芯片；展开态 = 四选一胶囊行
   assert_true(shell_has_text(commands, "修改"))
-  let expanded = apply_shell(model, ToggleComposerModePicker)
+  let expanded = apply_shell(model, AiUiOp(@ai.ToggleComposerModePicker))
   let expanded_commands = shell_draw(expanded, 1280.0, 800.0)
   for label in ["修改", "生成", "解释", "修复"] {
     assert_true(shell_has_text(expanded_commands, label))
@@ -297,8 +297,8 @@ test "AI input bar lives in the right panel and never covers the status bar" {
 ///|
 test "settings dialog replaces the shell content when presented" {
   let model = initial_model()
-  let opened = apply_shell(model, ToggleSettings)
-  assert_true(opened.settings_open)
+  let opened = apply_shell(model, AiUiOp(@ai.ToggleSettings))
+  assert_true(opened.ai_ui.settings_open)
   let commands = shell_draw(opened, 1280.0, 800.0)
   assert_true(shell_has_text(commands, "设置"))
   assert_true(shell_has_text(commands, "工作区"))
@@ -308,7 +308,7 @@ test "settings dialog replaces the shell content when presented" {
   // 密钥提示必须出现（安全承诺在 UI 上可见）
   assert_true(shell_has_text(commands, "不进源码"))
   // 关闭后对话框消失
-  let closed = apply_shell(opened, ToggleSettings)
+  let closed = apply_shell(opened, AiUiOp(@ai.ToggleSettings))
   let closed_commands = shell_draw(closed, 1280.0, 800.0)
   assert_false(shell_has_text(closed_commands, "不进源码"))
 }
@@ -386,7 +386,10 @@ test "a no-op edit records neither a recent change nor an undo point" {
 
 ///|
 test "accepting a proposal logs an audit entry, console line and toast" {
-  let model = apply_shell(initial_model(), SetPrompt("加一个按钮"))
+  let model = apply_shell(
+    initial_model(),
+    AiSessionOp(@ai.SetPromptDraft("加一个按钮")),
+  )
   let proposed = with_pending_roll_call(model)
   guard proposed.pending is Some(_) else { fail("no proposal generated") }
   let audit_before = proposed.audit_entries.length()
@@ -404,7 +407,10 @@ test "accepting a proposal logs an audit entry, console line and toast" {
 
 ///|
 test "rejecting a proposal records history without touching the program" {
-  let model = apply_shell(initial_model(), SetPrompt("加一个按钮"))
+  let model = apply_shell(
+    initial_model(),
+    AiSessionOp(@ai.SetPromptDraft("加一个按钮")),
+  )
   let proposed = with_pending_roll_call(model)
   let signature = @ir.program_signature(proposed.program)
   let rejected = apply_shell(proposed, RejectProposal)
@@ -497,7 +503,7 @@ test "program tree groups every IR entity with counts" {
 ///|
 test "tree search filters rows without dropping their group header" {
   let model = initial_model()
-  let filtered = apply_shell(model, SetTreeQuery("按钮"))
+  let filtered = apply_shell(model, ProjectOp(@proj.SetTreeQuery("按钮")))
   let tree = program_tree(filtered)
   let mut seen_controls_group = false
   let mut seen_matching_control = false
@@ -595,9 +601,17 @@ test "settings and AI history dialogs are modal overlays" {
   let model = initial_model()
   let plain = shell_draw(model, 1280.0, 800.0)
   assert_false(shell_has_text(plain, "设置"))
-  let settings = shell_draw(apply_shell(model, ToggleSettings), 1280.0, 800.0)
+  let settings = shell_draw(
+    apply_shell(model, AiUiOp(@ai.ToggleSettings)),
+    1280.0,
+    800.0,
+  )
   assert_true(shell_has_text(settings, "设置"))
-  let history = shell_draw(apply_shell(model, ToggleAiHistory), 1280.0, 800.0)
+  let history = shell_draw(
+    apply_shell(model, AiUiOp(@ai.ToggleAiHistory)),
+    1280.0,
+    800.0,
+  )
   assert_true(shell_has_text(history, "提案历史"))
 }
 
@@ -723,7 +737,8 @@ test "tree row meta stays inside the panel" {
 /// 全局按钮块上移到分组头之后，要守的性质变成「菜单项齐 + 不溢出」。
 test "group create menu lists every control kind inside the panel" {
   let model = initial_model()
-  let expanded = { ..model, tree_create_group: tree_group_controls(), }
+  let expanded = { ..model, }
+  expanded.project_state.tree_create_group = tree_group_controls()
   let commands = shell_draw(expanded, 1280.0, 800.0)
   let t = translator(expanded)
   for
@@ -753,7 +768,8 @@ test "group create menu lists every control kind inside the panel" {
 /// 变量组菜单必须给出「新建变量」入口（此前没有任何地方能建变量）。
 test "variable group menu offers the new-variable entry" {
   let model = initial_model()
-  let expanded = { ..model, tree_create_group: tree_group_variables(), }
+  let expanded = { ..model, }
+  expanded.project_state.tree_create_group = tree_group_variables()
   let commands = shell_draw(expanded, 1280.0, 800.0)
   let t = translator(expanded)
   assert_true(
@@ -766,7 +782,8 @@ test "variable group menu offers the new-variable entry" {
 /// 语义——不给一个点了没用的按钮，菜单也不该冒出候选行。
 test "data group offers no create menu" {
   let model = initial_model()
-  let expanded = { ..model, tree_create_group: tree_group_data(), }
+  let expanded = { ..model, }
+  expanded.project_state.tree_create_group = tree_group_data()
   let commands = shell_draw(expanded, 1280.0, 800.0)
   for command in commands {
     match command {
@@ -808,7 +825,7 @@ test "composer mode routes send to existing channels" {
   // 切页只改「画在哪」，不改消息路由）
   let model = apply_shell(base, SetRightView(RvAi))
   // V4：四胶囊收敛为单下拉——展开态才可见四选一
-  let expanded = apply_shell(model, ToggleComposerModePicker)
+  let expanded = apply_shell(model, AiUiOp(@ai.ToggleComposerModePicker))
   let commands = shell_draw(expanded, 1280.0, 800.0)
   for label in ["修改", "生成", "解释", "修复"] {
     assert_true(shell_has_text(commands, label))
@@ -820,8 +837,8 @@ test "composer mode routes send to existing channels" {
   // 讲解内容来自真实 provider，流式回执在 app_test 的消息流测试里断言）
   let explain = apply_shell(
     apply_shell(
-      apply_shell(model, SetComposerMode(ComposeExplain)),
-      SetPrompt("讲讲这个子程序"),
+      apply_shell(model, AiUiOp(@ai.SetComposerMode(ComposeExplain))),
+      AiSessionOp(@ai.SetPromptDraft("讲讲这个子程序")),
     ),
     ComposerRun,
   )
@@ -843,7 +860,7 @@ test "composer mode routes send to existing channels" {
     fail("invalid draft was not rejected: " + broken.code_draft)
   }
   let repaired = apply_shell(
-    apply_shell(broken, SetComposerMode(ComposeRepair)),
+    apply_shell(broken, AiUiOp(@ai.SetComposerMode(ComposeRepair))),
     ComposerRun,
   )
   if repaired.code_error != "" {
@@ -866,9 +883,12 @@ test "composer mode routes send to existing channels" {
 /// 生成模式以空程序为基：路由前清空控件与子程序，真实回执在此基底上
 /// 走同一条校验链。
 test "generate mode starts from an empty program" {
-  let model = apply_shell(initial_model(), SetPrompt("班级点名册"))
+  let model = apply_shell(
+    initial_model(),
+    AiSessionOp(@ai.SetPromptDraft("班级点名册")),
+  )
   let cleared = apply_shell(
-    apply_shell(model, SetComposerMode(ComposeGenerate)),
+    apply_shell(model, AiUiOp(@ai.SetComposerMode(ComposeGenerate))),
     ComposerRun,
   )
   // 生成语义：清空基底（真实提案从零重建），路由经效果派发到程序级臂

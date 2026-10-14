@@ -358,7 +358,7 @@ pub fn update_with_services(
       match active_project_of(model) {
         None => (model, @moui.Effect::none())
         Some(project) => {
-          let query = model.search_query.trim(chars=" \t").to_owned()
+          let query = model.project_state.search_query.trim().to_owned()
           if query == "" {
             (model, @moui.Effect::none())
           } else {
@@ -958,7 +958,7 @@ pub fn update_with_services(
           // 记下旧文件所在目录（M6③）：迁移器把 form.mbt/handlers.mbt
           // 写到这里，一次性完成格式转换。
           (
-            { ..model, pending_open_dir: Some(dirname_of(path)), },
+            { ..model, pending_open_dir: Some(@proj.dirname_of(path)), },
             services
             .files()
             .read_text(path)
@@ -970,11 +970,10 @@ pub fn update_with_services(
       }
     OpenReadCompleted(result) =>
       match result {
-        Success(source) =>
-          // M6③：打开 .studio.json = 一次性迁移。解码失败是结构化报错
-          // （携带 codec 原因并指向迁移器口径），不再笼统「打开失败」。
-          match
-            migrate_studio_source(model.pending_open_dir.unwrap_or("."), source) {
+        // M6③：打开 .studio.json = 一次性迁移；解码失败结构化报错（携带 codec 原因），不再笼统「打开失败」。
+        Success(source) => {
+          let dir = model.pending_open_dir.unwrap_or(".")
+          match @proj.migrate_studio_source(dir, source) {
             Ok(outcome) => {
               let program = outcome.program
               let next = {
@@ -1018,6 +1017,7 @@ pub fn update_with_services(
             Err(message) =>
               (with_notice(model, message, true), @moui.Effect::none())
           }
+        }
         Failure(error) =>
           (with_notice(model, error.message, true), @moui.Effect::none())
         Cancelled => (model, @moui.Effect::none())
@@ -1337,7 +1337,7 @@ pub fn update_with_services(
               ..with_frame,
               preview_web_url: Some(url),
               preview_web_opened: true,
-              preview_mode: PmWeb,
+              run_ui: { ..with_frame.run_ui, web_preview: true, },
               workspace: WsPreview,
             }
             match model.preview_web_url {
@@ -2421,9 +2421,9 @@ fn provider_spec(
   on_chunk~ : ((String) -> Unit)?,
 ) -> @kernel.ProviderRequestSpec {
   {
-    endpoint: model.provider_endpoint,
-    key: model.provider_key,
-    model: model.provider_model,
+    endpoint: model.ai_ui.provider_endpoint,
+    key: model.ai_ui.provider_key,
+    model: model.ai_ui.provider_model,
     system,
     prompt,
     history,
@@ -2495,7 +2495,7 @@ fn update_with_provider(
     // AI 提交无 key 的统一引导：prompt_error 走 composer 下方红字，
     // 不弹卡不占转录——配置凭据是表单动作，不是对话内容。
     ExplainHandler =>
-      if !model.ai_available || model.provider_key == "" {
+      if !model.ai_available || model.ai_ui.provider_key == "" {
         (
           {
             ..model,
@@ -2536,7 +2536,7 @@ fn update_with_provider(
         }
       }
     GenerateProposal =>
-      if !model.ai_available || model.provider_key == "" {
+      if !model.ai_available || model.ai_ui.provider_key == "" {
         (
           {
             ..model,
@@ -2609,7 +2609,7 @@ fn update_with_provider(
     }
     // 纯聊天真提交（G1）：带多轮历史、纯文本；无 key/不可用给引导。
     ChatSubmit =>
-      if !model.ai_available || model.provider_key == "" {
+      if !model.ai_available || model.ai_ui.provider_key == "" {
         (
           {
             ..model,

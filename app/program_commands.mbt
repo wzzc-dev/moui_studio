@@ -77,7 +77,7 @@ pub fn studio_program_commands(
     "app.command.ai.search_sessions",
     Activate,
     model.perspective is PsAi,
-    ToggleAiSessionSearch,
+    AiUiOp(@ai.ToggleSessionSearch),
   )
   bind(
     "1",
@@ -282,11 +282,11 @@ pub fn studio_program_commands(
     false,
     "app.command.block.cancel_value",
     Activate,
-    model.block_value_edit is Some(_),
-    BlockValueCancel,
+    model.blocks_ui.block_value_edit is Some(_),
+    BlocksUiOp(@blk.BlockValueCancel),
   )
   // Escape 收起**补全弹层**：`completion_open` 此前只有「打开」没有「关闭」
-  // 的生产者（`DismissCompletion` 有处理分支却没人发），于是弹出后按 Esc
+  // 的生产者（`CodeUiOp(@code.DismissCompletion)` 有处理分支却没人发），于是弹出后按 Esc
   // 关不掉——只能选中某一项或点走。与值编辑的 Escape 是**互斥**的两态
   // （补全弹层与值编辑不会同时在），所以同一个键不会双触发。
   bind(
@@ -294,8 +294,8 @@ pub fn studio_program_commands(
     false,
     "app.command.code.dismiss_completion",
     Activate,
-    model.completion_open,
-    DismissCompletion,
+    model.code_ui.completion_open,
+    CodeUiOp(@code.DismissCompletion),
   )
   // Escape 放弃会话行内改名（M6）：与补全/值编辑互斥（AI 模式左栏编辑态）
   bind(
@@ -303,8 +303,8 @@ pub fn studio_program_commands(
     false,
     "app.command.ai.dismiss_rename",
     Activate,
-    model.session_rename is Some(_),
-    AiSessionRenameDismiss,
+    model.ai_ui.session_rename is Some(_),
+    AiUiOp(@ai.ClearRename),
   )
   commands
 }
