@@ -72,8 +72,13 @@ if [ "$SKIP_BUILD" = false ]; then
   fi
 fi
 
-# 1) The static entry page.
-cp web_wasm/index.html "$BUNDLE_DIR/index.html"
+# 1) The static entry page, at the checkout-root-relative path. The page
+#    imports `../.mooncakes/...` and probes `../`-relative `_build/...` for
+#    the wasm module, so the bundle MUST mirror the checkout root — then it
+#    works at any base path (site root, GitHub Pages project subpath, or a
+#    local static server). Entry point: /web_wasm/.
+mkdir -p "$BUNDLE_DIR/web_wasm"
+cp web_wasm/index.html "$BUNDLE_DIR/web_wasm/index.html"
 
 # 2) The ES-module runtimes: moui_web_renderer's runtime.js (+ its Canvas2D
 #    fallback, loaded on demand) and moui's browser_runtime.js, at the exact
@@ -124,6 +129,22 @@ if [ -z "$WASM" ]; then
 fi
 mkdir -p "$BUNDLE_DIR/$(dirname "$WASM")"
 cp "$WASM" "$BUNDLE_DIR/$WASM"
+
+cat > "$BUNDLE_DIR/README.txt" <<'EOF'
+MoUI Studio (Web, wasm-gc)
+==========================
+
+This bundle mirrors the checkout root (web_wasm/ + .mooncakes/ + _build/)
+because the entry page loads its ES-module runtimes and the wasm module via
+checkout-root-relative paths.
+
+Serve this directory with any static file server, then open /web_wasm/:
+
+  python3 -m http.server 8766 --directory .
+  # browser: http://127.0.0.1:8766/web_wasm/
+
+Do not open the files via file:// — ES modules require http(s).
+EOF
 
 ZIP_PATH="$OUTPUT_DIR/moui-studio-web-$VERSION.zip"
 rm -f "$ZIP_PATH"
