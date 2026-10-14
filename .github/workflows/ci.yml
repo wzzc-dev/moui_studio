@@ -102,13 +102,14 @@ jobs:
 
   service-tests:
     name: Service layer tests
-    runs-on: ubuntu-latest
+    # compile_native 的真工具链测试会构建导出 bundle 的 native GUI 入口，
+    # 而导出的 GUI 组合根目前硬编码 macOS（moui/backend/macos +
+    # platform=MacOS），Linux 上按设计编不过——与母仓库 pr profile 一样把
+    # 服务层测试放在 macOS 上跑。
+    runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Set up Linux native dependencies
-        uses: ./.github/actions/setup-linux-native-deps
 
       - name: Set up MoonBit
         uses: ./.github/actions/setup-moonbit
