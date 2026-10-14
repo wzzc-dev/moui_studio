@@ -63,11 +63,6 @@ esac
 
 PACKAGE_LEAF="$(basename "$PACKAGE")"
 
-EXE_PATH="_build/native/$PROFILE/build/$PACKAGE/$PACKAGE_LEAF.exe"
-if [ ! -f "$EXE_PATH" ]; then
-  EXE_PATH="_build/native/$PROFILE/build/wzzc-dev/moui_studio/$PACKAGE/$PACKAGE_LEAF.exe"
-fi
-
 if [ "$SKIP_BUILD" = false ]; then
   printf '==> Building %s (profile: %s)\n' "$PACKAGE" "$PROFILE"
   if [ "$PROFILE" = "release" ]; then
@@ -75,6 +70,14 @@ if [ "$SKIP_BUILD" = false ]; then
   else
     moon build "$PACKAGE" --target native
   fi
+fi
+
+# The exe lands under build/<package-path>/ in a standalone checkout and under
+# build/<module-name>/<package-path>/ inside the MoUI workspace; probe both
+# after the build.
+EXE_PATH="_build/native/$PROFILE/build/$PACKAGE/$PACKAGE_LEAF.exe"
+if [ ! -f "$EXE_PATH" ]; then
+  EXE_PATH="_build/native/$PROFILE/build/wzzc-dev/moui_studio/$PACKAGE/$PACKAGE_LEAF.exe"
 fi
 
 if [ ! -f "$EXE_PATH" ]; then
