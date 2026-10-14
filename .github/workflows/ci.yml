@@ -1,8 +1,8 @@
 name: MoUI Studio CI
 
-# MoUI Studio 独立子仓库的回归网。
+# MoUI Studio 独立子仓库的回归网，按 MoUI 母仓库 CI 的方式拆分为多个并行 job。
 #
-# 本仓库同时是 MoUI 母仓库（wzzc-dev/moui）的 git submodule，母仓库的
+# 本仓库同时是 MoUI 母仓库（wzzc-dev/MoUI）的 git submodule，母仓库的
 # `checks/profiles.json` 的 pr profile 已经登记了其中 7 个门禁。但那些门禁
 # **只在母仓库的 CI 里跑**：单独 clone 本仓库、或在非 PR 分支上开发时，
 # Studio 自己的回归完全没有自动覆盖。本工作流把那些门禁按本仓库的包路径
@@ -22,44 +22,68 @@ on:
   pull_request:
   workflow_dispatch:
 
+# 本仓库的测试/检查都不链接 Skia（入口包的 Skia 绑定只进最终可执行文件）。
+# 依赖的 moui_skia prebuild 在 native 目标下默认会下载约 200MB 的 Skia
+# release 并生成本仓库用不到的链接 flag，这里显式关掉，CI 提速且避免
+# 下载抖动。wasm-gc 目标本来就会跳过该 prebuild。
+env:
+  MOUI_SKIA_DISABLE_PREBUILD_SKIA: "1"
+
 jobs:
-  gates:
-    name: Studio gates (native + wasm-gc)
+  workspace-baseline:
+    name: Workspace baseline (check + fmt)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up MoonBit (repository-pinned toolchain)
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(".moonbit-toolchain", "utf8")).moonc || "")')"
-          if [[ -z "$version" ]]; then
-            echo "::error::.moonbit-toolchain is missing a valid moonc version" >&2
-            exit 1
-          fi
-          echo "Installing MoonBit toolchain $version"
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s "$version"
-          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
-          moon version --all
+      - name: Set up MoonBit
+        uses: ./.github/actions/setup-moonbit
 
       - name: Install dependencies
-        run: moon update
+        run: |
+          moon version --all
+          moon update
 
       # 卫生门：0 错误 0 警告（本仓库自有代码；母仓库其他成员的警告不会
-      # 出现在这里，因为本仓库不是 moon.work 工作区的成员）。
+      # 出现在这里，因为单独 checkout 本仓库时没有 moon.work 工作区）。
       - name: moon check (native)
         run: moon check --target native
 
       - name: moon fmt --check
         run: moon fmt --check
 
+  domain-tests:
+    name: Domain layer tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        uses: ./.github/actions/setup-moonbit
+
+      - name: Install dependencies
+        run: moon update
+
       # 领域层：零 UI 依赖，五包一次跑完（moon test 接受多包路径并汇总）。
       - name: Domain tests
         run: |
           moon test domain/ir domain/studio_lang domain/codec domain/blocks \
             domain/proposals --target native
+
+  kernel-plugin-tests:
+    name: Kernel and plugin tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        uses: ./.github/actions/setup-moonbit
+
+      - name: Install dependencies
+        run: moon update
 
       # 插件内核 + 已出壳插件。chrome / plugins/project / plugins/run 自身
       # 没有 *_test.mbt（它们由 app 的 wbtest 白盒覆盖），仍在命令里，
@@ -69,15 +93,39 @@ jobs:
           moon test kernel chrome plugins/ai plugins/markdown plugins/project \
             plugins/run plugins/terminal plugins/blocks --target native
 
+  service-tests:
+    name: Service layer tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        uses: ./.github/actions/setup-moonbit
+
+      - name: Install dependencies
+        run: moon update
+
       # 服务层：编译轨、差分门禁、导出。
       - name: Service tests
         run: |
-          moon test services/compiled_runtime --target native
-          moon test services/diff --target native
-          moon test services/compile_native --target native
-          moon test services/export --target native
+          moon test services/compiled_runtime services/diff \
+            services/compile_native services/export --target native
 
-      # 应用层：解释轨 + 壳回归。435 个测试，native 与 wasm-gc 各跑一遍
+  app-tests:
+    name: App tests (native + wasm-gc)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        uses: ./.github/actions/setup-moonbit
+
+      - name: Install dependencies
+        run: moon update
+
+      # 应用层：解释轨 + 壳回归。native 与 wasm-gc 各跑一遍
       # （wasm-gc 那一项母仓库 pr profile 没有，这里补上）。
       - name: App tests (native)
         run: moon test app --target native
@@ -85,9 +133,35 @@ jobs:
       - name: App tests (wasm-gc)
         run: moon test app --target wasm-gc
 
+  export-kernel-sync:
+    name: Export kernel sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        uses: ./.github/actions/setup-moonbit
+
+      - name: Install dependencies
+        run: moon update
+
       # 导出内核漂移门：domain 源码改了忘同步 → 红。
       - name: Export kernel sync
         run: moon run tools/sync_kernel --target native -- --check
+
+  web-entry-build:
+    name: Web entry build (wasm-gc)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        uses: ./.github/actions/setup-moonbit
+
+      - name: Install dependencies
+        run: moon update
 
       # Web 入口可构建（母仓库 pr profile 没有这一项）。
       - name: Web entry build (wasm-gc)
