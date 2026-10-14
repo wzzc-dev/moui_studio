@@ -133,6 +133,7 @@ jobs:
       - name: Zip portable folder
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force -Path dist\windows | Out-Null
           Compress-Archive -Path dist\windows-msvc\MoUIStudio `
             -DestinationPath dist\windows\MoUI-Studio-windows-x64.zip -Force
 
