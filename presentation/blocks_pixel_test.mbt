@@ -52,10 +52,10 @@ test "blocks workbench rasterizes bottom bar, right panel and status bar" {
     }
     None
   }
-  // 进积木工作台：活动栏最高处的模式钮（壳测试同款定位：x<48、高>10、
-  // y 最大的带底矩形）。
+  // 进积木工作台：活动栏第三个模式钮（壳测试同款定位：x<48、高>10；
+  // 钮序 = 图形化/设计/积木｜代码/AI，排序后积木 = 第三小）。
   let commands1 = runtime.draw_commands()
-  let mut blocks_cy : Double = 0.0
+  let button_cys : Array[Double] = []
   for command in commands1 {
     // 活动栏钮底随主题走不同填充变体（纯色/圆角/Brush），全收。
     let rect : @core.Rect? = match command {
@@ -72,15 +72,17 @@ test "blocks workbench rasterizes bottom bar, right panel and status bar" {
           rect.origin.y < 700.0 &&
           rect.size.width > 8.0 &&
           rect.size.height > 10.0 {
-          let cy = rect.origin.y + rect.size.height / 2.0
-          if cy > blocks_cy {
-            blocks_cy = cy
-          }
+          button_cys.push(rect.origin.y + rect.size.height / 2.0)
         }
       None => ()
     }
   }
-  assert_true(blocks_cy > 0.0, msg="blocks mode button not found")
+  button_cys.sort()
+  assert_true(
+    button_cys.length() >= 5,
+    msg="expected 5 mode buttons, got \{button_cys.length()}",
+  )
+  let blocks_cy = button_cys[2]
   tap_xy(24.0, blocks_cy)
   let commands2 = runtime.draw_commands()
   match
