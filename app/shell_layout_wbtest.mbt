@@ -1775,8 +1775,8 @@ test "blocks workbench chrome panels and activity tap" {
   assert_true(shell_has_text(commands1, "程序结构"))
   assert_scopes_balanced(commands1, "initial frame")
   // 活动栏模式钮：x<48 的带底矩形且**高度 >10**（排除 1pt 分隔线）。
-  // 钮序 = 图形化/代码/AI/设计/积木（cy 递增），排序后：
-  // 积木 = 最大，代码 = 第二小。
+  // 钮序 = 图形化/设计/积木｜代码/AI（cy 递增），排序后：
+  // 积木 = 第三小，代码 = 第四小（与 AI 插件是否渲染无关）。
   let button_cys : Array[Double] = []
   for rect in shell_rects(commands1) {
     if rect.origin.x < 48.0 &&
@@ -1793,8 +1793,8 @@ test "blocks workbench chrome panels and activity tap" {
     button_cys.length() >= 5,
     msg="expected 5 mode buttons, got \{button_cys.length()}",
   )
-  let blocks_tap_y = button_cys[button_cys.length() - 1]
-  let code_tap_y = button_cys[1]
+  let blocks_tap_y = button_cys[2]
+  let code_tap_y = button_cys[3]
   fn tap_xy(x : Double, y : Double) -> Unit {
     ignore(
       runtime.dispatch_pointer_input(
@@ -1810,7 +1810,7 @@ test "blocks workbench chrome panels and activity tap" {
   fn has_label(commands : Array[@core.DrawCommand], needle : String) -> Bool {
     shell_has_text(commands, needle)
   }
-  // 击1:进积木工作台(最高的模式钮)
+  // 击1:进积木工作台(图形化/设计之后的第三个模式钮)
   tap_xy(24.0, blocks_tap_y)
   let commands2 = runtime.draw_commands()
   // 进入判据必须是**只属于积木台**的文本：左栏头消失 + 积木画布工具条在场。
@@ -1862,7 +1862,7 @@ test "blocks workbench chrome panels and activity tap" {
     msg="pointer sanity: problems tab switch (blocks workbench)",
   )
   assert_scopes_balanced(commands3, "problems tab frame")
-  // 击2:往返——点代码台钮(第二小的模式钮),代码台预设 = 左栏资源管理器。
+  // 击2:往返——点代码台钮(积木之后的第四个模式钮),代码台预设 = 左栏资源管理器。
   tap_xy(24.0, code_tap_y)
   let commands4 = runtime.draw_commands()
   assert_true(
