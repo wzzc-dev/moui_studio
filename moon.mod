@@ -16,7 +16,7 @@ import {
   "wzzc-dev/moui_web_renderer@0.2.2",
   "wzzc-dev/moui_agent@0.2.1",
   "wzzc-dev/moui_agent_mcp@0.2.1",
-  "wzzc-dev/moui_cli@0.2.3",
+  "wzzc-dev/moui_cli@0.2.4",
   "moonbitlang/async@0.22.4",
   "moonbitlang/x@0.5.5",
 }
