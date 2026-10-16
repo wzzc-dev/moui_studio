@@ -21,6 +21,15 @@ pub(all) struct AiUiState {
   right_panel_tab : RightPanelTab
   provider_endpoint : String
   provider_model : String
+  /// 模型候选清单（composer 里的下拉芯片列它）。
+  ///
+  /// **不从网络发现**：没有 `/models` 端点协议，假装能发现是谎言。来源只有
+  /// `.config.json` 的 `provider.models`（缺省 = 只有当前 model 一项，
+  /// 即今天的行为）。壳在装配时宽松读取（缺字段不报错）。
+  provider_models : Array[String]
+  /// composer 模型下拉是否展开（与 `composer_mode_picker_open` 同形态：
+  /// 原位展开一行候选芯片，不引 popover 依赖）。
+  provider_model_picker_open : Bool
   provider_key : String
   provider_key_revealed : Bool
   /// AI 页「已工作 N」折叠组是否收起（右栏 AI 页与 PsAi 中心共用）。
@@ -47,6 +56,7 @@ pub fn AiUiState::new(
   endpoint : String,
   model : String,
   api_key : String,
+  models : Array[String],
 ) -> AiUiState {
   {
     composer_mode: ComposeEdit,
@@ -54,6 +64,14 @@ pub fn AiUiState::new(
     right_panel_tab: RpChanges,
     provider_endpoint: endpoint,
     provider_model: model,
+    // 候选清单为空时退化为「只有当前模型一项」——下拉仍可用（显示一个
+    // 候选 + 一个「去设置」入口），不会出现空列表。
+    provider_models: if models.length() > 0 {
+      models
+    } else {
+      [model]
+    },
+    provider_model_picker_open: false,
     provider_key: api_key,
     provider_key_revealed: false,
     ai_cards_folded: false,
@@ -77,6 +95,10 @@ pub(all) enum AiUiMsg {
   ToggleComposerModePicker
   SetProviderEndpoint(String)
   SetProviderModel(String)
+  /// 设置模型候选清单（装配期一次性注入；空 = 退化为当前模型一项）。
+  SetProviderModels(Array[String])
+  /// 切换 composer 模型下拉的开合（选模型即收起）。
+  ToggleProviderModelPicker
   SetProviderKey(String)
   ToggleProviderKeyReveal
   ToggleCardsFold
@@ -115,7 +137,25 @@ pub fn update_ai_ui(
         none,
       )
     SetProviderEndpoint(value) => ({ ..state, provider_endpoint: value, }, none)
-    SetProviderModel(value) => ({ ..state, provider_model: value, }, none)
+    SetProviderModel(value) =>
+      (
+        { ..state, provider_model: value, provider_model_picker_open: false, },
+        none,
+      )
+    SetProviderModels(value) =>
+      if value.length() > 0 {
+        ({ ..state, provider_models: value, }, none)
+      } else {
+        (state, none)
+      }
+    ToggleProviderModelPicker =>
+      (
+        {
+          ..state,
+          provider_model_picker_open: !state.provider_model_picker_open,
+        },
+        none,
+      )
     // 掩码态下 on_input 送来星号串：未展开时忽略编辑，避免写穿真值。
     SetProviderKey(value) =>
       if state.provider_key_revealed {
@@ -181,7 +221,7 @@ pub fn update_ai_ui(
 /// 同口径）。
 pub fn ai_ui_feature() -> @moui.Feature[AiUiState, AiUiMsg] {
   @moui.Feature::new(
-    init=() => (AiUiState::new("", "", ""), @moui.Effect::none()),
+    init=() => (AiUiState::new("", "", "", []), @moui.Effect::none()),
     update=fn(state, message) { update_ai_ui(state, message) },
     view=_state => abort("ai ui views are composed by the parent shell"),
   )

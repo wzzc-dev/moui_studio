@@ -34,12 +34,20 @@ pub(all) struct BlocksDragState {
 }
 
 ///|
-/// 布局常量（画布局部坐标）。包内私有——壳侧不需要它们，几何事实由本包
-/// 的导出函数承载（`blocks_item_rects` / `blocks_visual_rects` / `blocks_draw_plan`）。
-let block_step : Double = 40.0
+/// 块行高（画布局部坐标，导出给壳侧的画布高度预算与 `app.BLOCK_ROW_HEIGHT`
+/// 引用）。**行距 = 行高**（`block_step = block_height`）——Scratch 的堆叠
+/// 咬合：行与行**零缝隙**，上一行的底榫插进下一行的顶卯（榫深见
+/// `block_outline_path`）。行距大于行高会让榫头悬在缝隙里
+/// （实测「积木形状和 Scratch 差很多」的主因之一）。
+pub const BLOCKS_ROW_HEIGHT : Double = 34.0
 
 ///|
-let block_height : Double = 34.0
+/// 布局常量（画布局部坐标）。包内私有——壳侧不需要它们，几何事实由本包
+/// 的导出函数承载（`blocks_item_rects` / `blocks_visual_rects` / `blocks_draw_plan`）。
+let block_height : Double = BLOCKS_ROW_HEIGHT
+
+///|
+let block_step : Double = block_height
 
 ///|
 let block_indent : Double = 24.0
@@ -77,6 +85,50 @@ pub fn blocks_chain_y(
   note_height : Double,
 ) -> Double {
   local_y - note_height + y_offset
+}
+
+///|
+/// 脚本原点缺省值（左上留白给缩放读数与网格边）。
+pub const BLOCKS_SCRIPT_MARGIN : Double = 24.0
+
+///|
+/// **画布视口坐标 → 链条坐标** 的换算：自由画布（缩放 + 脚本摆放）下
+/// 「画在哪」与「点在哪」的**唯一**逆映射。
+///
+/// 三层坐标：
+/// - 链坐标 `chain`：`blocks_item_rects` 的输出，脚本内部；
+/// - 画布内容坐标 `field`：`chain × zoom + script_origin + pan`；
+/// - 视口坐标 `local`：指针/帧原点。
+///
+/// 求逆：`chain = (local − script_origin) / zoom`。
+///
+/// **缩放只在绘制期表达**（`push_transform(Transform2D::scale(zoom, zoom))`），
+/// 几何函数（`blocks_item_rects` / `blocks_slot_rects` / …）的签名与输出
+/// **完全不变**——它们在链坐标里算，缩放由 transform 统一作用于绘制，
+/// 所以逆映射只需要除掉 zoom，不需要改任何一个几何函数。这是「几何零
+/// 签名改动」的前提，也是本函数存在的唯一理由。
+///
+/// **所有**吃画布局部坐标的调用点必须走这里（少改一处 = 该处在
+/// zoom ≠ 1 时系统性偏移，而且只在缩放后出现，不带缩放的用例永远发现不了）：
+/// 1. `@blk.blocks_hit_index`（点选/右键/落槽容器判定）
+/// 2. `@blk.blocks_value_hit`（点值就地编辑）
+/// 3. `@blk.blocks_slot_hit`（表达式拖入洞）
+/// 4. `@blk.blocks_drop_list_of`（拖拽容器判定）
+/// 5. `@blk.blocks_drop_slot`（拖拽槽位判定）
+/// 6. `@blk.blocks_insert_mark`（插入线 y/宽）
+///
+/// 之后仍要过 `blocks_chain_y`（说明横幅的下移量与 y_offset 的逆）——
+/// 两件事是正交的：zoom 属于画布，note 属于脚本链。
+pub fn blocks_to_chain(
+  local_x : Double,
+  local_y : Double,
+  zoom : Double,
+  origin : ScriptOrigin,
+) -> (Double, Double) {
+  // zoom 夹到下限之上：0 或负值会让逆映射炸成 ±∞（除零），
+  // 调用方传 0 一律按 1.0 处理（未初始化/复位中的中间态）。
+  let scale = if zoom > 0.0 { zoom } else { 1.0 }
+  ((local_x - origin.x) / scale, (local_y - origin.y) / scale)
 }
 
 ///|
@@ -384,6 +436,87 @@ pub fn blocks_drop_slot(
     i = i + 1
   }
   slot
+}
+
+///|
+/// **调色板拖入的落槽指示线**（`blocks_insert_mark` 的指针版孪生）。
+///
+/// 为什么另立一个函数而不是复用 `blocks_insert_mark`：后者吃的是
+/// `BlocksDragState`（「已抓住哪一块 + 它原来在哪」），而调色板拖入时
+/// 手里**没有**已存在的块——只有指针位置。两者的目标列表/槽位推导完全
+/// 一样（`blocks_drop_list_of` + `blocks_drop_slot`），差别只在输入。
+/// 塞一个假的 `BlocksDragState` 进去会让 `to_list` 的来源说不清。
+///
+/// 返回 `(y, 宽, 是否有效)`——与 `blocks_insert_mark` 同一形状，画布侧的
+/// `InsertMark` op 直接吃。**永远有效**：调色板骨架是合法语句（模板本身
+/// 由 `parse_handler_body` 校验过），不存在「放不进去」的语言级拒绝；
+/// 拒绝只发生在「指针不在任何行上」，那时返回 `None`（不画线）。
+///
+/// 指针是**链坐标**（画布 drag 分支已除回 zoom/原点）。
+pub fn blocks_drop_mark_at(
+  blocks : Array[@blk.BlockItem],
+  rects : Array[@geometry.Rect],
+  pointer_x : Double,
+  pointer_y : Double,
+) -> (Double, Double, Bool)? {
+  // 顶层是兜底目标：指针不在任何行上时，落到脚本末尾（Scratch 里拖到
+  // 最外层是最常见的动作）。
+  let top : Array[Int] = []
+  let to_list = blocks_drop_list_of(blocks, rects, pointer_y, top)
+  let slot = blocks_drop_slot(blocks, to_list, pointer_y, rects)
+  // 找目标列表里的第 slot 行：线画在它顶缘上方；列表为空（空容器）时
+  // 锚在**容器头**的底缘——那是空体第一行该出现的位置。
+  let mut mark_y : Double? = None
+  let mut mark_w : Double = 300.0
+  let mut seen = 0
+  let mut i = 0
+  for item in blocks {
+    if blocks_same_path(blocks_parent_of(item.path), to_list) {
+      let r = rects[i]
+      mark_w = r.size.width
+      if seen == slot {
+        mark_y = Some(r.origin.y - 3.0)
+      }
+      seen = seen + 1
+    }
+    i = i + 1
+  }
+  if seen == slot && seen > 0 {
+    // 落到最后一个兄弟之后：线画在其底缘下方
+    let mut i2 = 0
+    for item in blocks {
+      if blocks_same_path(blocks_parent_of(item.path), to_list) {
+        let r = rects[i2]
+        mark_y = Some(r.origin.y + r.size.height + 3.0)
+      }
+      i2 = i2 + 1
+    }
+  }
+  // 空容器：锚在容器头底缘（与 `blocks_insert_mark` 同一处理）
+  if seen == 0 && slot == 0 && to_list.length() > 0 {
+    let owner_path : Array[Int] = []
+    let mut k = 0
+    while k < to_list.length() - 1 {
+      owner_path.push(to_list[k])
+      k = k + 1
+    }
+    let mut i3 = 0
+    for item in blocks {
+      if blocks_same_path(item.path, owner_path) {
+        let r = rects[i3]
+        mark_y = Some(r.origin.y + r.size.height + 3.0)
+        mark_w = r.size.width
+      }
+      i3 = i3 + 1
+    }
+  }
+  // pointer_x 不进判定（落槽只按纵向算，与 `blocks_drop_slot` 同口径），
+  // 收下它是为了让「横向也参与」的未来改动能就地加。
+  let _ = pointer_x
+  match mark_y {
+    Some(y) => Some((y, mark_w, true))
+    None => None
+  }
 }
 
 ///|

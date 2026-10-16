@@ -132,3 +132,78 @@ test "category index mapping matches the rail order" {
   }
   assert_true(@blk.category_at(5) is None)
 }
+
+///|
+/// **自制积木组**：插入一条自定义函数调用。
+///
+/// 骨架由「函数名 + 占位实参」拼出（`名字(0, 0)`），走与模板插入同一条
+/// `parse_handler_body` 校验链——这条用例钉住两件事：
+/// ① 函数调用真的落进 IR（不是只在面板里显示）；
+/// ② 落点是「选中块的下一行」，与模板插入同一判据。
+test "insert custom function call lands after the selected block" {
+  let base = @app.load_template_program(@app.initial_model(), 2)
+  // 模板没有函数——造一个两形参的
+  let program : @ir.StudioProgram = {
+    ..base.program,
+    functions: [
+      @ir.FuncDef::{
+        name: "求和",
+        params: ["甲", "乙"],
+        body: [],
+        note_zh: "",
+        note_en: "",
+      },
+    ],
+  }
+  let model = { ..base, program, }
+  let before = @app.block_chain_of(model)
+  assert_true(before.length() >= 2)
+  let original_second = before[1].text
+  let selected = select_block_index(model, 0)
+  let inserted = apply(selected, InsertCustomFunction(0))
+  let after = @app.block_chain_of(inserted)
+  assert_eq(after.length(), before.length() + 1)
+  // 新语句插在下标 1，原第二条被挤到下标 2
+  assert_eq(after[2].text, original_second)
+  assert_true(after[1].text.contains("求和"))
+  assert_eq(inserted.selected_block, 1)
+  // 越界下标：no-op（不崩、不插）
+  let bad = apply(selected, InsertCustomFunction(7))
+  assert_eq(@app.block_chain_of(bad).length(), before.length())
+}
+
+///|
+/// 自制积木组的条目投影：`program.functions` → (名字, 形参个数)，
+/// 顺序与 IR 一致（不排序）。
+test "custom entries project function name and arity" {
+  let base = @app.load_template_program(@app.initial_model(), 2)
+  let program : @ir.StudioProgram = {
+    ..base.program,
+    functions: [
+      @ir.FuncDef::{
+        name: "甲",
+        params: [],
+        body: [],
+        note_zh: "",
+        note_en: "",
+      },
+      @ir.FuncDef::{
+        name: "乙",
+        params: ["a", "b"],
+        body: [],
+        note_zh: "",
+        note_en: "",
+      },
+    ],
+  }
+  let model = { ..base, program, }
+  let entries = @app.custom_entries_of(model)
+  assert_eq(entries.length(), 2)
+  assert_eq(entries[0].name, "甲")
+  assert_eq(entries[0].arity, 0)
+  assert_eq(entries[1].name, "乙")
+  assert_eq(entries[1].arity, 2)
+  // 骨架展示名：占位实参按形参个数生成（0 是任何类型都吃得下的字面量）
+  assert_eq(@blk.custom_call_label(entries[0]), "甲()")
+  assert_eq(@blk.custom_call_label(entries[1]), "乙(0, 0)")
+}

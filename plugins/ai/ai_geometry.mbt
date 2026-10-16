@@ -13,10 +13,21 @@ pub const COMPOSER_HEIGHT : Double = 88.0
 ///|
 /// 输入盒高度唯一计算源（视图层与 card_chrome_height 共用——两处各算
 /// 一份就会把 composer 顶出卡片）。
-pub fn composer_height(width : Double) -> Double {
+/// `picker_open`：模型候选行是否展开（展开时 composer 内部多一行 22pt 的
+/// 候选芯片）。**分态**是因为钉底块的高度预算从这一处取——两处各算一份
+/// 就会把输入盒顶出宿主（`ai_bar_layout_wbtest` 的高度回归会红）。
+pub fn composer_height(width : Double, picker_open? : Bool = false) -> Double {
   ignore(width)
-  COMPOSER_HEIGHT
+  if picker_open {
+    COMPOSER_HEIGHT + MODEL_PICKER_ROW_HEIGHT
+  } else {
+    COMPOSER_HEIGHT
+  }
 }
+
+///|
+/// 模型候选行高（composer 内部多出来的那一行）。
+pub const MODEL_PICKER_ROW_HEIGHT : Double = 22.0
 
 ///|
 /// composer 信息层（对白转录）：工程芯片（有 active 工程才在）+ 模型芯片
@@ -34,8 +45,11 @@ pub fn context_chips_height(width : Double) -> Double {
 /// composer 块高 = 输入盒 + 上方上下文芯片行 + 空会话提示头条（仅中心态）。
 /// 中心态与紧凑宿主的高度预算都从这里取——两处各算一份，芯片行/提示条
 /// 就会把输入盒顶出宿主。
-pub fn composer_block_height(width : Double) -> Double {
-  composer_height(width) + context_chips_height(width)
+pub fn composer_block_height(
+  width : Double,
+  picker_open? : Bool = false,
+) -> Double {
+  composer_height(width, picker_open~) + context_chips_height(width)
 }
 
 ///|

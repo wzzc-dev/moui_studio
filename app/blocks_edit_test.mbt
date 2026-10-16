@@ -609,21 +609,30 @@ test "an invalid drop is rejected and leaves the program untouched" {
 ///   画布下缘之外，看起来像「缺了一块」）。
 test "dragging near the canvas edge auto-scrolls and clamps at the top" {
   let model = @app.load_template_program(@app.initial_model(), 2)
-  // 顶部再往上滚：夹在 0
+  // 顶部再往上滚：夹在 0（双轴都夹）
   let up = apply(model, BlocksUiOp(@blk.BlocksAutoScroll(-1)))
-  assert_eq(up.blocks_ui.blocks_scroll_y, 0.0)
+  assert_eq(up.blocks_ui.blocks_scroll.y, 0.0)
+  assert_eq(up.blocks_ui.blocks_scroll.x, 0.0)
   // 向下滚：真的推进
   let down = apply(model, BlocksUiOp(@blk.BlocksAutoScroll(1)))
-  assert_true(down.blocks_ui.blocks_scroll_y > 0.0)
+  assert_true(down.blocks_ui.blocks_scroll.y > 0.0)
   // 连滚多档继续推进（每档一个常量）
   let more = apply(down, BlocksUiOp(@blk.BlocksAutoScroll(1)))
-  assert_true(more.blocks_ui.blocks_scroll_y > down.blocks_ui.blocks_scroll_y)
+  assert_true(more.blocks_ui.blocks_scroll.y > down.blocks_ui.blocks_scroll.y)
   // 手动滚动回报进模型（受控滚动的另一半：不回写就会被下一次重渲弹回）
-  let manual = apply(more, BlocksUiOp(@blk.BlocksScrolled(120.0)))
-  assert_eq(manual.blocks_ui.blocks_scroll_y, 120.0)
+  let manual = apply(
+    more,
+    BlocksUiOp(@blk.CanvasScrolled(@geometry.Point::new(x=40.0, y=120.0))),
+  )
+  assert_eq(manual.blocks_ui.blocks_scroll.y, 120.0)
+  assert_eq(manual.blocks_ui.blocks_scroll.x, 40.0)
   // 负的手动回报也夹到 0
-  let clamped = apply(manual, BlocksUiOp(@blk.BlocksScrolled(-50.0)))
-  assert_eq(clamped.blocks_ui.blocks_scroll_y, 0.0)
+  let clamped = apply(
+    manual,
+    BlocksUiOp(@blk.CanvasScrolled(@geometry.Point::new(x=-50.0, y=-50.0))),
+  )
+  assert_eq(clamped.blocks_ui.blocks_scroll.y, 0.0)
+  assert_eq(clamped.blocks_ui.blocks_scroll.x, 0.0)
 }
 
 ///|
@@ -986,5 +995,93 @@ test "启动 hat:入口在积木窗格常显,点击创建/切换 OnStart" {
   assert_true(
     created.selected_handler == @app.handler_key("", @ir.OnStart.tag()),
     msg="创建后应选中 OnStart",
+  )
+}
+
+///|
+/// 调色板拖拽的**视口 → 链**换算与落点判定（update 侧，假锚点帧）。
+///
+/// 锁三件事：换算与画布手势同一套逆映射（zoom / 脚本原点 / 说明横幅带，
+/// 正逆变换互逆）；指针在画布帧内松手 = 按链坐标落槽插入；画布外松手 =
+/// 取消（清拖拽瞬态，不插入——Scratch 的「拖回调色板 = 放弃」）。
+test "palette drop converts viewport pointer and cancels outside canvas" {
+  // 与「拖骨架到画布」既有测试同一份夹具（模板程序 + if 骨架）。
+  let model = @app.load_template_program(@app.initial_model(), 2)
+  // 画布帧在视口 (100,100)，逻辑 800×600；缩放 100%。
+  let frame_of = fn(key : String) -> @core.Rect? {
+    ignore(key)
+    Some(@core.Rect::new(x=100.0, y=100.0, width=800.0, height=600.0))
+  }
+  // 正变换：链坐标 → 视口（+帧原点 +脚本原点 ×zoom +说明横幅带），
+  // 与 update 的逆映射互逆——两边任何一边改了，这个测试都会红。
+  let to_viewport = fn(
+    m : @app.Model,
+    cx : Double,
+    cy : Double,
+  ) -> @core.Point {
+    let note = if @app.target_note(m) == "" {
+      0.0
+    } else {
+      @blk.BLOCKS_NOTE_HEIGHT
+    }
+    let origin = match @app.current_handler(m) {
+      Some(handler) => @app.script_origin_of(m, handler)
+      None =>
+        @blk.ScriptOrigin::{
+          x: @blk.BLOCKS_SCRIPT_MARGIN,
+          y: @blk.BLOCKS_SCRIPT_MARGIN,
+        }
+    }
+    @core.Point::new(x=100.0 + origin.x + cx, y=100.0 + origin.y + note + cy)
+  }
+  // 换算：链 (10,10) 的点视口化后逆映射回 (10,10)。
+  let (lx, ly) = @app.palette_pointer_to_chain(
+    model,
+    frame_of,
+    to_viewport(model, 10.0, 10.0),
+  ).unwrap()
+  assert_eq(lx, 10.0)
+  assert_eq(ly, 10.0)
+  // 拖拽态在场 + 指针在画布内（第 0 行下半部分）松手 → 落槽插入。
+  let (dragging, _) = @app.update_pure(
+    model,
+    @app.Msg::BlocksUiOp(@blk.PaletteDragStart(2, 0)),
+  )
+  let rects = @blk.blocks_item_rects(
+    @app.block_chain_of(dragging),
+    avail_width=470.0,
+  )
+  let r0 = rects[0]
+  let inside = to_viewport(
+    dragging,
+    r0.origin.x + 20.0,
+    r0.origin.y + r0.size.height * 0.75,
+  )
+  let (dropped, _) = @app.update_palette_drop_at(
+    dragging, frame_of, inside, 470.0,
+  )
+  assert_true(
+    @app.block_chain_of(dropped).length() >
+    @app.block_chain_of(dragging).length(),
+    msg="drop inside canvas must insert a statement",
+  )
+  assert_true(
+    dropped.blocks_ui.palette_drag is None,
+    msg="drop clears drag state",
+  )
+  // 指针在画布外松手 → 取消，不插入。
+  let (cancelled, _) = @app.update_palette_drop_at(
+    dragging,
+    frame_of,
+    @core.Point::new(x=50.0, y=50.0),
+    470.0,
+  )
+  assert_eq(
+    @app.block_chain_of(cancelled).length(),
+    @app.block_chain_of(dragging).length(),
+  )
+  assert_true(
+    cancelled.blocks_ui.palette_drag is None,
+    msg="cancel clears drag state",
   )
 }

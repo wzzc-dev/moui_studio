@@ -25,6 +25,11 @@ pub(all) enum AiCardKind {
 ///|
 /// AI 会话卡：会话内的可见工作记录（设计稿 threadStack）。
 /// steps 只在计划卡非空；diff 行只在 diff 卡非空。
+///
+/// `code_blocks` 是**生成的积木代码**（目标图右栏的代码块）。为什么单独
+/// 一字段而不是塞进 `body`：body 是 markdown 串，而代码块复制要**按块**
+/// 复制（一次回复产多块代码时整卡复制会把叙述一起拷走），塞进 body 就分不
+/// 出块边界；且 markdown 子集不支持嵌套，用它承载会与解析抢语义。
 pub(all) struct AiCard {
   kind : AiCardKind
   title : String
@@ -35,6 +40,8 @@ pub(all) struct AiCard {
   progress : Int
   // diff 卡：逐行 ± 文本
   diff_lines : Array[(String, String)]
+  // 生成的积木代码：(标题, 代码文本) 序列。标题 = handler_key。
+  code_blocks : Array[(String, String)]
   // 卡是否已被用户处理（接受/拒绝/确认）：处理过的卡降透明度显示
   settled : Bool
   settled_note : String

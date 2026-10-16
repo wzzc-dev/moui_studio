@@ -40,6 +40,8 @@ pub const COMPOSER_HEIGHT : Double = 88.0
 
 pub const FOLD_BAR_HEIGHT : Double = 27.0
 
+pub const MODEL_PICKER_ROW_HEIGHT : Double = 22.0
+
 pub const POSTURE_HEIGHT : Double = 20.0
 
 pub const SEE_ALL_HEIGHT : Double = 20.0
@@ -62,9 +64,9 @@ pub fn[Msg] ai_workspace_panel(AiWorkspaceParams[Msg], @moui_i18n.Translator, Do
 
 pub fn ai_ws_changed_files(Array[@proposals.DiffEntry]) -> Array[String]
 
-pub fn composer_block_height(Double) -> Double
+pub fn composer_block_height(Double, picker_open? : Bool) -> Double
 
-pub fn composer_height(Double) -> Double
+pub fn composer_height(Double, picker_open? : Bool) -> Double
 
 pub fn context_chips_height(Double) -> Double
 
@@ -76,7 +78,7 @@ pub fn encode_ai_sessions(AiSessions) -> String
 
 pub fn[Msg] has_decision_content(AiViewParams[Msg]) -> Bool
 
-pub fn[Msg] markdown_blocks_view(Array[@markdown.MarkdownBlock], Double) -> @core.View[Msg]
+pub fn[Msg] markdown_blocks_view(Array[@markdown.MarkdownBlock], Double, @moui_i18n.Translator, on_copy_code? : ((Int) -> Msg)?) -> @core.View[Msg]
 
 pub fn[Msg] see_all_row(@moui_i18n.Translator, Double, on_toggle~ : Msg) -> @core.View[Msg]
 
@@ -95,6 +97,7 @@ pub(all) struct AiCard {
   steps_done : Int
   progress : Int
   diff_lines : Array[(String, String)]
+  code_blocks : Array[(String, String)]
   settled : Bool
   settled_note : String
   seq : Int
@@ -187,6 +190,8 @@ pub(all) enum AiUiMsg {
   ToggleComposerModePicker
   SetProviderEndpoint(String)
   SetProviderModel(String)
+  SetProviderModels(Array[String])
+  ToggleProviderModelPicker
   SetProviderKey(String)
   ToggleProviderKeyReveal
   ToggleCardsFold
@@ -207,6 +212,8 @@ pub(all) struct AiUiState {
   right_panel_tab : RightPanelTab
   provider_endpoint : String
   provider_model : String
+  provider_models : Array[String]
+  provider_model_picker_open : Bool
   provider_key : String
   provider_key_revealed : Bool
   ai_cards_folded : Bool
@@ -220,7 +227,7 @@ pub(all) struct AiUiState {
   settings_open : Bool
   ai_history_open : Bool
 }
-pub fn AiUiState::new(String, String, String) -> Self
+pub fn AiUiState::new(String, String, String, Array[String]) -> Self
 
 pub(all) struct AiViewParams[Msg] {
   sessions : AiSessions
@@ -233,6 +240,9 @@ pub(all) struct AiViewParams[Msg] {
   picker_open : Bool
   provider_model : String
   provider_key : String
+  provider_models : Array[String]
+  model_picker_open : Bool
+  plan_block_count : Int?
   explanation : String
   prompt_error : String
   pending : PendingProposal?
@@ -248,10 +258,13 @@ pub(all) struct AiViewParams[Msg] {
   on_stop : Msg
   on_set_mode : (ComposerMode) -> Msg
   on_toggle_picker : Msg
+  on_toggle_model_picker : Msg
+  on_select_model : (String) -> Msg
   on_toggle_history : Msg
   on_accept : Msg
   on_reject : Msg
   on_copy : (Int) -> Msg
+  on_copy_code : (Int, Int) -> Msg
   on_edit : (Int) -> Msg
   on_retry : (Int) -> Msg
   on_scroll : (@core.Point) -> Msg

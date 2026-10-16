@@ -44,11 +44,13 @@ pub const ALIGN_MARGIN : Int = 24
 
 pub const AUDIT_LIMIT : Int = 200
 
-pub const BLOCK_ROW_HEIGHT : Double = 40.0
+pub const BLOCK_ROW_HEIGHT : Double = 34.0
 
 pub const BUTTON_LABEL_PADDING : Double = 32.0
 
 pub const CANVAS_MIN_WIDTH : Double = 120.0
+
+pub const CATEGORY_INDEX_CUSTOM : Int = 5
 
 pub const CATEGORY_RAIL_WIDTH : Double = 86.0
 
@@ -138,7 +140,9 @@ pub fn block_row_texts(@moui_i18n.Translator, Array[@wzzc-dev/moui_studio/domain
 
 pub fn blocks_body_height(Model, Double) -> Double
 
-pub fn blocks_canvas(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[String], Int, String, (Double, Double, Bool)?, Double, Double, String, y_offset? : Double, palette_drag? : Bool, expr_drag? : Bool, script_note? : String, note_height? : Double, lead_texts? : Array[String]) -> @core.View[Msg]
+pub fn blocks_canvas(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[String], Int, String, (Double, Double, Bool)?, Double, Double, String, avail_width? : Double, y_offset? : Double, palette_drag? : Bool, expr_drag? : Bool, script_note? : String, note_height? : Double, lead_texts? : Array[String], zoom? : Double, grid? : Bool, origin? : @wzzc-dev/moui_studio/plugins/blocks.ScriptOrigin, hat_top? : Bool) -> @core.View[Msg]
+
+pub fn blocks_canvas_toolbar(Model, @moui_i18n.Translator, Double, fit_zoom~ : Double) -> @core.View[Msg]
 
 pub fn blocks_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -153,6 +157,8 @@ pub fn builtin_words(@studio_lang.Language) -> Array[String]
 pub fn bundle_files(String, String) -> Array[(String, String)]
 
 pub fn button_label_width(String) -> Double
+
+pub fn card_code_text_by_index(Model, Int, Int) -> String?
 
 pub fn card_text_by_seq(Model, Int) -> String?
 
@@ -182,9 +188,9 @@ pub fn compiled_audit_op_rank(@compiled_runtime.StepOp) -> Int
 
 pub fn compiled_error_message(@moui_i18n.Translator, @compiled_runtime.ErrorDetails) -> String
 
-pub fn composer_block_height(Double) -> Double
+pub fn composer_block_height(Double, picker_open? : Bool) -> Double
 
-pub fn composer_height(Double) -> Double
+pub fn composer_height(Double, picker_open? : Bool) -> Double
 
 pub fn confirm_copy(ConfirmKind, @moui_i18n.Translator) -> String
 
@@ -199,6 +205,10 @@ pub fn control_kind_key(@ir.ControlKind) -> String
 pub fn current_handler(Model) -> @ir.Handler?
 
 pub fn current_target(Model) -> EditTarget?
+
+pub fn custom_entries_of(Model) -> Array[@wzzc-dev/moui_studio/plugins/blocks.CustomEntry]
+
+pub fn custom_function_count(Model) -> Int
 
 pub fn data_file_entries(Model) -> Array[DataFileEntry]
 
@@ -290,6 +300,8 @@ pub fn group_can_create(String) -> Bool
 
 pub fn group_children(Array[TreeNode], String) -> Array[TreeNode]
 
+pub fn handler_code_blocks(@ir.StudioProgram, @studio_lang.Language) -> Array[(String, String)]
+
 pub fn handler_key(String, String) -> String
 
 pub fn has_decision_content(Model) -> Bool
@@ -342,13 +354,19 @@ pub fn mark_ai_sessions_dirty(Model) -> Unit
 
 pub fn mark_projects_dirty(Model) -> Unit
 
+pub fn model_picker_open_of(Model) -> Bool
+
 pub fn moonbit_line_ranged(String, Int) -> Array[RangedToken]
 
 pub fn normalize_disabled_plugins(Model) -> Model
 
+pub fn onstart_hat_row(Model, @moui_i18n.Translator) -> @core.View[Msg]
+
 pub fn open_file_index_of(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String) -> Int?
 
 pub fn outline_symbols(String, String) -> Array[@wzzc-dev/moui_studio/plugins/project.OutlineSymbol]
+
+pub fn palette_pointer_to_chain(Model, (String) -> @core.Rect?, @core.Point) -> (Double, Double)?
 
 pub fn pane_foot(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
@@ -363,6 +381,8 @@ pub fn parse_generated_source(String, Array[@export.StmtLine]) -> @blocks_code.P
 pub fn pending_ai_cards(Model) -> Int
 
 pub fn pending_side_effects(Model) -> Int
+
+pub fn plan_block_count_of(Model) -> Int?
 
 pub fn plugin_active(Model, String) -> Bool
 
@@ -382,7 +402,7 @@ pub fn problem_rows(Model, @moui_i18n.Translator) -> Array[ProblemRow]
 
 pub fn problems_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
-pub fn program(environment? : @services.AppEnvironment, provider_submit? : (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit, compile_submit? : (String, String, (@export.CompileProgress) -> Unit, (Result[@export.CompileReport, String]) -> Unit) -> Unit, launch_submit? : (String, (Result[Unit, String]) -> Unit) -> Unit, runtime_snapshot? : () -> RuntimeInspectSample?, compile_cancel? : () -> Unit, build_submit? : (@build.BuildKind, String, String, (Result[@build.BuildReport, String]) -> Unit) -> Unit, build_cancel? : () -> Unit, webview_controller? : @host.WebViewController?, preview_web? : @kernel.PreviewWebControls[Msg], provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty? : @kernel.PtyService[Msg], focus_terminal? : () -> Unit, profile? : StudioProfile, apply_locale? : (String) -> Unit, wall_clock? : (() -> StudioClock)?, sessions_store_path? : String, projects_store_path? : String, ai_available? : Bool) -> @core.Program[Model, Msg]
+pub fn program(environment? : @services.AppEnvironment, provider_submit? : (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit, compile_submit? : (String, String, (@export.CompileProgress) -> Unit, (Result[@export.CompileReport, String]) -> Unit) -> Unit, launch_submit? : (String, (Result[Unit, String]) -> Unit) -> Unit, runtime_snapshot? : () -> RuntimeInspectSample?, compile_cancel? : () -> Unit, build_submit? : (@build.BuildKind, String, String, (Result[@build.BuildReport, String]) -> Unit) -> Unit, build_cancel? : () -> Unit, webview_controller? : @host.WebViewController?, preview_web? : @kernel.PreviewWebControls[Msg], provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty? : @kernel.PtyService[Msg], focus_terminal? : () -> Unit, profile? : StudioProfile, apply_locale? : (String) -> Unit, wall_clock? : (() -> StudioClock)?, sessions_store_path? : String, projects_store_path? : String, ai_available? : Bool, canvas_frame? : (String) -> @core.Rect?) -> @core.Program[Model, Msg]
 
 pub fn program_tree(Model) -> Array[TreeNode]
 
@@ -440,6 +460,8 @@ pub fn runtime_sample_arrived(Model, RuntimeInspectSample) -> Model
 
 pub fn same_category(@wzzc-dev/moui_studio/domain/blocks.BlockCategory, @wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> Bool
 
+pub fn script_origin_of(Model, @ir.Handler) -> @wzzc-dev/moui_studio/plugins/blocks.ScriptOrigin
+
 pub fn search_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn seed_code_draft(Model) -> Model
@@ -471,6 +493,8 @@ pub fn shortcut_icon_button(@style.IconName, String, Msg, @core.KeyboardShortcut
 pub fn side_subject_of(Model, @moui_i18n.Translator) -> (String, String)
 
 pub fn split_lines(String) -> Array[String]
+
+pub fn split_plan(String) -> Array[String]
 
 pub fn splitter(Double, Double) -> @core.View[Msg]
 
@@ -542,6 +566,10 @@ pub fn update_ide_msgs(Model, Msg) -> (Model, @core.Effect[Msg])?
 
 pub fn update_moonbit_draft_for_test(Model, String) -> Model
 
+pub fn update_palette_drag_pointer(Model, (String) -> @core.Rect?, @core.Point) -> (Model, @core.Effect[Msg])
+
+pub fn update_palette_drop_at(Model, (String) -> @core.Rect?, @core.Point, Double) -> (Model, @core.Effect[Msg])
+
 pub fn update_pure(Model, Msg) -> (Model, @core.Effect[Msg])
 
 pub fn update_selection_msgs(Model, Msg) -> (Model, @core.Effect[Msg])?
@@ -580,6 +608,7 @@ pub(all) enum ArtifactAction {
   ArtifactReveal
   ArtifactLaunch
   ArtifactAiCopy
+  ArtifactAiCodeCopy
 }
 
 pub(all) struct AuditEntry {
@@ -930,6 +959,9 @@ pub(all) enum Msg {
   DeleteBlock
   SelectBlockStep(Int)
   InsertStatement(Int, Int)
+  InsertCustomFunction(Int)
+  PaletteDragPointer(@core.Point)
+  PaletteDropAt(@core.Point, Double)
   RunSingleBlock
   AddFunction
   EditTargetNote(String)
@@ -1047,6 +1079,7 @@ pub(all) enum Msg {
   StopGeneration
   ClockUpdated(StudioClock)
   CopyAiMessage(Int)
+  CopyAiCodeBlock(Int, Int)
   EditUserPrompt(Int)
   RetryUserPrompt(Int)
   AiSessionRenameStart(Int)
@@ -1139,6 +1172,7 @@ pub(all) struct ProviderConfig {
   endpoint : String
   model : String
   api_key : String
+  models : Array[String]
 }
 
 pub(all) struct RangedToken {
@@ -1217,6 +1251,8 @@ pub(all) enum StudioPerspective {
   PsVisual
   PsCode
   PsAi
+  PsDesign
+  PsBlocks
 } derive(Eq)
 pub fn StudioPerspective::equal(Self, Self) -> Bool
 pub fn StudioPerspective::not_equal(Self, Self) -> Bool

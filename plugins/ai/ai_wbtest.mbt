@@ -13,6 +13,7 @@ fn seeded_sessions() -> AiSessions {
     steps_done: 1,
     progress: 100,
     diff_lines: [],
+    code_blocks: [],
     settled: true,
     settled_note: "",
     seq: 1,
@@ -57,6 +58,7 @@ test "ai session switch isolates drafts and cards" {
     steps_done: 0,
     progress: 0,
     diff_lines: [],
+    code_blocks: [],
     settled: true,
     settled_note: "",
     seq: 1,
@@ -165,6 +167,7 @@ test "ai session append_to_last_card only touches the last card" {
     steps_done: 0,
     progress: 0,
     diff_lines: [],
+    code_blocks: [],
     settled: false,
     settled_note: "",
     seq: 2,
@@ -256,6 +259,7 @@ test "ai sessions codec round trips the full container" {
     steps_done: 0,
     progress: 0,
     diff_lines: [],
+    code_blocks: [],
     settled: true,
     settled_note: "",
     seq: 1,
@@ -269,6 +273,7 @@ test "ai sessions codec round trips the full container" {
     steps_done: 0,
     progress: 100,
     diff_lines: [("+", "form.mbt +1"), ("-", "handlers.mbt -2")],
+    code_blocks: [],
     settled: false,
     settled_note: "",
     seq: 2,
@@ -353,4 +358,58 @@ test "ai sessions codec rebuilds fresh when the store is empty" {
     }
     Err(_) => fail("空存储应重建新会话")
   }
+}
+
+///|
+/// `code_blocks` 编解码往返：新字段必须能存能取，且**旧文件（无该字段）
+/// 解码缺省 `[]`**——不 bump 存储版本的前提就是旧文件零迁移。
+test "ai sessions codec round-trips code_blocks and defaults on old files" {
+  let sessions = AiSessions::new()
+  sessions.current().cards.push(AiCard::{
+    kind: CardDiff,
+    title: "变更",
+    body: "",
+    steps: [],
+    steps_done: 0,
+    progress: 100,
+    diff_lines: [],
+    code_blocks: [("按钮.on_click", "set_text(标签, \"hi\")")],
+    settled: false,
+    settled_note: "",
+    seq: 1,
+    at: 0,
+  })
+  let encoded = encode_ai_sessions(sessions)
+  match decode_ai_sessions(encoded) {
+    Ok(restored) => {
+      let blocks = restored.current().cards[0].code_blocks
+      assert_eq(blocks.length(), 1)
+      assert_eq(blocks[0].0, "按钮.on_click")
+      assert_eq(blocks[0].1, "set_text(标签, \"hi\")")
+    }
+    Err(_) => fail("带 code_blocks 的会话应能解码")
+  }
+  // 旧文件：卡片里没有 code_blocks 字段 → 缺省空数组（不炸、不丢卡）
+  let legacy = "{\"format\": \"moui.studio.ai-sessions\", \"version\": 1, \"sessions\": [{\"title\": \"旧\", \"prompt_draft\": \"\", \"card_seq\": 1, \"cards\": [{\"kind\": \"diff\", \"title\": \"t\", \"body\": \"\", \"steps\": [], \"steps_done\": 0, \"progress\": 0, \"diff_lines\": [], \"settled\": 0, \"settled_note\": \"\", \"seq\": 1, \"at\": 0}], \"proposal_history\": [], \"project\": \"\", \"pinned\": 0, \"updated\": 0, \"created\": 0}]}"
+  match decode_ai_sessions(legacy) {
+    Ok(restored) =>
+      assert_eq(restored.current().cards[0].code_blocks.length(), 0)
+    Err(_) => fail("旧格式会话应能解码")
+  }
+}
+
+///|
+/// 模型候选清单：空 = 退化为「当前模型一项」（下拉不会出现空列表）。
+test "ai ui provider models fall back to the current model" {
+  let with_list = AiUiState::new("e", "m", "k", ["a", "b"])
+  assert_eq(with_list.provider_models.length(), 2)
+  let empty = AiUiState::new("e", "m", "k", [])
+  assert_eq(empty.provider_models.length(), 1)
+  assert_eq(empty.provider_models[0], "m")
+  // 选模型即收起下拉（走 `update_ai_ui` 纯态函数）
+  let (opened, _) = update_ai_ui(empty, ToggleProviderModelPicker)
+  assert_true(opened.provider_model_picker_open)
+  let (picked, _) = update_ai_ui(opened, SetProviderModel("m"))
+  assert_false(picked.provider_model_picker_open)
+  assert_eq(picked.provider_model, "m")
 }

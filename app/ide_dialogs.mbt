@@ -644,6 +644,18 @@ pub fn studio_commands(t : @i18n.Translator) -> Array[StudioCommand] {
       hint: "",
     },
     StudioCommand::{
+      id: "studio.workspace.design",
+      label: text(t, "app.command.ws.design"),
+      group: group_ws,
+      hint: "",
+    },
+    StudioCommand::{
+      id: "studio.workspace.blocks",
+      label: text(t, "app.command.ws.blocks"),
+      group: group_ws,
+      hint: "",
+    },
+    StudioCommand::{
       id: "studio.left.toggle",
       label: text(t, "app.topbar.left_panel"),
       group: group_pane,

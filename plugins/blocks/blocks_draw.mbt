@@ -99,7 +99,7 @@ pub fn blocks_insert_mark(
 }
 
 ///|
-/// 拼图块绘制计划：逐块 = 体 + 文本 +（同层连续时）顶部榫头与底部卯口 +
+/// 拼图块绘制计划：逐块 = 体 + 文本 +（行相邻时）顶卯与底榫 +
 /// 选中/聚光灯描边 + 落槽指示线。display_texts 与 blocks 一一对应
 /// （控制流块的本地化标签由调用方预渲染，draw 闭包拿不到翻译器）。
 /// `insert_mark` 是**本画布本地坐标**的指示线（调用方已按段换算）。
@@ -114,6 +114,7 @@ pub fn blocks_draw_plan(
   dy : Double,
   measure? : (String) -> Double = no_text_measure,
   lead_texts? : Array[String] = [],
+  hat_top? : Bool = false,
 ) -> Array[BlocksDrawOp] {
   let ops : Array[BlocksDrawOp] = []
   // C 左壁的长度 = **视觉高 − 基础行高**。不另算一份弧高：`blocks_visual_rects`
@@ -146,11 +147,17 @@ pub fn blocks_draw_plan(
     // 随内容收紧，前缀会把高亮行挤出一个省略号（运行态文字跳变）。
     let is_spotlight = item.text != "" && item.text == spotlight
     // 单轮廓（M7②）：榫头/卯口在外轮廓里一次 fill+stroke——
-    // 榫头 = 顶边凸起（有上一块才画）；卯口 = 底边凹口（有下一块才画）。
-    let has_tab = item.path.length() > 0 &&
-      item.path[item.path.length() - 1] > 0
-    let has_notch = item.path.length() > 0
-    ops.push(BlockOutline(x, y, w, h, item.kind, has_tab, has_notch))
+    // **Scratch 咬合语义**：顶卯 = 有上一行（凹进块体），底榫 = 有下一行
+    // （凸出块体）。链是连续行（行距 = 行高），按**视觉相邻**判定，
+    // 不按 path 下标——装饰块（else/end）与普通行一样要和上下行咬合。
+    // 脚本堆首行（hat_top）：Scratch 帽子圆顶剪影——圆顶在行框**上方**
+    // （肩线 = 行顶），几何层零改动。
+    // 只读数据行（枚举/结构声明）保持素块：它们不是语句，不参与堆叠。
+    let is_hat = hat_top && i == 0
+    let plain = item.kind is @blk.BkEnumDecl || item.kind is @blk.BkStructDecl
+    let has_tab = i > 0 && !plain
+    let has_notch = i < blocks.length() - 1 && !plain
+    ops.push(BlockOutline(x, y, w, h, item.kind, has_tab, has_notch, is_hat))
     // **C 形左壁**：从顶块（帽）底边向下拉到收尾块顶边。帽本身保持一行高，
     // 壁与收尾块一起把子栈围成 C——「帽 + 左壁 + 底口」三段，缺一段就读成
     // 普通缩进。壁色跟顶块 kind（否则会读成另一块积木）。
@@ -195,12 +202,15 @@ pub fn blocks_draw_plan(
     let measured_label = measure(label_text)
     let not_truncated = measured_label <= 0.0 ||
       measured_label <= label_max * @chrome.LABEL_WIDTH_SAFETY
+    // 文字/插槽贴行顶下 8pt 排（圆顶在行框上方，行内不再为它让位——
+    // 槽与字同一 y，绘制与命中天然对齐）。
+    let label_y = y + 8.0
     if not_truncated {
       push_slot_holes(
         ops,
         blocks[i],
         label_x,
-        y + 8.0,
+        label_y,
         label_max,
         measure,
         blocks_row_lead_width(
@@ -218,13 +228,13 @@ pub fn blocks_draw_plan(
       BlockLabel(
         label_text,
         label_x,
-        y + 8.0,
+        label_y,
         label_max,
         @chrome.fit_label(label_text, label_max),
       ),
     )
     if is_selected || is_spotlight {
-      ops.push(BlockStroke(x, y, w, h))
+      ops.push(BlockStroke(x, y, w, h, is_hat))
     }
     i = i + 1
   }
@@ -233,10 +243,12 @@ pub fn blocks_draw_plan(
 
 ///|
 pub(all) enum BlocksDrawOp {
-  /// 单轮廓块体（M7②）：榫头/卯口**画进外轮廓**（PathSpec 一次
+  /// 单轮廓块体（M7②）：顶卯/底榫**画进外轮廓**（PathSpec 一次
   /// fill+stroke），替代贴片式三段（块体填充 + 榫头贴片 + 卯口挖色）。
-  /// `(x, y, w, h, kind, has_tab, has_notch)`。
-  BlockOutline(Double, Double, Double, Double, @blk.BlockKind, Bool, Bool)
+  /// 第 8 位 `hat`：脚本堆首行的 Scratch 帽子圆顶剪影（圆顶从行顶
+  /// 上方隆起，几何层零改动）。
+  /// `(x, y, w, h, kind, has_tab, has_notch, hat)`。
+  BlockOutline(Double, Double, Double, Double, @blk.BlockKind, Bool, Bool, Bool)
   /// C 形块的左壁：`(x, y, w, h, kind)`——从顶块底边向下延伸包住子栈。
   /// `kind` 决定壁色（与顶块同色，否则「包裹」会读成另一块积木）。
   BlockArm(Double, Double, Double, Double, @blk.BlockKind)
@@ -248,7 +260,9 @@ pub(all) enum BlocksDrawOp {
   /// **贴在积木旁边**的——用户读代码时看到它。只在右栏显示的话，读代码
   /// 的人根本看不到说明，那这条注释就失去了意义。
   ScriptNote(String, Double, Double, Double)
-  BlockStroke(Double, Double, Double, Double)
+  /// 选中/聚光灯描边。第 5 位 `hat`：帽子行沿外轮廓描边（圆顶不能
+  /// 用圆角矩形近似——描边会浮在剪影之外的空带里）。
+  BlockStroke(Double, Double, Double, Double, Bool)
   InsertMark(Double, Double, Double, Bool)
   /// 插槽（reporter slot）的圆角凹槽：`(x, y, w, h, 是否有内容)`。
   /// 画在字形之下，读作「这里可以塞一块积木」。
@@ -304,9 +318,18 @@ fn push_slot_holes(
 }
 
 ///|
-/// 单轮廓 PathSpec（M7②）：块体外轮廓 = 圆角矩形 + 顶边榫头凸起 +
-/// 底边卯口凹口，**一条路径**描述整块。榫/卯只在有相邻块时启用
-/// （has_tab = 不是栈首；has_notch = 后面还有块）。
+/// 单轮廓 PathSpec（M7②）：块体外轮廓 = 圆角矩形 + 顶边**卯口**（凹进）+
+/// 底边**榫头**（凸出），**一条路径**描述整块——Scratch 的拼图咬合语义：
+/// 上一行的底榫插进本行的顶卯。
+///
+/// `tab`（有上一行）= 顶边凹口：路径在 `tab_l..tab_r` 区间**向下凹进块体**
+/// `depth`；`notch`（有下一行）= 底边凸榫：路径在 `tab_l..tab_r` 区间
+/// **向下凸出** `depth`。两行相邻（行距 = 行高）时榫头恰好填满卯口。
+///
+/// `hat`：Scratch 帽子剪影——圆顶从**行框上方**隆起（肩线 = 行顶，
+/// 峰值 = 行顶 − dome），左半宽为圆顶、右半顶边沿肩线走。几何层
+/// （行高/命中/插入）零改动：圆顶是纯装饰，伸进行框上方的留白里
+/// （首行上方有 24pt 脚本原点留白或 22pt 说明横幅带，圆顶 9pt 放得下）。
 pub fn block_outline_path(
   x : Double,
   y : Double,
@@ -314,18 +337,75 @@ pub fn block_outline_path(
   h : Double,
   tab : Bool,
   notch : Bool,
+  hat? : Bool = false,
 ) -> Array[@core.PathVerb] {
   let r = 6.0
-  let tab_l = x + 20.0
-  let tab_r = x + 38.0
-  let depth = 5.0
+  // 榫卯区间靠左对齐（Scratch 口径：紧贴左圆角），宽 24pt、深 6pt。
+  let tab_l = x + r
+  let tab_r = x + r + 24.0
+  let depth = 6.0
+  // 帽子圆顶：肩线 = 行顶 y，峰值 = y - dome，隆起占左半宽。
+  let dome = 9.0
+  let dome_x0 = x
+  let dome_x1 = x + w * 0.5
+  let dome_span = dome_x1 - dome_x0
   let verbs : Array[@core.PathVerb] = []
-  // 顶边：左 → 右（有榫头则中段凸起）
+  if hat {
+    // 顶边：左缘肩线 → 圆顶（两段二次贝塞尔：升到峰值、落回肩线）→
+    // 右半肩线。帽行无顶卯（栈首）。
+    verbs.push(@core.MoveTo(@core.Point::new(x=dome_x0, y~)))
+    verbs.push(
+      @core.QuadTo(
+        @core.Point::new(x=dome_x0 + dome_span * 0.30, y=y - dome),
+        @core.Point::new(x=dome_x0 + dome_span * 0.50, y=y - dome),
+      ),
+    )
+    verbs.push(
+      @core.QuadTo(
+        @core.Point::new(x=dome_x0 + dome_span * 0.70, y=y - dome),
+        @core.Point::new(x=dome_x1, y~),
+      ),
+    )
+    verbs.push(@core.LineTo(@core.Point::new(x=x + w - r, y~)))
+    // 右上圆角后右边下行。
+    verbs.push(
+      @core.QuadTo(
+        @core.Point::new(x=x + w, y~),
+        @core.Point::new(x=x + w, y=y + r),
+      ),
+    )
+    verbs.push(@core.LineTo(@core.Point::new(x=x + w, y=y + h - r)))
+    verbs.push(
+      @core.QuadTo(
+        @core.Point::new(x=x + w, y=y + h),
+        @core.Point::new(x=x + w - r, y=y + h),
+      ),
+    )
+    // 底边：右 → 左（底榫与普通块同一几何——下一行的顶卯照样咬合）。
+    if notch {
+      verbs.push(@core.LineTo(@core.Point::new(x=tab_r, y=y + h)))
+      verbs.push(@core.LineTo(@core.Point::new(x=tab_r, y=y + h + depth)))
+      verbs.push(@core.LineTo(@core.Point::new(x=tab_l, y=y + h + depth)))
+      verbs.push(@core.LineTo(@core.Point::new(x=tab_l, y=y + h)))
+    }
+    verbs.push(@core.LineTo(@core.Point::new(x=x + r, y=y + h)))
+    verbs.push(
+      @core.QuadTo(
+        @core.Point::new(x~, y=y + h),
+        @core.Point::new(x~, y=y + h - r),
+      ),
+    )
+    // 左边上行回到肩线起点（圆顶从左缘直接隆起，Scratch 帽子口径）。
+    verbs.push(@core.LineTo(@core.Point::new(x~, y~)))
+    verbs.push(@core.Close)
+    return verbs
+  }
+  // 顶边：左 → 右（有上一行则中段凹进块体 = 顶卯）。
   verbs.push(@core.MoveTo(@core.Point::new(x=x + r, y~)))
   if tab {
     verbs.push(@core.LineTo(@core.Point::new(x=tab_l, y~)))
-    verbs.push(@core.LineTo(@core.Point::new(x=tab_l, y=y - depth)))
-    verbs.push(@core.LineTo(@core.Point::new(x=tab_r, y=y - depth)))
+    verbs.push(@core.LineTo(@core.Point::new(x=tab_l, y=y + depth)))
+    verbs.push(@core.LineTo(@core.Point::new(x=tab_r, y=y + depth)))
     verbs.push(@core.LineTo(@core.Point::new(x=tab_r, y~)))
   }
   verbs.push(@core.LineTo(@core.Point::new(x=x + w - r, y~)))
@@ -343,8 +423,9 @@ pub fn block_outline_path(
       @core.Point::new(x=x + w - r, y=y + h),
     ),
   )
-  // 底边：右 → 左（有卯口则中段凹进）。注意凹口两端点的 y 是**底边**
-  // y+h——写成 y~ 会抓到顶边 y，路径自交后填充出贯穿整行的楔形（实测缺陷）。
+  // 底边：右 → 左（有下一行则中段向下凸出 = 底榫）。凸出端点的 y 是
+  // **底边** y+h——写成 y~ 会抓到顶边 y，路径自交后填充出贯穿整行的
+  // 楔形（实测缺陷）。
   if notch {
     verbs.push(@core.LineTo(@core.Point::new(x=tab_r, y=y + h)))
     verbs.push(@core.LineTo(@core.Point::new(x=tab_r, y=y + h + depth)))
@@ -379,10 +460,11 @@ pub fn paint_block_outline(
   kind : @blk.BlockKind,
   tab : Bool,
   notch : Bool,
+  hat? : Bool = false,
 ) -> Unit {
   ctx.commands.push(
     @core.DrawPath(@core.PathSpec::{
-      verbs: block_outline_path(x, y, w, h, tab, notch),
+      verbs: block_outline_path(x, y, w, h, tab, notch, hat~),
       fill: Some(@graphics.Brush::solid(@chrome.block_fill(kind))),
       stroke: Some(@graphics.Brush::solid(@chrome.block_outline_stroke())),
       stroke_width: 1.0,

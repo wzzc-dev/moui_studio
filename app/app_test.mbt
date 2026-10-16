@@ -1498,9 +1498,9 @@ test "blocks canvas layout, hit test and drop slot" {
   let blocks = @app.block_chain_of(model)
   assert_true(blocks.length() > 3)
   let rects = @blk.blocks_item_rects(blocks)
-  // 布局：逐行 40px 步进，深度缩进
+  // 布局：行距 = 行高（34，Scratch 堆叠咬合：行与行零缝隙），深度缩进
   assert_eq(rects[0].origin.y, 10.0)
-  assert_eq(rects[1].origin.y, 50.0)
+  assert_eq(rects[1].origin.y, 44.0)
   let mut deepest = 0
   let mut deep_index = 0
   let mut i = 0
@@ -2171,6 +2171,7 @@ test "ai center composer centers when session is empty" {
     steps_done: 0,
     progress: 0,
     diff_lines: [],
+    code_blocks: [],
     settled: false,
     settled_note: "",
     seq: 0,

@@ -61,14 +61,26 @@ fn run_label(model : Model, t : @i18n.Translator) -> String {
 /// 盖住」的漂移——本仓已经为同类「两处各算一份」付出过代价（浮动卡高度、
 /// 树行元信息宽度），所以这里只留一个计算源。
 pub fn topbar_actions_width(model : Model, t : @i18n.Translator) -> Double {
+  // 项目/设备状态芯片（M3a, 顶栏右段口径）：项目接既有打开
+  // 工程命令管线,设备恒显未连接（设备层未接入的诚实口径）。
+  @chrome.topbar_chip_bound(text(t, "app.topbar.project"), 56.0) +
+  @chrome.topbar_chip_bound(topbar_device_label(t), 88.0) +
   @chrome.topbar_chip_bound(run_label(model, t), 56.0) +
   @chrome.topbar_chip_bound(text(t, "app.run.step"), 48.0) +
   @chrome.topbar_chip_bound(text(t, "app.topbar.compile"), 72.0) +
   // 图标簇：撤销/重做/搜索（32）+ 底栏/右栏开关（28）+ 设置（28）
   TOPBAR_ICON_BUTTON_WIDTH * 3.0 +
   28.0 * 3.0 +
-  TOPBAR_ACTION_GAP * 8.0 +
+  TOPBAR_ACTION_GAP * 10.0 +
   TOPBAR_ACTIONS_SAFETY
+}
+
+///|
+/// 设备状态芯片文案（单一来源：渲染与拖拽区记账共用）。
+/// 设备层尚未接入——恒为「未连接」；接入后由设备状态驱动
+/// `app.topbar.device.connected` / `app.ai.disconnected` 切换。
+fn topbar_device_label(t : @i18n.Translator) -> String {
+  "\{text(t, "app.topbar.device")} · \{text(t, "app.ai.disconnected")}"
 }
 
 ///|
@@ -149,6 +161,22 @@ pub fn ide_top_bar(
   // （强调色填充）；单步仅在活运行（含闸门暂停）时可用——编译轨不支持单步，
   // 芯片仍显示但禁用（诚实反映「本轨没有单步」而不是藏起来）。
   let right : Array[@moui.View[Msg]] = [
+    // 项目（M3a, 顶栏口径）：接既有「打开工程」命令管线
+    // （与文件→打开、命令面板同一条路）。
+    topbar_action(
+      text(t, "app.topbar.project"),
+      Some(StudioCommandRun("studio.file.open")),
+      false,
+      @chrome.topbar_chip_bound(text(t, "app.topbar.project"), 56.0),
+    ),
+    // 设备状态：设备层尚未接入,恒显「未连接」且不可点——诚实口径
+    // （禁用态弱文字）,接入后由设备状态驱动文案与可点性。
+    topbar_action(
+      topbar_device_label(t),
+      None,
+      false,
+      @chrome.topbar_chip_bound(topbar_device_label(t), 88.0),
+    ),
     // 运行/停止：运行中变停止（同一键位的心智：它是「运行」的总闸）
     topbar_action(
       run_label(model, t),
@@ -340,16 +368,12 @@ pub fn ide_icon_bar(
   let mode_items = if !(model.profile is Teaching) {
     mode_items +
     [
-      // 代码编辑：左栏工程文件树 / 中心代码编辑器 / 右栏 AI 停靠（VS Code 口径）
-      mode_button(CodeInline, text(t, "app.perspective.code"), PsCode),
-      // AI 工作台：中心会话流 / 底栏终端（M3/M5 逐级落地）
-      // G7.3:AI 插件被禁用时活动栏入口不渲染（点击守卫在
-      // set_perspective:PsAi no-op 兜底）
-      if plugin_active(model, "ai") {
-        mode_button(Focus, text(t, "app.perspective.ai"), PsAi)
-      } else {
-        @views.empty()
-      },
+      // 设计工作台（M5）：全幅设计画布（易语言式拖拽），不出现结构树/
+      // 实时应用;右栏检查器。
+      mode_button(Columns, text(t, "app.perspective.design"), PsDesign),
+      // 积木工作台（M5）：全幅积木画布（分类面板/自由画布）+ 右栏 AI——
+      // 「完全积木界面」的宿主形态（ 顶栏段位的顶层入口）。
+      mode_button(Table, text(t, "app.perspective.blocks"), PsBlocks),
     ]
   } else {
     mode_items
@@ -364,6 +388,16 @@ pub fn ide_icon_bar(
     [
       // 模式组与工具组分隔（组间分文的可见边界）
       @views.container(@chrome.hairline(), width=20.0, height=1.0, padding=0.0),
+      // 代码编辑：左栏工程文件树 / 中心代码编辑器 / 右栏 AI 停靠（VS Code 口径）
+      mode_button(CodeInline, text(t, "app.perspective.code"), PsCode),
+      // AI 工作台：中心会话流 / 底栏终端（M3/M5 逐级落地）
+      // G7.3:AI 插件被禁用时活动栏入口不渲染（点击守卫在
+      // set_perspective:PsAi no-op 兜底）
+      if plugin_active(model, "ai") {
+        mode_button(Focus, text(t, "app.perspective.ai"), PsAi)
+      } else {
+        @views.empty()
+      },
       @views.spacer(min_length=4.0, weight=1.0),
       // 设置钉在最底：与整体同规格（28×28/17）——VS Code 的齿轮也是同一
       // 槽位节奏，缩小一号反而显得孤立。按钮贴窗口底边框。

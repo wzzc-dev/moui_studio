@@ -52,6 +52,13 @@ pub(all) struct AiViewParams[Msg] {
   picker_open : Bool
   provider_model : String
   provider_key : String
+  /// 模型候选清单（composer 下拉列它；空 = 只有当前模型一项）。
+  provider_models : Array[String]
+  /// composer 模型下拉是否展开。
+  model_picker_open : Bool
+  /// 计划卡的积木计数（None = 不显示芯片）。由壳在提案 apply 后从
+  /// `block_chain` 行数投影。
+  plan_block_count : Int?
   explanation : String
   prompt_error : String
   pending : PendingProposal?
@@ -70,10 +77,16 @@ pub(all) struct AiViewParams[Msg] {
   on_stop : Msg
   on_set_mode : (ComposerMode) -> Msg
   on_toggle_picker : Msg
+  /// 模型下拉：开合 + 选一个（`on_select_model` 收模型名，壳映射成
+  /// `AiUiOp(SetProviderModel(..))`）。
+  on_toggle_model_picker : Msg
+  on_select_model : (String) -> Msg
   on_toggle_history : Msg
   on_accept : Msg
   on_reject : Msg
   on_copy : (Int) -> Msg
+  /// 块级复制（代码块的复制钮）：(卡 seq, 块下标)。
+  on_copy_code : (Int, Int) -> Msg
   on_edit : (Int) -> Msg
   on_retry : (Int) -> Msg
   on_scroll : (@geometry.Point) -> Msg
@@ -213,38 +226,6 @@ fn[Msg] context_chips_row(
 }
 
 ///|
-/// 信息芯片：小圆点读数。on_click 为 None = 纯信息展示（不可点）。
-fn[Msg] info_chip(
-  label : String,
-  background : @graphics.Color,
-  foreground : @core.Color,
-  on_click : Msg?,
-) -> @moui.View[Msg] {
-  let chip_w = (@chrome.text_estimate_width(label) * 1.05 + 16.0).max(36.0)
-  let chip = @views.container(
-    @views.center(
-      @views.text(
-        label,
-        theme=@chrome.studio_theme(),
-        width=(chip_w - 12.0).max(20.0),
-        height=16.0,
-      ).foreground(foreground),
-      width=chip_w,
-      height=20.0,
-    ),
-    background~,
-    corner_radius=10.0,
-    width=chip_w,
-    height=20.0,
-    padding=0.0,
-  )
-  match on_click {
-    Some(msg) => chip.on_tap(msg)
-    None => chip
-  }
-}
-
-///|
 /// composer 四周留白（中心态两个分支共用）。
 fn[Msg] ai_composer_framed(
   p : AiViewParams[Msg],
@@ -289,7 +270,7 @@ pub fn[Msg] ai_center(
   } else {
     let transcript_h = (height -
     AI_SESSION_HEADER_HEIGHT -
-    composer_block_height(width) -
+    composer_block_height(width, picker_open=p.model_picker_open) -
     (if p.transcript_follow { 0.0 } else { 26.0 }) -
     POSTURE_HEIGHT).max(120.0)
     @views.container(
@@ -643,7 +624,14 @@ fn[Msg] ai_message_row(
   @views.container(
     @views.column(
       [
-        markdown_blocks_view(blocks, inner),
+        markdown_blocks_view(
+          blocks,
+          inner,
+          t,
+          on_copy_code=Some(fn(index : Int) {
+            (p.on_copy_code)(card.seq, index)
+          }),
+        ),
         message_actions_row(card, inner, [
           @chrome.action_chip(
             t.translate("app.ai.action.copy"),
@@ -711,7 +699,9 @@ pub fn[Msg] ai_docked_height(p : AiViewParams[Msg], width : Double) -> Double {
     AI_CARD_INSET * 2.0 +
     AI_SUBJECT_CHIP_HEIGHT +
     AI_CARD_ROW_GAP * 2.0 +
-    composer_block_height(width) +
+    // 模型候选行展开时 composer 多一行——预算必须跟着长，否则输入盒
+    // 被钉底块顶出宿主（`ai_bar_layout_wbtest` 的高度回归钉住这条）。
+    composer_block_height(width, picker_open=p.model_picker_open) +
     AI_DOCK_GAP +
     POSTURE_HEIGHT
   let decision_room = (AI_DECISION_MAX_HEIGHT - fixed).max(0.0)
@@ -916,7 +906,14 @@ fn[Msg] ai_card_view(
   if card.body != "" {
     if card.kind is CardExplanation {
       rows.push(
-        markdown_blocks_view(@markdown.parse_markdown(card.body), width),
+        markdown_blocks_view(
+          @markdown.parse_markdown(card.body),
+          width,
+          t,
+          on_copy_code=Some(fn(index : Int) {
+            (p.on_copy_code)(card.seq, index)
+          }),
+        ),
       )
     } else {
       rows.push(
@@ -931,23 +928,94 @@ fn[Msg] ai_card_view(
     }
   }
   if card.kind is CardPlan {
+    // **积木计数芯片**（目标图右栏的「P1…P6」同构物）：这一轮提案会落下
+    // 多少块积木。count 来自 apply 后的 `block_chain` 行数，由壳投影进
+    // `plan_block_count`（视图层不读壳 Model）。
+    //
+    // 用 `block_category_fill(CatFlow)` 的语义色而不是 `count_badge` 的
+    // 中性灰：它是「积木数」这个域事实，与「已处理 N」那种壳状态不同级。
+    match p.plan_block_count {
+      Some(count) =>
+        rows.push(
+          @views.container(
+            @views.center(
+              @views.text(
+                t.translate("app.ai.block_chip", values=[
+                  ("count", count.to_string()),
+                ]),
+                theme=@chrome.studio_theme(),
+                role=Caption,
+                width=64.0,
+                height=14.0,
+                align=TextCenter,
+              ).foreground(@chrome.block_category_text()),
+              width=68.0,
+              height=20.0,
+            ),
+            background=@chrome.block_category_fill(@blocks.CatFlow),
+            corner_radius=4.0,
+            width=68.0,
+            height=20.0,
+            padding=0.0,
+          ),
+        )
+      None => ()
+    }
     rows.push(@chrome.progress_bar(card.progress, width - 16.0))
+    // **编号步骤**（ 右栏的 4/5/6 蓝圈口径）：每步一枚圆形
+    // 数字徽标——未完成 = 强调色底 + 主题字,已完成 = 弱底 + 淡字
+    // （数字仍可读,步骤号是引用锚点:「第 4 步」）。步骤号从 1 起。
     let mut step_index = 0
     for step in card.steps {
       let done = step_index < card.steps_done
       rows.push(
-        @views.text(
-          (if done { "✓ " } else { "○ " }) + step,
-          theme=@chrome.studio_theme(),
-          width=(width - 16.0).max(60.0),
-          height=16.0,
-          align=TextStart,
-        ).foreground(
-          if done {
-            @chrome.ide_success()
-          } else {
-            @chrome.ide_text_faint()
-          },
+        @views.row(
+          [
+            @views.container(
+              @views.center(
+                @views.text(
+                  (step_index + 1).to_string(),
+                  theme=@chrome.studio_theme(),
+                  role=Mono,
+                  width=10.0,
+                  height=12.0,
+                  align=TextCenter,
+                ).foreground(
+                  if done {
+                    @chrome.ide_text_faint()
+                  } else {
+                    @chrome.studio_theme().palette.on_primary
+                  },
+                ),
+                width=16.0,
+                height=16.0,
+              ),
+              background=if done {
+                @chrome.ide_panel_alt()
+              } else {
+                @chrome.ide_accent()
+              },
+              corner_radius=8.0,
+              width=16.0,
+              height=16.0,
+              padding=0.0,
+            ),
+            @views.text(
+              step,
+              theme=@chrome.studio_theme(),
+              width=(width - 16.0 - 22.0).max(60.0),
+              height=16.0,
+              align=TextStart,
+            ).foreground(
+              if done {
+                @chrome.ide_success()
+              } else {
+                @chrome.ide_text()
+              },
+            ),
+          ],
+          spacing=6.0,
+          align=Center,
         ),
       )
       step_index = step_index + 1
@@ -1045,7 +1113,6 @@ fn[Msg] composer(
   let inner_width = box_width - 16.0
   let busy = p.busy
   let send_msg = if busy { p.on_noop } else { p.on_run }
-  let ghost_surface = @chrome.ide_panel()
   let foot_cells : Array[@moui.View[Msg]] = [
     @views.row(mode_cells, spacing=3.0, align=Center),
     @views.spacer(min_length=6.0, weight=1.0),
@@ -1067,12 +1134,23 @@ fn[Msg] composer(
     } else {
       @chrome.fit_label(p.provider_model, 140.0)
     }
+    // **模型下拉芯片**（目标图底栏的模型选择器）：收起 = 当前模型名 +
+    // ChevronDown；展开 = 一行候选芯片（最多 4 个 + 「去设置」收尾）。
+    //
+    // 为什么**不引 popover**：`app/moon.pkg` 未 import `moui/views/popover`，
+    // 为一个模型选择器加依赖不划算；且 composer 内的原位展开与模式选择器
+    // （`composer_mode_chip`）视觉同构——同一层里两种选择器长得不一样
+    // 反而乱。展开行画在 composer **内部**（脚注行上方），不突破
+    // `ai_docked_height` 的钉底预算。
     foot_cells.push(
-      info_chip(
+      dropdown_chip(
+        Gear,
         model_label,
-        ghost_surface,
-        @chrome.ide_text_muted(),
-        Some(p.on_settings),
+        if p.available && p.provider_key != "" {
+          p.on_toggle_model_picker
+        } else {
+          p.on_settings
+        },
       ),
     )
   }
@@ -1091,6 +1169,9 @@ fn[Msg] composer(
     )
   }
   let foot = @chrome.fill_row(foot_cells, inner_width, 6.0, Center)
+  // 模型候选行（展开态）：画在脚注行**上方**，是 composer 内部的第二行
+  // （实现见 `composer_model_picker`）。
+  let picker = composer_model_picker(p, t, inner_width)
   let field = @views.text_area(
     p.sessions.current().prompt_draft,
     on_input=value => (p.on_set_prompt)(value),
@@ -1103,7 +1184,7 @@ fn[Msg] composer(
   )
   let box = @views.container(
     @views.padding_edges(
-      @views.column([field, foot], spacing=2.0),
+      @views.column(picker + [field, foot], spacing=2.0),
       left=8.0,
       right=8.0,
       top=2.0,
@@ -1120,7 +1201,7 @@ fn[Msg] composer(
       None
     },
     width=box_width,
-    height=composer_height(width),
+    height=composer_height(width, picker_open=p.model_picker_open),
     padding=0.0,
   )
   let chips_h = context_chips_height(width)
@@ -1274,143 +1355,78 @@ fn[Msg] composer_mode_chip(
 }
 
 ///|
-/// 决策条是否在场：有真内容（待采纳提案 / 讲解 / 错误）才渲染。
-pub fn[Msg] has_decision_content(p : AiViewParams[Msg]) -> Bool {
-  p.pending is Some(_) || p.explanation != "" || p.prompt_error != ""
-}
-
-///|
-/// 决策条：待采纳提案摘要 + 采纳/拒绝；无提案时显示讲解/错误文本。
-fn[Msg] decision_bar(
+/// composer 的**模型候选行**（展开态）：画在脚注行上方，是 composer 内部的
+/// 第二行。收起时返回空数组（不占高度）。
+///
+/// 上限 4 个候选 + 一枚「模型设置」收尾——超过 4 个说明清单该去设置里管，
+/// 在 composer 里做滚动列表会把输入盒顶出宿主（钉底高度预算只够一行）。
+///
+/// 从 `composer` 里拆出来：composer 本体已近函数体上限，而候选行是独立的
+/// 一段（可空、可单独测试），拆开后两处都读得动。
+fn[Msg] composer_model_picker(
   p : AiViewParams[Msg],
   t : @i18n.Translator,
-  width : Double,
-) -> @moui.View[Msg] {
-  if !has_decision_content(p) {
-    return @views.container(
-      @views.text("", width=1.0, height=1.0),
-      width~,
-      height=0.0,
-      padding=0.0,
-    )
+  inner_width : Double,
+) -> Array[@moui.View[Msg]] {
+  if !(p.model_picker_open && p.available && p.provider_key != "") {
+    return []
   }
-  let rows : Array[@moui.View[Msg]] = []
-  match p.pending {
-    Some(pending) => {
-      rows.push(
-        @views.text(
-          pending.summary,
-          theme=@chrome.studio_theme(),
-          width=(width - 16.0).max(60.0),
-          height=18.0,
-          align=TextStart,
-        ).foreground(
-          if pending.valid {
-            @chrome.ide_success()
-          } else {
-            @chrome.ide_danger()
-          },
-        ),
-      )
-      if !pending.valid {
-        for error in pending.errors {
-          rows.push(
-            @views.text(
-              @chrome.fit_label("· \{error}", (width - 24.0).max(60.0)),
-              theme=@chrome.studio_theme(),
-              width=(width - 16.0).max(60.0),
-              height=16.0,
-              align=TextStart,
-            ).foreground(@chrome.ide_danger()),
-          )
-        }
-      }
-      rows.push(
-        @chrome.fill_row(
-          [
-            @chrome.action_chip(
-              t.translate("app.ai.accept"),
-              p.on_accept,
-              @chrome.Primary,
-              24.0,
-            ),
-            @chrome.action_chip(
-              t.translate("app.ai.reject"),
-              p.on_reject,
-              @chrome.Quiet,
-              24.0,
-            ),
-            @chrome.action_chip(
-              t.translate("app.ai.history"),
-              p.on_toggle_history,
-              @chrome.Ghost,
-              24.0,
-            ),
-          ],
-          (width - 16.0).max(80.0),
-          6.0,
-          Center,
-        ),
-      )
+  let cells : Array[@moui.View[Msg]] = []
+  let mut shown = 0
+  for name in p.provider_models {
+    if shown >= 4 {
+      break
     }
-    None => {
-      if p.explanation != "" {
-        rows.push(
+    let selected = name == p.provider_model
+    cells.push(
+      @views.container(
+        @views.center(
           @views.text(
-            p.explanation,
+            @chrome.fit_label(name, 110.0),
             theme=@chrome.studio_theme(),
-            width=(width - 16.0).max(60.0),
-            height=54.0,
-            align=TextStart,
-          ).foreground(@chrome.ide_text_muted()),
-        )
-      }
-      if p.prompt_error != "" {
-        rows.push(
-          @views.text(
-            p.prompt_error,
-            theme=@chrome.studio_theme(),
-            width=(width - 16.0).max(60.0),
+            width=(composer_chip_width(name) - 14.0).max(20.0),
             height=16.0,
-            align=TextStart,
-          ).foreground(@chrome.ide_danger()),
-        )
-      }
-    }
+          ).foreground(
+            if selected {
+              @chrome.ide_accent()
+            } else {
+              @chrome.ide_text_muted()
+            },
+          ),
+          width=composer_chip_width(name),
+          height=20.0,
+        ),
+        background=if selected {
+          @chrome.ide_selection()
+        } else {
+          @chrome.ide_panel()
+        },
+        corner_radius=10.0,
+        width=composer_chip_width(name),
+        height=20.0,
+        padding=0.0,
+      )
+      .on_tap((p.on_select_model)(name))
+      .accessibility_label(name),
+    )
+    shown = shown + 1
   }
-  @views.container(
-    @views.padding_xy(
-      @views.column(rows, spacing=4.0).frame(
-        width=(width - 16.0).max(80.0),
-        height=decision_bar_height(p),
-      ),
-      horizontal=8.0,
-      vertical=6.0,
+  cells.push(@views.spacer(min_length=6.0, weight=1.0))
+  cells.push(
+    @chrome.action_chip(
+      t.translate("app.ai.settings"),
+      p.on_settings,
+      @chrome.Ghost,
+      20.0,
     ),
-    background=@chrome.ide_panel(),
-    width~,
-    height=decision_bar_height(p) + 12.0,
-    padding=0.0,
   )
-}
-
-///|
-/// 决策条内容高。
-pub fn[Msg] decision_bar_height(p : AiViewParams[Msg]) -> Double {
-  if !has_decision_content(p) {
-    return 0.0
-  }
-  match p.pending {
-    Some(_) => 24.0 + 4.0 + 24.0
-    None => {
-      let mut height = 0.0
-      if p.explanation != "" {
-        height = height + 4.0 + 54.0
-      }
-      if p.prompt_error != "" {
-        height = height + 4.0 + 16.0
-      }
-      height
-    }
-  }
+  [
+    @views.container(
+      @chrome.fill_row(cells, inner_width, 4.0, Center),
+      background=@chrome.ide_panel(),
+      width=inner_width,
+      height=22.0,
+      padding=0.0,
+    ),
+  ]
 }

@@ -808,6 +808,30 @@ fn apply_perspective_preset(
         bottom_tab: BtTerminal,
         bottom_open: false,
       }
+    // 设计工作台（M5）：全幅设计画布（易语言式拖拽）——中心复用组合
+    // 工作区的 `live_pane` 构造器（同一拖放/属性编辑路径，验收口径
+    // 「与组合一致」由构造保证），只撤掉左栏结构树与积木窗格；
+    // 右栏保留检查器页（拖放后的属性编辑去处）。
+    PsDesign =>
+      {
+        ..model,
+        perspective,
+        left_view: LeftHidden,
+        right_view: RvContext,
+        workspace: WsVisual,
+        mode: ModeDesign,
+      }
+    // 积木工作台（M5）：全幅积木画布（分类面板/自由画布/AI 右栏）
+    // ——「完全积木界面」的宿主形态；画布宽度不再受中心列对半分制约。
+    PsBlocks =>
+      {
+        ..model,
+        perspective,
+        left_view: LeftHidden,
+        right_view: RvAi,
+        workspace: WsVisual,
+        mode: ModeBlocks,
+      }
   }
 }
 
@@ -1130,6 +1154,9 @@ fn run_studio_command(model : Model, id : String) -> (Model, @moui.Effect[Msg]) 
     "studio.mode.ai" => update_pure(model, SetPerspective(PsAi))
     "studio.workspace.visual" => update_pure(model, SetPerspective(PsVisual))
     "studio.workspace.code" => update_pure(model, SetPerspective(PsCode))
+    // 设计/积木独立工作台（M5）：与 ws.* 同级的顶层入口
+    "studio.workspace.design" => update_pure(model, SetPerspective(PsDesign))
+    "studio.workspace.blocks" => update_pure(model, SetPerspective(PsBlocks))
     "studio.workspace.preview" => update_pure(model, SetWorkSpace(WsPreview))
     "studio.pane.split" => update_pure(model, SetSplitRatio(0.55))
     "studio.left.toggle" =>

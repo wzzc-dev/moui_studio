@@ -81,6 +81,28 @@ pub fn blocks_slot_hit(
 }
 
 ///|
+/// 该行的**第一个洞**的表达式路径（无段/无洞返回 `None`）。
+///
+/// 位置无关：洞的**几何**需要文本度量（`blocks_slot_rects`），路径不需要
+/// ——调色板拖拽的落点在 update 侧换算，那里拿不到 TextSystem，按
+/// 「行命中 + 首洞」降级。段表里值段（可就地编辑的叶子）也带表达式
+/// 路径，同样是合法的放置目标（Scratch 的值输入）。
+pub fn blocks_first_slot_path(item : @blk.BlockItem) -> Array[Int]? {
+  match item.segments {
+    None => None
+    Some(segments) => {
+      for segment in segments {
+        match segment.expr_path {
+          Some(path) => return Some(path)
+          None => ()
+        }
+      }
+      None
+    }
+  }
+}
+
+///|
 /// **所有洞的几何**：一份推演，绘制与命中都读它。
 ///
 /// 这是本模块的核心纪律：洞的位置 = 标签前缀宽度 + 引导宽 + 前面所有段

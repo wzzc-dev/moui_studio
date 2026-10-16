@@ -11,6 +11,8 @@ import {
   "wzzc-dev/moui_studio/domain/proposals",
   "wzzc-dev/moui_studio/services/markdown",
   "wzzc-dev/moui_studio/plugins/code",
+  // 计划卡的积木计数芯片要按分类取色（`@chrome.block_category_fill` 的入参）
+  "wzzc-dev/moui_studio/domain/blocks",
 }
 
 supported_targets = "native+wasm-gc"

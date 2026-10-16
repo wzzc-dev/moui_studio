@@ -1482,13 +1482,13 @@ test "activity bar uses the compact spec with bare-glyph selection" {
     }
   }
   centers.sort()
-  // 三模式工作台(M2):3 个模式项 + 1 枚钉底齿轮（组间分隔线是 1pt 细条，
-  // 被「墨迹高度 > 5pt」的判据排除）
+  // 五工作台(M5):5 个模式项(图形化/代码/AI/设计/积木) + 1 枚钉底齿轮
+  // （组间分隔线是 1pt 细条,被「墨迹高度 > 5pt」的判据排除）
   assert_true(
-    centers.length() == 4,
-    msg="expected 4 icon glyphs, got \{centers.length()}",
+    centers.length() == 6,
+    msg="expected 6 icon glyphs, got \{centers.length()}",
   )
-  // 前 3 项（模式组）节距 28；第 4 枚是**钉底**的设置齿轮（spacer 推到
+  // 前 5 项（模式组）节距 28；第 6 枚是**钉底**的设置齿轮（spacer 推到
   // 底边），不参与节距——这正是「设置钉在最底」的口径。
   let mut i = 1
   while i < 3 {
@@ -1500,7 +1500,7 @@ test "activity bar uses the compact spec with bare-glyph selection" {
     i = i + 1
   }
   assert_true(
-    centers[3] > centers[2] + 100.0,
+    centers[5] > centers[4] + 100.0,
     msg="the gear should be pinned near the bottom edge, not in the icon rhythm",
   )
 }
@@ -1626,4 +1626,257 @@ test "dragging the column sash resizes the left panel (e2e)" {
     (sash_x - (@chrome.ICONBAR_WIDTH + expected)).abs() < 0.6,
     msg="sash x=\{sash_x} should follow the panel edge",
   )
+}
+
+///|
+/// 顶栏项目/设备芯片（M3a）的**记账契约**：动作簇总宽必须包含两枚芯片
+/// 的宽度上界——渲染与拖拽区声明共用 `topbar_actions_width`,漏记会让
+/// 芯片被拖拽区盖住(原生无边框窗口:点击变拖窗口,实测过的缺陷)。
+test "topbar actions width covers project and device chips" {
+  let model = initial_model()
+  let t = translator(model)
+  let width = topbar_actions_width(model, t)
+  // 两枚芯片的宽度上界必须都算进总宽(芯片在右簇头部)
+  assert_true(
+    width >= @chrome.topbar_chip_bound(text(t, "app.topbar.project"), 56.0),
+  )
+  assert_true(width >= @chrome.topbar_chip_bound(topbar_device_label(t), 88.0))
+  // 拖拽区右缘 = 簇左缘:总宽计入后,拖拽可用宽相应收窄,两处同源
+  let drag = topbar_drag_width(model, t, 1280.0)
+  assert_true(drag <= 1280.0 - topbar_drag_x(model) - 10.0)
+}
+
+///|
+/// 独立工作台（M5）预设契约：切到设计/积木台 = 一次性应用预设——
+/// 左栏收起、中心全幅、右栏分别落检查器/AI;再次点击同值 no-op;
+/// 程序 IR 原样共享(切换不丢状态)。
+test "workbench presets apply design and blocks layouts" {
+  let model = initial_model()
+  // 积木工作台:左栏隐藏 + 右栏 AI 页 + 积木模式
+  let blocks_bench = apply_shell(model, SetPerspective(PsBlocks))
+  assert_true(blocks_bench.left_view is LeftHidden)
+  assert_true(blocks_bench.right_view is RvAi)
+  assert_true(blocks_bench.mode is ModeBlocks)
+  assert_true(blocks_bench.perspective is PsBlocks)
+  // 设计工作台:左栏隐藏 + 检查器 + 设计模式
+  let design_bench = apply_shell(blocks_bench, SetPerspective(PsDesign))
+  assert_true(design_bench.left_view is LeftHidden)
+  assert_true(design_bench.right_view is RvContext)
+  assert_true(design_bench.mode is ModeDesign)
+  // IR 共享:切工作台不动程序（窗口标题与控件集原样——切换不丢状态;
+  // StudioProgram 未实现 Eq,用代表性字段比对）
+  assert_eq(
+    design_bench.program.window.title,
+    blocks_bench.program.window.title,
+  )
+  assert_eq(
+    design_bench.program.controls.length(),
+    blocks_bench.program.controls.length(),
+  )
+  // 同值再点 no-op(不重置面板临时收放)
+  let again = apply_shell(design_bench, SetPerspective(PsDesign))
+  assert_true(again.perspective is PsDesign)
+  // 命令管线一致:面板条目与活动栏按钮走同一条 SetPerspective
+  let via_command = apply_shell(
+    model,
+    StudioCommandRun("studio.workspace.blocks"),
+  )
+  assert_true(via_command.perspective is PsBlocks)
+}
+
+///|
+/// 绘制命令流的**作用域配平**检查：每个 `Pop*` 必须与栈顶 `Push*` 同类，
+/// 流结束时栈必须为空。
+///
+/// 为什么在 headless 锁这个：渲染器对 `Pop*` 的处理是「栈顶类型不匹配就
+/// 拒绝恢复并记诊断」（`pop_canvas_scope`）——一条泄漏的 push 不只是让
+/// 后续内容带上错误的变换/裁剪，还会让**别人的 Pop** 失配，把别人的
+/// 作用域也永远留在栈上。真机已踩过：积木画布 draw 闭包 push_transform×2
+/// / pop×1，泄漏的 Transform 让 scroll_view 的 PopClip 失配，clip 对本帧
+/// 不再关闭，画布之后绘制的一切（底栏/右栏/状态栏）被裁进积木画布视口
+/// ——表现成「积木界面下右栏/底栏/状态栏全部不显示」。headless 的
+/// draw_commands 只看命令存在性抓不到它，必须在流层面断言配平。
+fn assert_scopes_balanced(
+  commands : Array[@core.DrawCommand],
+  label : String,
+) -> Unit raise {
+  // 栈元素 = (种类, 命令下标)，便于失配时报出泄漏源头。
+  let stack : Array[(String, Int)] = []
+  let problems = StringBuilder()
+  let push = fn(kind : String, index : Int) { stack.push((kind, index)) }
+  let pop = fn(kind : String, index : Int) {
+    match stack.pop() {
+      Some(top) =>
+        if top.0 != kind {
+          problems.write_string(
+            "\{label}: command \{index} Pop\{kind} mismatches open \{top.0} (pushed at \{top.1}); ",
+          )
+        }
+      None =>
+        problems.write_string(
+          "\{label}: command \{index} Pop\{kind} without push; ",
+        )
+    }
+  }
+  for index, command in commands {
+    match command {
+      @core.PushClip(_) => push("Clip", index)
+      @core.PopClip => pop("Clip", index)
+      @core.PushRoundedClip(_) => push("RoundedClip", index)
+      @core.PopRoundedClip => pop("RoundedClip", index)
+      @core.PushTransform(_) => push("Transform", index)
+      @core.PopTransform => pop("Transform", index)
+      @core.PushOpacity(_) => push("Opacity", index)
+      @core.PopOpacity => pop("Opacity", index)
+      @core.PushLayer(_) => push("Layer", index)
+      @core.PopLayer => pop("Layer", index)
+      @core.BeginRetainedLayer(_) => push("RetainedLayer", index)
+      @core.EndRetainedLayer(_) => pop("RetainedLayer", index)
+      @core.PushFilter(_) => push("Filter", index)
+      @core.PopFilter => pop("Filter", index)
+      _ => ()
+    }
+  }
+  if stack.length() > 0 {
+    let top = stack[stack.length() - 1]
+    problems.write_string(
+      "\{label}: \{stack.length()} scope(s) left open, top \{top.0} pushed at \{top.1}; ",
+    )
+  }
+  let report = problems.to_string()
+  assert_true(report == "", msg="draw command scopes unbalanced: \{report}")
+}
+
+///|
+/// 独立工作台(M5)的**活动栏指针命中 + 积木台全 chrome**回归。
+///
+/// 历史：初版用「x<48 的带底矩形里 y 最大者」定位积木钮，把组间**分隔线**
+/// （20×1，cy=180.5）也算进了带里，点到的其实是分隔线——模式从未切换，
+/// 后续断言全在初始帧上空转（「幽灵左栏」就是没切换的初始左栏）。
+/// 现在按**高度 >10** 过滤（模式钮 28×28，分隔线 1pt），点真钮。
+///
+/// 锁四件事：
+/// 1. 活动栏点击真的进入积木台（左栏隐藏、积木画布在场）；
+/// 2. 全 chrome 在场：底栏页签 / 右栏 / 状态栏（真机黑区回归的命令级锁定）；
+/// 3. 绘制命令流作用域配平（见 `assert_scopes_balanced` 的机理注释）；
+/// 4. 往返：积木台 → 代码台，活动栏仍指向正确面板。
+test "blocks workbench chrome panels and activity tap" {
+  let program : @core.Program[Model, Msg] = @moui.Program::new_with_environment(
+    init=() => (initial_model(), @moui.Effect::none()),
+    update=(current, msg) => update_pure(current, msg),
+    view=(current, env) => view_with_viewport(current, env.viewport_size()),
+  )
+  let runtime = @runtime.new_program_with_dimensions(
+    program~,
+    width=1280.0,
+    height=800.0,
+  )
+  let commands1 = runtime.draw_commands()
+  assert_true(shell_has_text(commands1, "程序结构"))
+  assert_scopes_balanced(commands1, "initial frame")
+  // 活动栏模式钮：x<48 的带底矩形且**高度 >10**（排除 1pt 分隔线）。
+  // 钮序 = 图形化/代码/AI/设计/积木（cy 递增），排序后：
+  // 积木 = 最大，代码 = 第二小。
+  let button_cys : Array[Double] = []
+  for rect in shell_rects(commands1) {
+    if rect.origin.x < 48.0 &&
+      rect.origin.x + rect.size.width <= 50.0 &&
+      rect.origin.y >= 40.0 &&
+      rect.origin.y < 700.0 &&
+      rect.size.width > 8.0 &&
+      rect.size.height > 10.0 {
+      button_cys.push(rect.origin.y + rect.size.height / 2.0)
+    }
+  }
+  button_cys.sort()
+  assert_true(
+    button_cys.length() >= 5,
+    msg="expected 5 mode buttons, got \{button_cys.length()}",
+  )
+  let blocks_tap_y = button_cys[button_cys.length() - 1]
+  let code_tap_y = button_cys[1]
+  fn tap_xy(x : Double, y : Double) -> Unit {
+    ignore(
+      runtime.dispatch_pointer_input(
+        @core.PointerEvent::new(position=@core.Point::new(x~, y~), phase=Down),
+      ),
+    )
+    ignore(
+      runtime.dispatch_pointer_input(
+        @core.PointerEvent::new(position=@core.Point::new(x~, y~), phase=Up),
+      ),
+    )
+  }
+  fn has_label(commands : Array[@core.DrawCommand], needle : String) -> Bool {
+    shell_has_text(commands, needle)
+  }
+  // 击1:进积木工作台(最高的模式钮)
+  tap_xy(24.0, blocks_tap_y)
+  let commands2 = runtime.draw_commands()
+  // 进入判据必须是**只属于积木台**的文本：左栏头消失 + 积木画布工具条在场。
+  // （「新事件头」在组合台的积木窗格里也有,单独存在不构成进入判据。）
+  assert_true(
+    has_label(commands2, "IR 映射 · 与代码同步") &&
+    !has_label(commands2, "程序结构"),
+    msg="blocks workbench entered (left panel hidden, blocks head present)",
+  )
+  assert_scopes_balanced(commands2, "blocks workbench frame")
+  // 积木台布局账目:画布全幅(面板右缘 > 900 = 左栏不在布局)。
+  let mut pane_right : Double = 0.0
+  for run in shell_texts(commands2) {
+    if run.text.contains("新事件头") {
+      pane_right = run.frame.origin.x + run.frame.size.width
+    }
+  }
+  assert_true(
+    pane_right > 900.0,
+    msg="blocks pane is full-width (left panel not in layout), got \{pane_right}",
+  )
+  // 全 chrome 在场:底栏页签（组合台直入,底栏保持开）、右栏头、状态栏。
+  assert_true(
+    has_label(commands2, "审计"),
+    msg="bottom bar tabs present in blocks workbench",
+  )
+  assert_true(
+    has_label(commands2, "检查器"),
+    msg="right panel head present in blocks workbench",
+  )
+  assert_true(
+    has_label(commands2, "UTF-8"),
+    msg="status bar present in blocks workbench",
+  )
+  // 指针管线自检:底栏「问题」页签可点。
+  let mut tab_xy : (Double, Double)? = None
+  for run in shell_texts(commands2) {
+    if run.text == "问题" && run.frame.origin.y > 400.0 {
+      tab_xy = Some((run.frame.origin.x + 6.0, run.frame.origin.y + 9.0))
+    }
+  }
+  match tab_xy {
+    Some((tx, ty)) => tap_xy(tx, ty)
+    None => fail("problems tab not found in blocks workbench draw")
+  }
+  let commands3 = runtime.draw_commands()
+  assert_true(
+    has_label(commands3, "没有发现问题。"),
+    msg="pointer sanity: problems tab switch (blocks workbench)",
+  )
+  assert_scopes_balanced(commands3, "problems tab frame")
+  // 击2:往返——点代码台钮(第二小的模式钮),代码台预设 = 左栏资源管理器。
+  tap_xy(24.0, code_tap_y)
+  let commands4 = runtime.draw_commands()
+  assert_true(
+    has_label(commands4, "资源管理器"),
+    msg="activity tap must switch to code workbench (explorer visible)",
+  )
+  assert_scopes_balanced(commands4, "code workbench frame")
+}
+
+///|
+/// 模型层单元验证:preset 是否真的把 left_view 置为 LeftHidden。
+test "blocks preset hides the left panel (model contract)" {
+  let (m, _) = update_pure(initial_model(), SetPerspective(PsBlocks))
+  let hidden = m.left_view is LeftHidden
+  // P1 配套回归:积木台预设必须收起左栏(模型层契约,与布局账目联动)。
+  assert_true(hidden, msg="blocks preset must set left_view=LeftHidden")
 }

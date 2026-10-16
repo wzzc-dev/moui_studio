@@ -22,6 +22,7 @@ fn composer_run(model : Model) -> (Model, @moui.Effect[Msg]) {
       steps_done: 0,
       progress: 0,
       diff_lines: [],
+      code_blocks: [],
       settled: true,
       settled_note: "",
       seq: 0,
@@ -174,8 +175,11 @@ fn accept_proposal(model : Model) -> Model {
         //（EvCodeProjectWrite 事件（M1）由组合根监听器消费：handlers.mbt
         // 全量 codegen——文件尚为 codegen 所有，重生成即 span 补丁的超集；
         // form.mbt 同理）。
-        let accepted = settle_newest_thread_card(
-          record_history(cleared, pending, true),
+        let accepted = complete_plan_cards(
+          settle_newest_thread_card(
+            record_history(cleared, pending, true),
+            text(translator(model), "app.ai.card.applied"),
+          ),
           text(translator(model), "app.ai.card.applied"),
         )
         // 采纳后清空当前会话的提问草稿（原语义：草稿已被消费）
@@ -258,6 +262,7 @@ fn push_error_card(model : Model, message : String) -> Model {
     steps_done: 0,
     progress: 0,
     diff_lines: [],
+    code_blocks: [],
     settled: false,
     settled_note: "",
     seq: 0,
@@ -274,7 +279,12 @@ fn drop_ai_busy_card(model : Model) -> Model {
   let mut target = -1
   let mut index = 0
   for card in session.cards {
-    if card.kind is CardPlan && !card.settled {
+    // **只摘「没有 steps 的纯占位」**：带 steps 的计划卡是回执里
+    // `attach_plan_to_thread_card` 写回去的「AI 想了什么」的可审计记录，
+    // 要**留在时间线上**（目标图右栏的 4/5/6 编号节就是这个形态）。
+    // 判据漏了 `steps.length() == 0` 会让计划卡在每次生成后都被摘掉，
+    // 时间线上永远只剩 diff 卡——用户看不到 AI 的推理过程。
+    if card.kind is CardPlan && !card.settled && card.steps.length() == 0 {
       target = index
     }
     index = index + 1
@@ -346,6 +356,7 @@ fn push_streaming_card(model : Model, title : String) -> Model {
     steps_done: 0,
     progress: 0,
     diff_lines: [],
+    code_blocks: [],
     settled: false,
     settled_note: "",
     seq: 0,
@@ -376,6 +387,7 @@ fn settle_streaming_card(model : Model, title : String, body : String) -> Model 
       steps_done: 0,
       progress: 0,
       diff_lines: [],
+      code_blocks: [],
       settled: true,
       settled_note: "",
       seq: 0,
@@ -400,6 +412,69 @@ fn settle_streaming_card(model : Model, title : String, body : String) -> Model 
 /// 生成提案：真实模型回填文案走严格校验链。
 /// 真实 provider 的网络副作用在程序级臂发起；
 /// 这里只负责把「已得到的补全文本」变成待采纳提案。
+
+///|
+/// 从模型回执里切出**实施计划**（`PLAN:` 段之后的非空行，去掉行首序号）。
+///
+/// 协议：system prompt 要求模型在提案 JSON **之后**另起一段
+/// `PLAN:` 开头的有序步骤列表。没有这一段 = 降级（返回空数组，
+/// 计划卡不带 steps，与今天的行为一致）。
+///
+/// **为什么不加进 `ProposalV1`**：改 schema 要牵动 `decode_proposal`
+/// 六处 + 校验 + codec，而计划只是**给人看的叙述**，不参与任何校验。
+/// 文本协议 + 纯函数切分是零 schema 成本的做法。
+///
+/// 容错：段标记大小写不敏感；行首的 `1.` / `1)` / `-` / `*` 序号会被剥掉
+/// （模型给什么格式都不该让步骤文本带着序号显示两遍）。
+pub fn split_plan(completion : String) -> Array[String] {
+  let lines = completion.split("\n")
+  let mut in_plan = false
+  let steps : Array[String] = []
+  for line in lines {
+    let trimmed = line.trim().to_owned()
+    if !in_plan {
+      // 段标记：`PLAN:` 开头（大小写不敏感）
+      // 段标记：`PLAN:` 开头。MoonBit 的 String 没有 to_uppercase，
+      // 大小写不敏感用「前缀任一等价」表达（三种写法覆盖常见变体）。
+      if trimmed.length() >= 5 &&
+        (
+          trimmed.has_prefix("PLAN:") ||
+          trimmed.has_prefix("plan:") ||
+          trimmed.has_prefix("Plan:")
+        ) {
+        in_plan = true
+      }
+      continue
+    }
+    if trimmed == "" {
+      continue
+    }
+    steps.push(strip_step_marker(trimmed))
+  }
+  steps
+}
+
+///|
+/// 剥掉步骤行首的序号/项目符号（`1.` `1)` `-` `*`）。
+fn strip_step_marker(line : String) -> String {
+  let mut rest = line
+  // 项目符号
+  if rest.has_prefix("- ") || rest.has_prefix("* ") {
+    rest = rest[2:].to_owned()
+  } else {
+    // 数字序号：`12.` 或 `12)`
+    let mut i = 0
+    while i < rest.length() && rest[i] >= '0' && rest[i] <= '9' {
+      i = i + 1
+    }
+    if i > 0 && i < rest.length() && (rest[i] == '.' || rest[i] == ')') {
+      rest = rest[i + 1:].to_owned()
+    }
+  }
+  rest.trim().to_owned()
+}
+
+///|
 pub fn proposal_from_completion(model : Model, completion : String) -> Model {
   // 必须带 model.program：提案是 patch，update 项常常只给变化字段
   // （实测：模型回执 update 只有 name+text，没有 kind），解码层要拿
@@ -438,16 +513,60 @@ pub fn proposal_from_completion(model : Model, completion : String) -> Model {
         errors: messages,
         valid: errors.is_empty(),
       }
+      // **实施计划**（`PLAN:` 段）：挂到**同一次提交产出的计划卡**上。
+      // 计划卡在 `GenerateProposal` 时以忙碌占位的形态先入栈，回执到达时
+      // `drop_ai_busy_card` 只摘「没有 steps 的纯占位」——所以这里把 steps
+      // 写回那张卡，它就**留在时间线上**成为「AI 想了什么」的可审计记录。
+      let steps = split_plan(completion)
+      // **生成的积木代码**：把提案 apply 到纯函数副本，再把每个 handler
+      // 投影成 DSL 文本。AI 仍只产 IR 提案（纪律不动）——这里做的是
+      // 「投影给人看」，与 `RealExplanationFinished` 同性质。
+      let applied = @proposals.apply_proposal(model.program, proposal)
+      let code_blocks = handler_code_blocks(
+        applied,
+        model.language.dsl_language(),
+      )
       {
-        ..push_proposal_thread_card(
-          { ..model, pending: Some(pending), prompt_error: "", },
-          pending,
+        ..attach_plan_to_thread_card(
+          push_proposal_thread_card(
+            { ..model, pending: Some(pending), prompt_error: "", },
+            pending,
+          ),
+          steps,
+          code_blocks,
         ),
         pending: Some(pending),
         prompt_error: "",
       }
     }
   }
+}
+
+///|
+/// 把当前会话所有未结算的**计划卡**标记为完成（采纳/拒绝时调用）。
+///
+/// 步骤完成态由**用户动作**驱动，不由模型自报——模型不回报进度，伪造
+/// 进度是谎言。采纳 → 全部 ✓；拒绝 → 保持 ○ 但标「已拒绝」。
+///
+/// 全量而不是「最新一张」：一次提交只产一张计划卡，全量与最新等价，
+/// 但全量写法对将来的多卡形态免疫。
+fn complete_plan_cards(model : Model, note : String) -> Model {
+  let cards = model.ai_sessions.current().cards
+  let mut index = 0
+  for card in cards {
+    if card.kind is CardPlan && !card.settled {
+      cards[index] = AiCard::{
+        ..card,
+        steps_done: card.steps.length(),
+        progress: 100,
+        settled: true,
+        settled_note: note,
+      }
+    }
+    index = index + 1
+  }
+  // 卡数组是共享引用：上面的原位标记已经生效（M3 会话切片共享语义）
+  model
 }
 
 ///|
@@ -507,6 +626,7 @@ fn push_proposal_thread_card(model : Model, pending : PendingProposal) -> Model 
     steps_done: 0,
     progress: 100,
     diff_lines: code_lines,
+    code_blocks: [],
     settled: false,
     settled_note: "",
     seq: 0,
@@ -613,8 +733,11 @@ fn update_ai_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
             None => model
             Some(pending) => {
               let t = translator(model)
-              let rejected = settle_newest_thread_card(
-                record_history(model, pending, false),
+              let rejected = complete_plan_cards(
+                settle_newest_thread_card(
+                  record_history(model, pending, false),
+                  text(t, "app.ai.card.rejected"),
+                ),
                 text(t, "app.ai.card.rejected"),
               )
               let logged = log_line(
@@ -820,6 +943,26 @@ pub fn card_text_by_seq(model : Model, seq : Int) -> String? {
 }
 
 ///|
+/// 一条消息里**第 index 个代码块**的文本（块级复制的数据源）。
+///
+/// 越界返回 None（调用方据此静默 no-op：复制一个不存在的块不该弹错误）。
+pub fn card_code_text_by_index(
+  model : Model,
+  seq : Int,
+  index : Int,
+) -> String? {
+  match card_by_seq(model, seq) {
+    Some(card) =>
+      if index >= 0 && index < card.code_blocks.length() {
+        Some(card.code_blocks[index].1)
+      } else {
+        None
+      }
+    None => None
+  }
+}
+
+///|
 /// 把一条用户提问的原文回填进 composer 草稿（气泡「编辑」动作）。
 /// 只在目标卡是 CardUserPrompt 时生效。
 fn restore_prompt_draft(model : Model, seq : Int) -> Model {
@@ -899,4 +1042,65 @@ fn record_history(
     proposal_history: history,
   })
   model
+}
+
+///|
+/// 把实施计划与生成的积木代码**写回同一次提交的计划卡**。
+///
+/// 为什么是「写回」而不是「另推一张卡」：计划卡在提交时就以忙碌占位
+/// 入栈（用户立刻看到「正在生成提案…」），回执到达时它已经在线程里了。
+/// 另推一张会让时间线上出现两张语义重叠的卡。
+///
+/// 找卡判据 = 「最新一张未结算的 CardPlan」。steps 为空时什么都不做
+/// （模型没给 PLAN 段 = 降级，卡片保持忙碌占位原样，随后被
+/// `drop_ai_busy_card` 摘掉）。
+fn attach_plan_to_thread_card(
+  model : Model,
+  steps : Array[String],
+  code_blocks : Array[(String, String)],
+) -> Model {
+  if steps.length() == 0 && code_blocks.length() == 0 {
+    return model
+  }
+  let cards = model.ai_sessions.current().cards
+  let mut index = cards.length() - 1
+  while index >= 0 {
+    let card = cards[index]
+    if card.kind is CardPlan && !card.settled {
+      cards[index] = AiCard::{
+        ..card,
+        steps,
+        steps_done: 0,
+        progress: 0,
+        code_blocks,
+      }
+      break
+    }
+    index = index - 1
+  }
+  // 卡数组是共享引用：上面的原位标记已经生效（M3 会话切片共享语义）
+  model
+}
+
+///|
+/// 程序 → (handler_key, DSL 源码) 序列（生成的积木代码）。
+///
+/// 标题用 `handler_key`（与分类轨/script_origins 同一口径），文本用
+/// `@studio_lang.render_handler`（双语关键字跟随界面语言，已在
+/// `ExplainHandler` 用过）。**不含函数体**：函数是用户自己写的，
+/// 不是这一轮提案的产物。
+pub fn handler_code_blocks(
+  program : @ir.StudioProgram,
+  language : @studio_lang.Language,
+) -> Array[(String, String)] {
+  let blocks : Array[(String, String)] = []
+  for handler in program.handlers {
+    blocks.push(
+      (
+        handler_key(handler.control_name, handler.event.tag()),
+        @studio_lang.render_handler(handler, language),
+      ),
+    )
+  }
+  blocks
 }

@@ -30,8 +30,8 @@ pub const POSTURE_HEIGHT : Double = @ai.POSTURE_HEIGHT
 
 ///|
 /// 输入盒高度（转发插件；测试与布局计算共用）。
-pub fn composer_height(width : Double) -> Double {
-  @ai.composer_height(width)
+pub fn composer_height(width : Double, picker_open? : Bool = false) -> Double {
+  @ai.composer_height(width, picker_open~)
 }
 
 ///|
@@ -40,8 +40,11 @@ pub fn context_chips_height(width : Double) -> Double {
 }
 
 ///|
-pub fn composer_block_height(width : Double) -> Double {
-  @ai.composer_block_height(width)
+pub fn composer_block_height(
+  width : Double,
+  picker_open? : Bool = false,
+) -> Double {
+  @ai.composer_block_height(width, picker_open~)
 }
 
 ///|
@@ -63,6 +66,9 @@ fn ai_view_params(model : Model) -> @ai.AiViewParams[Msg] {
     picker_open: model.ai_ui.composer_mode_picker_open,
     provider_model: model.ai_ui.provider_model,
     provider_key: model.ai_ui.provider_key,
+    provider_models: model.ai_ui.provider_models,
+    model_picker_open: model.ai_ui.provider_model_picker_open,
+    plan_block_count: plan_block_count_of(model),
     explanation: model.explanation,
     prompt_error: model.prompt_error,
     pending: model.pending,
@@ -78,10 +84,13 @@ fn ai_view_params(model : Model) -> @ai.AiViewParams[Msg] {
     on_stop: StopGeneration,
     on_set_mode: fn(mode) { AiUiOp(@ai.SetComposerMode(mode)) },
     on_toggle_picker: AiUiOp(@ai.ToggleComposerModePicker),
+    on_toggle_model_picker: AiUiOp(@ai.ToggleProviderModelPicker),
+    on_select_model: fn(name) { AiUiOp(@ai.SetProviderModel(name)) },
     on_toggle_history: AiUiOp(@ai.ToggleAiHistory),
     on_accept: AcceptProposal,
     on_reject: RejectProposal,
     on_copy: fn(seq) { CopyAiMessage(seq) },
+    on_copy_code: fn(seq, index) { CopyAiCodeBlock(seq, index) },
     on_edit: fn(seq) { EditUserPrompt(seq) },
     on_retry: fn(seq) { RetryUserPrompt(seq) },
     on_scroll: fn(offset) { AiUiOp(@ai.TranscriptScrolled(offset)) },
@@ -135,6 +144,12 @@ pub fn ai_docked_height(model : Model, width : Double) -> Double {
 }
 
 ///|
+/// 模型候选行是否展开（高度预算与视图共用的判据单点来源）。
+pub fn model_picker_open_of(model : Model) -> Bool {
+  model.ai_ui.provider_model_picker_open
+}
+
+///|
 /// 决策条是否在场（布局测试与避让预算同口径）。
 pub fn has_decision_content(model : Model) -> Bool {
   @ai.has_decision_content(ai_view_params(model))
@@ -144,4 +159,26 @@ pub fn has_decision_content(model : Model) -> Bool {
 /// 决策条内容高（布局测试与避让预算同口径）。
 pub fn decision_bar_height(model : Model) -> Double {
   @ai.decision_bar_height(ai_view_params(model))
+}
+
+///|
+/// 计划卡的**积木计数**：这一轮提案 apply 后程序里共有多少块积木。
+///
+/// 取「全部 handler 的 block_chain 行数之和」而不是「当前 handler」：
+/// 一次提案可能同时改多个子程序（`ComposeGenerate` 更是从零重建整个程序），
+/// 只数当前那个会少报。None = 没有待审计提案（不显示芯片）。
+///
+/// **只在有 pending 提案时给值**：计划卡是「AI 打算做什么」的记录，
+/// 计数是那个打算的规模；没有 pending 时给 0 会读作「AI 什么都不会做」。
+pub fn plan_block_count_of(model : Model) -> Int? {
+  match model.pending {
+    None => None
+    Some(_) => {
+      let mut total = 0
+      for handler in model.program.handlers {
+        total = total + @blocks.block_chain(handler.body).length()
+      }
+      Some(total)
+    }
+  }
 }

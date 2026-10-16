@@ -14,6 +14,120 @@ pub fn block_chain_of(model : Model) -> Array[@blocks.BlockItem] {
 }
 
 ///|
+/// 调色板拖拽指针的**视口 → 链**换算。
+///
+/// 拖拽手势被发起它的调色板行捕获（runtime 捕获语义），画布的手势收不到
+/// 移动事件——指针坐标只有行知道，而行的回调只能给出**视口坐标**。视口
+/// → 链需要画布内容节点的**布局帧**（随滚动移动，与画布手势收到的 frame
+/// 同一值），由组合根注入的锚点回调按键 "blocks-canvas" 取。换算与画布
+/// 手势同一套逆映射（`blocks_to_chain` ∘ `blocks_chain_y`），两条路径
+/// 不会分叉。
+pub fn palette_pointer_to_chain(
+  model : Model,
+  canvas_frame_of : (String) -> @core.Rect?,
+  pointer : @core.Point,
+) -> (Double, Double)? {
+  match canvas_frame_of("blocks-canvas") {
+    None => None
+    Some(frame) => {
+      let zoom = model.blocks_ui.canvas_zoom
+      let scale = if zoom > 0.0 { zoom } else { 1.0 }
+      let origin = match current_handler(model) {
+        Some(handler) => script_origin_of(model, handler)
+        None =>
+          ScriptOrigin::{
+            x: @blk.BLOCKS_SCRIPT_MARGIN,
+            y: @blk.BLOCKS_SCRIPT_MARGIN,
+          }
+      }
+      let note = if target_note(model) == "" {
+        0.0
+      } else {
+        @blk.BLOCKS_NOTE_HEIGHT
+      }
+      let lx = (pointer.x - frame.origin.x - origin.x) / scale
+      let ly = (pointer.y - frame.origin.y - origin.y) / scale - note
+      Some((lx, ly))
+    }
+  }
+}
+
+///|
+/// 调色板拖拽中的指针回报（PaletteDragPointer）：换算成功 → 记录链坐标
+/// （画布插入线的数据源）；画布帧缺席（首帧尚未布局）→ 忽略采样。
+pub fn update_palette_drag_pointer(
+  model : Model,
+  canvas_frame_of : (String) -> @core.Rect?,
+  pointer : @core.Point,
+) -> (Model, @moui.Effect[Msg]) {
+  match palette_pointer_to_chain(model, canvas_frame_of, pointer) {
+    Some((lx, ly)) =>
+      update_pure(
+        model,
+        BlocksUiOp(@blk.PaletteDragMoved(@geometry.Point::new(x=lx, y=ly))),
+      )
+    None => (model, @moui.Effect::none())
+  }
+}
+
+///|
+/// 调色板拖拽松手（PaletteDropAt）：指针在画布帧内 → 换算成链坐标走
+/// `PaletteDrop` 落槽（语句）或首洞落表达式；画布帧缺席或指针在画布外
+/// → 取消（清拖拽瞬态，不插入）——Scratch 的「拖回调色板 = 放弃」。
+pub fn update_palette_drop_at(
+  model : Model,
+  canvas_frame_of : (String) -> @core.Rect?,
+  pointer : @core.Point,
+  avail_width : Double,
+) -> (Model, @moui.Effect[Msg]) {
+  let frame = canvas_frame_of("blocks-canvas")
+  match palette_pointer_to_chain(model, canvas_frame_of, pointer) {
+    Some((lx, ly)) =>
+      match frame {
+        Some(rect) if rect.contains(pointer) =>
+          if model.blocks_ui.expr_drag is Some(_) {
+            update_pure(
+              model,
+              palette_expression_drop_at(model, lx, ly, avail_width),
+            )
+          } else {
+            update_pure(model, PaletteDrop(lx, ly, avail_width))
+          }
+        _ => update_pure(model, BlocksUiOp(@blk.PaletteDragCancel))
+      }
+    None => update_pure(model, BlocksUiOp(@blk.PaletteDragCancel))
+  }
+}
+
+///|
+/// 表达式拖拽的落点：**行命中 + 该行首洞**。
+///
+/// 洞的精确命中（`blocks_slot_hit`）需要 TextSystem 度量，它只在布局
+/// 上下文里，update 拿不到——按「指到哪行就落进那行的第一个洞」降级
+/// （单洞语句是绝对多数；多洞语句用户可以落定后再用值编辑微调）。
+/// 行是装饰块或该行没有洞 → 走 `ExpressionDrop(-1, [])` 的既有拒绝
+/// 提示路径。
+fn palette_expression_drop_at(
+  model : Model,
+  lx : Double,
+  ly : Double,
+  avail_width : Double,
+) -> Msg {
+  let blocks = block_chain_of(model)
+  let (display_texts, _lead_texts) = block_row_texts(translator(model), blocks)
+  let hit = @blk.blocks_hit_index(blocks, lx, ly, avail_width~, display_texts~)
+  let hole = if hit >= 0 {
+    @blk.blocks_first_slot_path(blocks[hit])
+  } else {
+    None
+  }
+  match hole {
+    Some(path) => ExpressionDrop(hit, path)
+    None => ExpressionDrop(-1, [])
+  }
+}
+
+///|
 fn block_at(
   blocks : Array[@blocks.BlockItem],
   index : Int,
@@ -586,6 +700,21 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
           @moui.Effect::none(),
         ),
       )
+    // **自制积木组**的插入：骨架文本由「函数名 + 占位实参」拼出，其余
+    // （解析校验 / 落点 / 选中跟随 / 收面板）与 `insert_statement_at` 完全
+    // 同一条——为它另写一套落地路径就会有两条语义分叉。
+    InsertCustomFunction(function_index) =>
+      Some(
+        (
+          with_recent_undo_point(
+            model,
+            text(translator(model), "app.recent.action.insert_stmt"),
+            "app.recent.action.insert_stmt",
+            m => insert_custom_function(m, function_index),
+          ),
+          @moui.Effect::none(),
+        ),
+      )
     DropStatement(category, template, list_path, at) =>
       Some(
         (
@@ -605,7 +734,7 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
       // 才知道。算完派发 `DropStatement`（与点击插入共用同一条落地路径）。
       match model.blocks_ui.palette_drag {
         None => Some((model, @moui.Effect::none()))
-        Some((category, template)) => {
+        Some((category, template, _pointer)) => {
           let blocks = block_chain_of(model)
           // 展示文本与绘制同源（块宽随内容收紧后宽度进了几何），
           // 命中不吃同一份，「拖到块尾松手」就会落空。
@@ -858,6 +987,86 @@ fn insert_statement(
   template_index : Int,
 ) -> Model {
   insert_statement_at(model, category_index, template_index, None)
+}
+
+///|
+/// 插入一条**自定义函数调用**（自制积木组）。
+///
+/// 骨架 = `名字(0, 0, …)`（占位实参按形参个数生成，用 `0` 是因为它是任何
+/// 形参类型都吃得下的字面量；用形参名会与程序里的变量重名、解析出来是另
+/// 一回事）。拼出的文本走 `parse_handler_body` 同一条校验链——解析失败
+/// 什么都不做，与模板插入的失败口径一致。
+fn insert_custom_function(model : Model, function_index : Int) -> Model {
+  if function_index < 0 || function_index >= model.program.functions.length() {
+    return model
+  }
+  let func = model.program.functions[function_index]
+  let skeleton = @blk.custom_call_label(@blk.CustomEntry::{
+    name: func.name,
+    arity: func.params.length(),
+  })
+  let parsed = match
+    @studio_lang.parse_handler_body(skeleton, model.language.dsl_language()) {
+    Err(_) =>
+      return with_notice(
+        model,
+        text(translator(model), "app.stmt.palette.parse_error"),
+        true,
+      )
+    Ok(body) => body
+  }
+  if parsed.length() == 0 {
+    return model
+  }
+  // 落点与 `insert_statement_at` 同一判据：选中块的下一行，无选中 → 顶层末尾
+  let target = match current_target(model) {
+    None =>
+      return with_notice(
+        model,
+        text(translator(model), "app.stmt.palette.no_handler"),
+        true,
+      )
+    Some(value) => value
+  }
+  let (list_path, at) = {
+    let chain = block_chain_of(model)
+    match block_at(chain, model.selected_block) {
+      Some(item) if item.path.length() > 0 => {
+        let parent = @blk.blocks_parent_of(item.path)
+        (parent, item.path[item.path.length() - 1] + 1)
+      }
+      _ => {
+        let top : Array[Int] = []
+        (top, target.body.length())
+      }
+    }
+  }
+  let mut working = @blocks.clone_stmts(target.body)
+  let mut insert_at = at
+  let mut inserted = 0
+  for traced in parsed {
+    match @blocks.insert_stmt_at(working, list_path, insert_at, traced.stmt) {
+      Some(next) => {
+        working = next
+        insert_at = insert_at + 1
+        inserted = inserted + 1
+      }
+      None => ()
+    }
+  }
+  if inserted == 0 {
+    return model
+  }
+  let next = replace_target_body(model, target.label, working)
+  let synced = sync_code_draft(next)
+  let new_path : Array[Int] = []
+  for part in list_path {
+    new_path.push(part)
+  }
+  new_path.push(at)
+  synced.blocks_ui.statement_palette_open = false
+  let selected = select_block_by_path(synced, new_path)
+  { ..selected, notice: "", }
 }
 
 // （BLOCKS_AUTOSCROLL_STEP 随 blocks_ui 切片迁入 plugins/blocks 的

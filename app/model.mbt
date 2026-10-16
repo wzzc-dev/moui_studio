@@ -20,6 +20,8 @@ pub(all) enum ArtifactAction {
   ArtifactLaunch
   /// 时间线消息复制（对白转录）：复用同一条回执通道，文案区分
   ArtifactAiCopy
+  /// 代码块级复制（目标图右栏）：同上，文案再分一档
+  ArtifactAiCodeCopy
 }
 
 ///|
@@ -80,8 +82,9 @@ pub(all) struct ToastEntry {
 pub const AI_CARD_LIMIT : Int = 24
 
 ///|
-/// 积木画布单块行高（分类条滚动定位与命中共用）。
-pub const BLOCK_ROW_HEIGHT : Double = 40.0
+/// 积木画布单块行高。**引用几何层的同一常量**（`@blk.BLOCKS_ROW_HEIGHT`）
+/// ——行距 = 行高是 Scratch 堆叠咬合的前提，两处各写一个数就会悄悄分叉。
+pub const BLOCK_ROW_HEIGHT : Double = @blk.BLOCKS_ROW_HEIGHT
 
 ///|
 /// 撤销条目：变更前的编辑快照（程序 + 选中态 + 代码草稿）。
@@ -264,6 +267,12 @@ pub(all) enum StudioPerspective {
   /// AI 工作台：左栏会话列表(M3) / 中心全幅会话流 / 右栏默认不显示 /
   /// 底栏 真终端(M5)
   PsAi
+  /// 设计工作台（ 目标模式 M5）：全幅设计画布（易语言式拖拽）
+  /// + 右栏检查器；不出现程序结构树与实时应用预览列。
+  PsDesign
+  /// 积木工作台（同上）：全幅积木画布（分类面板/自由画布）+ 右栏 AI
+  /// 助手；不出现程序结构树与实时应用预览列。
+  PsBlocks
 } derive(Eq)
 
 ///|
@@ -818,9 +827,25 @@ pub(all) enum Msg {
   // （BlocksUiOp）；面板开合/分类是纯 UI，插入语句（InsertStatement）仍住壳。
   /// 插入一条语句骨架：参数是分类下标与分类内模板下标。
   InsertStatement(Int, Int)
+  /// 插入一条**自定义函数调用**（自制积木组）：参数是 `program.functions`
+  /// 的下标。与 `InsertStatement` 共用 `insert_statement_at` 的校验与手术，
+  /// 只是骨架文本由「模板表」换成「函数名 + 占位实参」。
+  InsertCustomFunction(Int)
   /// 从调色板**开始拖**一条骨架（Scratch 的字面手势）。
   // 调色板拖放的「开始拖骨架」（PaletteDragStart / PaletteExprDragStart）
   // 已并入 blocks_ui 切片的 BlocksUiOp；落拖的 Drop* 仍住壳（提交 IR）。
+  /// 调色板拖动中回报**视口坐标**指针。
+  ///
+  /// 为什么是视口坐标而不是链坐标：拖拽手势被发起它的调色板行捕获
+  /// （runtime 的捕获语义），画布的手势收不到移动事件——只有调色板行
+  /// 看得到指针。行不知道画布的帧；视口 → 链的换算需要画布的**布局帧**
+  /// （经组合根注入的 `canvas_frame` 锚点回调取，键 = "blocks-canvas"），
+  /// 只有 update 侧拿得到，所以在 update 里换算（与绘制同一套逆映射）。
+  PaletteDragPointer(@core.Point)
+  /// 调色板拖拽**松手**：视口坐标 + 画布可用宽（与 PaletteDrop 的
+  /// avail_width 同口径，落点计算要用同一组矩形）。update 换算成链坐标
+  /// 后派发 `PaletteDrop`；指针不在画布上 = 取消（清 palette_drag）。
+  PaletteDropAt(@core.Point, Double)
   /// **只运行选中的那一条语句**（Scratch 的「点积木就跑它」）。
   ///
   /// 语义边界（刻意收窄，避免造出第二套执行模型）：
@@ -1087,6 +1112,11 @@ pub(all) enum Msg {
   ClockUpdated(StudioClock)
   /// 复制时间线里的一条消息（参数 = 卡 seq）：走系统剪贴板。
   CopyAiMessage(Int)
+  /// 复制一条消息里的**第 index 个代码块**（块级复制）。
+  ///
+  /// 为什么不复用 `CopyAiMessage`：一次回复可能产多块代码，整卡复制会把
+  /// 叙述文字一起拷走——用户要的是「这一块代码」。参数 = (卡 seq, 块下标)。
+  CopyAiCodeBlock(Int, Int)
   /// 把一条用户提问回填进 composer 草稿（对白转录气泡的「编辑」）。
   EditUserPrompt(Int)
   /// 重发一轮：把该条 AI 消息**之前的用户提问**回填草稿并立即重跑
@@ -1186,15 +1216,21 @@ pub fn handler_key(control : String, event : String) -> String {
 
 ///|
 /// provider 运行时配置（来自 gitignored .config.json；缺省即空配置）。
+///
+/// `models` 是**模型候选清单**（composer 下拉列它）。宽松字段：缺它不报错
+/// ——`load_provider_config` 对 endpoint/model/api_key 三字段是「缺一即
+/// None」的严格读，若把 models 也并进去，所有现存 .config.json 都会失效。
+/// 所以 models 单独 try，缺省 `[]`（= 只有当前 model 一项，今天的行为）。
 pub(all) struct ProviderConfig {
   endpoint : String
   model : String
   api_key : String
+  models : Array[String]
 }
 
 ///|
 pub fn empty_provider_config() -> ProviderConfig {
-  { endpoint: "", model: "", api_key: "", }
+  { endpoint: "", model: "", api_key: "", models: [], }
 }
 
 ///|
@@ -1277,7 +1313,12 @@ pub fn initial_model(
     pending: None,
     ai_sessions: @ai.AiSessions::new(),
     profile,
-    ai_ui: @ai.AiUiState::new(endpoint, model_name, config.api_key),
+    ai_ui: @ai.AiUiState::new(
+      endpoint,
+      model_name,
+      config.api_key,
+      config.models,
+    ),
     prompt_error: "",
     ai_available,
     dirty: false,

@@ -193,7 +193,10 @@ test "match hat wraps every arm in a C shape" {
       [@ir.Assign("c", @ir.IntLit(3))],
     ),
   ])
-  // 快照口径：4 段臂（帽→情况0、情况0→情况1、情况1→否则、否则→结束）
+  // 快照口径：3 段臂（情况0→情况1、情况1→否则、否则→结束）。
+  // 「帽→情况0」曾是第 4 段：行距 > 行高（40/34）时两行之间有 6pt 缝，
+  // 靠一条壁补上；行距 = 行高后两行直接咬合（榫进卯），壁长归零不画——
+  // 长度 > 0 的壁只剩真正包住子栈的三段。
   let base = @blk.blocks_item_rects(blocks, avail_width=470.0)
   let visual = @blk.blocks_visual_rects(blocks, base)
   let ops = @blk.blocks_draw_plan(
@@ -213,7 +216,7 @@ test "match hat wraps every arm in a C shape" {
       _ => ()
     }
   }
-  assert_eq(arms, 4)
+  assert_eq(arms, 3)
   // 匹配帽带决策徽标（与如果/当同族）
   let mut badges = 0
   for op in ops {
@@ -274,7 +277,7 @@ test "declaration blocks project as read-only rows" {
   let mut decorations = 0
   for op in ops {
     match op {
-      @blk.BlockOutline(_, _, _, _, _, _, _) => bodies = bodies + 1
+      @blk.BlockOutline(_, _, _, _, _, _, _, _) => bodies = bodies + 1
       @blk.BlockArm(_, _, _, _, _) => decorations = decorations + 1
       _ => ()
     }
@@ -284,40 +287,66 @@ test "declaration blocks project as read-only rows" {
 }
 
 ///|
-/// M7② headless 帧验收：单轮廓 PathSpec（一次 fill+stroke，榫头/卯口
+/// M7② headless 帧验收：单轮廓 PathSpec（一次 fill+stroke，顶卯/底榫
 /// 在轮廓动词里）与字段访问胶囊（@chrome.pill 洞）走真实绘制指令流。
 test "headless acceptance: outline path and field access @chrome.pill" {
-  // 1) 单轮廓几何：榫头凸起（y-5）与卯口凹口（y+h+5）都在路径动词里
+  // 1) 单轮廓几何（Scratch 咬合语义）：`tab=true`（有上一行）= 顶边
+  // **凹进块体**（y+depth=26），`notch=true`（有下一行）= 底边**向下凸出**
+  // （y+h+depth=56）。榫卯区间靠左（x+6..x+30），底榫肩点必须在**底边**
+  // y+h=50——抓到顶边 y=20 会让路径自交，Skia 非零环绕填充出贯穿整行的
+  // 楔形（实测缺陷，快照锁死）。
   let verbs = @blk.block_outline_path(10.0, 20.0, 200.0, 30.0, true, true)
-  let mut has_tab_bump = false
-  let mut has_notch_dip = false
-  // 卯口肩点必须在**底边** y+h=50——抓到顶边 y=20 会让路径自交,
-  // Skia 非零环绕填充出贯穿整行的楔形（实测缺陷,快照锁死）
+  let mut has_top_indent = false
+  let mut has_bottom_tab = false
   let mut shoulder_left = false
   let mut shoulder_right = false
   for verb in verbs {
     match verb {
       @core.LineTo(p) => {
-        if p.y == 15.0 {
-          has_tab_bump = true
+        if p.y == 26.0 {
+          has_top_indent = true
         }
-        if p.y == 55.0 {
-          has_notch_dip = true
+        if p.y == 56.0 {
+          has_bottom_tab = true
         }
-        if p.x == 30.0 && p.y == 50.0 {
+        if p.x == 16.0 && p.y == 50.0 {
           shoulder_left = true
         }
-        if p.x == 48.0 && p.y == 50.0 {
+        if p.x == 40.0 && p.y == 50.0 {
           shoulder_right = true
         }
       }
       _ => ()
     }
   }
-  assert_true(has_tab_bump)
-  assert_true(has_notch_dip)
+  assert_true(has_top_indent)
+  assert_true(has_bottom_tab)
   assert_true(shoulder_left)
   assert_true(shoulder_right)
+  // 1b) 帽子剪影：圆顶在行框**上方**（峰值 y-dome=11），肩线 = 行顶 20。
+  let hat_verbs = @blk.block_outline_path(
+    10.0,
+    20.0,
+    200.0,
+    30.0,
+    false,
+    true,
+    hat=true,
+  )
+  let mut dome_peak = false
+  let mut hat_shoulder = false
+  for verb in hat_verbs {
+    match verb {
+      @core.QuadTo(_, peak) => if peak.y == 11.0 { dome_peak = true }
+      @core.LineTo(p) => if p.y == 20.0 && p.x > 100.0 { hat_shoulder = true }
+      _ => ()
+    }
+  }
+  assert_true(dome_peak, msg="hat dome must rise above the row frame")
+  assert_true(
+    hat_shoulder,
+    msg="hat top edge right of the dome sits on the shoulder line",
+  )
   // 2) 一次 fill+stroke：绘制指令流里只有一条 DrawPath
   let ctx = @views.PaintContext::new()
   @blk.paint_block_outline(

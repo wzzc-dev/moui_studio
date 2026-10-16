@@ -92,6 +92,7 @@ pub fn artifact_done_key(what : ArtifactAction) -> String {
     ArtifactReveal => "app.compile.revealed"
     ArtifactLaunch => "app.compile.launched"
     ArtifactAiCopy => "app.ai.copied"
+    ArtifactAiCodeCopy => "app.ai.code.copied"
   }
 }
 
@@ -864,6 +865,20 @@ pub fn update_with_services(
             .clipboard()
             .write_text(body)
             .effect(map=r => ArtifactActionDone(ArtifactAiCopy, r)),
+          )
+        None => (model, @moui.Effect::none())
+      }
+    // **块级复制**（目标图右栏代码块的复制钮）：只拷这一块代码，不带走
+    // 卡里的叙述文字。走同一条剪贴板通道，回执文案区分来源。
+    CopyAiCodeBlock(seq, index) =>
+      match card_code_text_by_index(model, seq, index) {
+        Some(code) =>
+          (
+            model,
+            services
+            .clipboard()
+            .write_text(code)
+            .effect(map=r => ArtifactActionDone(ArtifactAiCodeCopy, r)),
           )
         None => (model, @moui.Effect::none())
       }
@@ -1977,6 +1992,14 @@ pub fn program(
   /// AI 能力可用性：浏览器没有 HTTP 通道，Web 入口传 false——composer
   /// 隐藏 + native 引导文案（显式降级，不出假按钮）。
   ai_available? : Bool = true,
+  /// 画布锚点帧查询（组合根注入，键 = "blocks-canvas"）。
+  ///
+  /// 调色板拖拽的指针换算（视口 → 链）需要画布内容节点的**布局帧**——
+  /// 它只在 runtime 的布局结果里，update 侧本身拿不到。runtime 的
+  /// 锚点注册表为每个带 key 的元素登记布局帧，组合根把
+  /// `runtime.anchor_frame` 包成回调注入（与 `runtime_snapshot` 同一
+  /// 先例）。缺省恒 None = 调色板拖拽落不下来（headless/测试入口）。
+  canvas_frame? : (String) -> @core.Rect? = _key => None,
 ) -> @moui.Program[Model, Msg] {
   let services = environment.services()
   let timer = environment.timer()
@@ -2126,6 +2149,12 @@ pub fn program(
     update=(model, msg) => {
       @chrome.set_ui_dark(model.ui_dark)
       let (next0, effect0) = match msg {
+        // 调色板拖拽的视口上报：换算需要画布锚点帧——只有这个闭包拿得到
+        // 组合根注入的回调（`canvas_frame`），所以在通用分流之前接住。
+        PaletteDragPointer(pointer) =>
+          update_palette_drag_pointer(model, canvas_frame, pointer)
+        PaletteDropAt(pointer, avail_width) =>
+          update_palette_drop_at(model, canvas_frame, pointer, avail_width)
         // 事件驱动消息（M1 内核化）：由事件总线从 outbox 翻译而来，副作用
         // 经服务容器执行——监听器保持纯函数，这里才是副作用的家。
         CodeProjectWriteRequested(dir, form_mbt, handlers_mbt, project_data) =>
@@ -2557,6 +2586,7 @@ fn update_with_provider(
           steps_done: 0,
           progress: 0,
           diff_lines: [],
+          code_blocks: [],
           settled: false,
           settled_note: "",
           seq: 0,

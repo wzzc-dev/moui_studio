@@ -23,12 +23,14 @@ async fn main {
       endpoint: "",
       model: "",
       api_key: "",
+      models: [],
     },
   )
   let provider_config : @studio_app.ProviderConfig = {
     endpoint: raw_config.endpoint,
     model: raw_config.model,
     api_key: raw_config.api_key,
+    models: raw_config.models,
   }
   let focus_terminal = fn() {
     match runtime_ref.val {
@@ -38,6 +40,15 @@ async fn main {
   }
   let runtime = @runtime.new_program_with_dimensions(
     program=@studio_app.program(
+      // 画布锚点帧：调色板拖拽的视口→链换算在 update 侧经它取画布
+      // 布局帧（键 = "blocks-canvas"）。runtime_ref 在 program 之前
+      // 填充（窗口任务创建 runtime 后写回）。
+      canvas_frame=fn(key) {
+        match runtime_ref.val {
+          Some(runtime) => runtime.anchor_frame(key)
+          None => None
+        }
+      },
       environment=@linux_backend.app_environment(),
       focus_terminal~,
       provider_config~,

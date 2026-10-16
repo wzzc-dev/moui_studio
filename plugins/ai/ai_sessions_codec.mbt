@@ -120,6 +120,7 @@ fn encode_card(card : AiCard) -> Json {
   fields["steps_done"] = Json::number(card.steps_done.to_double())
   fields["progress"] = Json::number(card.progress.to_double())
   fields["diff_lines"] = encode_pairs(card.diff_lines)
+  fields["code_blocks"] = encode_pairs(card.code_blocks)
   fields["settled"] = Json::number(if card.settled { 1.0 } else { 0.0 })
   fields["settled_note"] = Json::string(card.settled_note)
   fields["seq"] = Json::number(card.seq.to_double())
@@ -143,6 +144,8 @@ fn decode_card(fields : Map[String, Json]) -> AiCard? {
         steps_done: json_int_field(fields, "steps_done").unwrap_or(0),
         progress: json_int_field(fields, "progress").unwrap_or(0),
         diff_lines: json_pairs_field(fields, "diff_lines"),
+        // 缺省 `[]`：旧存储文件没有这个字段，零迁移（不 bump 存储版本）
+        code_blocks: json_pairs_field(fields, "code_blocks"),
         settled: json_int_field(fields, "settled").unwrap_or(0) != 0,
         settled_note: json_string_field(fields, "settled_note").unwrap_or(""),
         seq: json_int_field(fields, "seq").unwrap_or(0),

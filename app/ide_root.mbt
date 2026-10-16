@@ -139,8 +139,14 @@ fn shell_view(
   }
   let main_col = @views.column(
     [
-      workspace_seg,
-      bottom_sash,
+      // **结构行子元素全部显式 key**(P1 根因修复):这些格子随工作台
+      // 形态增删(组合 = 左栏+中心+底栏;积木/设计台 = 无左栏)。无键
+      // 同 kind 容器按「下标+kind」复用,成员一变就整体错位一格——左栏
+      // 面板被 main_col 复用、右栏被旧中心复用,幽灵子树与黑区并存
+      // (真机:积木台态右栏/底栏/状态条不绘制)。key 让 reconcile 按
+      // 身份匹配,增删各自成 remover/mounter。
+      workspace_seg.key("shell-workspace"),
+      bottom_sash.key("shell-bottom-sash"),
       // 底栏宽度跟随 main_col：全屏页（运行/预览/帮助）没有左右栏，
       // 若仍用 `center_width`（按「左栏+右栏都在」分配的宽），底栏只铺
       // 左半段，右侧留一条空白（实测运行页 AI 栏右侧全空）。
@@ -153,7 +159,7 @@ fn shell_view(
           center_width
         },
         bottom_height,
-      ),
+      ).key("shell-bottom-bar"),
     ],
     spacing=0.0,
   ).frame(
@@ -184,7 +190,11 @@ fn shell_view(
   if !fullscreen {
     match chrome_widths.left {
       Some(left_width) => {
-        lower_cells.push(ide_left_panel(model, t, left_width, lower_height))
+        lower_cells.push(
+          ide_left_panel(model, t, left_width, lower_height).key(
+            "shell-left-panel",
+          ),
+        )
         lower_cells.push(
           v_sash(
             fn(x) {
@@ -196,13 +206,13 @@ fn shell_view(
               )
             },
             lower_height,
-          ),
+          ).key("shell-left-sash"),
         )
       }
       None => ()
     }
   }
-  lower_cells.push(main_col)
+  lower_cells.push(main_col.key("shell-main-col"))
   if !fullscreen && chrome_widths.right > 0.0 {
     lower_cells.push(
       v_sash(
@@ -215,7 +225,7 @@ fn shell_view(
           )
         },
         lower_height,
-      ),
+      ).key("shell-right-sash"),
     )
     // 右列只有两个宿主：AI 工作台模式（PsAi）= 更改/文件双页签面板；
     // 其余 = 检查器 + 钉底 composer（VS Code 侧面板口径，见
@@ -223,11 +233,15 @@ fn shell_view(
     // 承载它，也就不再需要「停靠右栏 / 放到底栏」这对互为出口的切换钮。
     if model.right_view is RvWorkspace {
       lower_cells.push(
-        ai_workspace_panel(model, t, chrome_widths.right, lower_height),
+        ai_workspace_panel(model, t, chrome_widths.right, lower_height).key(
+          "shell-right-panel",
+        ),
       )
     } else {
       lower_cells.push(
-        ide_right_panel(model, t, chrome_widths.right, lower_height),
+        ide_right_panel(model, t, chrome_widths.right, lower_height).key(
+          "shell-right-panel",
+        ),
       )
     }
   }
@@ -402,6 +416,16 @@ fn workspace_content(
 ) -> @moui.View[Msg] {
   if model.perspective is PsAi {
     return ai_center(model, t, width, height)
+  }
+  // 独立工作台（M5）：设计台 = 组合工作区同一 `live_pane` 构造器的全幅
+  // 形态（拖放/属性编辑与组合一致由构造保证）；积木台 = 全幅积木画布
+  // （宽度不再受中心列对半分制约）+ 右栏 AI。左右栏的收放由
+  // `apply_perspective_preset` 预设（PsDesign/PsBlocks 左栏隐藏）。
+  if model.perspective is PsDesign {
+    return live_pane(model, t, width, height)
+  }
+  if model.perspective is PsBlocks {
+    return blocks_pane(model, t, width, height)
   }
   match model.workspace {
     WsVisual => visual_workspace(model, t, width, height)

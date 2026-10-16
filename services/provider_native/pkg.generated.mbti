@@ -24,6 +24,7 @@ pub(all) struct ProviderConfig {
   endpoint : String
   model : String
   api_key : String
+  models : Array[String]
 }
 
 pub(all) struct ProviderJob {

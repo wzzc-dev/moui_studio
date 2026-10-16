@@ -25,6 +25,15 @@ fn main {
   let runtime_ref : Ref[@runtime.AppRuntime?] = Ref(None)
   let runtime = @runtime.new_program_with_dimensions(
     program=@studio_app.program(
+      // 画布锚点帧：调色板拖拽的视口→链换算在 update 侧经它取画布
+      // 布局帧（键 = "blocks-canvas"）。runtime_ref 在 program 之前
+      // 填充（窗口任务创建 runtime 后写回）。
+      canvas_frame=fn(key) {
+        match runtime_ref.val {
+          Some(runtime) => runtime.anchor_frame(key)
+          None => None
+        }
+      },
       environment=@web.app_environment(),
       ai_available=false,
       wall_clock=Some(web_studio_clock),

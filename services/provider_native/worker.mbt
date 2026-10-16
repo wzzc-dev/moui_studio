@@ -22,11 +22,16 @@ pub(all) struct ProviderJob {
 }
 
 ///|
-/// provider 连接配置（endpoint/model/api_key）。api_key 只存会话内存。
+/// provider 连接配置（endpoint/model/api_key + 模型候选清单）。
+/// api_key 只存会话内存。
+///
+/// `models` 宽松读：缺它不报错（见 `load_provider_config` 的注释）——
+/// 把 models 并进「缺一即 None」的严格读会让所有现存 .config.json 失效。
 pub(all) struct ProviderConfig {
   endpoint : String
   model : String
   api_key : String
+  models : Array[String]
 }
 
 ///|
@@ -221,5 +226,18 @@ pub fn load_provider_config(path : String) -> ProviderConfig? {
     Some(String(value)) => value
     _ => return None
   }
-  Some(ProviderConfig::{ endpoint, model, api_key, })
+  // `models` 宽松读：只收集字符串项，缺字段/类型不符都退化为 `[]`
+  // （= 只有当前 model 一项，今天的行为）。**不**并进上面的严格读。
+  let models : Array[String] = []
+  match provider.get("models") {
+    Some(Array(values)) =>
+      for value in values {
+        match value {
+          String(name) => if name != "" { models.push(name) }
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  Some(ProviderConfig::{ endpoint, model, api_key, models, })
 }

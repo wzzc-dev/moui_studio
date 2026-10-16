@@ -242,6 +242,7 @@ test "transcript follow toggles by scroll direction and new content" {
     steps_done: 0,
     progress: 0,
     diff_lines: [],
+    code_blocks: [],
     settled: true,
     settled_note: "",
     seq: 0,
@@ -262,6 +263,7 @@ test "transcript follow toggles by scroll direction and new content" {
     steps_done: 0,
     progress: 0,
     diff_lines: [],
+    code_blocks: [],
     settled: true,
     settled_note: "",
     seq: 0,
@@ -478,4 +480,104 @@ test "纯聊天:无 key 提交给结构化引导" {
   // 多轮历史构建不受影响（空转录 → 没有可入史的消息）
   let history = @app.chat_history(ran)
   assert_eq(history.length(), 0)
+}
+
+///|
+/// `split_plan`：从模型回执切出实施计划（`PLAN:` 段）。
+/// 三条纪律：有段才切、行首序号被剥掉、没段 = 降级为空。
+test "split plan extracts numbered steps and degrades without the section" {
+  let with_plan = "{\"version\":1}\nPLAN:\n1. 初始化传感器\n2) 写主循环\n- 显示与按键\n"
+  let steps = @app.split_plan(with_plan)
+  assert_eq(steps.length(), 3)
+  assert_eq(steps[0], "初始化传感器")
+  assert_eq(steps[1], "写主循环")
+  assert_eq(steps[2], "显示与按键")
+  // 没有 PLAN 段：降级（计划卡不带 steps）
+  let bare = "{\"version\":1}"
+  assert_eq(@app.split_plan(bare).length(), 0)
+  // 大小写变体都认
+  assert_eq(@app.split_plan("plan:\n做一件事").length(), 1)
+}
+
+///|
+/// 计划卡**不被**忙碌摘除摘掉：有 steps 的计划卡要留在时间线上
+/// （目标图右栏的编号节），没 steps 的纯占位才摘。
+test "plan cards with steps survive the busy-card sweep" {
+  let model = @app.initial_model()
+  // 带 steps 的计划卡
+  let with_steps = @app.push_ai_card(model, @app.AiCard::{
+    kind: @ai.CardPlan,
+    title: "计划",
+    body: "",
+    steps: ["第一步"],
+    steps_done: 0,
+    progress: 0,
+    diff_lines: [],
+    code_blocks: [],
+    settled: false,
+    settled_note: "",
+    seq: 0,
+    at: 0,
+  })
+  // `{}` 不是合法提案 → 走 `proposal_from_completion` 的 Err 臂推一张
+  // 错误卡。所以回执后线程里有 2 张：计划卡（活着）+ 错误卡。
+  // 这里要钉的是**计划卡没被摘**——按种类找，不按总数。
+  let swept = apply(with_steps, @app.RealGenerationFinished(Ok("{}")))
+  let kept = swept.ai_sessions.current().cards
+  assert_eq(kept.length(), 2)
+  let plan = kept.filter(card => card.kind is CardPlan)
+  assert_eq(plan.length(), 1)
+  assert_eq(plan[0].steps.length(), 1)
+  // 纯占位（无 steps）照旧被摘。
+  // **必须用全新的 model**：会话卡数组是共享可变引用，前一个用例的
+  // `with_steps` 已经把卡推进 `model` 的当前会话了——再 push 会叠加上去。
+  let busy_only = @app.push_ai_card(@app.initial_model(), @app.AiCard::{
+    kind: @ai.CardPlan,
+    title: "正在生成提案…",
+    body: "",
+    steps: [],
+    steps_done: 0,
+    progress: 0,
+    diff_lines: [],
+    code_blocks: [],
+    settled: false,
+    settled_note: "",
+    seq: 0,
+    at: 0,
+  })
+  // 占位被摘了，但 Err 臂（`{}` 不是合法提案）又推了一张错误卡。
+  // 所以按**计划卡**数断言：纯占位的那张必须消失，错误卡是另一回事。
+  let swept2 = apply(busy_only, @app.RealGenerationFinished(Ok("{}")))
+  let plans2 = swept2.ai_sessions.current().cards.filter(card => {
+    card.kind is CardPlan
+  })
+  assert_eq(plans2.length(), 0)
+}
+
+///|
+/// 块级复制：`CopyAiCodeBlock(seq, index)` 只拷那一块代码，
+/// 越界下标静默 no-op（不弹错误）。
+test "copy code block copies only that block and no-ops out of range" {
+  let model = @app.push_ai_card(@app.initial_model(), @app.AiCard::{
+    kind: @ai.CardDiff,
+    title: "变更",
+    body: "叙述文字",
+    steps: [],
+    steps_done: 0,
+    progress: 100,
+    diff_lines: [],
+    code_blocks: [("按钮.on_click", "set_text(标签, \"hi\")")],
+    settled: false,
+    settled_note: "",
+    seq: 0,
+    at: 0,
+  })
+  let seq = model.ai_sessions.current().cards[0].seq
+  assert_eq(
+    @app.card_code_text_by_index(model, seq, 0),
+    Some("set_text(标签, \"hi\")"),
+  )
+  // 越界：None（调用方据此 no-op）
+  assert_true(@app.card_code_text_by_index(model, seq, 5) is None)
+  assert_true(@app.card_code_text_by_index(model, seq, -1) is None)
 }

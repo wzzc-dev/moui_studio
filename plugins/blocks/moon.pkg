@@ -2,8 +2,10 @@ import {
   "wzzc-dev/moui",
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/views",
+  "wzzc-dev/moui/views/style",
   "wzzc-dev/moui/geometry",
   "wzzc-dev/moui/graphics",
+  "wzzc-dev/moui/text",
   "wzzc-dev/moui_i18n" @i18n,
   "wzzc-dev/moui_studio/chrome",
   // 别名 @blk：本包名就是 blocks，与 domain/blocks 的默认别名冲突

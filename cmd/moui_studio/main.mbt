@@ -107,12 +107,14 @@ async fn main {
       endpoint: "",
       model: "",
       api_key: "",
+      models: [],
     },
   )
   let provider_config : @studio_app.ProviderConfig = {
     endpoint: config.endpoint,
     model: config.model,
     api_key: config.api_key,
+    models: config.models,
   }
   let runtime = @runtime.new_program_with_dimensions(
     program=@studio_app.program(
