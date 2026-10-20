@@ -16,32 +16,32 @@
 ///|
 /// 一条语句的生成源码行号映射：IR 路径 → 生成源码行号（1-based）。
 pub(all) struct StmtLine {
-  path : Array[Int]
-  line : Int
+  path : Array[Int32]
+  line : Int32
   // 审计行号：与解释轨一致，嵌套语句继承最近一层顶层语句的行号
-  audit_line : Int
+  audit_line : Int32
 }
 
 ///|
 /// 一个 handler 的生成产物。
 pub(all) struct GeneratedHandler {
-  index : Int
+  index : Int32
   function_name : String
   control_name : String
   event_tag : String
   source : String
   stmt_lines : Array[StmtLine]
   // 该 handler 在整份生成文件里的首行（1-based）
-  start_line : Int
+  start_line : Int32
   // 函数体结束行（不含闭括号）；注入器在此行前放入循环控制辅助函数
-  body_end_line : Int
+  body_end_line : Int32
 }
 
 ///|
 pub fn GeneratedHandler::line_for(
   self : GeneratedHandler,
-  path : Array[Int],
-) -> Int? {
+  path : Array[Int32],
+) -> Int32? {
   for entry in self.stmt_lines {
     if paths_equal(entry.path, path) {
       return Some(entry.line)
@@ -53,8 +53,8 @@ pub fn GeneratedHandler::line_for(
 ///|
 pub fn GeneratedHandler::audit_line_for(
   self : GeneratedHandler,
-  path : Array[Int],
-) -> Int? {
+  path : Array[Int32],
+) -> Int32? {
   for entry in self.stmt_lines {
     if paths_equal(entry.path, path) {
       return Some(entry.audit_line)
@@ -64,7 +64,7 @@ pub fn GeneratedHandler::audit_line_for(
 }
 
 ///|
-pub fn paths_equal(left : Array[Int], right : Array[Int]) -> Bool {
+pub fn paths_equal(left : Array[Int32], right : Array[Int32]) -> Bool {
   if left.length() != right.length() {
     return false
   }
@@ -89,8 +89,8 @@ pub(all) struct GeneratedSource {
 /// 生成 handler 函数（不含文件头）。`index` 从 1 开始，用于函数名。
 pub fn generate_handler_source(
   handler : @ir.Handler,
-  index : Int,
-  functions? : Array[@ir.FuncDef] = [],
+  index : Int32,
+  functions~ : Array[@ir.FuncDef] = [],
 ) -> GeneratedHandler {
   let ctx : GenCtx = {
     buf: StringBuilder(),
@@ -278,13 +278,13 @@ fn write_dispatch(
 priv struct GenCtx {
   buf : StringBuilder
   lines : Array[StmtLine]
-  mut depth : Int
-  mut path : Array[Int]
-  mut line : Int
-  mut audit_line : Int
+  mut depth : Int32
+  mut path : Array[Int32]
+  mut line : Int32
+  mut audit_line : Int32
   // 用户函数体：审计行号统一 0（与解释轨 call_user_function 的
   // compile_body(traced_from_stmts) 同口径；函数体没有用户源码行号）
-  audit_line_override : Int?
+  audit_line_override : Int32?
   // 程序的用户函数表：调用解析「先内建、后自定义」用
   functions : Array[@ir.FuncDef]
 }
@@ -320,12 +320,12 @@ fn write_args(ctx : GenCtx, args : Array[@ir.Expr]) -> String {
 ///|
 /// 事件子程序的 MoonBit 函数名（M6①：form.mbt 的 on_click 绑定
 /// 与 handlers.mbt 的函数名必须同源，这里是对外唯一出口）。
-pub fn handler_function_name(handler : @ir.Handler, index : Int) -> String {
+pub fn handler_function_name(handler : @ir.Handler, index : Int32) -> String {
   function_name_for(handler, index)
 }
 
 ///|
-fn function_name_for(handler : @ir.Handler, index : Int) -> String {
+fn function_name_for(handler : @ir.Handler, index : Int32) -> String {
   "studio_" +
   sanitize_identifier(handler.control_name) +
   "_" +
@@ -358,7 +358,7 @@ fn sanitize_identifier(name : String) -> String {
 }
 
 ///|
-fn count_newlines(text : String) -> Int {
+fn count_newlines(text : String) -> Int32 {
   let mut count = 0
   for ch in text {
     if ch == '\n' {
@@ -388,8 +388,8 @@ fn with_depth(ctx : GenCtx, f : () -> Unit) -> Unit {
 }
 
 ///|
-fn push_path(ctx : GenCtx, index : Int) -> Unit {
-  let next : Array[Int] = []
+fn push_path(ctx : GenCtx, index : Int32) -> Unit {
+  let next : Array[Int32] = []
   for part in ctx.path {
     next.push(part)
   }
@@ -399,7 +399,7 @@ fn push_path(ctx : GenCtx, index : Int) -> Unit {
 
 ///|
 fn pop_path(ctx : GenCtx) -> Unit {
-  let next : Array[Int] = []
+  let next : Array[Int32] = []
   let mut i = 0
   while i + 1 < ctx.path.length() {
     next.push(ctx.path[i])
@@ -410,7 +410,7 @@ fn pop_path(ctx : GenCtx) -> Unit {
 
 ///|
 fn record_stmt_line(ctx : GenCtx) -> Unit {
-  let path : Array[Int] = []
+  let path : Array[Int32] = []
   for part in ctx.path {
     path.push(part)
   }
@@ -618,7 +618,7 @@ fn write_if_condition(
   ctx : GenCtx,
   name : String,
   cond : @ir.Expr,
-  line : Int,
+  line : Int32,
 ) -> String {
   "{\n" +
   "    let \{name} = @compiled_runtime.bool_of(\{write_value(ctx, cond)}, \"condition\", \{line})\n" +
@@ -669,7 +669,7 @@ fn write_command_call(
   ctx : GenCtx,
   name : String,
   args : Array[@ir.Expr],
-  line : Int,
+  line : Int32,
 ) -> Unit {
   let detail = mbt_quote(@studio_lang.canonical_call_text(name, args))
   match name {
@@ -748,7 +748,7 @@ fn write_gate_call(
   ctx : GenCtx,
   name : String,
   args : Array[@ir.Expr],
-  line : Int,
+  line : Int32,
 ) -> Unit {
   let detail = mbt_quote(@studio_lang.canonical_call_text(name, args))
   match name {

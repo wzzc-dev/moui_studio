@@ -28,7 +28,7 @@ import {
 // Values
 pub const AI_CARD_INSET : Double = 6.0
 
-pub const AI_CARD_LIMIT : Int = 24
+pub const AI_CARD_LIMIT : Int32 = 24
 
 pub const AI_CARD_PAD : Double = 8.0
 
@@ -40,9 +40,9 @@ pub const AI_DOCK_PAD_V : Double = 6.0
 
 pub const AI_SUBJECT_CHIP_HEIGHT : Double = 22.0
 
-pub const ALIGN_MARGIN : Int = 24
+pub const ALIGN_MARGIN : Int32 = 24
 
-pub const AUDIT_LIMIT : Int = 200
+pub const AUDIT_LIMIT : Int32 = 200
 
 pub const BLOCK_ROW_HEIGHT : Double = 34.0
 
@@ -50,7 +50,7 @@ pub const BUTTON_LABEL_PADDING : Double = 32.0
 
 pub const CANVAS_MIN_WIDTH : Double = 120.0
 
-pub const CATEGORY_INDEX_CUSTOM : Int = 5
+pub const CATEGORY_INDEX_CUSTOM : Int32 = 5
 
 pub const CATEGORY_RAIL_WIDTH : Double = 86.0
 
@@ -68,7 +68,7 @@ pub const LIVE_STAGE_INSET_H : Double = 16.0
 
 pub const LIVE_STAGE_INSET_V : Double = 14.0
 
-pub const LOG_LIMIT : Int = 400
+pub const LOG_LIMIT : Int32 = 400
 
 pub const PANE_HEAD_GAP : Double = 6.0
 
@@ -78,15 +78,15 @@ pub const PLUGINS_SETTINGS_KEY : String = "studio.plugins"
 
 pub const POSTURE_HEIGHT : Double = 20.0
 
-pub const RECENT_LIMIT : Int = 24
+pub const RECENT_LIMIT : Int32 = 24
 
 pub const RIGHT_TAB_HEIGHT : Double = 30.0
 
 pub const STATEMENT_PALETTE_MIN_WIDTH : Double = 132.0
 
-pub const TOAST_LIMIT : Int = 3
+pub const TOAST_LIMIT : Int32 = 3
 
-pub const TOAST_SECONDS : Int = 4
+pub const TOAST_SECONDS : Int32 = 4
 
 pub const TOPBAR_ACTIONS_SAFETY : Double = 8.0
 
@@ -98,7 +98,7 @@ pub const TOPBAR_LEFT_TOGGLE_ZONE : Double = 34.0
 
 pub const UI_DARK_SETTINGS_KEY : String = "studio.ui_dark"
 
-pub const UNDO_DEPTH : Int = 50
+pub const UNDO_DEPTH : Int32 = 50
 
 pub fn active_project_file(Model) -> @wzzc-dev/moui_studio/plugins/project.OpenProjectFile?
 
@@ -118,9 +118,9 @@ pub fn app_running(Model) -> Bool
 
 pub fn artifact_done_key(ArtifactAction) -> String
 
-pub fn audit_error_count(Model) -> Int
+pub fn audit_error_count(Model) -> Int32
 
-pub fn audit_op_rank(@studio_lang.StepOp) -> Int
+pub fn audit_op_rank(@studio_lang.StepOp) -> Int32
 
 pub fn audit_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
@@ -140,7 +140,7 @@ pub fn block_row_texts(@moui_i18n.Translator, Array[@wzzc-dev/moui_studio/domain
 
 pub fn blocks_body_height(Model, Double) -> Double
 
-pub fn blocks_canvas(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[String], Int, String, (Double, Double, Bool)?, Double, Double, String, avail_width? : Double, y_offset? : Double, palette_drag? : Bool, expr_drag? : Bool, script_note? : String, note_height? : Double, lead_texts? : Array[String], zoom? : Double, grid? : Bool, origin? : @wzzc-dev/moui_studio/plugins/blocks.ScriptOrigin, hat_top? : Bool) -> @core.View[Msg]
+pub fn blocks_canvas(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[String], Int32, String, (Double, Double, Bool)?, Double, Double, String, avail_width? : Double, y_offset? : Double, palette_drag? : Bool, expr_drag? : Bool, script_note? : String, note_height? : Double, lead_texts? : Array[String], zoom? : Double, grid? : Bool, origin? : @wzzc-dev/moui_studio/plugins/blocks.ScriptOrigin, hat_top? : Bool) -> @core.View[Msg]
 
 pub fn blocks_canvas_toolbar(Model, @moui_i18n.Translator, Double, fit_zoom~ : Double) -> @core.View[Msg]
 
@@ -158,9 +158,9 @@ pub fn bundle_files(String, String) -> Array[(String, String)]
 
 pub fn button_label_width(String) -> Double
 
-pub fn card_code_text_by_index(Model, Int, Int) -> String?
+pub fn card_code_text_by_index(Model, Int32, Int32) -> String?
 
-pub fn card_text_by_seq(Model, Int) -> String?
+pub fn card_text_by_seq(Model, Int32) -> String?
 
 pub fn category_rail(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
@@ -168,11 +168,11 @@ pub fn chat_history(Model) -> Array[(String, String)]
 
 pub fn chat_system_prompt() -> String
 
-pub fn civil_seconds(StudioClock) -> Int
+pub fn civil_seconds(StudioClock) -> Int32
 
 pub fn clear_selection(Model) -> Model
 
-pub fn close_open_file_at(Model, Int) -> Model
+pub fn close_open_file_at(Model, Int32) -> Model
 
 pub fn code_lines(Model) -> Array[CodeLine]
 
@@ -184,7 +184,7 @@ pub fn command_palette_dialog(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
 pub fn compile_submit_needed(Model, Model) -> Bool
 
-pub fn compiled_audit_op_rank(@compiled_runtime.StepOp) -> Int
+pub fn compiled_audit_op_rank(@compiled_runtime.StepOp) -> Int32
 
 pub fn compiled_error_message(@moui_i18n.Translator, @compiled_runtime.ErrorDetails) -> String
 
@@ -208,7 +208,7 @@ pub fn current_target(Model) -> EditTarget?
 
 pub fn custom_entries_of(Model) -> Array[@wzzc-dev/moui_studio/plugins/blocks.CustomEntry]
 
-pub fn custom_function_count(Model) -> Int
+pub fn custom_function_count(Model) -> Int32
 
 pub fn data_file_entries(Model) -> Array[DataFileEntry]
 
@@ -244,11 +244,11 @@ pub fn explanation_system_prompt() -> String
 
 pub fn explorer_child_dirs_for_test(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
 
-pub fn explorer_clamp_scroll_y(Int, Double, Double) -> Double
+pub fn explorer_clamp_scroll_y(Int32, Double, Double) -> Double
 
-pub fn explorer_dir_scroll_target(Model, Int, String) -> @core.Point
+pub fn explorer_dir_scroll_target(Model, Int32, String) -> @core.Point
 
-pub fn explorer_guide_line_count(Int) -> Int
+pub fn explorer_guide_line_count(Int32) -> Int32
 
 pub fn explorer_rows_for_test(Model) -> Array[String]
 
@@ -272,13 +272,13 @@ pub fn folder_url_of(String) -> String
 
 pub fn follow_transcript(Model) -> Model
 
-pub fn form_design_apply_move(FormDesignerSession, Int, Double, Double) -> (FormDesignerSession, Bool)
+pub fn form_design_apply_move(FormDesignerSession, Int32, Double, Double) -> (FormDesignerSession, Bool)
 
-pub fn form_design_apply_resize(FormDesignerSession, Int, Double, Double) -> (FormDesignerSession, Bool)
+pub fn form_design_apply_resize(FormDesignerSession, Int32, Double, Double) -> (FormDesignerSession, Bool)
 
-pub fn form_design_canvas(FormDesignerSession, Int?, Double, Double) -> @core.View[Msg]
+pub fn form_design_canvas(FormDesignerSession, Int32?, Double, Double) -> @core.View[Msg]
 
-pub fn form_design_drag_commit(Array[@core.Rect], Int?, Double, Double, Double, Double) -> Msg
+pub fn form_design_drag_commit(Array[@core.Rect], Int32?, Double, Double, Double, Double) -> Msg
 
 pub fn form_design_load_task(@services.FileServices, String, String) -> @services.ServiceTask[String]
 
@@ -306,7 +306,7 @@ pub fn handler_key(String, String) -> String
 
 pub fn has_decision_content(Model) -> Bool
 
-pub fn hhmm_of_stamp(Int) -> String
+pub fn hhmm_of_stamp(Int32) -> String
 
 pub fn icon_button(@style.IconName, String, Bool, Msg, Double, Double, Double, tile? : Bool) -> @core.View[Msg]
 
@@ -334,9 +334,9 @@ pub fn ir_line_spans(Model) -> Array[IrLineSpan]
 
 pub fn ir_ruler(Model, Array[IrLineSpan], Double) -> @core.View[Msg]
 
-pub fn ir_span_at(Array[IrLineSpan], Array[Int]) -> IrLineSpan?
+pub fn ir_span_at(Array[IrLineSpan], Array[Int32]) -> IrLineSpan?
 
-pub fn ir_span_for_line(Array[IrLineSpan], Int) -> IrLineSpan?
+pub fn ir_span_for_line(Array[IrLineSpan], Int32) -> IrLineSpan?
 
 pub fn join_rel(String, String) -> String
 
@@ -346,7 +346,7 @@ pub fn live_stage_box(Double, Double) -> (Double, Double)
 
 pub fn load_program_state(Model, @ir.StudioProgram, String) -> Model
 
-pub fn load_template_program(Model, Int) -> Model
+pub fn load_template_program(Model, Int32) -> Model
 
 pub fn log_line(Model, LogLevel, String) -> Model
 
@@ -356,13 +356,13 @@ pub fn mark_projects_dirty(Model) -> Unit
 
 pub fn model_picker_open_of(Model) -> Bool
 
-pub fn moonbit_line_ranged(String, Int) -> Array[RangedToken]
+pub fn moonbit_line_ranged(String, Int32) -> Array[RangedToken]
 
 pub fn normalize_disabled_plugins(Model) -> Model
 
 pub fn onstart_hat_row(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
-pub fn open_file_index_of(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String) -> Int?
+pub fn open_file_index_of(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String) -> Int32?
 
 pub fn outline_symbols(String, String) -> Array[@wzzc-dev/moui_studio/plugins/project.OutlineSymbol]
 
@@ -372,17 +372,17 @@ pub fn pane_foot(Model, @moui_i18n.Translator, Double) -> @core.View[Msg]
 
 pub fn pane_head(String, String, Double, Array[@core.View[Msg]], tail? : String, actions_width? : Double) -> @core.View[Msg]
 
-pub fn pane_head_layout(String, String, String, Double, Int, actions_width? : Double) -> PaneHeadLayout
+pub fn pane_head_layout(String, String, String, Double, Int32, actions_width? : Double) -> PaneHeadLayout
 
 pub fn parent_of(String) -> String
 
 pub fn parse_generated_source(String, Array[@export.StmtLine]) -> @blocks_code.ParsedHandlerSource
 
-pub fn pending_ai_cards(Model) -> Int
+pub fn pending_ai_cards(Model) -> Int32
 
-pub fn pending_side_effects(Model) -> Int
+pub fn pending_side_effects(Model) -> Int32
 
-pub fn plan_block_count_of(Model) -> Int?
+pub fn plan_block_count_of(Model) -> Int32?
 
 pub fn plugin_active(Model, String) -> Bool
 
@@ -412,9 +412,9 @@ pub fn project_has_dir(Model, String) -> Bool
 
 pub fn project_has_file(Model, String) -> Bool
 
-pub fn project_index_of_root(Model, String) -> Int
+pub fn project_index_of_root(Model, String) -> Int32
 
-pub fn project_index_of_tree_rel(Model, String) -> Int?
+pub fn project_index_of_tree_rel(Model, String) -> Int32?
 
 pub fn project_record_from_source(@wzzc-dev/moui_studio/services/project.ProjectSource) -> Result[@wzzc-dev/moui_studio/plugins/project.ProjectRecord, String]
 
@@ -442,15 +442,15 @@ pub fn push_toast(Model, String, Bool) -> Model
 
 pub fn rel_path_last_segment(String) -> String
 
-pub fn relative_time_bucket(Int, Int) -> (String, Int)
+pub fn relative_time_bucket(Int32, Int32) -> (String, Int32)
 
 pub fn rename_open_file(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String, String) -> Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
 
-pub fn replace_open_file_at(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], Int, @wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
+pub fn replace_open_file_at(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], Int32, @wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
 
 pub fn replace_target_body(Model, String, Array[@ir.Stmt]) -> Model
 
-pub fn root_collapse_key(Int, String) -> String
+pub fn root_collapse_key(Int32, String) -> String
 
 pub fn round_send_button(String, Msg, Bool, Double) -> @core.View[Msg]
 
@@ -466,9 +466,9 @@ pub fn search_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[M
 
 pub fn seed_code_draft(Model) -> Model
 
-pub fn select_block_by_path(Model, Array[Int]) -> Model
+pub fn select_block_by_path(Model, Array[Int32]) -> Model
 
-pub fn select_block_step(Model, Int) -> Model
+pub fn select_block_step(Model, Int32) -> Model
 
 pub fn select_control_by_name(Model, String) -> Model
 
@@ -578,9 +578,9 @@ pub fn update_with_launch_for_test(Model, Msg, @services.AppServices, (String, (
 
 pub fn update_with_services(Model, Msg, @services.AppServices, pty? : @kernel.PtyService[Msg]) -> (Model, @core.Effect[Msg])
 
-pub fn upsert_open_file(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], @wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> (Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], Int)
+pub fn upsert_open_file(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], @wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> (Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], Int32)
 
-pub fn upsert_project(Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], @wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> (Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], Int)
+pub fn upsert_project(Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], @wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> (Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], Int32)
 
 pub fn valid_new_file_rel(String) -> Bool
 
@@ -613,7 +613,7 @@ pub(all) enum ArtifactAction {
 
 pub(all) struct AuditEntry {
   kind : AuditKind
-  seq : Int
+  seq : Int32
   text : String
   detail : String
   stack : String
@@ -630,7 +630,7 @@ pub(all) enum AuditKind {
 
 pub(all) struct BlockCategoryEntry {
   category : @wzzc-dev/moui_studio/domain/blocks.BlockCategory
-  first_index : Int
+  first_index : Int32
 }
 
 pub(all) enum BottomTab {
@@ -647,7 +647,7 @@ pub(all) enum CodeAppearance {
 }
 
 pub(all) struct CodeLine {
-  number : Int
+  number : Int32
   tokens : Array[CodeToken]
 }
 
@@ -669,9 +669,9 @@ pub(all) enum ConfirmKind {
   CkDeleteControl(String)
   CkDeleteVariable(String)
   CkDeleteProjectFile(String)
-  CkNewProject(Int)
+  CkNewProject(Int32)
   CkOpen
-  CkCloseFileTab(Int)
+  CkCloseFileTab(Int32)
 }
 
 pub(all) enum ContextTab {
@@ -691,7 +691,7 @@ pub(all) struct DataFileEntry {
 }
 
 pub(all) enum DragKind {
-  Move(Int, Int)
+  Move(Int32, Int32)
   Resize(@ir.DragCorner)
 }
 
@@ -724,11 +724,11 @@ pub(all) enum GeneratedI18nMessage {
 }
 
 pub(all) struct IrLineSpan {
-  path : Array[Int]
+  path : Array[Int32]
   kind : @wzzc-dev/moui_studio/domain/blocks.BlockKind
-  depth : Int
-  first_line : Int
-  last_line : Int
+  depth : Int32
+  first_line : Int32
+  last_line : Int32
 }
 
 pub(all) enum LeftView {
@@ -747,7 +747,7 @@ pub(all) enum LogLevel {
 
 pub(all) struct LogLine {
   level : LogLevel
-  seq : Int
+  seq : Int32
   text : String
 }
 
@@ -805,21 +805,21 @@ pub(all) struct Model {
   draft_encoding : String
   notice : String
   export_available : Bool
-  export_pending : Int
+  export_pending : Int32
   explanation : String
   ai_busy : Bool
-  selected_block : Int
+  selected_block : Int32
   block_draft : String
   mut blocks_ui : @wzzc-dev/moui_studio/plugins/blocks.BlocksUiState
   gate_answer_draft : String
-  hover_path : Array[Int]?
+  hover_path : Array[Int32]?
   drag : DragState?
   runtime_values : Map[String, @studio_lang.Value]
   runtime_texts : Map[String, String]
   runtime_rows : Map[String, Array[String]]
-  runtime_selections : Map[String, Int]
-  runtime_seed : Int
-  timer_elapsed : Int
+  runtime_selections : Map[String, Int32]
+  runtime_seed : Int32
+  timer_elapsed : Int32
   undo_stack : Array[UndoEntry]
   redo_stack : Array[UndoEntry]
   block_drag : @wzzc-dev/moui_studio/plugins/blocks.BlocksDragState?
@@ -835,24 +835,24 @@ pub(all) struct Model {
   right_view : RightView
   immersive : Bool
   project_state : @wzzc-dev/moui_studio/plugins/project.ProjectState
-  projects_restore_pending : Int
+  projects_restore_pending : Int32
   restore_active_root : String
   plugin_disabled : Array[String]
   control_clipboard : @ir.Control?
   multi_select_mode : Bool
   multi_selected : Array[String]
   ui_dark : Bool
-  breakpoints : Array[Int]
+  breakpoints : Array[Int32]
   search_hits : Array[SearchHit]
   search_busy : Bool
   last_build : @build.BuildReport?
   build_busy : Bool
   preview_write : PreviewWriteState?
   preview_frame : @run.PreviewFrame?
-  selected_semantic : Int?
+  selected_semantic : Int32?
   semantic_draft : String
   form_designer : FormDesignerSession?
-  selected_form_control : Int?
+  selected_form_control : Int32?
   run_ui : @run.RunUiState
   preview_web_url : String?
   preview_web_opened : Bool
@@ -861,19 +861,19 @@ pub(all) struct Model {
   bottom_height : Double
   bottom_tab : BottomTab
   audit_entries : Array[AuditEntry]
-  audit_seq : Int
+  audit_seq : Int32
   log_lines : Array[LogLine]
-  log_seq : Int
+  log_seq : Int32
   recent_changes : Array[@wzzc-dev/moui_studio/plugins/project.RecentChange]
-  recent_seq : Int
+  recent_seq : Int32
   ai_streaming : Bool
   clock : StudioClock
   terminal : @terminal.TerminalState
   mut terminal_open : Bool
   mut terminal_scroll : @core.Point
-  mut terminal_scroll_seq : Int
+  mut terminal_scroll_seq : Int32
   toasts : Array[ToastEntry]
-  ir_highlight : Array[Int]
+  ir_highlight : Array[Int32]
 }
 pub fn Model::preview_mode(Self) -> PreviewMode
 
@@ -901,11 +901,11 @@ pub(all) enum Msg {
   PasteControl
   BringToFront(String)
   SendToBack(String)
-  NudgeControl(String, Int, Int)
+  NudgeControl(String, Int32, Int32)
   ToggleMultiSelectMode
   ToggleUiDark
   UiDarkLoaded(@services.ServiceTaskResult[String?])
-  ToggleBreakpoint(Int)
+  ToggleBreakpoint(Int32)
   RunToBreakpoint
   SearchRun
   SearchFinished(@services.ServiceTaskResult[Array[SearchHit]])
@@ -957,23 +957,23 @@ pub(all) enum Msg {
   CommitBlock
   DuplicateBlock
   DeleteBlock
-  SelectBlockStep(Int)
-  InsertStatement(Int, Int)
-  InsertCustomFunction(Int)
+  SelectBlockStep(Int32)
+  InsertStatement(Int32, Int32)
+  InsertCustomFunction(Int32)
   PaletteDragPointer(@core.Point)
   PaletteDropAt(@core.Point, Double)
   RunSingleBlock
   AddFunction
   EditTargetNote(String)
   RenameFunction(String, String)
-  EditBlockValue(Int, Array[Int])
+  EditBlockValue(Int32, Array[Int32])
   GateAnswerInput(String)
   GateAnswerSubmit
   BlockValueCommit
-  ExpressionDrop(Int, Array[Int])
-  DropExpression(Int, Int, Array[Int])
+  ExpressionDrop(Int32, Array[Int32])
+  DropExpression(Int32, Int32, Array[Int32])
   PaletteDrop(Double, Double, Double)
-  DropStatement(Int, Int, Array[Int], Int)
+  DropStatement(Int32, Int32, Array[Int32], Int32)
   GenerateProposal
   AcceptProposal
   RejectProposal
@@ -985,7 +985,7 @@ pub(all) enum Msg {
   CompileRunFinished(@export.CompileReport)
   CompileRunFailed(String)
   CompileStopped
-  CompileJump(Int)
+  CompileJump(Int32)
   CompileProgress(@export.CompileProgress)
   CopyArtifactPath(String)
   RevealArtifact(String)
@@ -1000,11 +1000,11 @@ pub(all) enum Msg {
   TimerTick
   ToastTick
   ControlInputDone(String)
-  BlocksContextMenu(Int, Double, Double)
+  BlocksContextMenu(Int32, Double, Double)
   BlocksMenuAction(Msg)
   RunStep
   RunResume
-  AuditJump(Int)
+  AuditJump(Int32)
   BlocksCanvasTap(Double, Double, Double)
   BlocksCanvasPress(Double, Double, Double)
   BlocksCanvasDragTo(Double, Double, Double)
@@ -1012,9 +1012,9 @@ pub(all) enum Msg {
   RunToggle(String, Bool)
   AnswerGate(Bool)
   ControlClicked(String)
-  ControlPicked(String, Int)
+  ControlPicked(String, Int32)
   ControlChanged(String, String)
-  NewProjectRequested(Int)
+  NewProjectRequested(Int32)
   NewProjectRootPicked(@services.ServiceTaskResult[String])
   NewProjectQueueResult(@services.ServiceTaskResult[Unit])
   ProjectProgramLoaded(@services.ServiceTaskResult[String])
@@ -1034,8 +1034,8 @@ pub(all) enum Msg {
   ProjectsStoreWriteRequested
   ProjectsStoreSaved(@services.ServiceTaskResult[Unit])
   SelectProjectFile(String)
-  SelectProjectFileAt(Int, String)
-  RemoveProject(Int)
+  SelectProjectFileAt(Int32, String)
+  RemoveProject(Int32)
   FolderCreateCommit
   FolderCreated(String, @services.ServiceTaskResult[Result[Unit, String]])
   ExplorerRefresh
@@ -1044,16 +1044,16 @@ pub(all) enum Msg {
   ProjectBuildRun(@build.BuildKind)
   ProjectBuildFinished(@build.BuildKind, Result[@build.BuildReport, String])
   PreviewFileWritten(@services.ServiceTaskResult[Unit])
-  SelectSemanticNode(Int)
+  SelectSemanticNode(Int32)
   SemanticLabelInput(String)
   SemanticLabelCommit
   SemanticPatchFinished(Result[String, String])
-  SelectFormControl(Int)
+  SelectFormControl(Int32)
   SetPreviewDesignOpen(Bool)
   FormDesignOpen
   FormDesignLoaded(@services.ServiceTaskResult[String])
-  FormDesignDragEnd(Int, Double, Double)
-  FormDesignResizeEnd(Int, Double, Double)
+  FormDesignDragEnd(Int32, Double, Double)
+  FormDesignResizeEnd(Int32, Double, Double)
   FormDesignSaved(@services.ServiceTaskResult[Unit])
   FormDesignExternalCheck
   FormDesignExternalChecked(@services.ServiceTaskResult[String])
@@ -1070,7 +1070,7 @@ pub(all) enum Msg {
   AiSessionOp(@ai.AiSessionMsg)
   AiUiOp(@ai.AiUiMsg)
   TerminalOutput(String)
-  TerminalSpawned(Int?)
+  TerminalSpawned(Int32?)
   TerminalClose
   TerminalWrite(String)
   TerminalTabClose
@@ -1078,11 +1078,11 @@ pub(all) enum Msg {
   StreamChunk(String)
   StopGeneration
   ClockUpdated(StudioClock)
-  CopyAiMessage(Int)
-  CopyAiCodeBlock(Int, Int)
-  EditUserPrompt(Int)
-  RetryUserPrompt(Int)
-  AiSessionRenameStart(Int)
+  CopyAiMessage(Int32)
+  CopyAiCodeBlock(Int32, Int32)
+  EditUserPrompt(Int32)
+  RetryUserPrompt(Int32)
+  AiSessionRenameStart(Int32)
   AiSessionRenameCommit
   AiSessionsStoreLoaded(@services.ServiceTaskResult[String])
   AiSessionsStoreWriteRequested
@@ -1101,10 +1101,10 @@ pub(all) enum Msg {
   SetContextTab(ContextTab)
   SetBottomTab(BottomTab)
   SetBottomHeight(Double)
-  GotoProblem(String, Int)
+  GotoProblem(String, Int32)
   ToggleBottom
-  AuditOpen(Int)
-  AuditSettle(Int, String)
+  AuditOpen(Int32)
+  AuditSettle(Int32, String)
   AuditSettleAll(String)
   ClearConsole
   WindowClose
@@ -1114,21 +1114,21 @@ pub(all) enum Msg {
   AlignControlLeft(String)
   AlignControlCenter(String)
   AlignControlRight(String)
-  DismissToast(Int)
+  DismissToast(Int32)
   StudioCommandRun(String)
   BlocksUiOp(@wzzc-dev/moui_studio/plugins/blocks.BlocksUiMsg)
-  HighlightIrPath(Array[Int])
-  HoverIrPath(Array[Int]?)
+  HighlightIrPath(Array[Int32])
+  HoverIrPath(Array[Int32]?)
   RestoreCodeDraft
 }
 
 pub(all) struct NewProjectDraft {
-  template_index : Int
+  template_index : Int32
   program : @ir.StudioProgram
   root : String
   module_name : String
   mut files : Array[(String, String)]
-  mut done : Int
+  mut done : Int32
   mut rolling_back : Bool
 }
 
@@ -1145,14 +1145,14 @@ pub(all) enum PreviewMode {
 
 pub(all) struct PreviewWriteState {
   files : Array[(String, String)]
-  done : Int
+  done : Int32
 }
 
 pub(all) struct ProblemRow {
   handler_key : String
   label : String
   message : String
-  line : Int
+  line : Int32
   file : String
 }
 
@@ -1176,7 +1176,7 @@ pub(all) struct ProviderConfig {
 }
 
 pub(all) struct RangedToken {
-  start : Int
+  start : Int32
   text : String
   kind : CodeTokenKind
 }
@@ -1202,7 +1202,7 @@ pub(all) struct RuntimeInspectSample {
 
 pub(all) struct SearchHit {
   rel : String
-  line : Int
+  line : Int32
   preview : String
 }
 
@@ -1220,13 +1220,13 @@ pub(all) enum SideTarget {
 }
 
 pub(all) struct StudioClock {
-  year : Int
-  month : Int
-  day : Int
-  weekday : Int
-  hour : Int
-  minute : Int
-  second : Int
+  year : Int32
+  month : Int32
+  day : Int32
+  weekday : Int32
+  hour : Int32
+  minute : Int32
+  second : Int32
 }
 
 pub(all) struct StudioCommand {
@@ -1242,7 +1242,7 @@ pub(all) enum StudioEvent {
   EvBuildSubmit(@build.BuildKind, String, String)
   EvPreviewWebNavigate(String)
   EvPreviewWebReload
-  EvProposalAccepted(Int, String)
+  EvProposalAccepted(Int32, String)
   EvAiSessionsDirty
   EvProjectsDirty
 }
@@ -1267,7 +1267,7 @@ pub fn StudioProfile::not_equal(Self, Self) -> Bool
 pub(all) struct ToastEntry {
   text : String
   warning : Bool
-  age : Int
+  age : Int32
 }
 
 pub(all) struct TreeNode {
@@ -1275,7 +1275,7 @@ pub(all) struct TreeNode {
   label : String
   meta : String
   group : String
-  depth : Int
+  depth : Int32
   locked : Bool
   select_key : String
   action : String

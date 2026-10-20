@@ -23,7 +23,7 @@ pub(all) enum LangErrorKind {
 
 ///|
 pub(all) suberror LangError {
-  LangError(LangErrorKind, Int, String, String)
+  LangError(LangErrorKind, Int32, String, String)
 }
 
 ///|
@@ -34,7 +34,7 @@ pub fn LangError::kind(self : LangError) -> LangErrorKind {
 }
 
 ///|
-pub fn LangError::line(self : LangError) -> Int {
+pub fn LangError::line(self : LangError) -> Int32 {
   match self {
     LangError(_, line, _, _) => line
   }

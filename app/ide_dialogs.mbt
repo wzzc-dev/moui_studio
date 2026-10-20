@@ -527,7 +527,7 @@ pub fn ide_status_bar(
   }
   let pending = pending_side_effects(model)
   let errors = audit_error_count(model)
-  let cells : Array[(String, Int)] = [
+  let cells : Array[(String, Int32)] = [
     ("MoUI Studio", 4),
     (workspace, 0),
     (
@@ -565,7 +565,7 @@ pub fn ide_status_bar(
   let cells_with_hint = if model.hover_hint == "" {
     all
   } else {
-    let hinted : Array[(String, Int)] = [(model.hover_hint, 0)]
+    let hinted : Array[(String, Int32)] = [(model.hover_hint, 0)]
     for cell in all {
       hinted.push(cell)
     }
@@ -574,8 +574,8 @@ pub fn ide_status_bar(
   // VS Code 状态栏口径：**左组**（应用/工作区/文件标识）+ **右组**
   // （行号/编码/警告错误/运行状态），中间 weight spacer 撑开。
   let split = cells_with_hint.length().clamp(min=3, max=99).min(4)
-  let left_cells : Array[(String, Int)] = []
-  let right_cells : Array[(String, Int)] = []
+  let left_cells : Array[(String, Int32)] = []
+  let right_cells : Array[(String, Int32)] = []
   let mut cursor = 0
   for cell in cells_with_hint {
     if cursor < split {

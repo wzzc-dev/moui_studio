@@ -32,7 +32,7 @@ pub fn split_line_texts(source : String) -> Array[String] {
 
 ///|
 /// 光标处的词（标识符；中文/ASCII 同口径）：返回 (词, 词首偏移)。
-pub fn word_at_caret(source : String, caret : Int) -> (String, Int) {
+pub fn word_at_caret(source : String, caret : Int32) -> (String, Int32) {
   let chars = source.to_array()
   let pos = caret.clamp(min=0, max=chars.length())
   let is_word = fn(c : Char) {
@@ -127,9 +127,9 @@ pub fn completions_for(
 /// 补全候选 → 插入文本与光标位置：替换光标处的完整词。
 pub fn apply_completion(
   source : String,
-  caret : Int,
+  caret : Int32,
   completion : String,
-) -> (String, Int) {
+) -> (String, Int32) {
   let (word, start) = word_at_caret(source, caret)
   let text = source[:start].to_owned() +
     completion +
@@ -143,8 +143,8 @@ pub fn apply_completion(
 pub fn declaration_line_of(
   language : @studio_lang.Language,
   code_draft : String,
-  caret : Int,
-) -> Int {
+  caret : Int32,
+) -> Int32 {
   let (word, _) = word_at_caret(code_draft, caret)
   if word == "" {
     return 0

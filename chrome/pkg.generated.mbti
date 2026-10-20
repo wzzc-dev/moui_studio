@@ -29,7 +29,7 @@ pub const PAGE_TILE_ICON_WIDTH : Double = 24.0
 
 pub const PANEL_HEAD_HEIGHT : Double = 30.0
 
-pub const RECENT_STRIP_ROWS : Int = 3
+pub const RECENT_STRIP_ROWS : Int32 = 3
 
 pub const RIGHTBAR_MAX_WIDTH : Double = 560.0
 
@@ -105,7 +105,7 @@ pub fn code_string_color() -> @core.Color
 
 pub fn code_type_color() -> @core.Color
 
-pub fn[Msg] count_badge(String, Int) -> @core.View[Msg]
+pub fn[Msg] count_badge(String, Int32) -> @core.View[Msg]
 
 pub fn[Msg] diff_row(String, String, Double) -> @core.View[Msg]
 
@@ -117,7 +117,7 @@ pub fn fit_label(String, Double) -> String
 
 pub fn[Msg] hairline() -> @core.View[Msg]
 
-pub fn[Msg] hint_lines_view(String, Double, @core.Color, Int) -> @core.View[Msg]
+pub fn[Msg] hint_lines_view(String, Double, @core.Color, Int32) -> @core.View[Msg]
 
 pub fn ide_accent() -> @core.Color
 
@@ -171,7 +171,7 @@ pub fn[Msg] kv_row(String, String, Double, Bool) -> @core.View[Msg]
 
 pub fn[Msg] object_strip(String, String, String, Bool, Msg, String, Double, (String) -> Msg, hovered? : String) -> @core.View[Msg]
 
-pub fn[Msg] page_switcher_head(Array[PageSpec], Int, (Int) -> Msg, Array[@core.View[Msg]], Array[Double], Double, (String) -> Msg, hovered? : String) -> @core.View[Msg]
+pub fn[Msg] page_switcher_head(Array[PageSpec], Int32, (Int32) -> Msg, Array[@core.View[Msg]], Array[Double], Double, (String) -> Msg, hovered? : String) -> @core.View[Msg]
 
 pub fn[Msg] page_tile(@style.IconName, String, String, Bool, Msg, (String) -> Msg, @core.Color, Double, hovered? : String) -> @core.View[Msg]
 
@@ -181,7 +181,7 @@ pub fn[Msg] panel_head(String, String, Array[@core.View[Msg]], Double, trailing_
 
 pub fn[Msg] pill(String, @core.Color, Double) -> @core.View[Msg]
 
-pub fn[Msg] progress_bar(Int, Double) -> @core.View[Msg]
+pub fn[Msg] progress_bar(Int32, Double) -> @core.View[Msg]
 
 pub fn[Msg] section_head(String, Double, trailing? : Array[@core.View[Msg]], trailing_widths? : Array[Double], lead? : @core.View[Msg]?) -> @core.View[Msg]
 
@@ -189,7 +189,7 @@ pub fn set_ui_dark(Bool) -> Unit
 
 pub fn[Msg] side_panel_section(String, @core.View[Msg], Double, trailing? : Array[@core.View[Msg]], trailing_widths? : Array[Double], lead? : @core.View[Msg]?) -> @core.View[Msg]
 
-pub fn[Msg] status_cells(Array[(String, Int)], Double, Bool) -> @core.View[Msg]
+pub fn[Msg] status_cells(Array[(String, Int32)], Double, Bool) -> @core.View[Msg]
 
 pub fn studio_console_background() -> @core.Color
 
@@ -209,7 +209,7 @@ pub fn studio_typography() -> @core.TypographyScale
 
 pub fn studio_window_background() -> @core.Color
 
-pub fn[Msg] sub_tab_row(Array[String], Int, (Int) -> Msg, Double, @core.Color) -> @core.View[Msg]
+pub fn[Msg] sub_tab_row(Array[String], Int32, (Int32) -> Msg, Double, @core.Color) -> @core.View[Msg]
 
 pub fn[Msg] text_chip(String, Msg, Double, Bool) -> @core.View[Msg]
 
@@ -219,13 +219,13 @@ pub fn[Msg] topbar_brand(String, Bool, String) -> @core.View[Msg]
 
 pub fn topbar_chip_bound(String, Double) -> Double
 
-pub fn[Msg] tree_row(String, String, Int, Bool, Bool, Bool, Msg?, Msg?, Double, trailing? : @core.View[Msg]?, trailing_width? : Double) -> @core.View[Msg]
+pub fn[Msg] tree_row(String, String, Int32, Bool, Bool, Bool, Msg?, Msg?, Double, trailing? : @core.View[Msg]?, trailing_width? : Double) -> @core.View[Msg]
 
 pub fn ui_is_dark() -> Bool
 
 pub fn wrap_text_lines(String, Double) -> Array[String]
 
-pub fn wrapped_line_count(String, Double) -> Int
+pub fn wrapped_line_count(String, Double) -> Int32
 
 // Errors
 

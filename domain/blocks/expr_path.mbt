@@ -25,7 +25,7 @@
 /// 插槽编号（每段的「第几个」）按**规范书写顺序**，与
 /// `canonical_expr` 的阅读顺序一致：二元运算是 [左, 右]，调用是实参顺序，
 /// 索引是 [被索引, 下标]，列表字面量是元素顺序，一元是 [操作数]。
-pub fn expr_slot_count(expr : Expr) -> Int {
+pub fn expr_slot_count(expr : Expr) -> Int32 {
   match expr {
     @ir.NumLit(_)
     | @ir.IntLit(_)
@@ -43,7 +43,7 @@ pub fn expr_slot_count(expr : Expr) -> Int {
 
 ///|
 /// 取第 `slot` 个子表达式。
-pub fn expr_child(expr : Expr, slot : Int) -> Expr? {
+pub fn expr_child(expr : Expr, slot : Int32) -> Expr? {
   match expr {
     @ir.Not(inner) | @ir.Neg(inner) =>
       if slot == 0 {
@@ -89,7 +89,7 @@ pub fn expr_child(expr : Expr, slot : Int) -> Expr? {
 
 ///|
 /// 用 `value` 换掉 `expr` 的第 `slot` 个子表达式（克隆后手术）。
-pub fn replace_expr_child(expr : Expr, slot : Int, value : Expr) -> Expr? {
+pub fn replace_expr_child(expr : Expr, slot : Int32, value : Expr) -> Expr? {
   match expr {
     @ir.Not(_) => if slot == 0 { Some(@ir.Not(value)) } else { None }
     @ir.Neg(_) => if slot == 0 { Some(@ir.Neg(value)) } else { None }
@@ -153,8 +153,8 @@ pub fn replace_expr_child(expr : Expr, slot : Int, value : Expr) -> Expr? {
 /// 调用方据此拒绝操作而不是猜一个位置。
 pub fn expr_at(
   body : Array[Stmt],
-  stmt_path : Array[Int],
-  path : Array[Int],
+  stmt_path : Array[Int32],
+  path : Array[Int32],
 ) -> Expr? {
   let stmt = match stmt_at(body, stmt_path) {
     Some(stmt) => stmt
@@ -173,8 +173,8 @@ pub fn expr_at(
 /// `path` 为空 = 换掉语句的根表达式。
 pub fn replace_expr_at(
   body : Array[Stmt],
-  stmt_path : Array[Int],
-  path : Array[Int],
+  stmt_path : Array[Int32],
+  path : Array[Int32],
   value : Expr,
 ) -> Array[Stmt]? {
   let stmt = match stmt_at(body, stmt_path) {
@@ -198,7 +198,7 @@ pub fn replace_expr_at(
 
 ///|
 /// 逐段下降。空路径返回根，中途失败返回 `None`。
-fn descend_expr(expr : Expr, path : Array[Int]) -> Expr? {
+fn descend_expr(expr : Expr, path : Array[Int32]) -> Expr? {
   if path.length() == 0 {
     return Some(expr)
   }
@@ -206,7 +206,7 @@ fn descend_expr(expr : Expr, path : Array[Int]) -> Expr? {
     Some(child) => child
     None => return None
   }
-  let rest : Array[Int] = []
+  let rest : Array[Int32] = []
   let mut i = 1
   while i < path.length() {
     rest.push(path[i])
@@ -217,7 +217,7 @@ fn descend_expr(expr : Expr, path : Array[Int]) -> Expr? {
 
 ///|
 /// 逐段下降并**替换**叶子（克隆后重建，不改传入的表达式）。
-fn graft_expr(expr : Expr, path : Array[Int], value : Expr) -> Expr? {
+fn graft_expr(expr : Expr, path : Array[Int32], value : Expr) -> Expr? {
   if path.length() == 0 {
     return Some(value)
   }
@@ -225,7 +225,7 @@ fn graft_expr(expr : Expr, path : Array[Int], value : Expr) -> Expr? {
     Some(child) => child
     None => return None
   }
-  let rest : Array[Int] = []
+  let rest : Array[Int32] = []
   let mut i = 1
   while i < path.length() {
     rest.push(path[i])
@@ -266,7 +266,7 @@ pub fn stmt_root_expr(stmt : Stmt) -> Expr? {
 /// 或路径非法。
 fn replace_stmt_root_expr(
   body : Array[Stmt],
-  stmt_path : Array[Int],
+  stmt_path : Array[Int32],
   value : Expr,
 ) -> Array[Stmt]? {
   let stmt = match stmt_at(body, stmt_path) {

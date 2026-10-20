@@ -3,7 +3,7 @@
 
 ///|
 /// 模板下标 → 初始程序：-1 = 空白程序，其余取内置模板库（越界回退空白）。
-pub fn template_program(index : Int) -> @ir.StudioProgram {
+pub fn template_program(index : Int32) -> @ir.StudioProgram {
   let samples = @proposals.all_samples()
   if index >= 0 && index < samples.length() {
     samples[index]

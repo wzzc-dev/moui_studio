@@ -35,7 +35,7 @@ pub fn form_controls_to_ir(model : FormModel) -> Array[@ir.Control] {
 }
 
 ///|
-fn form_control_name(kind : FormKind, index : Int) -> String {
+fn form_control_name(kind : FormKind, index : Int32) -> String {
   "\{kind.tag()}_\{index}"
 }
 
@@ -43,7 +43,7 @@ fn form_control_name(kind : FormKind, index : Int) -> String {
 /// 更新一个控件的矩形(拖拽/缩放后):按索引替换坐标字段,返回新模型。
 pub fn form_model_move(
   model : FormModel,
-  index : Int,
+  index : Int32,
   x : Double,
   y : Double,
 ) -> FormModel {
@@ -67,7 +67,7 @@ pub fn form_model_move(
 /// 更新一个控件的尺寸(缩放后)。
 pub fn form_model_resize(
   model : FormModel,
-  index : Int,
+  index : Int32,
   width : Double,
   height : Double,
 ) -> FormModel {
@@ -95,7 +95,7 @@ pub fn ir_controls_to_form_model(
   window : @ir.WindowSpec,
   controls : Array[@ir.Control],
   handlers : Array[@ir.Handler],
-  handler_name_of : (@ir.Handler, Int) -> String,
+  handler_name_of : (@ir.Handler, Int32) -> String,
 ) -> FormModel {
   let form_controls : Array[FormControl] = []
   for control in controls {

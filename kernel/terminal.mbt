@@ -16,13 +16,13 @@ pub(all) struct PtyService[Msg] {
   /// 退出回调 + 消息泵（Effect::dispatch 的 emit——长有效性，provider
   /// 的异步读循环靠它把回调 lift 成的 Msg 送回运行时）；
   /// 返回登记表句柄 id（None = 不可达/失败）
-  spawn : (Int, Int, (String) -> Msg, () -> Msg, (Msg) -> Unit) -> Int?
+  spawn : (Int32, Int32, (String) -> Msg, () -> Msg, (Msg) -> Unit) -> Int32?
   /// 向会话写输入（用户键入行）
-  write : (Int, String) -> Unit
+  write : (Int32, String) -> Unit
   /// 尺寸变化（底栏拖拽/窗口 resize）
-  resize : (Int, Int, Int) -> Unit
+  resize : (Int32, Int32, Int32) -> Unit
   /// 终止会话并回收子进程（页签关闭/Studio 退出）
-  kill : (Int) -> Unit
+  kill : (Int32) -> Unit
 }
 
 ///|

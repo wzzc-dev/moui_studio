@@ -1036,7 +1036,7 @@ fn set_run_track(model : Model, track : RunTrack) -> Model {
 ///|
 /// 审计操作类型序号（解释轨）：两轨 StepOp 枚举逐项同构，差分测试与
 /// 视图比对用同一序号口径，避免依赖跨包枚举相等。
-pub fn audit_op_rank(op : @studio_lang.StepOp) -> Int {
+pub fn audit_op_rank(op : @studio_lang.StepOp) -> Int32 {
   match op {
     @studio_lang.OpAssign => 0
     @studio_lang.OpMessage => 1
@@ -1049,7 +1049,7 @@ pub fn audit_op_rank(op : @studio_lang.StepOp) -> Int {
 
 ///|
 /// 审计操作类型序号（编译轨）：与 `audit_op_rank` 同一张表的同一序号。
-pub fn compiled_audit_op_rank(op : @compiled_runtime.StepOp) -> Int {
+pub fn compiled_audit_op_rank(op : @compiled_runtime.StepOp) -> Int32 {
   match op {
     @compiled_runtime.OpAssign => 0
     @compiled_runtime.OpMessage => 1
@@ -1069,7 +1069,7 @@ fn current_track(model : Model) -> RunTrack {
 }
 
 ///|
-fn current_audit_detail(model : Model, index : Int) -> String {
+fn current_audit_detail(model : Model, index : Int32) -> String {
   if current_track(model) is Compile {
     match model.compiled_run {
       Some(run) =>
@@ -1176,7 +1176,7 @@ fn dispatch_compiled_event(
 /// 编译诊断行号 → 对应积木：在「预览即产物」的生成源码里按行号反查
 /// `stmt_lines`（同一 `generate_source` 调用，行号与 bundle 内文件一致），
 /// 命中则先切到该 handler 再选中块；未命中保持原模型（不瞎跳）。
-fn jump_to_compile_line(model : Model, line : Int) -> Model {
+fn jump_to_compile_line(model : Model, line : Int32) -> Model {
   let generated = @export.moonbit_preview_with_lines(model.program)
   for handler in generated.handlers {
     for entry in handler.stmt_lines {

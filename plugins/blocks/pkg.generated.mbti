@@ -32,7 +32,7 @@ pub const BLOCKS_ZOOM_READOUT_WIDTH : Double = 52.0
 
 pub const BLOCK_MENU_WIDTH : Double = 168.0
 
-pub const CATEGORY_INDEX_CUSTOM : Int = 5
+pub const CATEGORY_INDEX_CUSTOM : Int32 = 5
 
 pub const ONSTART_HAT_HEIGHT : Double = 28.0
 
@@ -46,37 +46,37 @@ pub fn[Msg] block_context_menu(BlockMenuParams[Msg], @moui_i18n.Translator) -> @
 
 pub fn block_outline_path(Double, Double, Double, Double, Bool, Bool, hat? : Bool) -> Array[@core.PathVerb]
 
-pub fn blocks_c_arms(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect]) -> Map[Int, Double]
+pub fn blocks_c_arms(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect]) -> Map[Int32, Double]
 
 pub fn[Msg] blocks_canvas_toolbar(BlocksToolbarParams[Msg], @moui_i18n.Translator, Double) -> @core.View[Msg]
 
 pub fn blocks_chain_y(Double, Double, Double) -> Double
 
-pub fn blocks_draw_plan(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[String], Array[@core.Rect], Int, String, (Double, Double, Bool)?, Double, Double, measure? : (String) -> Double, lead_texts? : Array[String], hat_top? : Bool) -> Array[BlocksDrawOp]
+pub fn blocks_draw_plan(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[String], Array[@core.Rect], Int32, String, (Double, Double, Bool)?, Double, Double, measure? : (String) -> Double, lead_texts? : Array[String], hat_top? : Bool) -> Array[BlocksDrawOp]
 
-pub fn blocks_drop_list_of(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], Double, Array[Int]) -> Array[Int]
+pub fn blocks_drop_list_of(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], Double, Array[Int32]) -> Array[Int32]
 
 pub fn blocks_drop_mark_at(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], Double, Double) -> (Double, Double, Bool)?
 
-pub fn blocks_drop_slot(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[Int], Double, Array[@core.Rect]) -> Int
+pub fn blocks_drop_slot(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[Int32], Double, Array[@core.Rect]) -> Int32
 
-pub fn blocks_first_slot_path(@wzzc-dev/moui_studio/domain/blocks.BlockItem) -> Array[Int]?
+pub fn blocks_first_slot_path(@wzzc-dev/moui_studio/domain/blocks.BlockItem) -> Array[Int32]?
 
-pub fn blocks_hit_index(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Double, Double, avail_width? : Double, display_texts? : Array[String]) -> Int
+pub fn blocks_hit_index(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Double, Double, avail_width? : Double, display_texts? : Array[String]) -> Int32
 
-pub fn blocks_in_c_body(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Int) -> Bool
+pub fn blocks_in_c_body(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Int32) -> Bool
 
 pub fn blocks_insert_mark(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], BlocksDragState?) -> (Double, Double, Bool)?
 
 pub fn blocks_item_rects(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], avail_width? : Double, display_texts? : Array[String]) -> Array[@core.Rect]
 
-pub fn blocks_parent_of(Array[Int]) -> Array[Int]
+pub fn blocks_parent_of(Array[Int32]) -> Array[Int32]
 
 pub fn blocks_row_arrow(@wzzc-dev/moui_studio/domain/blocks.BlockItem) -> String
 
 pub fn blocks_row_lead_width(@wzzc-dev/moui_studio/domain/blocks.BlockItem, String, (String) -> Double) -> Double
 
-pub fn blocks_same_path(Array[Int], Array[Int]) -> Bool
+pub fn blocks_same_path(Array[Int32], Array[Int32]) -> Bool
 
 pub fn blocks_slot_hit(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect], Double, Double, (String) -> Double, y_offset? : Double, lead_texts? : Array[String]) -> SlotHit?
 
@@ -90,7 +90,7 @@ pub fn blocks_value_hit(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Ar
 
 pub fn blocks_visual_rects(Array[@wzzc-dev/moui_studio/domain/blocks.BlockItem], Array[@core.Rect]) -> Array[@core.Rect]
 
-pub fn category_at(Int) -> @wzzc-dev/moui_studio/domain/blocks.BlockCategory?
+pub fn category_at(Int32) -> @wzzc-dev/moui_studio/domain/blocks.BlockCategory?
 
 pub fn custom_call_label(CustomEntry) -> String
 
@@ -110,7 +110,7 @@ pub fn statement_palette_title(@moui_i18n.Translator) -> String
 
 pub fn statement_templates() -> Array[StatementTemplate]
 
-pub fn template_index_of(Int, String) -> Int?
+pub fn template_index_of(Int32, String) -> Int32?
 
 pub fn templates_for_category(@wzzc-dev/moui_studio/domain/blocks.BlockCategory) -> Array[StatementTemplate]
 
@@ -128,11 +128,11 @@ pub(all) struct BlockMenuParams[Msg] {
 }
 
 pub(all) struct BlocksDragState {
-  list_path : Array[Int]
-  from_path : Array[Int]
-  from : Int
-  to : Int
-  to_list : Array[Int]
+  list_path : Array[Int32]
+  from_path : Array[Int32]
+  from : Int32
+  to : Int32
+  to_list : Array[Int32]
   valid : Bool
 }
 
@@ -165,43 +165,43 @@ pub(all) struct BlocksToolbarParams[Msg] {
 }
 
 pub(all) enum BlocksUiMsg {
-  ToggleStatementPalette(Int)
-  SelectCategory(Int)
+  ToggleStatementPalette(Int32)
+  SelectCategory(Int32)
   SetPaletteQuery(String)
   CanvasScrolled(@core.Point)
-  BlocksAutoScroll(Int)
+  BlocksAutoScroll(Int32)
   SetCanvasZoom(Double)
-  ZoomCanvas(Int)
+  ZoomCanvas(Int32)
   ToggleCanvasGrid
   MoveScript(String, Double, Double)
   BlockValueInput(String)
   BlockValueCancel
-  PaletteDragStart(Int, Int)
+  PaletteDragStart(Int32, Int32)
   PaletteDragMoved(@core.Point)
   PaletteDragCancel
-  PaletteExprDragStart(Int)
+  PaletteExprDragStart(Int32)
   BlocksContextMenuClose
 }
 
 pub(all) struct BlocksUiState {
-  mut selected_category : Int
+  mut selected_category : Int32
   mut statement_palette_open : Bool
   mut palette_query : String
   mut blocks_scroll : @core.Point
   mut canvas_zoom : Double
   mut canvas_grid : Bool
   mut script_origins : Map[String, ScriptOrigin]
-  mut block_value_edit : (Int, Array[Int], String)?
-  mut block_menu : (Int, Double, Double)?
-  mut palette_drag : (Int, Int, @core.Point)?
-  mut expr_drag : Int?
+  mut block_value_edit : (Int32, Array[Int32], String)?
+  mut block_menu : (Int32, Double, Double)?
+  mut palette_drag : (Int32, Int32, @core.Point)?
+  mut expr_drag : Int32?
 }
 pub fn BlocksUiState::clamp_zoom(Double) -> Double
 pub fn BlocksUiState::new() -> Self
 
 pub(all) struct CustomEntry {
   name : String
-  arity : Int
+  arity : Int32
 }
 
 pub(all) struct ExpressionTemplate {
@@ -219,17 +219,17 @@ pub(all) struct OnStartHatParams[Msg] {
 }
 
 pub(all) struct PalettePanelParams[Msg] {
-  category_index : Int
+  category_index : Int32
   query : String
   language : @studio_lang.Language
-  on_insert : (Int) -> Msg
-  on_drag_event : (Int, @core.DragGestureEvent) -> Msg
+  on_insert : (Int32) -> Msg
+  on_drag_event : (Int32, @core.DragGestureEvent) -> Msg
   on_query : (String) -> Msg
   on_new_variable : Msg
-  on_expr_drag_event : (Int, @core.DragGestureEvent) -> Msg
+  on_expr_drag_event : (Int32, @core.DragGestureEvent) -> Msg
   custom_entries : Array[CustomEntry]
-  on_insert_custom : (Int) -> Msg
-  on_drag_custom_event : (Int, @core.DragGestureEvent) -> Msg
+  on_insert_custom : (Int32) -> Msg
+  on_drag_custom_event : (Int32, @core.DragGestureEvent) -> Msg
 }
 
 pub(all) struct ScriptOrigin {
@@ -240,8 +240,8 @@ pub fn ScriptOrigin::equal(Self, Self) -> Bool
 pub fn ScriptOrigin::not_equal(Self, Self) -> Bool
 
 pub(all) struct SlotHit {
-  block_index : Int
-  expr_path : Array[Int]
+  block_index : Int32
+  expr_path : Array[Int32]
   rect : @core.Rect
 }
 

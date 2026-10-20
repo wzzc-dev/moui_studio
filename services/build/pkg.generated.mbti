@@ -31,7 +31,7 @@ pub fn BuildKind::to_repr(Self) -> @debug.Repr
 pub(all) struct BuildReport {
   kind : BuildKind
   ok : Bool
-  exit_code : Int
+  exit_code : Int32
   output : String
   diagnostics : Array[@export.CompileDiagnostic]
   web_root : String

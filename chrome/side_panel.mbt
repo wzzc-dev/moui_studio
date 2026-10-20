@@ -27,9 +27,9 @@
 pub fn[Msg] section_head(
   label : String,
   width : Double,
-  trailing? : Array[@moui.View[Msg]] = [],
-  trailing_widths? : Array[Double] = [],
-  lead? : @moui.View[Msg]? = None,
+  trailing~ : Array[@moui.View[Msg]] = [],
+  trailing_widths~ : Array[Double] = [],
+  lead~ : @moui.View[Msg]? = None,
 ) -> @moui.View[Msg] {
   let mut reserved = 0.0
   let mut i = 0
@@ -132,7 +132,7 @@ pub fn[Msg] page_tile(
   on_hover : (String) -> Msg,
   surface : @core.Color,
   width : Double,
-  hovered? : String = "",
+  hovered~ : String = "",
 ) -> @moui.View[Msg] {
   let tint = if selected { ide_text() } else { ide_text_faint() }
   let cells : Array[@moui.View[Msg]] = [
@@ -198,9 +198,9 @@ pub fn[Msg] side_panel_section(
   label : String,
   content : @moui.View[Msg],
   width : Double,
-  trailing? : Array[@moui.View[Msg]] = [],
-  trailing_widths? : Array[Double] = [],
-  lead? : @moui.View[Msg]? = None,
+  trailing~ : Array[@moui.View[Msg]] = [],
+  trailing_widths~ : Array[Double] = [],
+  lead~ : @moui.View[Msg]? = None,
 ) -> @moui.View[Msg] {
   @views.column(
     [section_head(label, width, trailing~, trailing_widths~, lead~), content],
@@ -234,13 +234,13 @@ pub(all) struct PageSpec {
 /// 算一份（本仓复发的「两处各算一份」缺陷族）。
 pub fn[Msg] page_switcher_head(
   pages : Array[PageSpec],
-  selected_index : Int,
-  on_select : (Int) -> Msg,
+  selected_index : Int32,
+  on_select : (Int32) -> Msg,
   actions : Array[@moui.View[Msg]],
   action_widths : Array[Double],
   width : Double,
   on_hover : (String) -> Msg,
-  hovered? : String = "",
+  hovered~ : String = "",
 ) -> @moui.View[Msg] {
   let gap = 4.0
   let inner = (width - 16.0).max(80.0)
@@ -325,8 +325,8 @@ pub const SUB_TAB_ROW_HEIGHT : Double = 30.0
 /// 不认识 app 的 `ContextTab`，页签同一性留在调用方。
 pub fn[Msg] sub_tab_row(
   labels : Array[String],
-  selected_index : Int,
-  on_select : (Int) -> Msg,
+  selected_index : Int32,
+  on_select : (Int32) -> Msg,
   width : Double,
   background : @core.Color,
 ) -> @moui.View[Msg] {
@@ -420,7 +420,7 @@ pub fn[Msg] object_strip(
   clear_tip : String,
   width : Double,
   on_hover : (String) -> Msg,
-  hovered? : String = "",
+  hovered~ : String = "",
 ) -> @moui.View[Msg] {
   let inner = (width - 16.0).max(80.0)
   // 名称与种类按内容给宽，余量交给权重 spacer 把清除钮推到右缘。

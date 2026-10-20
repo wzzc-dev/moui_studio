@@ -16,7 +16,7 @@ pub const COMPOSER_HEIGHT : Double = 88.0
 /// `picker_open`：模型候选行是否展开（展开时 composer 内部多一行 22pt 的
 /// 候选芯片）。**分态**是因为钉底块的高度预算从这一处取——两处各算一份
 /// 就会把输入盒顶出宿主（`ai_bar_layout_wbtest` 的高度回归会红）。
-pub fn composer_height(width : Double, picker_open? : Bool = false) -> Double {
+pub fn composer_height(width : Double, picker_open~ : Bool = false) -> Double {
   ignore(width)
   if picker_open {
     COMPOSER_HEIGHT + MODEL_PICKER_ROW_HEIGHT
@@ -47,7 +47,7 @@ pub fn context_chips_height(width : Double) -> Double {
 /// 就会把输入盒顶出宿主。
 pub fn composer_block_height(
   width : Double,
-  picker_open? : Bool = false,
+  picker_open~ : Bool = false,
 ) -> Double {
   composer_height(width, picker_open~) + context_chips_height(width)
 }

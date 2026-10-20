@@ -31,7 +31,7 @@ pub fn render_handler(handler : Handler, language : Language) -> String {
 fn write_stmts(
   buf : StringBuilder,
   body : Array[Stmt],
-  indent : Int,
+  indent : Int32,
   language : Language,
 ) -> Unit {
   let keywords = keywords_for(language)
@@ -43,7 +43,7 @@ fn write_stmts(
 }
 
 ///|
-fn write_indent(buf : StringBuilder, indent : Int) -> Unit {
+fn write_indent(buf : StringBuilder, indent : Int32) -> Unit {
   for _ in 0..<indent {
     buf.write_string("  ")
   }
@@ -53,7 +53,7 @@ fn write_indent(buf : StringBuilder, indent : Int) -> Unit {
 fn write_stmt(
   buf : StringBuilder,
   stmt : Stmt,
-  indent : Int,
+  indent : Int32,
   keywords : Keywords,
   language : Language,
 ) -> Unit {
@@ -163,7 +163,7 @@ fn write_stmt(
 ///|
 /// 优先级（数字越大绑得越紧）：或 1 / 且 2 / 比较 3 / 加减 4 / 乘除 5 /
 /// 一元 6 / 初等 7。右子节点同优先级要加括号（左结合）。
-fn expr_precedence(expr : Expr) -> Int {
+fn expr_precedence(expr : Expr) -> Int32 {
   match expr {
     @ir.Binary(@ir.Or, _, _) => 1
     @ir.Binary(@ir.And, _, _) => 2
@@ -190,7 +190,7 @@ fn expr_precedence(expr : Expr) -> Int {
 }
 
 ///|
-fn needs_parens(expr : Expr, parent_prec : Int, is_right : Bool) -> Bool {
+fn needs_parens(expr : Expr, parent_prec : Int32, is_right : Bool) -> Bool {
   let prec = expr_precedence(expr)
   if prec < parent_prec {
     true
@@ -205,7 +205,7 @@ fn needs_parens(expr : Expr, parent_prec : Int, is_right : Bool) -> Bool {
 fn write_expr(
   buf : StringBuilder,
   expr : Expr,
-  parent_prec : Int,
+  parent_prec : Int32,
   is_right : Bool,
   keywords : Keywords,
   language : Language,

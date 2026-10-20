@@ -57,7 +57,7 @@ pub fn kernel_studio_lang_errors_mbt() -> String {
     #|
     #|///|
     #|pub(all) suberror LangError {
-    #|  LangError(LangErrorKind, Int, String, String)
+    #|  LangError(LangErrorKind, Int32, String, String)
     #|}
     #|
     #|///|
@@ -68,7 +68,7 @@ pub fn kernel_studio_lang_errors_mbt() -> String {
     #|}
     #|
     #|///|
-    #|pub fn LangError::line(self : LangError) -> Int {
+    #|pub fn LangError::line(self : LangError) -> Int32 {
     #|  match self {
     #|    LangError(_, line, _, _) => line
     #|  }
@@ -293,7 +293,7 @@ pub fn kernel_studio_lang_keywords_mbt() -> String {
     #|  zh : String
     #|  en : String
     #|  kind : BuiltinKind
-    #|  arity : Int
+    #|  arity : Int32
     #|}
     #|
     #|///|
@@ -772,7 +772,7 @@ pub fn kernel_studio_lang_lexer_mbt() -> String {
     #|priv enum TokenKind {
     #|  Ident(String)
     #|  Num(Double)
-    #|  Int(Int)
+    #|  Int(Int32)
     #|  LBracket
     #|  RBracket
     #|  Str(String)
@@ -801,7 +801,7 @@ pub fn kernel_studio_lang_lexer_mbt() -> String {
     #|///|
     #|priv struct Token {
     #|  kind : TokenKind
-    #|  line : Int
+    #|  line : Int32
     #|}
     #|
     #|///|
@@ -1068,13 +1068,13 @@ pub fn kernel_studio_lang_parser_mbt() -> String {
     #|/// 语句与其首 token 行号：运行错误能报行号；从 JSON 加载的程序行号为 0。
     #|pub(all) struct TracedStmt {
     #|  stmt : Stmt
-    #|  line : Int
+    #|  line : Int32
     #|}
     #|
     #|///|
     #|priv struct Parser {
     #|  tokens : Array[Token]
-    #|  mut pos : Int
+    #|  mut pos : Int32
     #|  keywords : Keywords
     #|}
     #|

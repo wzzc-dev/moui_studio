@@ -923,7 +923,7 @@ pub fn follow_transcript(model : Model) -> Model {
 
 ///|
 /// 按 seq 找时间线里的卡（动作消息只带 seq；找不到返回 None）。
-fn card_by_seq(model : Model, seq : Int) -> AiCard? {
+fn card_by_seq(model : Model, seq : Int32) -> AiCard? {
   let mut found : AiCard? = None
   for card in model.ai_sessions.current().cards {
     if card.seq == seq {
@@ -935,7 +935,7 @@ fn card_by_seq(model : Model, seq : Int) -> AiCard? {
 
 ///|
 /// 复制用的消息正文（剪贴板写入在服务层执行,这里只取文本）。
-pub fn card_text_by_seq(model : Model, seq : Int) -> String? {
+pub fn card_text_by_seq(model : Model, seq : Int32) -> String? {
   match card_by_seq(model, seq) {
     Some(card) => Some(card.body)
     None => None
@@ -948,8 +948,8 @@ pub fn card_text_by_seq(model : Model, seq : Int) -> String? {
 /// 越界返回 None（调用方据此静默 no-op：复制一个不存在的块不该弹错误）。
 pub fn card_code_text_by_index(
   model : Model,
-  seq : Int,
-  index : Int,
+  seq : Int32,
+  index : Int32,
 ) -> String? {
   match card_by_seq(model, seq) {
     Some(card) =>
@@ -965,7 +965,7 @@ pub fn card_code_text_by_index(
 ///|
 /// 把一条用户提问的原文回填进 composer 草稿（气泡「编辑」动作）。
 /// 只在目标卡是 CardUserPrompt 时生效。
-fn restore_prompt_draft(model : Model, seq : Int) -> Model {
+fn restore_prompt_draft(model : Model, seq : Int32) -> Model {
   match card_by_seq(model, seq) {
     Some(card) =>
       if card.kind is CardUserPrompt {
@@ -985,7 +985,7 @@ fn restore_prompt_draft(model : Model, seq : Int) -> Model {
 ///|
 /// 「重发」：找到该条 AI 卡**之前最近的一条用户提问**，回填草稿。
 /// 找不到（会话开头就没有提问）时草稿保持原样、重发 no-op。
-fn restore_prompt_of_turn(model : Model, seq : Int) -> Model {
+fn restore_prompt_of_turn(model : Model, seq : Int32) -> Model {
   let cards = model.ai_sessions.current().cards
   let mut prompt : String? = None
   let mut index = cards.length() - 1

@@ -14,7 +14,7 @@ pub const AI_SESSION_HEADER_HEIGHT : Double = 34.0
 
 ///|
 /// 相对时间桶（now/at 为 civil 秒）：返回（文案 key, 计数）。
-fn relative_time_bucket(now : Int, at : Int) -> (String, Int) {
+fn relative_time_bucket(now : Int32, at : Int32) -> (String, Int32) {
   let diff = (now - at).max(0)
   if diff < 60 {
     ("app.ai.time.just_now", 0)
@@ -33,20 +33,20 @@ pub(all) struct AiSessionListParams[Msg] {
   sessions : AiSessions
   query : String
   search_open : Bool
-  rename : (Int, String)?
-  hover : Int
-  now : Int
+  rename : (Int32, String)?
+  hover : Int32
+  now : Int32
   on_create : Msg
   on_settings : Msg
   on_toggle_search : Msg
   on_query : (String) -> Msg
-  on_rename_start : (Int) -> Msg
+  on_rename_start : (Int32) -> Msg
   on_rename_draft : (String) -> Msg
   on_rename_commit : Msg
-  on_hover : (Int, Bool) -> Msg
-  on_pin : (Int, Bool) -> Msg
-  on_remove : (Int) -> Msg
-  on_switch : (Int) -> Msg
+  on_hover : (Int32, Bool) -> Msg
+  on_pin : (Int32, Bool) -> Msg
+  on_remove : (Int32) -> Msg
+  on_switch : (Int32) -> Msg
 }
 
 ///|
@@ -179,7 +179,7 @@ fn[Msg] ai_session_group_rows(
   let now = p.now
   let query = p.query
   let total = p.sessions.count()
-  let indices : Array[Int] = []
+  let indices : Array[Int32] = []
   let mut i = 0
   while i < total {
     match p.sessions.session_at(i) {
@@ -192,7 +192,7 @@ fn[Msg] ai_session_group_rows(
     i = i + 1
   }
   // updated 倒序（稳定：同 updated 保持原下标序；n 小,插入排序够用）
-  let entries : Array[(Int, Int)] = []
+  let entries : Array[(Int32, Int32)] = []
   for index in indices {
     let updated = match p.sessions.session_at(index) {
       Some(s) => s.updated
@@ -211,14 +211,14 @@ fn[Msg] ai_session_group_rows(
     entries[j + 1] = key
     i = i + 1
   }
-  let sorted : Array[Int] = []
+  let sorted : Array[Int32] = []
   for entry in entries {
     sorted.push(entry.1)
   }
   let rows : Array[@moui.View[Msg]] = []
   // 置顶组
-  let pinned : Array[Int] = []
-  let rest : Array[Int] = []
+  let pinned : Array[Int32] = []
+  let rest : Array[Int32] = []
   for index in sorted {
     match p.sessions.session_at(index) {
       Some(session) =>
@@ -245,7 +245,7 @@ fn[Msg] ai_session_group_rows(
   }
   // 工程组：连续同 project 归组（排序已按 updated,组序 = 组内最新时间序）
   let mut current_project = ""
-  let mut current_group : Array[Int] = []
+  let mut current_group : Array[Int32] = []
   for index in rest {
     match p.sessions.session_at(index) {
       Some(session) => {
@@ -275,9 +275,9 @@ fn[Msg] ai_project_group(
   p : AiSessionListParams[Msg],
   t : @i18n.Translator,
   project : String,
-  indices : Array[Int],
+  indices : Array[Int32],
   width : Double,
-  now : Int,
+  now : Int32,
 ) -> @moui.View[Msg] {
   let label = if project == "" {
     t.translate("app.ai.group.default_project")
@@ -298,7 +298,7 @@ fn[Msg] ai_project_group(
 fn[Msg] ai_group_bar(
   t : @i18n.Translator,
   label : String,
-  count : Int,
+  count : Int32,
   width : Double,
 ) -> @moui.View[Msg] {
   ignore(t)
@@ -339,9 +339,9 @@ fn[Msg] ai_group_bar(
 fn[Msg] ai_session_row(
   p : AiSessionListParams[Msg],
   t : @i18n.Translator,
-  index : Int,
+  index : Int32,
   width : Double,
-  now : Int,
+  now : Int32,
 ) -> @moui.View[Msg] {
   let session = match p.sessions.session_at(index) {
     Some(value) => value

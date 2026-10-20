@@ -2,39 +2,39 @@
 package "wzzc-dev/moui_studio/domain/ir"
 
 // Values
-pub const DESIGN_HEIGHT : Int = 480
+pub const DESIGN_HEIGHT : Int32 = 480
 
-pub const DESIGN_WIDTH : Int = 640
+pub const DESIGN_WIDTH : Int32 = 640
 
-pub const MAX_CONTROLS : Int = 128
+pub const MAX_CONTROLS : Int32 = 128
 
-pub const MAX_EXPR_DEPTH : Int = 32
+pub const MAX_EXPR_DEPTH : Int32 = 32
 
-pub const MAX_FUNCS : Int = 16
+pub const MAX_FUNCS : Int32 = 16
 
-pub const MAX_HANDLERS : Int = 64
+pub const MAX_HANDLERS : Int32 = 64
 
-pub const MAX_LOOP_DEPTH : Int = 64
+pub const MAX_LOOP_DEPTH : Int32 = 64
 
-pub const MAX_PARAMS : Int = 8
+pub const MAX_PARAMS : Int32 = 8
 
-pub const MAX_STMTS_PER_HANDLER : Int = 512
+pub const MAX_STMTS_PER_HANDLER : Int32 = 512
 
-pub const MAX_TOTAL_STMTS : Int = 4096
+pub const MAX_TOTAL_STMTS : Int32 = 4096
 
-pub const MAX_VARIABLES : Int = 64
+pub const MAX_VARIABLES : Int32 = 64
 
-pub const MIN_CONTROL_SIZE : Int = 8
+pub const MIN_CONTROL_SIZE : Int32 = 8
 
 pub fn control_name_syntax_valid(String) -> Bool
 
-pub fn count_stmts(Array[Stmt]) -> Int
+pub fn count_stmts(Array[Stmt]) -> Int32
 
 pub fn default_window() -> WindowSpec
 
 pub fn empty_program() -> StudioProgram
 
-pub fn expr_depth(Expr) -> Int
+pub fn expr_depth(Expr) -> Int32
 
 pub fn find_control(StudioProgram, String) -> Control?
 
@@ -46,7 +46,7 @@ pub fn find_variable(StudioProgram, String) -> Variable?
 
 pub fn handler_signature(Handler) -> String
 
-pub fn next_control_id(StudioProgram) -> Int
+pub fn next_control_id(StudioProgram) -> Int32
 
 pub fn parse_control_kind(String) -> ControlKind?
 
@@ -54,7 +54,7 @@ pub fn parse_event_kind(String) -> EventKind?
 
 pub fn program_signature(StudioProgram) -> String
 
-pub fn stmt_loop_depth(Array[Stmt]) -> Int
+pub fn stmt_loop_depth(Array[Stmt]) -> Int32
 
 pub fn stmts_signature(Array[Stmt]) -> String
 
@@ -82,21 +82,21 @@ pub(all) enum BinOp {
 pub fn BinOp::canonical(Self) -> String
 
 pub(all) struct Control {
-  id : Int
+  id : Int32
   kind : ControlKind
   name : String
   text : String
-  x : Int
-  y : Int
-  width : Int
-  height : Int
+  x : Int32
+  y : Int32
+  width : Int32
+  height : Int32
   items : Array[String]
   props : ControlProps
 }
-pub fn Control::resize_from_corner(Self, DragCorner, Int, Int) -> Self
+pub fn Control::resize_from_corner(Self, DragCorner, Int32, Int32) -> Self
 pub fn Control::toggle_prop(Self, String) -> Self
 pub fn Control::with_prop(Self, String, String) -> Self
-pub fn Control::with_rect_field(Self, RectField, Int) -> Self
+pub fn Control::with_rect_field(Self, RectField, Int32) -> Self
 
 pub(all) enum ControlKind {
   Button
@@ -113,7 +113,7 @@ pub fn ControlKind::supports_event(Self, EventKind) -> Bool
 pub fn ControlKind::tag(Self) -> String
 
 pub(all) struct ControlProps {
-  font_size : Int
+  font_size : Int32
   bold : Bool
   text_color : String
   back_color : String
@@ -153,7 +153,7 @@ pub fn EventKind::tag(Self) -> String
 
 pub(all) enum Expr {
   NumLit(Double)
-  IntLit(Int)
+  IntLit(Int32)
   StrLit(String)
   ListLit(Array[Expr])
   BoolLit(Bool)
@@ -195,9 +195,9 @@ pub(all) enum IrError {
   TooManyControls
   TooManyVariables
   TooManyHandlers
-  TooManyStatements(Int)
-  LoopTooDeep(Int)
-  ExprTooDeep(Int)
+  TooManyStatements(Int32)
+  LoopTooDeep(Int32)
+  ExprTooDeep(Int32)
   DuplicateFunctionName(String)
   InvalidFunctionName(String)
   DuplicateParam(String, String)
@@ -240,7 +240,7 @@ pub(all) struct StructField {
 }
 
 pub(all) struct StudioProgram {
-  version : Int
+  version : Int32
   window : WindowSpec
   controls : Array[Control]
   variables : Array[Variable]
@@ -257,12 +257,12 @@ pub(all) struct Variable {
 
 pub(all) struct WindowSpec {
   title : String
-  width : Int
-  height : Int
-  timer_interval : Int
+  width : Int32
+  height : Int32
+  timer_interval : Int32
   back_color : String
 }
-pub fn WindowSpec::default(title~ : String, width~ : Int, height~ : Int) -> Self
+pub fn WindowSpec::default(title~ : String, width~ : Int32, height~ : Int32) -> Self
 
 // Type aliases
 

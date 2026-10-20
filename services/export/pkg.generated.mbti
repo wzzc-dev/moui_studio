@@ -14,7 +14,7 @@ pub fn bundle_dependency_versions() -> Array[(String, String)]
 
 pub fn codec_pkg(String) -> String
 
-pub fn compile_phase_total() -> Int
+pub fn compile_phase_total() -> Int32
 
 pub fn compile_phases() -> Array[CompilePhase]
 
@@ -26,13 +26,13 @@ pub fn escape_mbt(String) -> String
 
 pub fn export_bundle(String, String) -> Array[(String, String)]
 
-pub fn generate_handler_source(@ir.Handler, Int, functions? : Array[@ir.FuncDef]) -> GeneratedHandler
+pub fn generate_handler_source(@ir.Handler, Int32, functions? : Array[@ir.FuncDef]) -> GeneratedHandler
 
 pub fn generate_source(@ir.StudioProgram) -> GeneratedSource
 
 pub fn generated_handlers_mbt(String) -> String
 
-pub fn handler_function_name(@ir.Handler, Int) -> String
+pub fn handler_function_name(@ir.Handler, Int32) -> String
 
 pub fn ir_pkg() -> String
 
@@ -82,7 +82,7 @@ pub fn native_smoke_pkg(String) -> String
 
 pub fn parse_moon_diagnostics(String) -> Array[CompileDiagnostic]
 
-pub fn paths_equal(Array[Int], Array[Int]) -> Bool
+pub fn paths_equal(Array[Int32], Array[Int32]) -> Bool
 
 pub fn project_data_mbt(String) -> String
 
@@ -107,15 +107,15 @@ pub(all) struct CompileArtifact {
   kind : String
   label : String
   path : String
-  bytes : Int
+  bytes : Int32
 }
 
 pub(all) struct CompileDiagnostic {
   severity : String
   code : String
   file : String
-  line : Int
-  column : Int
+  line : Int32
+  column : Int32
   text : String
 }
 
@@ -128,7 +128,7 @@ pub(all) enum CompilePhase {
   CompileSmoke
   CompileCollect
 }
-pub fn CompilePhase::ordinal(Self) -> Int
+pub fn CompilePhase::ordinal(Self) -> Int32
 pub fn CompilePhase::tag(Self) -> String
 
 pub(all) struct CompileProgress {
@@ -138,7 +138,7 @@ pub(all) struct CompileProgress {
 
 pub(all) struct CompileReport {
   ok : Bool
-  exit_code : Int
+  exit_code : Int32
   target : String
   source_path : String
   output : String
@@ -151,17 +151,17 @@ pub fn CompileReport::errors(Self) -> Array[CompileDiagnostic]
 pub fn CompileReport::first_error(Self) -> CompileDiagnostic?
 
 pub(all) struct GeneratedHandler {
-  index : Int
+  index : Int32
   function_name : String
   control_name : String
   event_tag : String
   source : String
   stmt_lines : Array[StmtLine]
-  start_line : Int
-  body_end_line : Int
+  start_line : Int32
+  body_end_line : Int32
 }
-pub fn GeneratedHandler::audit_line_for(Self, Array[Int]) -> Int?
-pub fn GeneratedHandler::line_for(Self, Array[Int]) -> Int?
+pub fn GeneratedHandler::audit_line_for(Self, Array[Int32]) -> Int32?
+pub fn GeneratedHandler::line_for(Self, Array[Int32]) -> Int32?
 
 pub(all) struct GeneratedSource {
   source : String
@@ -169,9 +169,9 @@ pub(all) struct GeneratedSource {
 }
 
 pub(all) struct StmtLine {
-  path : Array[Int]
-  line : Int
-  audit_line : Int
+  path : Array[Int32]
+  line : Int32
+  audit_line : Int32
 }
 
 // Type aliases

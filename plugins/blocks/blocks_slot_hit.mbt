@@ -18,9 +18,9 @@
 /// 返回 `None` 表示该点不在任何洞上（调用方按普通行命中处理）。
 pub(all) struct SlotHit {
   /// 该洞所属语句在积木链里的下标（与 `blocks_hit_index` 同一坐标系）
-  block_index : Int
+  block_index : Int32
   /// 该洞对应的表达式路径（`expr_path.mbt` 的寻址语法）
-  expr_path : Array[Int]
+  expr_path : Array[Int32]
   /// 洞的矩形（画布坐标，与绘制同一份）
   rect : @geometry.Rect
 }
@@ -38,8 +38,8 @@ pub fn blocks_slot_hit(
   x : Double,
   y : Double,
   measure : (String) -> Double,
-  y_offset? : Double = 0.0,
-  lead_texts? : Array[String] = [],
+  y_offset~ : Double = 0.0,
+  lead_texts~ : Array[String] = [],
 ) -> SlotHit? {
   let mut index = 0
   for item in blocks {
@@ -87,7 +87,7 @@ pub fn blocks_slot_hit(
 /// ——调色板拖拽的落点在 update 侧换算，那里拿不到 TextSystem，按
 /// 「行命中 + 首洞」降级。段表里值段（可就地编辑的叶子）也带表达式
 /// 路径，同样是合法的放置目标（Scratch 的值输入）。
-pub fn blocks_first_slot_path(item : @blk.BlockItem) -> Array[Int]? {
+pub fn blocks_first_slot_path(item : @blk.BlockItem) -> Array[Int32]? {
   match item.segments {
     None => None
     Some(segments) => {
@@ -117,7 +117,7 @@ pub fn blocks_slot_rects(
   item : @blk.BlockItem,
   rect : @geometry.Rect,
   measure : (String) -> Double,
-  lead? : Double = 0.0,
+  lead~ : Double = 0.0,
 ) -> Array[(@blk.TextSegment, @geometry.Rect)] {
   let result : Array[(@blk.TextSegment, @geometry.Rect)] = []
   let segments = match item.segments {
@@ -165,8 +165,8 @@ pub fn blocks_value_hit(
   x : Double,
   y : Double,
   measure : (String) -> Double,
-  y_offset? : Double = 0.0,
-  lead_texts? : Array[String] = [],
+  y_offset~ : Double = 0.0,
+  lead_texts~ : Array[String] = [],
 ) -> SlotHit? {
   let mut index = 0
   for item in blocks {

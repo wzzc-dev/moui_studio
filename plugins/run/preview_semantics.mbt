@@ -56,7 +56,7 @@ pub fn semantic_hit_index(
   nodes : Array[SemanticHitNode],
   x : Double,
   y : Double,
-) -> Int {
+) -> Int32 {
   let mut hit = -1
   let mut i = 0
   for node in nodes {
@@ -107,7 +107,7 @@ fn escape_moon_string(text : String) -> String {
 ///|
 /// 在源码里找 `"` + label + `"` 的字面量 span(引号感知,处理 `\"` 转义;
 /// 内容**精确等于** label 才算)。多个出现取首个(v1 边界)。
-pub fn find_literal_span(source : String, label : String) -> (Int, Int)? {
+pub fn find_literal_span(source : String, label : String) -> (Int32, Int32)? {
   let chars = text_to_chars(source)
   let n = chars.length()
   let mut i = 0
@@ -173,7 +173,7 @@ pub fn semantic_label_patch_task(
 priv struct PatchWalkState {
   files : @services.FileServices
   paths : Array[String]
-  mut cursor : Int
+  mut cursor : Int32
   label : String
   new_text : String
 }

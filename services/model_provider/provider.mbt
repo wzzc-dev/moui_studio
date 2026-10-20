@@ -161,7 +161,7 @@ pub fn parse_completion(text : String) -> Result[String, String] {
 /// 请求体大小守卫：超过上限的请求在 IO 前拒绝（参数截断红线）。
 pub fn request_within_budget(
   request : CompletionRequest,
-  max_chars : Int,
+  max_chars : Int32,
 ) -> Bool {
   let mut total = request.system.length()
   for message in request.messages {

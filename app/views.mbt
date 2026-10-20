@@ -391,12 +391,12 @@ fn form_widget(
   value : String,
   checked : Bool,
   rows : Array[String],
-  selected_row : Int,
+  selected_row : Int32,
   on_click? : Msg,
   on_change? : (String, String) -> Msg,
-  on_pick? : (String, Int) -> Msg,
+  on_pick? : (String, Int32) -> Msg,
   on_toggle? : (String, Bool) -> Msg,
-  progress_value? : Double = 0.0,
+  progress_value~ : Double = 0.0,
   on_input_done? : (String) -> Msg,
 ) -> @moui.View[Msg] {
   // 属性 v2（G7.2）：不可见 = 空视图（占位保持 stage 配对不串位）
@@ -573,8 +573,8 @@ pub fn prop_color(hex : String) -> @core.Color? {
   if hex.length() != 7 {
     return None
   }
-  fn hex_pair(high : Char, low : Char) -> Int? {
-    fn digit(c : Char) -> Int? {
+  fn hex_pair(high : Char, low : Char) -> Int32? {
+    fn digit(c : Char) -> Int32? {
       let code = c.to_int()
       if code >= 48 && code <= 57 {
         Some(code - 48)
@@ -651,7 +651,7 @@ fn run_stage(
   texts : Map[String, String],
   checks : Map[String, Bool],
   rows : Map[String, Array[String]],
-  selections : Map[String, Int],
+  selections : Map[String, Int32],
   values : Map[String, @studio_lang.Value],
   avail_width : Double,
   avail_height : Double,

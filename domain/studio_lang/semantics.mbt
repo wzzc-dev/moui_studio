@@ -376,7 +376,7 @@ fn check_call(
 }
 
 ///|
-fn is_control_name_arg(name : String, index : Int, arg : Expr) -> Bool {
+fn is_control_name_arg(name : String, index : Int32, arg : Expr) -> Bool {
   let target_slot = index == 0 &&
     (
       name == "set_text" ||

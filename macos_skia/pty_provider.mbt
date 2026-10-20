@@ -10,24 +10,24 @@
 #borrow(shell)
 extern "C" fn pty_spawn(
   shell : Bytes,
-  shell_len : Int,
-  cols : Int,
-  rows : Int,
+  shell_len : Int32,
+  cols : Int32,
+  rows : Int32,
 ) -> Int64 = "moonpty_spawn"
 
 ///|
 #borrow(pid)
-extern "C" fn pty_reap(pid : Int) -> Int64 = "moonpty_reap"
+extern "C" fn pty_reap(pid : Int32) -> Int64 = "moonpty_reap"
 
 ///|
 #borrow(pid)
-extern "C" fn pty_signal(pid : Int, sig : Int) -> Int64 = "moonpty_signal"
+extern "C" fn pty_signal(pid : Int32, sig : Int32) -> Int64 = "moonpty_signal"
 
 ///|
 /// PTY 会话：master 端 fd + 子进程 pid（raw_fd 异步读写，与
 /// examples/terminal/pty_host 同构）。
 priv struct Pty {
-  pid : Int
+  pid : Int32
   raw : @raw_fd.RawFd
 }
 
@@ -37,7 +37,7 @@ priv struct Pty {
 /// 且 pty.c 依赖 openpty/posix_spawn。Windows 侧编不过也跑不了，直接报
 /// 不可用（workspace check 在所有 native 平台做类型检查）。
 #cfg(not(platform="windows"))
-async fn Pty::spawn_shell(shell : String, cols : Int, rows : Int) -> Pty? {
+async fn Pty::spawn_shell(shell : String, cols : Int32, rows : Int32) -> Pty? {
   let bytes = @utf8.encode(shell)
   let arr : Array[Byte] = []
   for i in 0..<bytes.length() {
@@ -56,7 +56,11 @@ async fn Pty::spawn_shell(shell : String, cols : Int, rows : Int) -> Pty? {
 ///|
 /// Windows 桩：无 PTY 可派生，spawn 直接失败（UI 侧走 on_exit 分支）。
 #cfg(platform="windows")
-async fn Pty::spawn_shell(_shell : String, _cols : Int, _rows : Int) -> Pty? {
+async fn Pty::spawn_shell(
+  _shell : String,
+  _cols : Int32,
+  _rows : Int32,
+) -> Pty? {
   println("[pty] PTY is not supported on this platform")
   None
 }
@@ -94,8 +98,8 @@ async fn Pty::pty_read_loop(self : Pty, emit : (String) -> Unit) -> Unit {
 /// worker 工作项：派生（带输出/退出回调与 emit 泵）/ 写入 / 终止 / 退出。
 priv enum PtyWork {
   PtySpawnWork(
-    Int,
-    Int,
+    Int32,
+    Int32,
     (String) -> @studio_app.Msg,
     () -> @studio_app.Msg,
     (@studio_app.Msg) -> Unit

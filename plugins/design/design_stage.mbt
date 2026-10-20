@@ -23,7 +23,7 @@ pub fn[Msg] design_stage(
   window_back_color : @core.Color?,
   on_tap~ : (Double, Double) -> Msg,
   on_drag~ : (@views.DragGesturePhase, Double, Double) -> Msg,
-  multi_selected? : Array[String] = [],
+  multi_selected~ : Array[String] = [],
 ) -> @moui.View[Msg] {
   let backdrop = canvas(
     measure=pane_fill_measure,

@@ -13,21 +13,21 @@
 /// 目标出现,用户才知道会建到哪。
 pub(all) enum ExplorerRow {
   /// 分区头（打开的编辑器 / 文件夹 / 大纲 / 时间线）
-  SectionRow(String, String, Bool, Int) // id, label, expanded, count
+  SectionRow(String, String, Bool, Int32) // id, label, expanded, count
   /// 分区空态提示
   SectionEmptyRow(String)
   /// inline 输入行（kind, depth）:kind = "file" / "folder" / "rename"
-  InputRow(String, Int)
+  InputRow(String, Int32)
   /// 顶层根行（工程下标, 模块名, 根路径, 是否活动）
-  RootRow(Int, String, String, Bool)
+  RootRow(Int32, String, String, Bool)
   /// 目录行（根下标, 目录 rel, 标签, 元信息, 深度, 是否展开）
-  DirRow(Int, String, String, String, Int, Bool)
+  DirRow(Int32, String, String, String, Int32, Bool)
   /// 文件行（根下标, 文件 rel, 名称, 深度, 是否选中）
-  FileRow(Int, String, String, Int, Bool)
+  FileRow(Int32, String, String, Int32, Bool)
   /// 打开的编辑器条目（tab 下标, 名称, 是否脏, 是否活动）
-  EditorRow(Int, String, Bool, Bool)
+  EditorRow(Int32, String, Bool, Bool)
   /// 大纲条目（符号名, 行号, 深度）
-  OutlineRow(String, Int, Int)
+  OutlineRow(String, Int32, Int32)
   /// 时间线条目（目标, 作者是 Agent, 动作文案）
   TimelineRow(String, Bool, String)
 }
@@ -175,7 +175,7 @@ fn push_workspace_tier(
   rows : Array[ExplorerRow],
   record : WorkspaceRecord,
   parent_rel : String,
-  depth : Int,
+  depth : Int32,
 ) -> Unit {
   let tier = workspace_tier(data, record, parent_rel)
   for name in tier.dirs {
@@ -274,7 +274,7 @@ fn head_segment(rel : String) -> String {
 
 ///|
 /// 树相对路径是否**正好**是一个成员的根（是则这一行由成员行渲染）。
-fn member_index_at(data : ExplorerData, rel : String) -> Int? {
+fn member_index_at(data : ExplorerData, rel : String) -> Int32? {
   let mut index = 0
   for project in data.projects {
     if tree_rel_of_project(data, project) == rel {
@@ -294,10 +294,10 @@ fn push_member_dir(
   data : ExplorerData,
   t : @i18n.Translator,
   rows : Array[ExplorerRow],
-  index : Int,
+  index : Int32,
   member_rel : String,
   label : String,
-  depth : Int,
+  depth : Int32,
 ) -> Unit {
   let project = data.projects[index]
   let meta = project_entry_meta(project)
@@ -337,10 +337,10 @@ fn push_member_dir_subtree(
   data : ExplorerData,
   t : @i18n.Translator,
   rows : Array[ExplorerRow],
-  index : Int,
+  index : Int32,
   project : ProjectRecord,
   rel : String,
-  depth : Int,
+  depth : Int32,
 ) -> Unit {
   let member_rel = tree_rel_of_project(data, project)
   let dir = find_dir(project.scanned.dirs, rel)
@@ -387,7 +387,7 @@ fn push_project_root(
   data : ExplorerData,
   t : @i18n.Translator,
   rows : Array[ExplorerRow],
-  index : Int,
+  index : Int32,
   project : ProjectRecord,
 ) -> Unit {
   let active = index == data.active_project
@@ -421,10 +421,10 @@ fn push_dir_subtree(
   data : ExplorerData,
   t : @i18n.Translator,
   rows : Array[ExplorerRow],
-  index : Int,
+  index : Int32,
   project : ProjectRecord,
   rel : String,
-  depth : Int,
+  depth : Int32,
 ) -> Unit {
   let dir = find_dir(project.scanned.dirs, rel)
   let label = rel_path_last_segment(rel)
@@ -457,9 +457,9 @@ fn push_dir_subtree(
 fn push_input_rows(
   data : ExplorerData,
   rows : Array[ExplorerRow],
-  index : Int,
+  index : Int32,
   rel : String,
-  depth : Int,
+  depth : Int32,
 ) -> Unit {
   ignore(index)
   // 判据只看**目标目录**:`file_create_dir` 已经是树相对路径（工作区导入时
@@ -483,9 +483,9 @@ fn push_input_rows(
 fn push_file_row(
   data : ExplorerData,
   rows : Array[ExplorerRow],
-  index : Int,
+  index : Int32,
   rel : String,
-  depth : Int,
+  depth : Int32,
 ) -> Unit {
   if index == data.active_project && data.file_rename_open == Some(rel) {
     rows.push(InputRow("rename", depth))
@@ -569,8 +569,8 @@ fn push_timeline_section(
 /// 大纲符号（名称 + 行号 + 缩进层级）。
 pub(all) struct OutlineSymbol {
   name : String
-  line : Int
-  depth : Int
+  line : Int32
+  depth : Int32
 }
 
 ///|
@@ -611,7 +611,7 @@ pub fn outline_symbols(rel : String, source : String) -> Array[OutlineSymbol] {
 
 ///|
 /// Markdown 标题行 → (层级, 标题文本);非标题返回 None。
-fn markdown_heading(line : String) -> (Int, String)? {
+fn markdown_heading(line : String) -> (Int32, String)? {
   let mut hashes = 0
   for c in line {
     if c == '#' {
@@ -650,7 +650,7 @@ fn moonbit_decl_keywords() -> Array[String] {
 ///
 /// 展示名取关键字之后的标识符;`impl` 行没有名字可取时用整行（
 /// `impl @core.ViewNode for Divider` 这种,裁掉多余空白后仍可读）。
-fn moonbit_declaration(line : String) -> (Int, String)? {
+fn moonbit_declaration(line : String) -> (Int32, String)? {
   let indent = leading_spaces(line)
   let trimmed = line.trim(chars=" \t").to_owned()
   if trimmed == "" {
@@ -715,7 +715,7 @@ fn declaration_name(rest : String) -> String {
 
 ///|
 /// 行首空格数（Tab 按 2 个空格计）。
-fn leading_spaces(line : String) -> Int {
+fn leading_spaces(line : String) -> Int32 {
   let mut count = 0
   for c in line {
     if c == ' ' {
@@ -736,7 +736,7 @@ fn leading_spaces(line : String) -> Int {
 
 ///|
 /// 目录折叠键（根下标 + rel）:不同工程的同名目录各自折叠。
-pub fn root_collapse_key(index : Int, rel : String) -> String {
+pub fn root_collapse_key(index : Int32, rel : String) -> String {
   "\{index}:\{rel}"
 }
 
@@ -778,7 +778,7 @@ pub fn child_dirs_of(
 /// `String::compare` 是**先比长度**的序（实测 `"zeta".compare("Alpha") = -1`
 /// 而 `"ab".compare("b") = 1`）,拿它排文件名会得到「短的在前」这种没人
 /// 认得的顺序（实测该缺陷被本文件的排序测试逮住）。
-fn name_order(left : String, right : String) -> Int {
+fn name_order(left : String, right : String) -> Int32 {
   let folded = left.to_lower().lexical_compare(right.to_lower())
   if folded != 0 {
     folded
@@ -924,7 +924,7 @@ pub fn file_tint(name : String) -> @chrome.IconTint {
 /// 列表视口落进尾部 spacer 区时行会「消失」,钳制保证偏移永远落在
 /// 真实行范围内。
 pub fn explorer_clamp_scroll_y(
-  row_count : Int,
+  row_count : Int32,
   viewport_height : Double,
   scroll_y : Double,
 ) -> Double {
@@ -993,7 +993,7 @@ pub fn project_entry_meta(project : ProjectRecord) -> String {
 
 ///|
 /// 根行的入口概要（按工程下标取;越界给空串）。
-pub fn project_entry_meta_of(data : ExplorerData, index : Int) -> String {
+pub fn project_entry_meta_of(data : ExplorerData, index : Int32) -> String {
   if index >= 0 && index < data.projects.length() {
     project_entry_meta(data.projects[index])
   } else {
@@ -1028,10 +1028,10 @@ pub fn explorer_child_dirs_for_test(
 /// 状态(插件不持有可变状态——markdown/terminal 无状态视图贡献先例)。
 pub(all) struct ExplorerData {
   projects : Array[ProjectRecord]
-  active_project : Int
+  active_project : Int32
   workspace_root : WorkspaceRecord?
   open_project_files : Array[OpenProjectFile]
-  open_file_index : Int
+  open_file_index : Int32
   project_tree_collapsed : Array[String]
   explorer_sections_collapsed : Array[String]
   selected_project_file : String?
@@ -1049,11 +1049,11 @@ pub const EXPLORER_SECTION_FOLDERS : String = "folders"
 
 ///|
 /// 工作区根在折叠键空间里的下标（与成员下标不冲突）。
-pub const WORKSPACE_ROOT_INDEX : Int = -1
+pub const WORKSPACE_ROOT_INDEX : Int32 = -1
 
 ///|
 /// 分区行缩进（分区头/空态比第一层目录再进一档,读成「挂在分区下」）。
-pub const EXPLORER_SECTION_INDENT : Int = 1
+pub const EXPLORER_SECTION_INDENT : Int32 = 1
 
 ///|
 /// 工程在工作区里的相对路径（工作区根到工程根）;单模块导入 = ""。
@@ -1103,7 +1103,7 @@ pub fn file_is_dirty(open : OpenProjectFile) -> Bool {
 /// 最近修改尾部 N 条（新的在下——设计稿是最近在最上，取尾部后反转）。
 pub fn recent_tail(
   changes : Array[RecentChange],
-  count : Int,
+  count : Int32,
 ) -> Array[RecentChange] {
   let tail : Array[RecentChange] = []
   let mut index = changes.length() - 1
@@ -1126,7 +1126,7 @@ fn text(t : @i18n.Translator, key : String) -> String {
 
 ///|
 /// 分区里最多列几条时间线（侧栏是提示,不是完整历史）。
-const EXPLORER_TIMELINE_ROWS : Int = 12
+const EXPLORER_TIMELINE_ROWS : Int32 = 12
 
 // ============================================================================
 // 大纲符号提取

@@ -753,7 +753,7 @@ fn context_state(
 
 ///|
 /// 已执行指令数：解释轨读 step 计数，编译轨读审计条数（口径一致）。
-fn audit_step_count(model : Model) -> Int {
+fn audit_step_count(model : Model) -> Int32 {
   match current_track(model) {
     Interpret =>
       match model.run {

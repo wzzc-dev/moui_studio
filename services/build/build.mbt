@@ -52,7 +52,7 @@ pub(all) struct BuildReport {
   kind : BuildKind
   ok : Bool
   /// 命令退出码(取消/启动失败为 -1)
-  exit_code : Int
+  exit_code : Int32
   output : String
   diagnostics : Array[@export.CompileDiagnostic]
   /// Web 构建:静态服务应服务的**根目录**(workspace 根;向上找 moon.work,
@@ -96,7 +96,7 @@ pub fn build_commands(
 }
 
 ///|
-const BUILD_OUTPUT_LIMIT : Int = 20000
+const BUILD_OUTPUT_LIMIT : Int32 = 20000
 
 ///|
 /// 截断到上限,保留尾部(最新输出最有诊断价值)。

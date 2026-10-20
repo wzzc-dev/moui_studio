@@ -39,7 +39,7 @@ fn normalize_char(c : Char) -> Char {
 priv enum TokenKind {
   Ident(String)
   Num(Double)
-  Int(Int)
+  Int(Int32)
   LBracket
   RBracket
   Str(String)
@@ -68,7 +68,7 @@ priv enum TokenKind {
 ///|
 priv struct Token {
   kind : TokenKind
-  line : Int
+  line : Int32
 }
 
 ///|

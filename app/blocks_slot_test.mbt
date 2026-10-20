@@ -76,7 +76,7 @@ test "each call argument is independently hittable" {
   // 从两个洞各自命中一次，路径必须不同
   let holes = @blk.blocks_slot_rects(blocks[0], rect, measure)
   assert_eq(holes.length(), 2)
-  let seen : Array[Int] = []
+  let seen : Array[Int32] = []
   for entry in holes {
     let hole = entry.1
     let hit = @blk.blocks_slot_hit(

@@ -74,7 +74,7 @@ pub fn blocks_insert_mark(
       // 列表的语句（`target` 去掉最后一段就是它的路径），线画在头的底缘下方
       // ——正是空体的第一行该出现的位置。
       if seen == 0 && d.to == 0 && target.length() > 0 {
-        let owner_path : Array[Int] = []
+        let owner_path : Array[Int32] = []
         let mut k = 0
         while k < target.length() - 1 {
           owner_path.push(target[k])
@@ -107,14 +107,14 @@ pub fn blocks_draw_plan(
   blocks : Array[@blk.BlockItem],
   display_texts : Array[String],
   rects : Array[@geometry.Rect],
-  selected : Int,
+  selected : Int32,
   spotlight : String,
   insert_mark : (Double, Double, Bool)?,
   dx : Double,
   dy : Double,
-  measure? : (String) -> Double = no_text_measure,
-  lead_texts? : Array[String] = [],
-  hat_top? : Bool = false,
+  measure~ : (String) -> Double = no_text_measure,
+  lead_texts~ : Array[String] = [],
+  hat_top~ : Bool = false,
 ) -> Array[BlocksDrawOp] {
   let ops : Array[BlocksDrawOp] = []
   // C 左壁的长度 = **视觉高 − 基础行高**。不另算一份弧高：`blocks_visual_rects`
@@ -337,7 +337,7 @@ pub fn block_outline_path(
   h : Double,
   tab : Bool,
   notch : Bool,
-  hat? : Bool = false,
+  hat~ : Bool = false,
 ) -> Array[@core.PathVerb] {
   let r = 6.0
   // 榫卯区间靠左对齐（Scratch 口径：紧贴左圆角），宽 24pt、深 6pt。
@@ -460,7 +460,7 @@ pub fn paint_block_outline(
   kind : @blk.BlockKind,
   tab : Bool,
   notch : Bool,
-  hat? : Bool = false,
+  hat~ : Bool = false,
 ) -> Unit {
   ctx.commands.push(
     @core.DrawPath(@core.PathSpec::{

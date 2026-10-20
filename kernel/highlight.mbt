@@ -24,7 +24,7 @@ pub extend HighlightKind with Eq::{not_equal, equal}
 /// 单个 token：全文绝对偏移 + 原文 + 分类（偏移供受控编辑器的
 /// source_range 约定使用）。
 pub(all) struct HighlightToken {
-  start : Int
+  start : Int32
   text : String
   kind : HighlightKind
 }
@@ -101,7 +101,7 @@ pub fn moonbit_highlight(source : String) -> Array[HighlightToken] {
     chars.push(c)
   }
   let count = chars.length()
-  let push = fn(start : Int, text : String, kind : HighlightKind) {
+  let push = fn(start : Int32, text : String, kind : HighlightKind) {
     if text != "" {
       tokens.push({ start, text, kind, })
     }
@@ -115,7 +115,7 @@ pub fn moonbit_highlight(source : String) -> Array[HighlightToken] {
   }
   // 插值深度：>0 时处于 \{...} 内（内部字符串仍按字符串着色）
   let mut depth = 0
-  let plain = fn(start : Int, end : Int) {
+  let plain = fn(start : Int32, end : Int32) {
     push(start, slice_chars(chars, start, end), HlPlain)
   }
   let mut index = 0
@@ -298,7 +298,7 @@ pub fn moonbit_highlight(source : String) -> Array[HighlightToken] {
 }
 
 ///|
-fn slice_chars(chars : Array[Char], start : Int, end : Int) -> String {
+fn slice_chars(chars : Array[Char], start : Int32, end : Int32) -> String {
   let buf = StringBuilder()
   for i in start..<end {
     buf.write_char(chars[i])

@@ -122,7 +122,7 @@ fn parse_form_number(text : String) -> Double? {
 /// stage(W, H, [) 头解析:两个数字字面量。
 fn parse_stage_head(
   line : String,
-  line_no : Int,
+  line_no : Int32,
 ) -> Result[(Double, Double), String] {
   let chars = line_to_chars(line)
   let n = chars.length()
@@ -154,7 +154,7 @@ fn parse_stage_head(
 /// place 行解析:`place(@views.<kind>("text"[, on_click=id]), x=N, y=N, width=N, height=N),`
 fn parse_place_line(
   line : String,
-  line_no : Int,
+  line_no : Int32,
 ) -> Result[(FormControl, ControlSpans), String] {
   let chars = line_to_chars(line)
   let n = chars.length()
@@ -255,7 +255,7 @@ fn parse_place_line(
   // 四个标签:x= y= width= height=(顺序查找,从构造器右括号之后)
   let labels : Array[String] = ["x=", "y=", "width=", "height="]
   let values : Array[Double?] = [None, None, None, None]
-  let spans : Array[Int] = [-1, -1, -1, -1]
+  let spans : Array[Int32] = [-1, -1, -1, -1]
   let mut search_from = inner_end
   let mut li = 0
   for label in labels {

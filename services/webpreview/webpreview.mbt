@@ -96,7 +96,7 @@ pub fn strip_query(url_path : String) -> String {
 /// (Ref——服务先于导入存在,目录在构建回执后由 app 经闭包设置)。
 pub(all) struct StaticServer {
   server : @http.Server
-  port : Int
+  port : Int32
   directory : Ref[String]
 }
 
@@ -109,7 +109,7 @@ pub fn StaticServer::set_directory(
 }
 
 ///|
-pub fn StaticServer::port(self : StaticServer) -> Int {
+pub fn StaticServer::port(self : StaticServer) -> Int32 {
   self.port
 }
 
@@ -135,7 +135,7 @@ pub async fn bind_static_server() -> Result[StaticServer, String] {
 ///|
 async fn reject(
   conn : @http.ServerConnection,
-  code : Int,
+  code : Int32,
   reason : String,
   body : String,
 ) -> Unit {

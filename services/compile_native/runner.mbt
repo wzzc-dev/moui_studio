@@ -116,8 +116,8 @@ pub async fn compile_project(
   project_json : String,
   app_name : String,
   work_root : String,
-  on_progress? : CompileProgressSink = _progress => (),
-  owner? : CompileOwner = CompileOwner::new(),
+  on_progress~ : CompileProgressSink = _progress => (),
+  owner~ : CompileOwner = CompileOwner::new(),
 ) -> Result[@export.CompileReport, String] {
   let safe = @export.sanitize_name(app_name)
   let root = "\{work_root}/\{safe}"
@@ -145,8 +145,8 @@ pub async fn compile_project(
 /// 把已完成的步点满。只推开始的话，最后一步永远停在「进行中」。
 pub async fn compile_bundle_at(
   root : String,
-  on_progress? : CompileProgressSink = _progress => (),
-  owner? : CompileOwner = CompileOwner::new(),
+  on_progress~ : CompileProgressSink = _progress => (),
+  owner~ : CompileOwner = CompileOwner::new(),
 ) -> Result[@export.CompileReport, String] {
   let moon = moon_bin()
   // 1) moon update：解析/锁定依赖（离线缓存命中时很快）
@@ -327,7 +327,7 @@ fn push_artifact(
 /// 必须走 `read_file_to_bytes`：`read_file_to_string(...).length()` 给的是
 /// **字符数**，UTF-8 中文一行就少算两倍，二进制产物更是完全对不上——
 /// 实测一个 724 KB 的 native 可执行被显示成「1 KB」。
-fn file_size_of(path : String) -> Int {
+fn file_size_of(path : String) -> Int32 {
   let data = @x/fs.read_file_to_bytes(path) catch { _ => b"" }
   data.length()
 }
@@ -343,7 +343,7 @@ fn moon_bin() -> String {
 /// （截断到 20000 字符，防止 UI/内存被超大日志拖垮）。
 fn failed_report(
   target : String,
-  exit_code : Int,
+  exit_code : Int32,
   output : String,
   root : String,
   prefix_output : String,
@@ -406,7 +406,7 @@ fn build_output_summary(
 }
 
 ///|
-fn truncate_tail(text : String, limit : Int) -> String {
+fn truncate_tail(text : String, limit : Int32) -> String {
   if text.length() <= limit {
     text
   } else {
@@ -426,7 +426,7 @@ async fn run_tool(
   command : String,
   args : Array[String],
   cwd : String,
-) -> (Int, String) {
+) -> (Int32, String) {
   let (out_reader, out_w) = @process.read_from_process()
   let (err_reader, err_w) = @process.read_from_process()
   let out_box = Ref("")

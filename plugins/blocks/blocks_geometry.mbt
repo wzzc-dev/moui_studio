@@ -17,17 +17,17 @@
 /// `blocks_insert_mark` 与 update 臂都读它。
 pub(all) struct BlocksDragState {
   /// 源语句所在的语句列表路径（拖动前算定）
-  list_path : Array[Int]
+  list_path : Array[Int32]
   /// 源语句的**完整 IR 路径**（链下标在跨层移动时不够用：目标列表要用
   /// 路径寻址，而链下标随展开的装饰块变化）。
-  from_path : Array[Int]
-  from : Int
+  from_path : Array[Int32]
+  from : Int32
   /// 落槽位置。`to_list` 为空时是「同列表内重排」语义。
-  to : Int
+  to : Int32
   /// **落点所在的列表路径**（可能跨层：拖进 C 形块的洞里）。
   /// 空数组 = 顶层。与 `list_path` 不同即为跨层移动——
   /// 那走 `@blk.move_stmt_at`，同层仍走 `reorder_stack`。
-  to_list : Array[Int]
+  to_list : Array[Int32]
   /// 当前落点**是否被语言规则接受**（`@blk.drop_accepts_stmt`）。
   /// 拖拽过程中据此画拒绝反馈；松手时也据此决定要不要真的写 IR。
   valid : Bool
@@ -170,8 +170,8 @@ pub const BLOCKS_EDGE_ZONE : Double = 24.0
 pub fn blocks_c_arms(
   blocks : Array[@blk.BlockItem],
   rects : Array[@geometry.Rect],
-) -> Map[Int, Double] {
-  let arms : Map[Int, Double] = Map([])
+) -> Map[Int32, Double] {
+  let arms : Map[Int32, Double] = Map([])
   let mut i = 0
   while i < blocks.length() {
     let head = blocks[i]
@@ -271,7 +271,7 @@ pub fn blocks_visual_rects(
 /// 早先的实现在遇到**第一个同层行**时就返回 false——于是子栈里只有紧邻
 /// 头块的那一行被缩进，其余同层兄弟全都不缩（实测第一子行 w=416、
 /// 第二子行 w=426）。「同层」恰恰是「同一个体内的兄弟」，不是「不在体内」。
-pub fn blocks_in_c_body(blocks : Array[@blk.BlockItem], index : Int) -> Bool {
+pub fn blocks_in_c_body(blocks : Array[@blk.BlockItem], index : Int32) -> Bool {
   if index <= 0 || index >= blocks.length() {
     return false
   }
@@ -313,8 +313,8 @@ pub fn blocks_in_c_body(blocks : Array[@blk.BlockItem], index : Int) -> Bool {
 /// 的块」会错开一截。缺省（纯逻辑测试）按 `item.text` 估，几何自洽。
 pub fn blocks_item_rects(
   blocks : Array[@blk.BlockItem],
-  avail_width? : Double = block_width,
-  display_texts? : Array[String] = [],
+  avail_width~ : Double = block_width,
+  display_texts~ : Array[String] = [],
 ) -> Array[@geometry.Rect] {
   let rects : Array[@geometry.Rect] = []
   // 预算下限必须**不超过可用宽**：下限高于画布可用宽时块体本身就越出
@@ -368,9 +368,9 @@ pub fn blocks_hit_index(
   blocks : Array[@blk.BlockItem],
   x : Double,
   y : Double,
-  avail_width? : Double = block_width,
-  display_texts? : Array[String] = [],
-) -> Int {
+  avail_width~ : Double = block_width,
+  display_texts~ : Array[String] = [],
+) -> Int32 {
   let rects = blocks_visual_rects(
     blocks,
     blocks_item_rects(blocks, avail_width~, display_texts~),
@@ -390,8 +390,8 @@ pub fn blocks_hit_index(
 }
 
 ///|
-pub fn blocks_parent_of(path : Array[Int]) -> Array[Int] {
-  let parent : Array[Int] = []
+pub fn blocks_parent_of(path : Array[Int32]) -> Array[Int32] {
+  let parent : Array[Int32] = []
   let mut i = 0
   while i < path.length() - 1 {
     parent.push(path[i])
@@ -401,7 +401,7 @@ pub fn blocks_parent_of(path : Array[Int]) -> Array[Int] {
 }
 
 ///|
-pub fn blocks_same_path(a : Array[Int], b : Array[Int]) -> Bool {
+pub fn blocks_same_path(a : Array[Int32], b : Array[Int32]) -> Bool {
   if a.length() != b.length() {
     return false
   }
@@ -420,10 +420,10 @@ pub fn blocks_same_path(a : Array[Int], b : Array[Int]) -> Bool {
 /// 只在拖拽块的兄弟层内计数——跨层移动不在 v1 范围。
 pub fn blocks_drop_slot(
   blocks : Array[@blk.BlockItem],
-  list_path : Array[Int],
+  list_path : Array[Int32],
   pointer_y : Double,
   rects : Array[@geometry.Rect],
-) -> Int {
+) -> Int32 {
   let mut slot = 0
   let mut i = 0
   for item in blocks {
@@ -461,7 +461,7 @@ pub fn blocks_drop_mark_at(
 ) -> (Double, Double, Bool)? {
   // 顶层是兜底目标：指针不在任何行上时，落到脚本末尾（Scratch 里拖到
   // 最外层是最常见的动作）。
-  let top : Array[Int] = []
+  let top : Array[Int32] = []
   let to_list = blocks_drop_list_of(blocks, rects, pointer_y, top)
   let slot = blocks_drop_slot(blocks, to_list, pointer_y, rects)
   // 找目标列表里的第 slot 行：线画在它顶缘上方；列表为空（空容器）时
@@ -494,7 +494,7 @@ pub fn blocks_drop_mark_at(
   }
   // 空容器：锚在容器头底缘（与 `blocks_insert_mark` 同一处理）
   if seen == 0 && slot == 0 && to_list.length() > 0 {
-    let owner_path : Array[Int] = []
+    let owner_path : Array[Int32] = []
     let mut k = 0
     while k < to_list.length() - 1 {
       owner_path.push(to_list[k])
@@ -533,8 +533,8 @@ pub fn blocks_drop_list_of(
   blocks : Array[@blk.BlockItem],
   rects : Array[@geometry.Rect],
   pointer_y : Double,
-  fallback : Array[Int],
-) -> Array[Int] {
+  fallback : Array[Int32],
+) -> Array[Int32] {
   let mut i = 0
   for item in blocks {
     let r = rects[i]
@@ -548,7 +548,7 @@ pub fn blocks_drop_list_of(
       }
       if is_head && item.path.length() > 0 {
         // 体内路径：头语句路径 ++ [0]（If 的 then / 循环的循环体）
-        let body_list : Array[Int] = []
+        let body_list : Array[Int32] = []
         for part in item.path {
           body_list.push(part)
         }
@@ -566,7 +566,7 @@ pub fn blocks_drop_list_of(
   if pointer_y > 0.0 && blocks.length() > 0 {
     let last = rects[rects.length() - 1]
     if pointer_y > last.origin.y + last.size.height {
-      let top : Array[Int] = []
+      let top : Array[Int32] = []
       return top
     }
   }

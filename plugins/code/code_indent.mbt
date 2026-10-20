@@ -5,7 +5,7 @@
 pub fn dsl_indent_for_newline(
   language : @studio_lang.Language,
   source : String,
-  caret : Int,
+  caret : Int32,
 ) -> String {
   let chars = source.to_array()
   let pos = caret.clamp(min=0, max=chars.length())

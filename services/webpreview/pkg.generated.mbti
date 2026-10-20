@@ -24,10 +24,10 @@ pub async fn workspace_root_for(String) -> String
 // Types and methods
 pub(all) struct StaticServer {
   server : @http.Server
-  port : Int
+  port : Int32
   directory : @ref.Ref[String]
 }
-pub fn StaticServer::port(Self) -> Int
+pub fn StaticServer::port(Self) -> Int32
 pub fn StaticServer::set_directory(Self, String) -> Unit
 pub fn StaticServer::url(Self) -> String
 

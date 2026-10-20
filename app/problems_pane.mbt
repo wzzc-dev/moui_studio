@@ -15,7 +15,7 @@ pub(all) struct ProblemRow {
   handler_key : String
   label : String
   message : String
-  line : Int
+  line : Int32
   /// 工具链诊断的文件路径(程序内诊断为空串)
   file : String
 }
@@ -81,7 +81,7 @@ pub fn problem_rows(model : Model, t : @i18n.Translator) -> Array[ProblemRow] {
 
 ///|
 /// 偏移 → 1 起行号（越界归 1）。
-fn line_of_offset(source : String, offset : Int) -> Int {
+fn line_of_offset(source : String, offset : Int32) -> Int32 {
   let mut line = 1
   let mut index = 0
   for c in source {

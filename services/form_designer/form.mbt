@@ -82,12 +82,12 @@ pub(all) struct ParsedForm {
 
 ///|
 pub(all) struct ControlSpans {
-  x : Int
-  y : Int
-  width : Int
-  height : Int
+  x : Int32
+  y : Int32
+  width : Int32
+  height : Int32
   /// 字符串字面量的 span(**含引号**;无文本控件为 -1)
-  text : Int
+  text : Int32
 }
 
 ///|

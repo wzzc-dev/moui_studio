@@ -94,7 +94,7 @@ test "a call exposes one slot per argument" {
   assert_eq(segments.length(), 7)
   assert_eq(@blocks.segments_slot_count(segments), 0)
   // 路径依次是 [0] [1] [2]，且都能解析
-  let seen : Array[Int] = []
+  let seen : Array[Int32] = []
   for segment in segments {
     match segment.expr_path {
       Some(path) => seen.push(path[0])

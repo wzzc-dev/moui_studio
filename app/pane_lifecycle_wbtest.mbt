@@ -2,7 +2,7 @@
 /// 按链下标选中积木（测试助手）：生产代码用位置命中（`BlocksCanvasTap`）与
 /// 路径寻址（`select_block_by_path`），`Msg::SelectBlock` 已删除——它没有
 /// 生产者（由 `scripts/validate-dead-messages.mjs` 抓出）。测试改走同一寻址。
-fn select_block_index(model : Model, index : Int) -> Model {
+fn select_block_index(model : Model, index : Int32) -> Model {
   let chain = block_chain_of(model)
   if index < 0 || index >= chain.length() {
     return model

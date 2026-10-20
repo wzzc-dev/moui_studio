@@ -406,11 +406,11 @@ pub const CANVAS_MIN_WIDTH : Double = 120.0
 ///|
 /// 「自制积木」在分类轨里的下标（五个内置分类之后）。
 /// `category_at` 只认 0..4，所以这一格在插件侧单独判。
-pub const CATEGORY_INDEX_CUSTOM : Int = 5
+pub const CATEGORY_INDEX_CUSTOM : Int32 = 5
 
 ///|
 /// 用户自定义函数的条数（自制积木组的点亮判据）。
-pub fn custom_function_count(model : Model) -> Int {
+pub fn custom_function_count(model : Model) -> Int32 {
   model.program.functions.length()
 }
 
@@ -519,8 +519,8 @@ pub fn category_rail(
 /// - Ended = 松手（PaletteDropAt——update 换算后落槽或取消）；
 /// - Cancelled = 取消。
 fn palette_drag_event_msg(
-  category : Int,
-  index : Int,
+  category : Int32,
+  index : Int32,
   canvas_width : Double,
   event : @core.DragGestureEvent,
 ) -> Msg {
@@ -538,7 +538,7 @@ fn palette_drag_event_msg(
 /// 表达式（报告块）行的拖拽手势：Started 记拖拽源；移动/松手与语句
 /// 拖拽同一条视口上报路径（update 按 `expr_drag` 在场与否分流到洞命中）。
 fn palette_expr_drag_event_msg(
-  index : Int,
+  index : Int32,
   canvas_width : Double,
   event : @core.DragGestureEvent,
 ) -> Msg {
@@ -756,23 +756,23 @@ pub fn onstart_hat_row(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
 pub fn blocks_canvas(
   blocks : Array[@blocks.BlockItem],
   display_texts : Array[String],
-  selected : Int,
+  selected : Int32,
   spotlight : String,
   insert_mark : (Double, Double, Bool)?,
   width : Double,
   height : Double,
   semantics_label : String,
-  avail_width? : Double = 0.0,
-  y_offset? : Double = 0.0,
-  palette_drag? : Bool = false,
-  expr_drag? : Bool = false,
-  script_note? : String = "",
-  note_height? : Double = 0.0,
-  lead_texts? : Array[String] = [],
-  zoom? : Double = 1.0,
-  grid? : Bool = true,
-  origin? : ScriptOrigin = ScriptOrigin::{ x: 24.0, y: 24.0, },
-  hat_top? : Bool = false,
+  avail_width~ : Double = 0.0,
+  y_offset~ : Double = 0.0,
+  palette_drag~ : Bool = false,
+  expr_drag~ : Bool = false,
+  script_note~ : String = "",
+  note_height~ : Double = 0.0,
+  lead_texts~ : Array[String] = [],
+  zoom~ : Double = 1.0,
+  grid~ : Bool = true,
+  origin~ : ScriptOrigin = ScriptOrigin::{ x: 24.0, y: 24.0, },
+  hat_top~ : Bool = false,
 ) -> @moui.View[Msg] {
   // 文本度量：**布局期**量好、**绘制期**取用。
   //

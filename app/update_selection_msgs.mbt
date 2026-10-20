@@ -554,7 +554,7 @@ pub fn update_selection_msgs(
 
 ///|
 /// 窗体定时器间隔解析：纯数字秒（0..=3600）；其余回落 0（关闭）。
-fn parse_window_timer(raw : String) -> Int {
+fn parse_window_timer(raw : String) -> Int32 {
   if raw.length() == 0 || raw.length() > 4 {
     return 0
   }

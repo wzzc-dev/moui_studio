@@ -14,19 +14,19 @@ pub fn parse_generated_source(String, Array[@export.StmtLine]) -> ParsedHandlerS
 
 // Types and methods
 pub(all) struct HandlerBlock {
-  path : Array[Int]
+  path : Array[Int32]
   canonical : String
-  start_line : Int
-  end_line : Int
+  start_line : Int32
+  end_line : Int32
   editable : Bool
 }
 
 pub(all) struct ParsedHandlerSource {
   blocks : Array[HandlerBlock]
-  non_editable_lines : Array[Int]
+  non_editable_lines : Array[Int32]
 }
 pub fn ParsedHandlerSource::blocks(Self) -> Array[HandlerBlock]
-pub fn ParsedHandlerSource::non_editable_lines(Self) -> Array[Int]
+pub fn ParsedHandlerSource::non_editable_lines(Self) -> Array[Int32]
 
 // Type aliases
 

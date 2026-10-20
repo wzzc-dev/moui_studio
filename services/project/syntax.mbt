@@ -33,7 +33,7 @@ fn strip_comment(text : String) -> String {
 
 ///|
 /// 找首个 `//` 的下标(无则 -1)。
-fn index_of_double_slash(text : String) -> Int {
+fn index_of_double_slash(text : String) -> Int32 {
   let mut i = 0
   let mut prev = ' '
   let mut found = -1
@@ -49,7 +49,7 @@ fn index_of_double_slash(text : String) -> Int {
 
 ///|
 /// 字符下标查找(从 from 起,首个 target;无则 -1)。
-fn index_of_char(text : String, target : Char, from : Int) -> Int {
+fn index_of_char(text : String, target : Char, from : Int32) -> Int32 {
   let chars = chars_of(text)
   let mut i = from
   let n = chars.length()
@@ -94,7 +94,7 @@ fn is_alias_char(c : Char) -> Bool {
 /// 从 `open`(开引号下标)读一个双引号字符串,返回 (内容, 结束引号下标)。
 /// 支持 `\"` 转义(转义字符原样保留,清单值里不出现需要解转义的序列)。
 /// 未闭合返回 None。
-fn read_quoted(chars : Array[Char], open : Int) -> (String, Int)? {
+fn read_quoted(chars : Array[Char], open : Int32) -> (String, Int32)? {
   let n = chars.length()
   let mut out = ""
   let mut i = open + 1
@@ -142,7 +142,7 @@ fn split_path_version(raw : String) -> (String, String) {
 fn parse_import_line(
   text : String,
   file : String,
-  line_no : Int,
+  line_no : Int32,
 ) -> Result[Array[ImportEntry], String] {
   let chars = chars_of(text)
   let n = chars.length()
@@ -242,7 +242,7 @@ fn parse_key_value(text : String) -> (String, String)? {
 
 ///|
 /// 括号平衡增量(options(...) 的跨行跳过用):计数括号差。
-fn paren_delta(text : String) -> Int {
+fn paren_delta(text : String) -> Int32 {
   let mut depth = 0
   for c in text {
     if c == '(' {

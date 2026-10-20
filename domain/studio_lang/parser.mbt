@@ -6,13 +6,13 @@
 /// 语句与其首 token 行号：运行错误能报行号；从 JSON 加载的程序行号为 0。
 pub(all) struct TracedStmt {
   stmt : Stmt
-  line : Int
+  line : Int32
 }
 
 ///|
 priv struct Parser {
   tokens : Array[Token]
-  mut pos : Int
+  mut pos : Int32
   keywords : Keywords
 }
 

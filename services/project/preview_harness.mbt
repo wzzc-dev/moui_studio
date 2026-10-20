@@ -12,7 +12,7 @@
 
 ///|
 /// harness 协议版本(与 Studio 解析端锁定)。
-pub const PREVIEW_HARNESS_VERSION : Int = 1
+pub const PREVIEW_HARNESS_VERSION : Int32 = 1
 
 ///|
 /// stdout 哨兵行:moon run 的编译日志之后,以此行开始才是有效载荷。

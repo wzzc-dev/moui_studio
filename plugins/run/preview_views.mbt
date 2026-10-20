@@ -11,9 +11,9 @@
 /// 外层滚动。点选 = 命中取最深(最后一个匹配),下标交回调。
 pub fn[Msg] preview_replay_canvas(
   frame : PreviewFrame,
-  selected_index : Int?,
+  selected_index : Int32?,
   pane_width : Double,
-  on_select~ : (Int) -> Msg,
+  on_select~ : (Int32) -> Msg,
 ) -> @moui.View[Msg] {
   let canvas_width = frame.width.max(1.0)
   let canvas_height = frame.height.max(1.0)
@@ -74,7 +74,7 @@ pub fn[Msg] preview_replay_canvas(
 /// 未选中时显示占位文案;编辑与提交经回调注入。
 pub fn[Msg] semantic_property_strip(
   frame : PreviewFrame?,
-  selected_index : Int?,
+  selected_index : Int32?,
   draft : String,
   t : @i18n.Translator,
   height : Double,

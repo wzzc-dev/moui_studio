@@ -1701,10 +1701,10 @@ fn assert_scopes_balanced(
   label : String,
 ) -> Unit raise {
   // 栈元素 = (种类, 命令下标)，便于失配时报出泄漏源头。
-  let stack : Array[(String, Int)] = []
+  let stack : Array[(String, Int32)] = []
   let problems = StringBuilder()
-  let push = fn(kind : String, index : Int) { stack.push((kind, index)) }
-  let pop = fn(kind : String, index : Int) {
+  let push = fn(kind : String, index : Int32) { stack.push((kind, index)) }
+  let pop = fn(kind : String, index : Int32) {
     match stack.pop() {
       Some(top) =>
         if top.0 != kind {

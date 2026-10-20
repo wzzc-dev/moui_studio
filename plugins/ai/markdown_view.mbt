@@ -14,7 +14,7 @@ pub fn[Msg] markdown_blocks_view(
   blocks : Array[@markdown.MarkdownBlock],
   width : Double,
   t : @i18n.Translator,
-  on_copy_code? : ((Int) -> Msg)? = None,
+  on_copy_code~ : ((Int32) -> Msg)? = None,
 ) -> @moui.View[Msg] {
   let rows : Array[@moui.View[Msg]] = []
   // 代码块序号（复制钮按块下标回调；markdown 里代码块的顺序即下标）

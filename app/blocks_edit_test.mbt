@@ -758,7 +758,7 @@ test "an empty container still shows an insert mark" {
     rounds = rounds + 1
   }
   // 空的 then 体路径 = if_path ++ [0]
-  let empty_body : Array[Int] = []
+  let empty_body : Array[Int32] = []
   for part in if_path {
     empty_body.push(part)
   }

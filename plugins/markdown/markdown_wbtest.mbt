@@ -9,7 +9,7 @@ fn[Msg] draw_view(
   width : Double,
   height : Double,
 ) -> Array[@core.DrawCommand] {
-  let program : @core.Program[Int, Msg] = @moui.Program::new_with_environment(
+  let program : @core.Program[Int32, Msg] = @moui.Program::new_with_environment(
     init=() => (0, @moui.Effect::none()),
     update=(current, _) => (current, @moui.Effect::none()),
     view=(_, _) => view,
@@ -196,7 +196,7 @@ test "无命中或空替换:不产生事务" {
 test "面板转发:查找栏/大纲/文档信息渲染中文文案" {
   let theme = @views.theme()
   let options = @mdchrome.MarkdownFindOptions::default()
-  let find_view : @moui.View[Int] = markdown_find_bar_view(
+  let find_view : @moui.View[Int32] = markdown_find_bar_view(
     theme~,
     query="cat",
     replace_text="fox",
@@ -232,7 +232,7 @@ test "面板转发:查找栏/大纲/文档信息渲染中文文案" {
   let snapshot = @richtext.MarkdownEditorSnapshot::parse(
     "# 标题一\n\n## 标题二",
   )
-  let outline_view : @moui.View[Int] = markdown_outline_panel_view(
+  let outline_view : @moui.View[Int32] = markdown_outline_panel_view(
     theme~,
     outline=snapshot.outline,
     folded_starts=[],
@@ -242,7 +242,7 @@ test "面板转发:查找栏/大纲/文档信息渲染中文文案" {
     height=480.0,
   )
   let outline_commands = draw_view(outline_view, 240.0, 480.0)
-  let info_view : @moui.View[Int] = markdown_document_info_panel_view(
+  let info_view : @moui.View[Int32] = markdown_document_info_panel_view(
     theme~,
     info=markdown_session_document_info(
       session=@richtext.MarkdownDocumentSession::new(snapshot.source),

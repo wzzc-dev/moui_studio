@@ -47,39 +47,39 @@ pub type PendingProposal = @ai.PendingProposal
 
 ///|
 /// 撤销深度上限（快照式 undo 栈，超过丢弃最旧条目）。
-pub const UNDO_DEPTH : Int = 50
+pub const UNDO_DEPTH : Int32 = 50
 
 ///|
 /// 最近修改保留条数（设计稿列表可见 4 条；多留几条供滚动）。
-pub const RECENT_LIMIT : Int = 24
+pub const RECENT_LIMIT : Int32 = 24
 
 ///|
 /// 运行审计保留条数（会话内时间线，超出丢最旧）。
-pub const AUDIT_LIMIT : Int = 200
+pub const AUDIT_LIMIT : Int32 = 200
 
 ///|
 /// Console 日志保留条数。
-pub const LOG_LIMIT : Int = 400
+pub const LOG_LIMIT : Int32 = 400
 
 ///|
 /// 同屏 toast 上限（旧的在渲染层取最近 N 条）。
-pub const TOAST_LIMIT : Int = 3
+pub const TOAST_LIMIT : Int32 = 3
 
 ///|
 /// toast 自动消失秒数（ToastTick 每秒老化一次）。
-pub const TOAST_SECONDS : Int = 4
+pub const TOAST_SECONDS : Int32 = 4
 
 ///|
 /// 一条 toast：文案 + 是否警告色 + 已存活秒数。
 pub(all) struct ToastEntry {
   text : String
   warning : Bool
-  age : Int
+  age : Int32
 }
 
 ///|
 /// AI 会话卡保留条数。
-pub const AI_CARD_LIMIT : Int = 24
+pub const AI_CARD_LIMIT : Int32 = 24
 
 ///|
 /// 积木画布单块行高。**引用几何层的同一常量**（`@blk.BLOCKS_ROW_HEIGHT`）
@@ -115,7 +115,7 @@ pub type BlocksDragState = @blk.BlocksDragState
 /// 拖拽种类：移动（带按下点相对控件原点的偏移，拖拽跟随不跳变）/
 /// 缩放（从该角拖拽，对角固定）。
 pub(all) enum DragKind {
-  Move(Int, Int)
+  Move(Int32, Int32)
   Resize(@ir.DragCorner)
 }
 
@@ -339,7 +339,7 @@ pub(all) enum AuditKind {
 pub(all) struct AuditEntry {
   kind : AuditKind
   // 会话内递增序号（时间戳在视图层生成，模型不读时钟）
-  seq : Int
+  seq : Int32
   text : String
   // 副作用卡的补充描述（将写什么、目标当前几行）
   detail : String
@@ -363,7 +363,7 @@ pub(all) enum LogLevel {
 pub(all) struct LogLine {
   level : LogLevel
   // 会话内递增序号：稳定 key + 追加顺序
-  seq : Int
+  seq : Int32
   text : String
 }
 
@@ -380,7 +380,7 @@ pub(all) struct WatchRow {
 /// （-1 = 当前子程序没有该分类的块，视图层灰显）。
 pub(all) struct BlockCategoryEntry {
   category : @blocks.BlockCategory
-  first_index : Int
+  first_index : Int32
 }
 
 ///|
@@ -398,7 +398,7 @@ pub(all) struct DataFileEntry {
 ///|
 /// 代码编辑器的一行：行号 + 高亮 token 序列。
 pub(all) struct CodeLine {
-  number : Int
+  number : Int32
   tokens : Array[CodeToken]
 }
 
@@ -424,7 +424,7 @@ pub(all) struct CodeToken {
 /// 带源内偏移的高亮 token：`start` 是全文绝对偏移（编辑器 run 的
 /// `source_range` 需要全文坐标，行内坐标会在换行处错位）。
 pub(all) struct RangedToken {
-  start : Int
+  start : Int32
   text : String
   kind : CodeTokenKind
 }
@@ -434,11 +434,11 @@ pub(all) struct RangedToken {
 /// 由「顺序渲染每条语句并取行区间」推导——不把行号写进 IR，
 /// 映射是渲染的副产品（IR 仍是唯一事实来源）。
 pub(all) struct IrLineSpan {
-  path : Array[Int]
+  path : Array[Int32]
   kind : @blocks.BlockKind
-  depth : Int
-  first_line : Int
-  last_line : Int
+  depth : Int32
+  first_line : Int32
+  last_line : Int32
 }
 
 ///|
@@ -557,12 +557,12 @@ pub(all) struct Model {
   export_available : Bool
   // 导出 bundle 剩余未落盘的文件数（>0 = 导出进行中；归零时才报「已导出」，
   // 否则 25 个文件各回一条完成消息，会把过程误报成 25 次成功）。
-  export_pending : Int
+  export_pending : Int32
   explanation : String
   // AI 请求进行中（真实 provider 生成/讲解）：面板显示加载态
   ai_busy : Bool
   // 积木视图编辑态：选中块（block_chain 下标，-1 = 无）与语句草稿
-  selected_block : Int
+  selected_block : Int32
   block_draft : String
   // 积木域 UI 状态切片（S5e）：语句面板开合/分类、画布滚动、值编辑草稿、
   // 拖放骨架、右键菜单锚点，见 plugins/blocks 的 BlocksUiState。
@@ -572,22 +572,22 @@ pub(all) struct Model {
   // `询问` 闸门的回答草稿（用户正在输入的内容）。
   gate_answer_draft : String
   // 悬停中的 IR 路径（None = 没有悬停）。绘制时与 `ir_highlight` 取并集。
-  hover_path : Array[Int]?
+  hover_path : Array[Int32]?
   // 设计画布拖拽态：按下命中控件时建立，松开清除
   drag : DragState?
   // 运行期活状态：跨事件累积的变量值与控件文本（易语言式全局量）
   runtime_values : Map[String, @studio_lang.Value]
   runtime_texts : Map[String, String]
   runtime_rows : Map[String, Array[String]]
-  runtime_selections : Map[String, Int]
+  runtime_selections : Map[String, Int32]
   // 解释轨随机种子：每次事件推进一格后交给新的 RunState。
   // **必须跨事件保留**——每次事件都从同一个种子起算的话，同一个按钮点
   // 十次会得到十个相同的「随机」结果（点名册每次都是「王五」），用户读到
   // 的现象就是「运行之后点按钮没反应」。编译轨的种子在 Runtime.rng 里。
-  runtime_seed : Int
+  runtime_seed : Int32
   // 虚拟时钟（切片 G）：只在运行期间步进（TimerTick 每秒一次），
   // 累计到窗体 timer_interval 秒即触发一次 @定时器 处理器
-  timer_elapsed : Int
+  timer_elapsed : Int32
   // 撤销/重做：变更前快照栈（深度 UNDO_DEPTH）与重做栈
   undo_stack : Array[UndoEntry]
   redo_stack : Array[UndoEntry]
@@ -626,7 +626,7 @@ pub(all) struct Model {
   // 工程记录恢复中（G2 W3）：>0 = 还有 N 个 boot 重扫未回来（静默合并）;
   // 0 = 常规导入语义（带通知与预览 harness）。restore_active_root 是本次
   // 恢复要重新选中的工程根（全部重扫回来时落位）。
-  projects_restore_pending : Int
+  projects_restore_pending : Int32
   restore_active_root : String
   // G7.3 插件管理:禁用清单（静态装配的「启用/禁用」诚实形态——禁用 =
   // 组合根装配时过滤贡献项入口,不是运行时卸载）。id: ai / terminal / markdown
@@ -638,7 +638,7 @@ pub(all) struct Model {
   // G7.4 外观:true = 暗色(默认);settings 持久化 "1"/"0"
   ui_dark : Bool
   // G7.4 解释轨断点:当前 handler 的源码行号集合;RunStart/换 handler 清空
-  breakpoints : Array[Int]
+  breakpoints : Array[Int32]
   // G4 全文搜索:命中集 + 进行中标记（查询草稿已并入 project_state.search_query，
   // 运行与回执在服务层；结果面板挂 BtSearch 页签）。
   search_hits : Array[SearchHit]
@@ -653,11 +653,11 @@ pub(all) struct Model {
   // 预览帧(M1-2):FramePreview 构建回执解析出的可重放帧
   preview_frame : PreviewFrame?
   // 语义点选(M1-3):选中的语义节点下标(帧快照内稳定)+ label 编辑草稿
-  selected_semantic : Int?
+  selected_semantic : Int32?
   semantic_draft : String
   // 表单设计器会话(M4-2):form.mbt 加载/编辑/保存
   form_designer : FormDesignerSession?
-  selected_form_control : Int?
+  selected_form_control : Int32?
   // 预览模式条（画布快览 / web 实时）+ 编译输出展开态已并入运行域 UI 切片
   //（@run.RunUiState，S5i）；web 预览 URL/打开标记由服务层驱动，仍住壳。
   run_ui : @run.RunUiState
@@ -672,13 +672,13 @@ pub(all) struct Model {
   bottom_tab : BottomTab
   // 运行审计时间线（会话内）
   audit_entries : Array[AuditEntry]
-  audit_seq : Int
+  audit_seq : Int32
   // Console 日志（会话内）
   log_lines : Array[LogLine]
-  log_seq : Int
+  log_seq : Int32
   // 最近修改（会话内，最多保留 RECENT_LIMIT 条）
   recent_changes : Array[RecentChange]
-  recent_seq : Int
+  recent_seq : Int32
   // （积木上下文菜单/拖放骨架/画布滚动均已并入 blocks_ui 切片，见上）
   // 流式生成进行中（M4）：StreamChunk 分片只在为真时追加（停止即截断）
   ai_streaming : Bool
@@ -693,13 +693,13 @@ pub(all) struct Model {
   /// 终端屏滚动（M8 用户反馈②）：受控 offset（跟随用户手动滚动）+
   /// 请求序号（新输出时自增 → 强制滚到底部，scroll 容器 clamp）
   mut terminal_scroll : @geometry.Point
-  mut terminal_scroll_seq : Int
+  mut terminal_scroll_seq : Int32
   // toast：文本 + 是否警告（会话内，最多 TOAST_LIMIT 条）
   toasts : Array[ToastEntry]
   // （积木分类条选中分类 / 语句插入面板开合已并入 blocks_ui 切片，见上）
   // （结构树「新建」菜单分组已并入 project_state.tree_create_group）
   // IR↔代码行映射高亮：当前高亮的语句路径（空 = 无）
-  ir_highlight : Array[Int]
+  ir_highlight : Array[Int32]
 }
 
 ///|
@@ -739,11 +739,11 @@ pub(all) enum Msg {
   PasteControl
   BringToFront(String)
   SendToBack(String)
-  NudgeControl(String, Int, Int)
+  NudgeControl(String, Int32, Int32)
   ToggleMultiSelectMode
   ToggleUiDark
   UiDarkLoaded(@services.ServiceTaskResult[String?])
-  ToggleBreakpoint(Int)
+  ToggleBreakpoint(Int32)
   RunToBreakpoint
   // 全文搜索查询草稿（SearchQueryDraft）已并入 project_state 切片；
   // 运行 / 回执 / 命中跳转（SearchRun/SearchFinished/SearchHitClicked）住壳。
@@ -822,15 +822,15 @@ pub(all) enum Msg {
   DeleteBlock
   /// 键盘在积木链里上下移动选中（Scratch/IDE 口径：↑/↓ 走上/下一块）。
   /// 参数是步长（+1 / -1）。没有选中时从链首开始（+1）或链尾（-1）。
-  SelectBlockStep(Int)
+  SelectBlockStep(Int32)
   // 打开/关闭语句插入面板（ToggleStatementPalette）已并入 blocks_ui 切片
   // （BlocksUiOp）；面板开合/分类是纯 UI，插入语句（InsertStatement）仍住壳。
   /// 插入一条语句骨架：参数是分类下标与分类内模板下标。
-  InsertStatement(Int, Int)
+  InsertStatement(Int32, Int32)
   /// 插入一条**自定义函数调用**（自制积木组）：参数是 `program.functions`
   /// 的下标。与 `InsertStatement` 共用 `insert_statement_at` 的校验与手术，
   /// 只是骨架文本由「模板表」换成「函数名 + 占位实参」。
-  InsertCustomFunction(Int)
+  InsertCustomFunction(Int32)
   /// 从调色板**开始拖**一条骨架（Scratch 的字面手势）。
   // 调色板拖放的「开始拖骨架」（PaletteDragStart / PaletteExprDragStart）
   // 已并入 blocks_ui 切片的 BlocksUiOp；落拖的 Drop* 仍住壳（提交 IR）。
@@ -880,7 +880,7 @@ pub(all) enum Msg {
   /// 参数：语句链下标、该值的表达式路径、值类型提示（数字/文本/布尔）。
   /// 与 `EditBlock`（改整行草稿）分开：值编辑只动那一个叶子，
   /// 不重新解析整行——整行草稿会把用户没碰的部分也重写一遍。
-  EditBlockValue(Int, Array[Int])
+  EditBlockValue(Int32, Array[Int32])
   /// `询问` 闸门的**回答输入**（Scratch 的「询问并等待」要能打字）。
   ///
   /// 此前闸门卡片只给「确认/拒绝」两个按钮，`AnswerGate(Bool)` 也只带布尔
@@ -899,13 +899,13 @@ pub(all) enum Msg {
   /// 为什么由画布解析而不是 update：洞的位置 = 逐段文本宽度累加，需要
   /// `TextSystem`；它只在**布局上下文**里，update 层拿不到。把解析放在
   /// 画布（与绘制同一份度量）才保证「画在哪就点在哪」。
-  ExpressionDrop(Int, Array[Int])
+  ExpressionDrop(Int32, Array[Int32])
   /// 从调色板**拖一个报告块（表达式）进洞**并落下。
   ///
   /// 参数：表达式模板下标、目标语句链下标、目标表达式路径。
   /// 与语句拖放分开：表达式**不能单独成为一条语句**，它只能替换某个
   /// 子表达式——所以落点语义是「换掉那个洞里的东西」而不是「插一行」。
-  DropExpression(Int, Int, Array[Int])
+  DropExpression(Int32, Int32, Array[Int32])
   /// 画布上松手时**完成调色板拖放**：按指针算落点容器与位置。
   PaletteDrop(Double, Double, Double)
   /// 从调色板**拖一条骨架到画布**并落下（Scratch 的字面手势）。
@@ -913,7 +913,7 @@ pub(all) enum Msg {
   /// 参数：分类下标、模板下标、落点列表路径、落点位置。与
   /// `InsertStatement` 共用 `insert_statement_at` 的校验与手术——
   /// 拖放只是「落点由指针决定」的插入，不是第二套插入语义。
-  DropStatement(Int, Int, Array[Int], Int)
+  DropStatement(Int32, Int32, Array[Int32], Int32)
   GenerateProposal
   AcceptProposal
   RejectProposal
@@ -927,7 +927,7 @@ pub(all) enum Msg {
   CompileRunFailed(String)
   /// 停止真编译：清报告与忙态，不切轨、不自动回退解释轨。
   CompileStopped
-  CompileJump(Int)
+  CompileJump(Int32)
   // 编译输出展开开关已迁 RunUiOp(ToggleCompileOutput)（S5i 运行域切片）。
   /// worker 推来的一条编译进度（步开始/步结束）
   CompileProgress(@export.CompileProgress)
@@ -958,7 +958,7 @@ pub(all) enum Msg {
   ControlInputDone(String)
   /// 在积木上右键（Scratch/IDE 口径的上下文菜单）。参数是点中的**链下标**
   /// 与画布内坐标（菜单锚点）。下标 -1 = 点空白处（只显示画布级动作）。
-  BlocksContextMenu(Int, Double, Double)
+  BlocksContextMenu(Int32, Double, Double)
   // 关闭积木上下文菜单（BlocksContextMenuClose）已并入 blocks_ui 切片。
   /// 菜单动作：**先关菜单再执行动作**，一条消息搞定两件事。
   ///
@@ -968,7 +968,7 @@ pub(all) enum Msg {
   BlocksMenuAction(Msg)
   RunStep
   RunResume
-  AuditJump(Int)
+  AuditJump(Int32)
   /// 积木画布的三个指针消息都带 `avail_width`（画布可用宽）。
   ///
   /// **为什么必须带**：命中与绘制必须用**同一组矩形**。绘制侧
@@ -983,13 +983,13 @@ pub(all) enum Msg {
   RunToggle(String, Bool)
   AnswerGate(Bool)
   ControlClicked(String)
-  ControlPicked(String, Int)
+  ControlPicked(String, Int32)
   ControlChanged(String, String)
   /// 新建工程（folder projects）：参数 = 模板下标（-1 = 空白程序）。
   /// 链条：NewProjectRequested（脏程序确认后选目录）→ NewProjectRootPicked
   /// （目录确定：算骨架文件集）→ NewProjectQueueResult × N（写盘队列游标推进；
   /// 中断翻到删除相回滚）→ 完成态注册工程 + 装载模板程序 + IR 快照落盘。
-  NewProjectRequested(Int)
+  NewProjectRequested(Int32)
   NewProjectRootPicked(@services.ServiceTaskResult[String])
   NewProjectQueueResult(@services.ServiceTaskResult[Unit])
   /// 工程程序快照回执（SetActiveProject 恢复流）：读 `<root>/.studio/program.json`。
@@ -1023,8 +1023,8 @@ pub(all) enum Msg {
   ProjectsStoreSaved(@services.ServiceTaskResult[Unit])
   // 资源管理器导航(纯状态):选中工程 / 折叠目录 / 选中文件 / 会话内移除工程
   SelectProjectFile(String)
-  SelectProjectFileAt(Int, String) // 单树多根:先切活动工程再开文件
-  RemoveProject(Int)
+  SelectProjectFileAt(Int32, String) // 单树多根:先切活动工程再开文件
+  RemoveProject(Int32)
   // VS Code 资源管理器壳(纯状态):悬停行 / 分区折叠 / 标题栏溢出菜单 /
   // inline 新建的目标目录。
   /// 标题栏 `⋯` 溢出菜单的开合（VS Code 面板头右端的省略号）。
@@ -1049,17 +1049,17 @@ pub(all) enum Msg {
   // 预览 harness 落盘回执(成功推进游标;全部写完 = 预览就绪)
   PreviewFileWritten(@services.ServiceTaskResult[Unit])
   // 语义点选 + 字面量属性补丁(M1-3)
-  SelectSemanticNode(Int)
+  SelectSemanticNode(Int32)
   SemanticLabelInput(String)
   SemanticLabelCommit
   SemanticPatchFinished(Result[String, String])
   // 表单设计器(M4-2):打开(读 form.mbt)/加载回执/拖拽结束(span 补丁+写回)
-  SelectFormControl(Int)
+  SelectFormControl(Int32)
   SetPreviewDesignOpen(Bool)
   FormDesignOpen
   FormDesignLoaded(@services.ServiceTaskResult[String])
-  FormDesignDragEnd(Int, Double, Double)
-  FormDesignResizeEnd(Int, Double, Double)
+  FormDesignDragEnd(Int32, Double, Double)
+  FormDesignResizeEnd(Int32, Double, Double)
   FormDesignSaved(@services.ServiceTaskResult[Unit])
   // 外部改动重载（M8）：手动刷新入口读 form.mbt → 比对 → 提示/重载
   FormDesignExternalCheck
@@ -1091,7 +1091,7 @@ pub(all) enum Msg {
   AiUiOp(@ai.AiUiMsg)
   /// 终端（M5 插件）：PTY 输出增量 / 派生回执 / 关闭会话
   TerminalOutput(String)
-  TerminalSpawned(Int?)
+  TerminalSpawned(Int32?)
   TerminalClose
   /// 终端直连键入（M8 交互式：键盘/文本输入经 keyboard_input 透传给 PTY；
   /// 行输入协议 TerminalInput/TerminalType 已于 2026-10-11 随 M9 收尾删除）
@@ -1111,22 +1111,22 @@ pub(all) enum Msg {
   /// 时间线 HH:MM、相对时间、「已工作 N 秒」随之走动。
   ClockUpdated(StudioClock)
   /// 复制时间线里的一条消息（参数 = 卡 seq）：走系统剪贴板。
-  CopyAiMessage(Int)
+  CopyAiMessage(Int32)
   /// 复制一条消息里的**第 index 个代码块**（块级复制）。
   ///
   /// 为什么不复用 `CopyAiMessage`：一次回复可能产多块代码，整卡复制会把
   /// 叙述文字一起拷走——用户要的是「这一块代码」。参数 = (卡 seq, 块下标)。
-  CopyAiCodeBlock(Int, Int)
+  CopyAiCodeBlock(Int32, Int32)
   /// 把一条用户提问回填进 composer 草稿（对白转录气泡的「编辑」）。
-  EditUserPrompt(Int)
+  EditUserPrompt(Int32)
   /// 重发一轮：把该条 AI 消息**之前的用户提问**回填草稿并立即重跑
   /// （ComposerRun 语义，不是第二条执行通道）。
-  RetryUserPrompt(Int)
+  RetryUserPrompt(Int32)
   // 时间线受控滚动 / 回到底部、会话列表搜索/悬停/改名草稿 已迁 AiUiOp
   //（S4d）；改名 Start/Commit/Dismiss 因读会话或触发存储，仍住壳。
   // === 左栏会话列表（M4）===
   /// 行内改名：进入编辑态（参数 = 会话下标）
-  AiSessionRenameStart(Int)
+  AiSessionRenameStart(Int32)
   /// 行内改名提交（Enter）
   AiSessionRenameCommit
   // 行内改名放弃（旧 AiSessionRenameDismiss）已随 S4d 迁 AiUiOp(ClearRename)。
@@ -1169,11 +1169,11 @@ pub(all) enum Msg {
   // 终端屏手动滚动旧消息 TerminalScrolled(Point) 无 update 承接（scroll_view
   // 自管手动位置，受控 offset 只由 PTY 输出的自动跟随驱动），S5i 作为死消息删除。
   // 问题面板：跳到某子程序草稿的某行（选中 handler + 光标 + 滚动对齐）
-  GotoProblem(String, Int)
+  GotoProblem(String, Int32)
   ToggleBottom
   // 审计：点击条目（跳到对应积木）/ 处理副作用卡（settled 标记）
-  AuditOpen(Int)
-  AuditSettle(Int, String)
+  AuditOpen(Int32)
+  AuditSettle(Int32, String)
   AuditSettleAll(String)
   // 最近修改 / Console 清空
   ClearConsole
@@ -1190,19 +1190,19 @@ pub(all) enum Msg {
   AlignControlCenter(String)
   AlignControlRight(String)
   // 设置 / AI 历史对话框开合已迁 AiUiOp（S4d 状态切片）
-  DismissToast(Int)
+  DismissToast(Int32)
   // 命令面板 Studio 命令（比 10 个文本命令更宽的自有表）
   StudioCommandRun(String)
   // 积木域 UI 子消息委托（S5e 状态切片，Feature::scope）：语句面板开合/分类、
   // 画布滚动、值编辑草稿、拖放骨架、右键菜单等纯 UI 态。
   BlocksUiOp(@blk.BlocksUiMsg)
   // IR↔代码行映射高亮：按语句路径
-  HighlightIrPath(Array[Int])
+  HighlightIrPath(Array[Int32])
   // 悬停联动（设计稿 `irHl`）：指针进/出代码行或积木块时高亮对应路径。
   // 与 `HighlightIrPath` 分开是因为语义不同——悬停是**瞬态**的（离开即
   // 撤销），点击是**驻留**的（再点一次才取消）。两者共用一个高亮槽位，
   // 悬停不写槽位，只在 `hover_path` 里记临时值。
-  HoverIrPath(Array[Int]?)
+  HoverIrPath(Array[Int32]?)
   // 代码草稿回归 IR 渲染（丢弃手改）——高亮区永远来自 IR 投影，
   // 草稿与 IR 分叉时由用户显式决定放弃哪边
   RestoreCodeDraft
@@ -1251,12 +1251,12 @@ pub const PLUGINS_SETTINGS_KEY : String = "studio.plugins"
 /// provider_config 非空时预填面板（key 仍只进会话内存）。
 pub fn initial_model(
   provider_config? : ProviderConfig,
-  compile_track_available? : Bool = false,
-  export_available? : Bool = false,
-  immersive? : Bool = false,
-  pty_available? : Bool = false,
-  profile? : StudioProfile = Full,
-  ai_available? : Bool = true,
+  compile_track_available~ : Bool = false,
+  export_available~ : Bool = false,
+  immersive~ : Bool = false,
+  pty_available~ : Bool = false,
+  profile~ : StudioProfile = Full,
+  ai_available~ : Bool = true,
 ) -> Model {
   let program = @proposals.sample_hello()
   let config = match provider_config {

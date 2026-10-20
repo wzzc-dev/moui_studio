@@ -64,7 +64,7 @@ pub fn form_design_load_task(
 /// dx/dy 是拖拽位移(设计坐标;由画布手势按 fit 缩放换算)。
 pub fn form_design_apply_move(
   session : FormDesignerSession,
-  index : Int,
+  index : Int32,
   dx : Double,
   dy : Double,
 ) -> (FormDesignerSession, Bool) {
@@ -103,7 +103,7 @@ pub fn form_design_apply_move(
 /// 尺寸缩放:同 move,补 width/height 两个字段。
 pub fn form_design_apply_resize(
   session : FormDesignerSession,
-  index : Int,
+  index : Int32,
   width : Double,
   height : Double,
 ) -> (FormDesignerSession, Bool) {
@@ -166,7 +166,7 @@ pub fn form_design_write_effect(
 /// Msg；几何命中 / 手柄 / 自绘视图已出壳 plugins/design。
 pub fn form_design_canvas(
   session : FormDesignerSession,
-  selected : Int?,
+  selected : Int32?,
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
@@ -187,7 +187,7 @@ pub fn form_design_canvas(
 /// 供 wbtest 与壳组装复用；纯判定在 plugins/design。
 pub fn form_design_drag_commit(
   rects : Array[@geometry.Rect],
-  selected : Int?,
+  selected : Int32?,
   start_x : Double,
   start_y : Double,
   tx : Double,

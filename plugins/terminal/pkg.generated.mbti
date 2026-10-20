@@ -18,16 +18,16 @@ pub struct TerminalKeyboardNode {
 
 pub(all) struct TerminalState {
   available : Bool
-  mut handle : Int?
+  mut handle : Int32?
   screen : Array[String]
   mut input_draft : String
-  mut col : Int
-  cols : Int
-  rows : Int
+  mut col : Int32
+  cols : Int32
+  rows : Int32
 }
 pub fn TerminalState::backspace(Self) -> Unit
 pub fn TerminalState::feed_output(Self, String) -> Unit
-pub fn TerminalState::new(available? : Bool, cols? : Int, rows? : Int) -> Self
+pub fn TerminalState::new(available? : Bool, cols? : Int32, rows? : Int32) -> Self
 pub fn TerminalState::running(Self) -> Bool
 pub fn TerminalState::session_closed(Self) -> Unit
 pub fn TerminalState::take_input(Self) -> String?

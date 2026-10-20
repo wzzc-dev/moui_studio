@@ -36,7 +36,7 @@ pub(all) struct ProjectSource {
 ///|
 /// 扫描进度读数（scanned_dirs = 全程累计目录数;current = 正在走的路径）。
 pub(all) struct WalkProgress {
-  scanned_dirs : Int
+  scanned_dirs : Int32
   current : String
 }
 
@@ -68,22 +68,22 @@ pub(all) struct WorkspaceScan {
 
 ///|
 /// 单次扫描的上限守卫:每成员目录数。
-const WALK_MAX_DIRS : Int = 2000
+const WALK_MAX_DIRS : Int32 = 2000
 
 ///|
-const WALK_MAX_FILES_PER_PACKAGE : Int = 200
+const WALK_MAX_FILES_PER_PACKAGE : Int32 = 200
 
 ///|
 /// 工作区级上限:成员数(防恶意/手滑清单把扫描变成无界)。
-const SCAN_MAX_MEMBERS : Int = 200
+const SCAN_MAX_MEMBERS : Int32 = 200
 
 ///|
 /// 工作区级上限:全程累计目录数(本仓库根实测 ~4.7k,留一倍余量)。
-const SCAN_MAX_TOTAL_DIRS : Int = 20000
+const SCAN_MAX_TOTAL_DIRS : Int32 = 20000
 
 ///|
 /// 进度回调节流:每 N 个目录回调一次。
-const PROGRESS_EVERY : Int = 64
+const PROGRESS_EVERY : Int32 = 64
 
 ///|
 fn is_skipped_dir(name : String) -> Bool {
@@ -158,11 +158,11 @@ priv struct WalkState {
   /// 待展开的根下非成员目录队列
   root_pending : Array[String]
   /// 全程累计目录数(跨成员)
-  mut total_dirs : Int
+  mut total_dirs : Int32
   /// 当前成员相对工作区根的路径(单模块模式 = "")
   mut member_rel : String
   /// 当前成员已扫目录数
-  mut member_dirs : Int
+  mut member_dirs : Int32
   /// 以下容器会被 `begin_member_state` 按成员重置（重绑定 = 需要 mut）
   mut dir_queue : Array[String]
   mut entries : Array[LayoutEntry]

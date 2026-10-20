@@ -10,7 +10,7 @@ pub fn parse_markdown(String) -> Array[MarkdownBlock]
 
 // Types and methods
 pub(all) enum MarkdownBlock {
-  MbHeading(Int, String)
+  MbHeading(Int32, String)
   MbParagraph(Array[MarkdownInline])
   MbBulletList(Array[Array[MarkdownInline]])
   MbOrderedList(Array[Array[MarkdownInline]])

@@ -13,7 +13,7 @@
 /// 去重计数：`next_seed` 接续正确时，六次点击的随机结果应出现多个不同值。
 /// 用一个显式 helper 而不是在用例里手写双重循环——判据是「有几个不同的
 /// 值」，写成一团下标运算会让人读不出意图。
-fn distinct_count(values : Array[String]) -> Int {
+fn distinct_count(values : Array[String]) -> Int32 {
   let mut count = 0
   let mut i = 0
   while i < values.length() {

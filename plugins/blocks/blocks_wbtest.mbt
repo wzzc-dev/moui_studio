@@ -8,8 +8,8 @@
 ///|
 /// 块项构造助手：种类显式给定（C 形判定读 kind，测试要能造 BkIf/BkEnd）。
 fn row(
-  path : Array[Int],
-  d : Int,
+  path : Array[Int32],
+  d : Int32,
   kind : @blk.BlockKind,
   text : String,
 ) -> @blk.BlockItem {

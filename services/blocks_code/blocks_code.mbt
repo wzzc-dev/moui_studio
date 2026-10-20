@@ -16,10 +16,10 @@
 /// - `start_line` / `end_line`:生成源码中的行范围(1-based)
 /// - `editable`:子集内可编辑
 pub(all) struct HandlerBlock {
-  path : Array[Int]
+  path : Array[Int32]
   canonical : String
-  start_line : Int
-  end_line : Int
+  start_line : Int32
+  end_line : Int32
   editable : Bool
 }
 
@@ -28,7 +28,7 @@ pub(all) struct HandlerBlock {
 pub(all) struct ParsedHandlerSource {
   blocks : Array[HandlerBlock]
   /// 子集外(不可积木)的行号列表(诚实报告)
-  non_editable_lines : Array[Int]
+  non_editable_lines : Array[Int32]
 }
 
 ///|
@@ -41,7 +41,7 @@ pub fn ParsedHandlerSource::blocks(
 ///|
 pub fn ParsedHandlerSource::non_editable_lines(
   self : ParsedHandlerSource,
-) -> Array[Int] {
+) -> Array[Int32] {
   self.non_editable_lines
 }
 
@@ -68,7 +68,7 @@ pub fn parse_generated_source(
 ) -> ParsedHandlerSource {
   let lines = source.split("\n")
   let blocks : Array[HandlerBlock] = []
-  let non_editable : Array[Int] = []
+  let non_editable : Array[Int32] = []
   let mut line_no = 0
   for view in lines {
     line_no = line_no + 1
@@ -92,7 +92,7 @@ pub fn parse_generated_source(
         Some(text) => text
         None => ""
       }
-      let mut path : Array[Int] = []
+      let mut path : Array[Int32] = []
       for entry in stmt_lines {
         if entry.audit_line == line_no {
           path = entry.path

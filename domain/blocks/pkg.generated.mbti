@@ -27,47 +27,47 @@ pub fn clone_stmts(Array[@ir.Stmt]) -> Array[@ir.Stmt]
 
 pub fn declaration_chain(@ir.StudioProgram) -> Array[BlockItem]
 
-pub fn delete_stmt_at(Array[@ir.Stmt], Array[Int]) -> Array[@ir.Stmt]
+pub fn delete_stmt_at(Array[@ir.Stmt], Array[Int32]) -> Array[@ir.Stmt]
 
-pub fn drop_accepts_stmt(Array[@ir.Stmt], Array[Int], @ir.Stmt) -> Bool
+pub fn drop_accepts_stmt(Array[@ir.Stmt], Array[Int32], @ir.Stmt) -> Bool
 
 pub fn event_block(String, String) -> BlockSpec
 
-pub fn expr_at(Array[@ir.Stmt], Array[Int], Array[Int]) -> @ir.Expr?
+pub fn expr_at(Array[@ir.Stmt], Array[Int32], Array[Int32]) -> @ir.Expr?
 
-pub fn expr_child(@ir.Expr, Int) -> @ir.Expr?
+pub fn expr_child(@ir.Expr, Int32) -> @ir.Expr?
 
 pub fn expr_leaf_text(@ir.Expr) -> String?
 
-pub fn expr_slot_count(@ir.Expr) -> Int
+pub fn expr_slot_count(@ir.Expr) -> Int32
 
 pub fn flow_companion_kinds(BlockKind) -> Array[BlockKind]
 
-pub fn insert_stmt_at(Array[@ir.Stmt], Array[Int], Int, @ir.Stmt) -> Array[@ir.Stmt]?
+pub fn insert_stmt_at(Array[@ir.Stmt], Array[Int32], Int32, @ir.Stmt) -> Array[@ir.Stmt]?
 
-pub fn move_stmt_at(Array[@ir.Stmt], Array[Int], Array[Int], Int) -> Array[@ir.Stmt]?
+pub fn move_stmt_at(Array[@ir.Stmt], Array[Int32], Array[Int32], Int32) -> Array[@ir.Stmt]?
 
 pub fn parse_leaf_value(String, @studio_lang.Language) -> @ir.Expr
 
-pub fn push_slot(Array[TextSegment], @ir.Expr, Array[Int]) -> Unit
+pub fn push_slot(Array[TextSegment], @ir.Expr, Array[Int32]) -> Unit
 
-pub fn reorder_stack(Array[@ir.Stmt], Array[Int], Int, Int) -> Array[@ir.Stmt]?
+pub fn reorder_stack(Array[@ir.Stmt], Array[Int32], Int32, Int32) -> Array[@ir.Stmt]?
 
-pub fn reorder_stmt(Array[@ir.Stmt], Array[Int], Int, Int) -> Array[@ir.Stmt]?
+pub fn reorder_stmt(Array[@ir.Stmt], Array[Int32], Int32, Int32) -> Array[@ir.Stmt]?
 
-pub fn replace_expr_at(Array[@ir.Stmt], Array[Int], Array[Int], @ir.Expr) -> Array[@ir.Stmt]?
+pub fn replace_expr_at(Array[@ir.Stmt], Array[Int32], Array[Int32], @ir.Expr) -> Array[@ir.Stmt]?
 
-pub fn replace_expr_child(@ir.Expr, Int, @ir.Expr) -> @ir.Expr?
+pub fn replace_expr_child(@ir.Expr, Int32, @ir.Expr) -> @ir.Expr?
 
-pub fn replace_stmt_at(Array[@ir.Stmt], Array[Int], @ir.Stmt) -> Array[@ir.Stmt]
+pub fn replace_stmt_at(Array[@ir.Stmt], Array[Int32], @ir.Stmt) -> Array[@ir.Stmt]
 
-pub fn segments_slot_count(Array[TextSegment]) -> Int
+pub fn segments_slot_count(Array[TextSegment]) -> Int32
 
-pub fn stmt_at(Array[@ir.Stmt], Array[Int]) -> @ir.Stmt?
+pub fn stmt_at(Array[@ir.Stmt], Array[Int32]) -> @ir.Stmt?
 
 pub fn stmt_block_kind(@ir.Stmt) -> BlockKind
 
-pub fn stmt_list_at(Array[@ir.Stmt], Array[Int]) -> Array[@ir.Stmt]?
+pub fn stmt_list_at(Array[@ir.Stmt], Array[Int32]) -> Array[@ir.Stmt]?
 
 pub fn stmt_root_expr(@ir.Stmt) -> @ir.Expr?
 
@@ -86,10 +86,10 @@ pub(all) enum BlockCategory {
 
 pub(all) struct BlockItem {
   kind : BlockKind
-  depth : Int
+  depth : Int32
   text : String
   builtin : String
-  path : Array[Int]
+  path : Array[Int32]
   segments : Array[TextSegment]?
 }
 
@@ -118,7 +118,7 @@ pub(all) struct BlockSpec {
   category : BlockCategory
   value : BlockValueType
   label_key : String
-  arity : Int
+  arity : Int32
 }
 
 pub(all) enum BlockValueType {
@@ -130,7 +130,7 @@ pub(all) enum BlockValueType {
 
 pub(all) struct TextSegment {
   text : String
-  expr_path : Array[Int]?
+  expr_path : Array[Int32]?
   is_slot : Bool
   pill : Bool
   label_key : String?

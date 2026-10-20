@@ -67,7 +67,7 @@ fn shell_find_text_in_span(
 fn shell_count_text(
   commands : Array[@core.DrawCommand],
   needle : String,
-) -> Int {
+) -> Int32 {
   let mut count = 0
   for run in shell_texts(commands) {
     if run.text.contains(needle) {

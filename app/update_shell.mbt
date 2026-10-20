@@ -273,8 +273,8 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     // 草稿（SearchQueryDraft）均已并入 project_state 切片（ProjectOp 委托）。
     // 断点（G7.4）：行号槽点击切换断点集
     ToggleBreakpoint(line) => {
-      let next : Array[Int] = if model.breakpoints.contains(line) {
-        let kept : Array[Int] = []
+      let next : Array[Int32] = if model.breakpoints.contains(line) {
+        let kept : Array[Int32] = []
         for bp in model.breakpoints {
           if bp != line {
             kept.push(bp)
@@ -677,7 +677,7 @@ fn set_left_view(model : Model, view : LeftView) -> (Model, @moui.Effect[Msg]) {
 ///|
 /// 会话内移除导入的工程(不动磁盘)。active_project 随之修正:
 /// 移除的正是当前选中 → 清空选中;移除在选中之前 → 下标左移一位。
-fn remove_project_at(model : Model, index : Int) -> Model {
+fn remove_project_at(model : Model, index : Int32) -> Model {
   if index < 0 || index >= model.project_state.projects.length() {
     return model
   }
@@ -898,7 +898,7 @@ pub fn push_audit_side_effect(
 /// 审计条目记的是「第几条事实」，跳转需要的是「哪条语句」——
 /// 这里按条目序号定位到最近一条带语句路径的事实（detail 里存的
 /// 是规范文本，用 current_spotlight 同源的匹配）。
-fn jump_audit(model : Model, index : Int) -> @moui.Effect[Msg] {
+fn jump_audit(model : Model, index : Int32) -> @moui.Effect[Msg] {
   ignore(model)
   ignore(index)
   @moui.Effect::none()
@@ -908,7 +908,7 @@ fn jump_audit(model : Model, index : Int) -> @moui.Effect[Msg] {
 /// 处理单条审计卡（确认/拒绝）：标记 settled + 记 Console。
 fn settle_audit(
   model : Model,
-  index : Int,
+  index : Int32,
   note : String,
 ) -> (Model, @moui.Effect[Msg]) {
   if index < 0 || index >= model.audit_entries.length() {
@@ -1094,14 +1094,14 @@ fn align_control(
 
 ///|
 /// 设计稿的快速操作对齐边距。
-pub const ALIGN_MARGIN : Int = 24
+pub const ALIGN_MARGIN : Int32 = 24
 
 // ============================================================================
 // 对话框与命令
 // ============================================================================
 
 ///|
-fn dismiss_toast(model : Model, index : Int) -> (Model, @moui.Effect[Msg]) {
+fn dismiss_toast(model : Model, index : Int32) -> (Model, @moui.Effect[Msg]) {
   if index < 0 || index >= model.toasts.length() {
     return (model, @moui.Effect::none())
   }

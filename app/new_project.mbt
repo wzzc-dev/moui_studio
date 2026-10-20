@@ -16,7 +16,7 @@
 /// 「已写前缀」后逐项 `delete_file`——游标机器只有一套。
 pub(all) struct NewProjectDraft {
   /// 模板下标（-1 = 空白程序）；完成步取它装载程序内存态
-  template_index : Int
+  template_index : Int32
   /// 模板 IR（骨架文件与完成态程序的同源快照）
   program : @ir.StudioProgram
   /// 工程根绝对路径（空 = 目录尚未选定）
@@ -26,7 +26,7 @@ pub(all) struct NewProjectDraft {
   /// 待处理文件队列：绝对路径 → 内容（回滚相只用到路径）
   mut files : Array[(String, String)]
   /// 队列游标（回滚相 = 已发删除数）
-  mut done : Int
+  mut done : Int32
   /// 回滚相：写盘中途失败/取消后翻真，此后游标推进靠删除回执
   mut rolling_back : Bool
 }
@@ -71,7 +71,7 @@ fn advance_new_project_queue(
 fn start_new_project_rollback(
   model : Model,
   services : @services.AppServices,
-  message? : String = "",
+  message~ : String = "",
 ) -> (Model, @moui.Effect[Msg]) {
   match model.new_project {
     Some(draft) => {
@@ -129,7 +129,7 @@ fn finish_new_project(model : Model, services : @services.AppServices) -> Model 
 /// Web 无目录选择能力显式降级。放行 = 置草稿并发起目录选择。
 fn new_project_requested(
   model : Model,
-  index : Int,
+  index : Int32,
   services : @services.AppServices,
 ) -> (Model, @moui.Effect[Msg]) {
   let proceed = model.new_project_confirmed || !program_has_work(model)
@@ -251,7 +251,7 @@ fn new_project_queue_result(
 /// 无快照（普通导入工程）= Failure 静默，不弹通知。
 fn activate_project_with_restore(
   model : Model,
-  index : Int,
+  index : Int32,
   services : @services.AppServices,
 ) -> (Model, @moui.Effect[Msg]) {
   let (next, effect) = update_pure(model, ProjectOp(SetActiveProject(index)))

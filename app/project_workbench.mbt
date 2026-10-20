@@ -42,7 +42,7 @@ pub fn tree_abs_path(model : Model, rel : String) -> String? {
 
 ///|
 /// 按根路径取工程下标（-1 = 不在册）。
-pub fn project_index_of_root(model : Model, root : String) -> Int {
+pub fn project_index_of_root(model : Model, root : String) -> Int32 {
   let mut index = 0
   for project in model.project_state.projects {
     if project.root == root {
@@ -59,11 +59,11 @@ pub fn project_index_of_root(model : Model, root : String) -> Int {
 /// 成员在树里就是工作区根下的一个子目录,所以「谁拥有这个 rel」= 它的路径
 /// 是否落在某个成员目录之下（最长前缀胜出,成员路径可能是 `a/b` 多段）。
 /// 单模块导入时没有成员概念,恒 None（调用方退回活动工程）。
-pub fn project_index_of_tree_rel(model : Model, rel : String) -> Int? {
+pub fn project_index_of_tree_rel(model : Model, rel : String) -> Int32? {
   match model.project_state.workspace_root {
     None => None
     Some(_) => {
-      let mut best : Int? = None
+      let mut best : Int32? = None
       let mut best_length = -1
       let mut index = 0
       for project in model.project_state.projects {
@@ -254,7 +254,7 @@ pub fn import_single_source(
 pub fn import_workspace_scan(
   model : Model,
   scan : @project.WorkspaceScan,
-  silent? : Bool = false,
+  silent~ : Bool = false,
 ) -> (Model, @moui.Effect[Msg]) {
   let t = translator(model)
   let mut projects = model.project_state.projects
@@ -367,7 +367,7 @@ pub fn import_workspace_scan(
 const PROJECTS_STORE_FORMAT : String = "moui.studio.projects"
 
 ///|
-const PROJECTS_STORE_VERSION : Int = 1
+const PROJECTS_STORE_VERSION : Int32 = 1
 
 ///|
 /// 编码当前工程列表（root/module_name 摘要 + active_root + 工作区根）。
@@ -510,7 +510,7 @@ pub fn finish_restore_active(model : Model) -> Model {
 pub fn upsert_project(
   projects : Array[ProjectRecord],
   record : ProjectRecord,
-) -> (Array[ProjectRecord], Int) {
+) -> (Array[ProjectRecord], Int32) {
   let mut existing = -1
   let mut i = 0
   for project in projects {
@@ -576,7 +576,7 @@ pub fn build_entry_rel(
 /// 预览 harness 落盘状态:待写文件队列(绝对路径, 内容)+ 已写游标。
 pub(all) struct PreviewWriteState {
   files : Array[(String, String)]
-  done : Int
+  done : Int32
 }
 
 ///|
@@ -647,7 +647,7 @@ pub fn any_file_dirty(model : Model) -> Bool {
 pub fn upsert_open_file(
   files : Array[OpenProjectFile],
   open : OpenProjectFile,
-) -> (Array[OpenProjectFile], Int) {
+) -> (Array[OpenProjectFile], Int32) {
   let mut existing = -1
   let mut i = 0
   for file in files {
@@ -674,8 +674,11 @@ pub fn upsert_open_file(
 
 ///|
 /// 按 rel 找 tab 下标（无则 None）。
-pub fn open_file_index_of(files : Array[OpenProjectFile], rel : String) -> Int? {
-  let mut found : Int? = None
+pub fn open_file_index_of(
+  files : Array[OpenProjectFile],
+  rel : String,
+) -> Int32? {
+  let mut found : Int32? = None
   for i, file in files {
     if file.rel == rel {
       found = Some(i)
@@ -687,7 +690,7 @@ pub fn open_file_index_of(files : Array[OpenProjectFile], rel : String) -> Int? 
 ///|
 /// 关闭下标处的 tab,并把 active 收敛到合法范围（删的是 active 时停在
 /// 同位置的下一个 tab,尾部则回退一格）。
-pub fn close_open_file_at(model : Model, index : Int) -> Model {
+pub fn close_open_file_at(model : Model, index : Int32) -> Model {
   // tab 关闭纯态已随 S5f 入 plugins/project；壳包装保留给确认流/服务根臂。
   { ..model, project_state: @proj.close_open_file(model.project_state, index), }
 }
@@ -832,7 +835,7 @@ pub fn decode_plugin_disabled(text : String) -> Array[String] {
 /// 原位替换下标处的 tab(转发切片版;装载/保存等根臂仍走这里)。
 pub fn replace_open_file_at(
   files : Array[OpenProjectFile],
-  index : Int,
+  index : Int32,
   open : OpenProjectFile,
 ) -> Array[OpenProjectFile] {
   @proj.replace_open_file_at(files, index, open)
@@ -851,7 +854,7 @@ fn tree_rel_under_workspace(
 ///|
 fn seed_project_collapse_keys(
   collapsed : Array[String],
-  index : Int,
+  index : Int32,
   project : ProjectRecord,
   row_rel : String,
 ) -> Unit {

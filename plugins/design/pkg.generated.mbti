@@ -24,13 +24,13 @@ pub let design_total_height : Double
 
 pub fn fit_scale(Double, Double, Double, Double) -> Double
 
-pub fn[Msg] form_design_canvas(@form_designer.FormModel, Int?, Double, Double, noop~ : Msg, on_select~ : (Int) -> Msg, on_drag~ : (Int, Double, Double) -> Msg, on_resize~ : (Int, Double, Double) -> Msg) -> @core.View[Msg]
+pub fn[Msg] form_design_canvas(@form_designer.FormModel, Int32?, Double, Double, noop~ : Msg, on_select~ : (Int32) -> Msg, on_drag~ : (Int32, Double, Double) -> Msg, on_resize~ : (Int32, Double, Double) -> Msg) -> @core.View[Msg]
 
-pub fn[Msg] form_design_drag_commit(Array[@core.Rect], Int?, Double, Double, Double, Double, noop~ : Msg, on_resize~ : (Int, Double, Double) -> Msg, on_drag~ : (Int, Double, Double) -> Msg) -> Msg
+pub fn[Msg] form_design_drag_commit(Array[@core.Rect], Int32?, Double, Double, Double, Double, noop~ : Msg, on_resize~ : (Int32, Double, Double) -> Msg, on_drag~ : (Int32, Double, Double) -> Msg) -> Msg
 
-pub fn form_design_handle_hit(Array[@core.Rect], Int, Double, Double) -> Bool
+pub fn form_design_handle_hit(Array[@core.Rect], Int32, Double, Double) -> Bool
 
-pub fn form_design_hit_index(Array[@core.Rect], Double, Double) -> Int
+pub fn form_design_hit_index(Array[@core.Rect], Double, Double) -> Int32
 
 pub let handle_hit_radius : Double
 
@@ -53,7 +53,7 @@ pub(all) enum DesignDrawOp {
   WindowFrame(@core.Rect)
   GridDot(@core.Rect)
   WindowTitleBar(@core.Rect)
-  TrafficLight(@core.Rect, Int)
+  TrafficLight(@core.Rect, Int32)
   BoundsOutline(@core.Rect)
   GhostName(@core.Rect, String)
   SelectionStroke(@core.Rect)

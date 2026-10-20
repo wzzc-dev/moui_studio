@@ -34,7 +34,7 @@ pub(all) struct ActivityItem[Model, Msg] {
 pub(all) struct BottomTab[Model, Msg] {
   id : String
   label_key : String
-  badge : (Model) -> Int
+  badge : (Model) -> Int32
   selected : (Model) -> Bool
   on_select : (Model) -> Msg
   render_body : (Model, Double, Double) -> @moui.View[Msg]

@@ -124,7 +124,7 @@ fn explorer_toolbar_height(model : Model) -> Double {
 ///|
 /// 溢出菜单的行数（与 `explorer_overflow_menu` 的产出等长;改菜单要同步
 /// 改这里,`explorer_toolbar_height` 依赖它算视口）。
-const EXPLORER_MENU_ROWS : Int = 5
+const EXPLORER_MENU_ROWS : Int32 = 5
 
 ///|
 /// 顶部工具栏:四个图标动作（新建文件 / 新建文件夹 / 刷新 / 全部折叠）+
@@ -348,7 +348,7 @@ fn explorer_tool_icon(
 /// 无请求/模型双轨。
 pub fn explorer_dir_scroll_target(
   model : Model,
-  index : Int,
+  index : Int32,
   rel : String,
 ) -> @core.Point {
   let target = explorer_find_dir_row(model, index, rel)
@@ -361,7 +361,7 @@ pub fn explorer_dir_scroll_target(
 /// 走的是真实的 `explorer_rows` 派生（而不是另写一遍行数累计）:分区的
 /// 折叠态、就地输入行都会改变行号,重新推导一遍必然与视图不同步——
 /// 这正是旧实现「展开后滚到空处」的根因。
-fn explorer_find_dir_row(model : Model, index : Int, rel : String) -> Int {
+fn explorer_find_dir_row(model : Model, index : Int32, rel : String) -> Int32 {
   let rows = explorer_rows(model, translator(model))
   let mut position = 0
   for row in rows {
@@ -392,7 +392,7 @@ const EXPLORER_INDENT_STEP : Double = 12.0
 ///|
 /// 树行缩进:第一层从 8 起,逐层 +12——导轨画在同一批 x 上,层级因此
 /// 读成连续的竖线而不是一串错位的空格。
-fn explorer_indent(depth : Int) -> Double {
+fn explorer_indent(depth : Int32) -> Double {
   8.0 + depth.to_double() * EXPLORER_INDENT_STEP
 }
 
@@ -419,7 +419,7 @@ fn explorer_input_action(
 ///
 /// 导轨是 VS Code 树最容易辨认的特征,也是唯一不用读文字就能跟住层级的
 /// 线索。行高 24 里导轨留上下 4pt 的呼吸,不顶到相邻行。
-fn explorer_guides(depth : Int) -> @moui.View[Msg] {
+fn explorer_guides(depth : Int32) -> @moui.View[Msg] {
   let lines : Array[@moui.View[Msg]] = []
   let mut level = 0
   while level < explorer_guide_line_count(depth) {
@@ -493,7 +493,7 @@ fn explorer_section_row(
   id : String,
   label : String,
   expanded : Bool,
-  count : Int,
+  count : Int32,
   width : Double,
 ) -> @moui.View[Msg] {
   let cells : Array[@moui.View[Msg]] = [
@@ -554,7 +554,7 @@ fn explorer_section_row(
 /// 分区空态行（一行灰字,不占整块高度）。
 fn explorer_empty_row(
   line : String,
-  depth : Int,
+  depth : Int32,
   width : Double,
 ) -> @moui.View[Msg] {
   @views.container(
@@ -589,7 +589,7 @@ fn explorer_empty_row(
 fn explorer_input_row(
   model : Model,
   kind : String,
-  depth : Int,
+  depth : Int32,
   width : Double,
 ) -> @moui.View[Msg] {
   let creating_folder = kind == "folder"
@@ -669,7 +669,7 @@ fn explorer_root_row(
   model : Model,
   name : String,
   root : String,
-  index : Int,
+  index : Int32,
   active : Bool,
   width : Double,
 ) -> @moui.View[Msg] {
@@ -707,11 +707,11 @@ fn explorer_root_row(
 fn explorer_dir_row(
   model : Model,
   t : @i18n.Translator,
-  index : Int,
+  index : Int32,
   rel : String,
   label : String,
   meta : String,
-  depth : Int,
+  depth : Int32,
   expanded : Bool,
   width : Double,
 ) -> @moui.View[Msg] {
@@ -799,10 +799,10 @@ fn explorer_row_action(
 fn explorer_file_row(
   model : Model,
   t : @i18n.Translator,
-  index : Int,
+  index : Int32,
   rel : String,
   name : String,
-  depth : Int,
+  depth : Int32,
   selected : Bool,
   width : Double,
 ) -> @moui.View[Msg] {
@@ -847,7 +847,7 @@ fn explorer_file_row(
 /// 打开的编辑器条目:脏点 + 文件名 + 关闭 ×。
 fn explorer_editor_row(
   model : Model,
-  index : Int,
+  index : Int32,
   name : String,
   dirty : Bool,
   active : Bool,
@@ -890,8 +890,8 @@ fn explorer_editor_row(
 /// 大纲条目:符号名 + 行号（右对齐,VS Code 的 Outline 同款）。
 fn explorer_outline_row(
   name : String,
-  line : Int,
-  depth : Int,
+  line : Int32,
+  depth : Int32,
   width : Double,
 ) -> @moui.View[Msg] {
   @views.container(
@@ -998,7 +998,7 @@ fn explorer_timeline_row(
 fn explorer_tree_row(
   model : Model,
   key~ : String,
-  depth~ : Int,
+  depth~ : Int32,
   twisty~ : Msg?,
   expanded~ : Bool,
   icon~ : @style.IconName,
@@ -1008,8 +1008,8 @@ fn explorer_tree_row(
   selected~ : Bool,
   width~ : Double,
   on_click~ : Msg?,
-  trailing? : @moui.View[Msg]? = None,
-  trailing_width? : Double = 0.0,
+  trailing~ : @moui.View[Msg]? = None,
+  trailing_width~ : Double = 0.0,
 ) -> @moui.View[Msg] {
   let hovered = model.project_state.explorer_hover == key
   let indent = explorer_indent(depth)
@@ -1141,7 +1141,7 @@ pub fn file_tint_for_test(name : String) -> @chrome.IconTint {
 ///|
 /// 缩进导轨的绘制条数 = 层级数（第 0 层 = 0 条,只有占位）。
 /// 视图与测试共用这一个口径,测试不必自己复述「第 0 层画几条」。
-pub fn explorer_guide_line_count(depth : Int) -> Int {
+pub fn explorer_guide_line_count(depth : Int32) -> Int32 {
   depth.max(0)
 }
 
@@ -1216,7 +1216,7 @@ pub fn rel_path_last_segment(rel : String) -> String {
 }
 
 ///|
-pub fn root_collapse_key(index : Int, rel : String) -> String {
+pub fn root_collapse_key(index : Int32, rel : String) -> String {
   @proj.root_collapse_key(index, rel)
 }
 
@@ -1232,7 +1232,7 @@ pub fn workspace_display_name(root : String) -> String {
 
 ///|
 pub fn explorer_clamp_scroll_y(
-  rows : Int,
+  rows : Int32,
   viewport_height : Double,
   y : Double,
 ) -> Double {
@@ -1258,7 +1258,7 @@ pub fn explorer_child_dirs_for_test(
 }
 
 ///|
-fn project_entry_meta_of(model : Model, index : Int) -> String {
+fn project_entry_meta_of(model : Model, index : Int32) -> String {
   @proj.project_entry_meta_of(explorer_data_of(model), index)
 }
 
@@ -1289,7 +1289,7 @@ pub fn file_is_dirty(open : OpenProjectFile) -> Bool {
 ///|
 fn recent_tail(
   changes : Array[RecentChange],
-  count : Int,
+  count : Int32,
 ) -> Array[RecentChange] {
   @proj.recent_tail(changes, count)
 }

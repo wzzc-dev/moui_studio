@@ -26,7 +26,7 @@ pub extend ScriptOrigin with Eq::{not_equal, equal}
 pub(all) struct BlocksUiState {
   /// 语句插入面板：选中分类下标（-1 = 全部）与开合。
   /// 组合根的「插入后自动收起面板」直接写 statement_palette_open，故均为 mut。
-  mut selected_category : Int
+  mut selected_category : Int32
   mut statement_palette_open : Bool
   /// 语句面板搜索查询（"" = 无过滤）：本地即时过滤，零副作用。
   mut palette_query : String
@@ -42,15 +42,15 @@ pub(all) struct BlocksUiState {
   mut script_origins : Map[String, ScriptOrigin]
   /// 正在编辑的值：语句链下标 + 表达式路径 + 输入文本；None = 无值编辑。
   /// 打开（EditBlockValue）/提交（BlockValueCommit）在壳，草稿在切片。
-  mut block_value_edit : (Int, Array[Int], String)?
+  mut block_value_edit : (Int32, Array[Int32], String)?
   /// 画布右键菜单锚点：(链下标, 局部 x, 局部 y)；打开在壳（带选中），关在切片。
-  mut block_menu : (Int, Double, Double)?
+  mut block_menu : (Int32, Double, Double)?
   /// 从调色板拖动的语句骨架（分类下标, 模板下标, 当前指针视口坐标）；
   /// 指针随 Changed 事件更新，画布据此**实时**画插入线（拖拽中可见落点）。
   /// 落地（Drop*）在壳。
-  mut palette_drag : (Int, Int, @geometry.Point)?
+  mut palette_drag : (Int32, Int32, @geometry.Point)?
   /// 从调色板拖动的表达式模板下标；落地（ExpressionDrop）在壳。
-  mut expr_drag : Int?
+  mut expr_drag : Int32?
 }
 
 ///|
@@ -91,19 +91,19 @@ pub const BLOCKS_UI_ZOOM_STEP : Double = 0.25
 /// 积木域 UI 子消息：纯界面偏好与瞬态，零副作用。
 pub(all) enum BlocksUiMsg {
   /// 切换语句插入面板（再点同分类收起）。
-  ToggleStatementPalette(Int)
+  ToggleStatementPalette(Int32)
   /// 切换积木分类条选中分类。
-  SelectCategory(Int)
+  SelectCategory(Int32)
   /// 语句面板搜索查询（本地过滤）。
   SetPaletteQuery(String)
   /// 画布受控滚动（**双轴**）。
   CanvasScrolled(@geometry.Point)
   /// 拖到画布边缘按方向步进**纵向**滚动（横向不自动滚：横滚由用户拖）。
-  BlocksAutoScroll(Int)
+  BlocksAutoScroll(Int32)
   /// 画布缩放（夹到 [MIN, MAX]；0 = 适应屏幕，由壳换算成具体倍率）。
   SetCanvasZoom(Double)
   /// 按步进缩放（+1 / −1 档）。
-  ZoomCanvas(Int)
+  ZoomCanvas(Int32)
   /// 切换画布点阵网格。
   ToggleCanvasGrid
   /// 搬移脚本到画布某点（壳换算成内容坐标后下发；只写 script_origins）。
@@ -113,7 +113,7 @@ pub(all) enum BlocksUiMsg {
   /// 取消值编辑。
   BlockValueCancel
   /// 开始拖动语句骨架（分类, 模板）。
-  PaletteDragStart(Int, Int)
+  PaletteDragStart(Int32, Int32)
   /// 拖动中更新调色板指针（画布实时插入线的数据源）。
   PaletteDragMoved(@geometry.Point)
   /// 取消调色板拖拽（指针不在画布上松手 = 不插入；同时清语句与表达式
@@ -121,7 +121,7 @@ pub(all) enum BlocksUiMsg {
   /// 按画布帧判定后走这里）。
   PaletteDragCancel
   /// 开始拖动表达式模板。
-  PaletteExprDragStart(Int)
+  PaletteExprDragStart(Int32)
   /// 关闭画布右键菜单。
   BlocksContextMenuClose
 }

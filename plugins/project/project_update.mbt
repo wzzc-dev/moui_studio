@@ -14,8 +14,8 @@
 /// 工程域子消息:资源管理器交互 + 工程 tab 编辑(active tab 的草稿/
 /// 光标/MoMark 事务)。载荷与壳侧原变体逐字一致。
 pub(all) enum ProjectMsg {
-  SetActiveProject(Int) // 切活动工程(选中文件复位)
-  ToggleProjectDirAt(Int, String) // 单树多根:根下标 + 目录 rel(纯折叠翻转)
+  SetActiveProject(Int32) // 切活动工程(选中文件复位)
+  ToggleProjectDirAt(Int32, String) // 单树多根:根下标 + 目录 rel(纯折叠翻转)
   ExplorerHover(String) // 悬停行 key(空串 = 无悬停)
   ToggleExplorerSection(String) // 分区折叠(布局偏好,open: 前缀口径)
   FileCreateAt(String) // 就地新建文件(目标目录 rel)
@@ -25,13 +25,13 @@ pub(all) enum ProjectMsg {
   FolderCreateDismiss // 文件夹输入行关闭
   ExplorerCollapseAll // 全部折叠(整棵树逐层)
   ExplorerScrolled(@core.Point) // 树区滚动偏移(单一事实源)
-  ProjectFileCaretMoved(Int, @core.TextRange?) // active tab 光标/选区回传
+  ProjectFileCaretMoved(Int32, @core.TextRange?) // active tab 光标/选区回传
   EditProjectFile(String) // active tab 草稿编辑
   ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
   // .md tab 的 MoMark 编辑事务
   // --- S5f 从壳并入的纯 UI 臂（文件 tab/CRUD 输入态 + 结构树 + 搜索草稿） ---
-  SelectFileTab(Int) // 选中已打开的 tab（只切 active，不装载）
-  CloseFileTab(Int) // 关闭 tab 并把 active 收敛到合法范围
+  SelectFileTab(Int32) // 选中已打开的 tab（只切 active，不装载）
+  CloseFileTab(Int32) // 关闭 tab 并把 active 收敛到合法范围
   FileCreateDraft(String) // 新建文件名草稿（仅在新建输入打开时接受）
   FileCreateDismiss // 关闭新建输入行
   FileRenameStart(String) // 打开改名输入（带 rel，草稿只填文件名）
@@ -336,7 +336,11 @@ fn active_file_of(state : ProjectState) -> OpenProjectFile? {
 
 ///|
 /// 把目标目录从折叠集里摘掉(就地新建前调用:输入行要在可见处出现)。
-fn unfold_dir(state : ProjectState, index : Int, rel : String) -> Array[String] {
+fn unfold_dir(
+  state : ProjectState,
+  index : Int32,
+  rel : String,
+) -> Array[String] {
   let key = root_collapse_key(index, rel)
   let kept : Array[String] = []
   for item in state.project_tree_collapsed {
@@ -403,7 +407,7 @@ pub fn seed_workspace_collapse_keys(
 ///|
 pub fn seed_project_collapse_keys(
   collapsed : Array[String],
-  index : Int,
+  index : Int32,
   project : ProjectRecord,
   row_rel : String,
 ) -> Unit {
@@ -455,7 +459,7 @@ pub fn tree_rel_under_workspace(
 ///|
 /// 关闭下标处的 tab 并把 active 收敛到合法范围（S5f 自壳迁入）。
 /// 删的是 active 时停在同位置的下一个 tab，尾部则回退一格。
-pub fn close_open_file(state : ProjectState, index : Int) -> ProjectState {
+pub fn close_open_file(state : ProjectState, index : Int32) -> ProjectState {
   if index < 0 || index >= state.open_project_files.length() {
     return state
   }
@@ -479,7 +483,7 @@ pub fn close_open_file(state : ProjectState, index : Int) -> ProjectState {
 /// 原位替换下标处的 tab(光标/草稿/脏基准回写;壳根臂装载/保存也走这里)。
 pub fn replace_open_file_at(
   files : Array[OpenProjectFile],
-  index : Int,
+  index : Int32,
   open : OpenProjectFile,
 ) -> Array[OpenProjectFile] {
   let next : Array[OpenProjectFile] = []

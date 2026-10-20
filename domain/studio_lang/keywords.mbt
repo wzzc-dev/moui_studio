@@ -164,7 +164,7 @@ pub(all) struct BuiltinSpec {
   zh : String
   en : String
   kind : BuiltinKind
-  arity : Int
+  arity : Int32
 }
 
 ///|

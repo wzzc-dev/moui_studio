@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub const PROPOSAL_VERSION : Int = 1
+pub const PROPOSAL_VERSION : Int32 = 1
 
 pub fn all_samples() -> Array[@ir.StudioProgram]
 
@@ -59,7 +59,7 @@ pub(all) struct HandlerRef {
 
 pub(all) enum ProposalError {
   InvalidJson
-  BadVersion(Int)
+  BadVersion(Int32)
   MissingField(String)
   BadControlKind(String)
   BadEventKind(String)
@@ -74,7 +74,7 @@ pub(all) enum ProposalError {
 }
 
 pub(all) struct ProposalV1 {
-  version : Int
+  version : Int32
   summary_zh : String
   summary_en : String
   window : @ir.WindowSpec?

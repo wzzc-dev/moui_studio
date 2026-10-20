@@ -164,7 +164,7 @@ test "block chain paths address nested statements" {
 }
 
 ///|
-fn path_text(path : Array[Int]) -> String {
+fn path_text(path : Array[Int32]) -> String {
   let buf = StringBuilder()
   let mut first = true
   for part in path {

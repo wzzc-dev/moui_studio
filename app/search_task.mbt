@@ -7,18 +7,18 @@
 /// 一条命中:文件 rel + 1-based 行号 + 截断摘录。
 pub(all) struct SearchHit {
   rel : String
-  line : Int
+  line : Int32
   preview : String
 }
 
 ///|
-const SEARCH_MAX_FILES : Int = 60
+const SEARCH_MAX_FILES : Int32 = 60
 
 ///|
-const SEARCH_MAX_HITS : Int = 200
+const SEARCH_MAX_HITS : Int32 = 200
 
 ///|
-const SEARCH_MAX_PER_FILE : Int = 8
+const SEARCH_MAX_PER_FILE : Int32 = 8
 
 ///|
 /// 摘录宽度:命中行首尾裁到 ~96 字符（中文按字符算,够读即可）。
@@ -47,7 +47,7 @@ priv struct SearchState {
   queue : Array[String]
   hits : Array[SearchHit]
   /// 已完整读过的文件数（上限护栏）
-  mut scanned : Int
+  mut scanned : Int32
 }
 
 ///|

@@ -16,7 +16,7 @@ pub fn module_name_from_root(String) -> String
 
 pub fn skeleton_files(String, String, @ir.StudioProgram) -> Array[(String, String)]
 
-pub fn template_program(Int) -> @ir.StudioProgram
+pub fn template_program(Int32) -> @ir.StudioProgram
 
 // Errors
 

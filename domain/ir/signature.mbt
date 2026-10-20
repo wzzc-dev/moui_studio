@@ -56,7 +56,7 @@ pub fn stmts_signature(body : Array[Stmt]) -> String {
 }
 
 ///|
-fn write_stmts(buf : StringBuilder, body : Array[Stmt], indent : Int) -> Unit {
+fn write_stmts(buf : StringBuilder, body : Array[Stmt], indent : Int32) -> Unit {
   for stmt in body {
     write_indent(buf, indent)
     write_stmt(buf, stmt, indent)
@@ -64,7 +64,7 @@ fn write_stmts(buf : StringBuilder, body : Array[Stmt], indent : Int) -> Unit {
 }
 
 ///|
-fn write_indent(buf : StringBuilder, indent : Int) -> Unit {
+fn write_indent(buf : StringBuilder, indent : Int32) -> Unit {
   buf.write_string("\n")
   for _ in 0..<indent {
     buf.write_string("  ")
@@ -72,7 +72,7 @@ fn write_indent(buf : StringBuilder, indent : Int) -> Unit {
 }
 
 ///|
-fn write_stmt(buf : StringBuilder, stmt : Stmt, indent : Int) -> Unit {
+fn write_stmt(buf : StringBuilder, stmt : Stmt, indent : Int32) -> Unit {
   match stmt {
     Declare(name, expr) => {
       buf.write_string("declare \{name} = ")

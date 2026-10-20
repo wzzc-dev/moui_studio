@@ -13,15 +13,15 @@ import {
 // Values
 pub const EXPLORER_SECTION_FOLDERS : String = "folders"
 
-pub const EXPLORER_SECTION_INDENT : Int = 1
+pub const EXPLORER_SECTION_INDENT : Int32 = 1
 
-pub const WORKSPACE_ROOT_INDEX : Int = -1
+pub const WORKSPACE_ROOT_INDEX : Int32 = -1
 
 pub fn active_project_file(ExplorerData) -> OpenProjectFile?
 
 pub fn child_dirs_of(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
 
-pub fn close_open_file(ProjectState, Int) -> ProjectState
+pub fn close_open_file(ProjectState, Int32) -> ProjectState
 
 pub fn code_project_files(@ir.StudioProgram) -> CodeProjectFiles
 
@@ -39,7 +39,7 @@ pub fn dirname_of(String) -> String
 
 pub fn explorer_child_dirs_for_test(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
 
-pub fn explorer_clamp_scroll_y(Int, Double, Double) -> Double
+pub fn explorer_clamp_scroll_y(Int32, Double, Double) -> Double
 
 pub fn explorer_row_key(ExplorerRow) -> String
 
@@ -65,25 +65,25 @@ pub fn parent_of(String) -> String
 
 pub fn project_entry_meta(ProjectRecord) -> String
 
-pub fn project_entry_meta_of(ExplorerData, Int) -> String
+pub fn project_entry_meta_of(ExplorerData, Int32) -> String
 
 pub fn project_feature() -> @core.Feature[ProjectState, ProjectMsg]
 
 pub fn project_kind_label(@wzzc-dev/moui_studio/services/project.PackageKind, @moui_i18n.Translator) -> String
 
-pub fn recent_tail(Array[RecentChange], Int) -> Array[RecentChange]
+pub fn recent_tail(Array[RecentChange], Int32) -> Array[RecentChange]
 
 pub fn rel_path_last_segment(String) -> String
 
-pub fn replace_open_file_at(Array[OpenProjectFile], Int, OpenProjectFile) -> Array[OpenProjectFile]
+pub fn replace_open_file_at(Array[OpenProjectFile], Int32, OpenProjectFile) -> Array[OpenProjectFile]
 
-pub fn root_collapse_key(Int, String) -> String
+pub fn root_collapse_key(Int32, String) -> String
 
 pub fn section_collapsed(ExplorerData, String) -> Bool
 
 pub fn seed_all_collapse_keys(Array[String], ProjectState) -> Unit
 
-pub fn seed_project_collapse_keys(Array[String], Int, ProjectRecord, String) -> Unit
+pub fn seed_project_collapse_keys(Array[String], Int32, ProjectRecord, String) -> Unit
 
 pub fn seed_workspace_collapse_keys(Array[String], Array[ProjectRecord], WorkspaceRecord) -> Unit
 
@@ -107,10 +107,10 @@ pub(all) struct CodeProjectFiles {
 
 pub(all) struct ExplorerData {
   projects : Array[ProjectRecord]
-  active_project : Int
+  active_project : Int32
   workspace_root : WorkspaceRecord?
   open_project_files : Array[OpenProjectFile]
-  open_file_index : Int
+  open_file_index : Int32
   project_tree_collapsed : Array[String]
   explorer_sections_collapsed : Array[String]
   selected_project_file : String?
@@ -122,14 +122,14 @@ pub(all) struct ExplorerData {
 }
 
 pub(all) enum ExplorerRow {
-  SectionRow(String, String, Bool, Int)
+  SectionRow(String, String, Bool, Int32)
   SectionEmptyRow(String)
-  InputRow(String, Int)
-  RootRow(Int, String, String, Bool)
-  DirRow(Int, String, String, String, Int, Bool)
-  FileRow(Int, String, String, Int, Bool)
-  EditorRow(Int, String, Bool, Bool)
-  OutlineRow(String, Int, Int)
+  InputRow(String, Int32)
+  RootRow(Int32, String, String, Bool)
+  DirRow(Int32, String, String, String, Int32, Bool)
+  FileRow(Int32, String, String, Int32, Bool)
+  EditorRow(Int32, String, Bool, Bool)
+  OutlineRow(String, Int32, Int32)
   TimelineRow(String, Bool, String)
 }
 
@@ -144,20 +144,20 @@ pub(all) struct OpenProjectFile {
   rel : String
   saved_content : String
   draft : String
-  caret : Int
+  caret : Int32
   selection : @core.TextRange?
   md_session : @moui_richtext.MarkdownDocumentSession?
 }
 
 pub(all) struct OutlineSymbol {
   name : String
-  line : Int
-  depth : Int
+  line : Int32
+  depth : Int32
 }
 
 pub(all) enum ProjectMsg {
-  SetActiveProject(Int)
-  ToggleProjectDirAt(Int, String)
+  SetActiveProject(Int32)
+  ToggleProjectDirAt(Int32, String)
   ExplorerHover(String)
   ToggleExplorerSection(String)
   FileCreateAt(String)
@@ -167,11 +167,11 @@ pub(all) enum ProjectMsg {
   FolderCreateDismiss
   ExplorerCollapseAll
   ExplorerScrolled(@core.Point)
-  ProjectFileCaretMoved(Int, @core.TextRange?)
+  ProjectFileCaretMoved(Int32, @core.TextRange?)
   EditProjectFile(String)
   ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
-  SelectFileTab(Int)
-  CloseFileTab(Int)
+  SelectFileTab(Int32)
+  CloseFileTab(Int32)
   FileCreateDraft(String)
   FileCreateDismiss
   FileRenameStart(String)
@@ -191,10 +191,10 @@ pub(all) struct ProjectRecord {
 
 pub(all) struct ProjectState {
   projects : Array[ProjectRecord]
-  active_project : Int
+  active_project : Int32
   workspace_root : WorkspaceRecord?
   open_project_files : Array[OpenProjectFile]
-  open_file_index : Int
+  open_file_index : Int32
   project_tree_collapsed : Array[String]
   explorer_sections_collapsed : Array[String]
   selected_project_file : String?
@@ -218,7 +218,7 @@ pub(all) struct RecentChange {
   target : String
   by_agent : Bool
   action : String
-  seq : Int
+  seq : Int32
 }
 
 pub(all) struct WorkspaceRecord {

@@ -8,9 +8,9 @@ import {
 // Values
 pub fn apply_control_patch(String, ControlSpans, Double, Double, Double, Double) -> String
 
-pub fn apply_number_patch(String, Int, Int, String) -> String
+pub fn apply_number_patch(String, Int32, Int32, String) -> String
 
-pub fn apply_text_patch(String, Int, Int, String) -> String
+pub fn apply_text_patch(String, Int32, Int32, String) -> String
 
 pub fn double_literal(Double) -> String
 
@@ -18,13 +18,13 @@ pub fn form_controls_to_ir(FormModel) -> Array[@ir.Control]
 
 pub fn form_model_eq(FormModel, FormModel) -> Bool
 
-pub fn form_model_move(FormModel, Int, Double, Double) -> FormModel
+pub fn form_model_move(FormModel, Int32, Double, Double) -> FormModel
 
-pub fn form_model_resize(FormModel, Int, Double, Double) -> FormModel
+pub fn form_model_resize(FormModel, Int32, Double, Double) -> FormModel
 
-pub fn ir_controls_to_form_model(@ir.WindowSpec, Array[@ir.Control], Array[@ir.Handler], (@ir.Handler, Int) -> String) -> FormModel
+pub fn ir_controls_to_form_model(@ir.WindowSpec, Array[@ir.Control], Array[@ir.Handler], (@ir.Handler, Int32) -> String) -> FormModel
 
-pub fn number_len(String, Int) -> Int
+pub fn number_len(String, Int32) -> Int32
 
 pub fn parse_form(String) -> Result[ParsedForm, String]
 
@@ -34,11 +34,11 @@ pub fn render_form(FormModel) -> String
 
 // Types and methods
 pub(all) struct ControlSpans {
-  x : Int
-  y : Int
-  width : Int
-  height : Int
-  text : Int
+  x : Int32
+  y : Int32
+  width : Int32
+  height : Int32
+  text : Int32
 }
 
 pub(all) struct FormControl {

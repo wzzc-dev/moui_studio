@@ -30,7 +30,7 @@ pub const POSTURE_HEIGHT : Double = @ai.POSTURE_HEIGHT
 
 ///|
 /// 输入盒高度（转发插件；测试与布局计算共用）。
-pub fn composer_height(width : Double, picker_open? : Bool = false) -> Double {
+pub fn composer_height(width : Double, picker_open~ : Bool = false) -> Double {
   @ai.composer_height(width, picker_open~)
 }
 
@@ -42,7 +42,7 @@ pub fn context_chips_height(width : Double) -> Double {
 ///|
 pub fn composer_block_height(
   width : Double,
-  picker_open? : Bool = false,
+  picker_open~ : Bool = false,
 ) -> Double {
   @ai.composer_block_height(width, picker_open~)
 }
@@ -170,7 +170,7 @@ pub fn decision_bar_height(model : Model) -> Double {
 ///
 /// **只在有 pending 提案时给值**：计划卡是「AI 打算做什么」的记录，
 /// 计数是那个打算的规模；没有 pending 时给 0 会读作「AI 什么都不会做」。
-pub fn plan_block_count_of(model : Model) -> Int? {
+pub fn plan_block_count_of(model : Model) -> Int32? {
   match model.pending {
     None => None
     Some(_) => {

@@ -60,7 +60,7 @@ pub fn FormRuntime::audit_assign(
   self : FormRuntime,
   name : String,
   value : @compiled_runtime.Value,
-  line : Int,
+  line : Int32,
   detail : String,
 ) -> Unit {
   self.inner.audit_assign(name, value, line, detail) catch {

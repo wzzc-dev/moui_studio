@@ -29,7 +29,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|///|
     #|/// 审计记录：与解释轨同构（行号 + 类别 + 语言中立规范文本）。
     #|pub(all) struct StepRecord {
-    #|  line : Int
+    #|  line : Int32
     #|  op : StepOp
     #|  detail : String
     #|}
@@ -72,7 +72,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|/// 运行期语言错误（数据槽 kind/line/a/b，可读文案由界面本地化）。
     #|pub(all) struct ErrorDetails {
     #|  kind : ErrorKind
-    #|  line : Int
+    #|  line : Int32
     #|  a : String
     #|  b : String
     #|}
@@ -90,17 +90,17 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 默认步数预算：与解释轨同一常量。
-    #|pub const MAX_STEPS : Int = 100_000
+    #|pub const MAX_STEPS : Int32 = 100_000
     #|
     #|///|
     #|/// 默认随机种子：与解释轨同一常量（`随机数` 在两轨给出同一序列）。
-    #|pub const RANDOM_SEED : Int = 20260927
+    #|pub const RANDOM_SEED : Int32 = 20260927
     #|
     #|///|
     #|/// 值：编译轨保持 DSL 的动态类型（数字/文本/逻辑三选一）。
     #|pub(all) enum Value {
     #|  VNum(Double)
-    #|  VInt(Int)
+    #|  VInt(Int32)
     #|  VStr(String)
     #|  VArr(Array[Value])
     #|  VBool(Bool)
@@ -172,24 +172,24 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  mut texts : Map[String, String]
     #|  mut vars : Map[String, Value]
     #|  mut rows : Map[String, Array[String]]
-    #|  mut selections : Map[String, Int]
+    #|  mut selections : Map[String, Int32]
     #|  mut messages : Array[String]
     #|  mut audit : Array[StepRecord]
     #|  mut status : RunStatus
     #|  mut gate : Gate?
     #|  /// `等待 N 秒` 的剩余 tick 数（0 = 没在等）。与解释轨 `RunState::wait_ticks`
     #|  /// 同一语义：用 tick 计数而非墙钟，保证两条轨在同一虚拟时钟下行为一致。
-    #|  mut wait_ticks : Int
+    #|  mut wait_ticks : Int32
     #|  mut error : ErrorDetails?
-    #|  mut steps : Int
-    #|  max_steps : Int
-    #|  mut rng : Int
+    #|  mut steps : Int32
+    #|  max_steps : Int32
+    #|  mut rng : Int32
     #|  mut gate_answers : Array[Bool]
     #|  /// `询问` 的回答文本（与 `gate_answers` 一一对应）。
     #|  gate_answer_texts : Array[String]
     #|  /// 最近一次 `询问` 的回答（`回答` 报告块读取它）。
     #|  mut last_answer : String
-    #|  mut gate_cursor : Int
+    #|  mut gate_cursor : Int32
     #|  mut declared : Array[String]
     #|  // 事务式重放：闸门应答后从头重放，但从运行前快照恢复全部可观察状态，
     #|  // 因此对宿主而言与解释轨「停在指令处、从指令处继续」等价。
@@ -197,15 +197,15 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  mut base_texts : Map[String, String]
     #|  mut base_vars : Map[String, Value]
     #|  mut base_rows : Map[String, Array[String]]
-    #|  mut base_selections : Map[String, Int]
+    #|  mut base_selections : Map[String, Int32]
     #|  mut base_declared : Array[String]
     #|  // 闸门重放要还原随机序列：不还原的话「确认一次」会把整段子程序里的
     #|  // `随机数` 再抽一遍，同一个副作用算出两个结果。
-    #|  mut base_rng : Int
+    #|  mut base_rng : Int32
     #|  // 用户自定义函数（切片 F）：生成代码/内置 lowering 注册，帧在
     #|  // call_user_function 里整帧隔离。
     #|  mut user_functions : Map[String, UserFunction]
-    #|  mut call_depth : Int
+    #|  mut call_depth : Int32
     #|  // 广播总线（切片 G）：`广播(文案)` 入队，宿主事件收尾时排空
     #|  mut broadcasts : Array[String]
     #|}
@@ -217,7 +217,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 用户函数调用深度上限（与解释轨 MAX_CALL_DEPTH 同值）。
-    #|pub const MAX_USER_CALL_DEPTH : Int = 16
+    #|pub const MAX_USER_CALL_DEPTH : Int32 = 16
     #|
     #|///|
     #|/// 按项目播种运行时（初值文本像数字按数字，否则按文本；与解释轨
@@ -269,7 +269,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn seed_rng(seed : Int) -> Int {
+    #|fn seed_rng(seed : Int32) -> Int32 {
     #|  if seed <= 0 {
     #|    1
     #|  } else {
@@ -283,7 +283,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|/// 宿主在**每次事件前**调用它并把结果写回 `Runtime.rng` / 解释轨的
     #|/// `start_run(seed=…)`：随机序列因此跨事件连续，同一个按钮点十次给出十个
     #|/// 不同结果。事件的起点会被 `snapshot` 记下，闸门重放仍逐位可复现。
-    #|pub fn next_seed(rng : Int) -> Int {
+    #|pub fn next_seed(rng : Int32) -> Int32 {
     #|  let mut next = if rng <= 0 { seed_rng(RANDOM_SEED) } else { rng }
     #|  next = next ^ ((next << 13) & 2147483647)
     #|  next = next ^ (next >> 17)
@@ -432,8 +432,8 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn copy_selections(source : Map[String, Int]) -> Map[String, Int] {
-    #|  let copied : Map[String, Int] = Map([], capacity=4)
+    #|fn copy_selections(source : Map[String, Int32]) -> Map[String, Int32] {
+    #|  let copied : Map[String, Int32] = Map([], capacity=4)
     #|  for key in source.keys() {
     #|    copied[key] = source.get(key).unwrap_or(0)
     #|  }
@@ -483,7 +483,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|/// 与解释轨 initial_values/initial_texts/initial_rows 同一规则）。
     #|pub fn runtime_for_program(
     #|  program : @ir.StudioProgram,
-    #|  lower? : ((@ir.FuncDef) -> UserFunction)? = None,
+    #|  lower~ : ((@ir.FuncDef) -> UserFunction)? = None,
     #|) -> Runtime {
     #|  let texts : Map[String, String] = Map([], capacity=8)
     #|  for control in program.controls {
@@ -517,7 +517,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 未知内建：生成期无法解析的调用在运行期报与解释轨相同的 UnknownBuiltin。
-    #|pub fn unknown_builtin(name : String, line : Int) -> Value raise ExecError {
+    #|pub fn unknown_builtin(name : String, line : Int32) -> Value raise ExecError {
     #|  raise ExecError::RuntimeError(ErrorDetails::{
     #|    kind: UnknownBuiltin,
     #|    line,
@@ -530,9 +530,9 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|/// 参数个数错误（生成期保险丝；合法程序不会走到这里）。
     #|pub fn arity_error(
     #|  name : String,
-    #|  expected : Int,
-    #|  actual : Int,
-    #|  line : Int,
+    #|  expected : Int32,
+    #|  actual : Int32,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  raise ExecError::RuntimeError(ErrorDetails::{
     #|    kind: TypeMismatch,
@@ -547,7 +547,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn Runtime::get(
     #|  self : Runtime,
     #|  name : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match self.vars.get(name) {
     #|    Some(value) => value
@@ -575,7 +575,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  self : Runtime,
     #|  name : String,
     #|  value : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  ignore(value)
@@ -587,7 +587,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn Runtime::require_declared(
     #|  self : Runtime,
     #|  name : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Unit raise ExecError {
     #|  if !self.declared.contains(name) && self.vars.get(name) is None {
     #|    raise ExecError::RuntimeError(ErrorDetails::{
@@ -603,7 +603,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|/// 记账 = 审计留痕 + 步数预算（与解释轨同口径：每条留痕算一步）。
     #|pub fn Runtime::record(
     #|  self : Runtime,
-    #|  line : Int,
+    #|  line : Int32,
     #|  op : StepOp,
     #|  detail : String,
     #|) -> Unit raise ExecError {
@@ -633,7 +633,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn Runtime::record_condition(
     #|  self : Runtime,
     #|  flag : Bool,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  self.record(line, OpCondition, "\{detail} -> \{bool_text(flag)}")
@@ -643,8 +643,8 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|/// 循环记账：`iteration N`（解释轨同文本）。
     #|pub fn Runtime::record_iteration(
     #|  self : Runtime,
-    #|  index : Int,
-    #|  line : Int,
+    #|  index : Int32,
+    #|  line : Int32,
     #|) -> Unit raise ExecError {
     #|  self.record(line, OpLoop, "iteration \{index}")
     #|}
@@ -656,7 +656,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  self : Runtime,
     #|  times : Value,
     #|  loop_var : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  body : (Runtime) -> Unit raise ExecError,
     #|) -> Unit raise ExecError {
     #|  let count = match times {
@@ -695,7 +695,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  self : Runtime,
     #|  list_value : Value,
     #|  loop_var : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  body : (Runtime) -> Unit raise ExecError,
     #|) -> Unit raise ExecError {
     #|  let items = match list_value {
@@ -730,7 +730,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|/// 当循环：条件为真才进体；`LoopBreak` 在这一层被吞掉。
     #|pub fn Runtime::while_loop(
     #|  self : Runtime,
-    #|  line : Int,
+    #|  line : Int32,
     #|  cond : (Runtime) -> Value raise ExecError,
     #|  observe : (Runtime, Bool) -> Unit raise ExecError,
     #|  body : (Runtime) -> Unit raise ExecError,
@@ -783,7 +783,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn index_values(
     #|  base : Value,
     #|  index : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  // **字符串也能按下标取字符**（Scratch 的「第 N 个字符」），与解释轨
     #|  // `index_value` 同一语义：1-based，按**字符**而非字节，越界报错。
@@ -841,7 +841,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  base : Value,
     #|  index : Value,
     #|  value : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Unit raise ExecError {
     #|  let items = match base {
     #|    VArr(items) => items
@@ -880,7 +880,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn list_length(
     #|  _rt : Runtime,
     #|  value : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match value {
     #|    VArr(items) => VInt(items.length())
@@ -902,7 +902,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  name : String,
     #|  value : Value,
     #|  op_name : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  ignore(op_name)
@@ -951,7 +951,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  self : Runtime,
     #|  name : String,
     #|  arg_values : Array[Value],
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  let function = match self.user_functions.get(name) {
     #|    Some(function) => function
@@ -999,7 +999,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn Runtime::broadcast(
     #|  self : Runtime,
     #|  value : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Unit raise ExecError {
     #|  let text = as_text(value, "broadcast", line)
     #|  self.broadcasts.push(text)
@@ -1009,7 +1009,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn bool_of(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Bool raise ExecError {
     #|  match value {
     #|    VBool(flag) => flag
@@ -1025,7 +1025,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 加法的两轨同语义：两个数字相加，任何一侧是文本就按文本拼接。
-    #|pub fn add_values(left : Value, right : Value, line : Int) -> Value {
+    #|pub fn add_values(left : Value, right : Value, line : Int32) -> Value {
     #|  ignore(line)
     #|  match (left, right) {
     #|    (VInt(a), VInt(b)) => VInt(a + b)
@@ -1040,7 +1040,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn sub_values(
     #|  left : Value,
     #|  right : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match (left, right) {
     #|    (VInt(a), VInt(b)) => VInt(a - b)
@@ -1061,7 +1061,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn mul_values(
     #|  left : Value,
     #|  right : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match (left, right) {
     #|    (VInt(a), VInt(b)) => VInt(a * b)
@@ -1082,7 +1082,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn div_values(
     #|  left : Value,
     #|  right : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match (left, right) {
     #|    // 整数 ÷ 整数 = 整数（向零截断）——与解释轨同语义
@@ -1145,7 +1145,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn eq_values(
     #|  left : Value,
     #|  right : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match (left, right) {
     #|    (VNum(a), VNum(b)) => VBool(a == b)
@@ -1169,7 +1169,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  left : Value,
     #|  right : Value,
     #|  op : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  let is_lt = op == "<"
     #|  let is_gt = op == ">"
@@ -1247,7 +1247,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn get_number(
     #|  rt : Runtime,
     #|  control : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  let text = rt.texts.get(control).unwrap_or("")
     #|  match @studio_lang.text_to_number(text) {
@@ -1271,7 +1271,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn as_text(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> String raise ExecError {
     #|  match value {
     #|    VUnit =>
@@ -1289,7 +1289,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn text_length(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VNum(as_text(value, role, line).length().to_double())
     #|}
@@ -1300,7 +1300,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn as_number(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Double raise ExecError {
     #|  match value {
     #|    VNum(n) => n
@@ -1321,7 +1321,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  left : Value,
     #|  right : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match (left, right) {
     #|    (VInt(a), VInt(b)) =>
@@ -1407,7 +1407,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn abs_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VNum(as_number(value, role, line).abs())
     #|}
@@ -1416,7 +1416,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn floor_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VInt(as_number(value, role, line).floor().to_int())
     #|}
@@ -1425,7 +1425,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn ceiling_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VInt((0.0 - (0.0 - as_number(value, role, line)).floor()).to_int())
     #|}
@@ -1434,7 +1434,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn sqrt_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  let n = as_number(value, role, line)
     #|  if n < 0.0 {
@@ -1453,7 +1453,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn round_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VInt((as_number(value, role, line) + 0.5).floor().to_int())
     #|}
@@ -1463,14 +1463,14 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  haystack : Value,
     #|  needle : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VBool(as_text(haystack, role, line).contains(as_text(needle, role, line)))
     #|}
     #|
     #|///|
     #|/// 随机数：xorshift 序列与解释轨逐位相同；上界 <=1 时恒为 1。
-    #|pub fn random(rt : Runtime, max : Value, line : Int) -> Value raise ExecError {
+    #|pub fn random(rt : Runtime, max : Value, line : Int32) -> Value raise ExecError {
     #|  let bound = match max {
     #|    VNum(n) => n
     #|    VInt(n) => n.to_double()
@@ -1507,7 +1507,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  rt : Runtime,
     #|  control : String,
     #|  index : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  let position = match index {
     #|    VNum(n) => n.to_int()
@@ -1552,7 +1552,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  control : String,
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  self.texts[control] = as_text(value, role, line)
@@ -1565,7 +1565,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  control : String,
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  let text = as_text(value, role, line)
@@ -1587,7 +1587,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  self : Runtime,
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  self.messages.push(as_text(value, role, line))
@@ -1601,7 +1601,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  target : String,
     #|  payload : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Value raise ExecError {
     #|  let text = as_text(payload, role, line)
@@ -1623,7 +1623,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  self : Runtime,
     #|  question : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Value raise ExecError {
     #|  let prompt = as_text(question, role, line)
@@ -1661,7 +1661,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn neq_values(
     #|  left : Value,
     #|  right : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match eq_values(left, right, line) {
     #|    VBool(flag) => VBool(!flag)
@@ -1671,13 +1671,13 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 逻辑取反（解释轨 `not` 语义）。
-    #|pub fn not_value(value : Value, line : Int) -> Value raise ExecError {
+    #|pub fn not_value(value : Value, line : Int32) -> Value raise ExecError {
     #|  VBool(!bool_of(value, "not operand", line))
     #|}
     #|
     #|///|
     #|/// 数值取负（解释轨 `-x` 语义）。
-    #|pub fn neg_value(value : Value, line : Int) -> Value raise ExecError {
+    #|pub fn neg_value(value : Value, line : Int32) -> Value raise ExecError {
     #|  match value {
     #|    VNum(n) => VNum(-n)
     #|    VInt(n) => VInt(-n)
@@ -1697,7 +1697,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  left : (Runtime) -> Value raise ExecError,
     #|  right : (Runtime) -> Value raise ExecError,
     #|  rt : Runtime,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  let l = bool_of(left(rt), "logic operand", line)
     #|  if !l {
@@ -1712,7 +1712,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  left : (Runtime) -> Value raise ExecError,
     #|  right : (Runtime) -> Value raise ExecError,
     #|  rt : Runtime,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  let l = bool_of(left(rt), "logic operand", line)
     #|  if l {
@@ -1731,7 +1731,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 读取枚举值的情况名（M5-5d）：匹配分派用；非枚举值报运行时错误。
-    #|pub fn enum_case(value : Value, line : Int) -> String raise ExecError {
+    #|pub fn enum_case(value : Value, line : Int32) -> String raise ExecError {
     #|  match value {
     #|    VEnum(_enum_name, case_name) => case_name
     #|    _ =>
@@ -1749,7 +1749,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn get_field(
     #|  value : Value,
     #|  field : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  match value {
     #|    VStruct(fields) =>
@@ -1776,7 +1776,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  index_value : Value,
     #|  value : Value,
     #|  op_name : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  ignore(op_name)
@@ -1817,7 +1817,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  name : String,
     #|  index_value : Value,
     #|  op_name : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  ignore(op_name)
@@ -1868,7 +1868,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  index_value : Value,
     #|  value : Value,
     #|  op_name : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|  detail : String,
     #|) -> Unit raise ExecError {
     #|  ignore(op_name)
@@ -1909,7 +1909,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  list_value : Value,
     #|  wanted : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value {
     #|  ignore(role)
     #|  ignore(line)
@@ -1931,7 +1931,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn Runtime::last_index_result(_self : Runtime, found : Int) -> Value {
+    #|fn Runtime::last_index_result(_self : Runtime, found : Int32) -> Value {
     #|  VInt(found)
     #|}
     #|
@@ -1941,7 +1941,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  left : Value,
     #|  right : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value {
     #|  ignore(role)
     #|  ignore(line)
@@ -1955,7 +1955,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|  value : Value,
     #|  index_value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  ignore(role)
     #|  let text = value_to_text(value)
@@ -1976,7 +1976,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 大写（G7.1）。
-    #|pub fn upper_value(value : Value, role : String, line : Int) -> Value {
+    #|pub fn upper_value(value : Value, role : String, line : Int32) -> Value {
     #|  ignore(role)
     #|  ignore(line)
     #|  VStr(value_to_text(value).to_upper())
@@ -1984,7 +1984,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|
     #|///|
     #|/// 小写（G7.1）。
-    #|pub fn lower_value(value : Value, role : String, line : Int) -> Value {
+    #|pub fn lower_value(value : Value, role : String, line : Int32) -> Value {
     #|  ignore(role)
     #|  ignore(line)
     #|  VStr(value_to_text(value).to_lower())
@@ -2013,7 +2013,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn sin_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VNum(sin_value_inner(as_number(value, role, line)))
     #|}
@@ -2022,7 +2022,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn cos_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VNum(sin_value_inner(as_number(value, role, line) + 1.5707963267948966))
     #|}
@@ -2061,7 +2061,7 @@ pub fn kernel_compiled_runtime_mbt() -> String {
     #|pub fn ln_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise ExecError {
     #|  VNum(ln_inner(as_number(value, role, line)))
     #|}

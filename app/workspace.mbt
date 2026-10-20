@@ -171,7 +171,7 @@ fn design_stage(
   stage_rects : Array[@geometry.Rect],
   semantics_label : String,
   empty_hint : String,
-  multi_selected? : Array[String] = [],
+  multi_selected~ : Array[String] = [],
 ) -> @moui.View[Msg] {
   @design.design_stage(
     program,
@@ -331,8 +331,8 @@ pub fn pane_head_layout(
   subtitle : String,
   tail : String,
   pane_width : Double,
-  action_count : Int,
-  actions_width? : Double = -1.0,
+  action_count : Int32,
+  actions_width~ : Double = -1.0,
 ) -> PaneHeadLayout {
   let content = (pane_width - PANE_HEAD_INSET * 2.0).max(40.0)
   let has_subtitle = subtitle != ""
@@ -384,8 +384,8 @@ pub fn pane_head(
   subtitle : String,
   width : Double,
   actions : Array[@moui.View[Msg]],
-  tail? : String = "",
-  actions_width? : Double = -1.0,
+  tail~ : String = "",
+  actions_width~ : Double = -1.0,
 ) -> @moui.View[Msg] {
   let layout = pane_head_layout(
     title,

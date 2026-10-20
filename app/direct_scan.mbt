@@ -50,16 +50,16 @@ fn ds_read_text(path : String) -> String {
 }
 
 ///|
-const DS_WALK_MAX_DIRS : Int = 2000
+const DS_WALK_MAX_DIRS : Int32 = 2000
 
 ///|
-const DS_WALK_MAX_FILES_PER_PACKAGE : Int = 200
+const DS_WALK_MAX_FILES_PER_PACKAGE : Int32 = 200
 
 ///|
-const DS_SCAN_MAX_MEMBERS : Int = 200
+const DS_SCAN_MAX_MEMBERS : Int32 = 200
 
 ///|
-const DS_PROGRESS_EVERY : Int = 64
+const DS_PROGRESS_EVERY : Int32 = 64
 
 ///|
 /// 直接扫描入口（G7.2 性能修复）。同步、不 raise——所有 IO 错误内部
@@ -142,7 +142,7 @@ fn ds_walk_root_dir(
   rel : String,
   dirs : Array[@project.ScannedDir],
   progress : (@project.WalkProgress) -> Unit,
-  total~ : Int,
+  total~ : Int32,
 ) -> Unit {
   let queue : Array[String] = [rel]
   let mut idx = 0

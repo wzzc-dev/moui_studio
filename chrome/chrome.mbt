@@ -27,7 +27,7 @@ pub const TREE_ROW_HEIGHT : Double = 24.0
 ///|
 /// 左栏「最近修改」最多显示几行（设计稿是短尾列表，超出就截断——
 /// 它只是提示，不是完整历史）。
-pub const RECENT_STRIP_ROWS : Int = 3
+pub const RECENT_STRIP_ROWS : Int32 = 3
 
 ///|
 /// 树行尾部元信息单元格宽：要装得下最宽的元信息（`640×480` 实测 68），
@@ -122,7 +122,7 @@ pub fn[Msg] panel_head(
   meta : String,
   trailing : Array[@moui.View[Msg]],
   width : Double,
-  trailing_widths? : Array[Double] = [],
+  trailing_widths~ : Array[Double] = [],
 ) -> @moui.View[Msg] {
   // 先扣掉尾部动作与元信息，剩下的才给标题
   let meta_w = (text_estimate_width(meta) * 1.02).max(28.0)
@@ -266,7 +266,7 @@ pub fn wrap_text_lines(label : String, max_width : Double) -> Array[String] {
 
 ///|
 /// 换行后的行数（给需要提前预算高度的地方用）。
-pub fn wrapped_line_count(label : String, max_width : Double) -> Int {
+pub fn wrapped_line_count(label : String, max_width : Double) -> Int32 {
   wrap_text_lines(label, max_width).length()
 }
 
@@ -277,7 +277,7 @@ pub fn[Msg] hint_lines_view(
   label : String,
   width : Double,
   color : @graphics.Color,
-  max_lines : Int,
+  max_lines : Int32,
 ) -> @moui.View[Msg] {
   let usable = (width - 4.0).max(60.0)
   let all = wrap_text_lines(label, usable)
@@ -343,7 +343,7 @@ pub fn[Msg] empty_hint(
 ///|
 /// 计数徽标：中性灰底 + 弱文字（比 @views.badge 更小更淡，贴合 24pt 行高）。
 /// 宽度按内容算（「已处理」与「12」差一倍多，写死必然一侧截断或虚胖）。
-pub fn[Msg] count_badge(label : String, tone : Int) -> @moui.View[Msg] {
+pub fn[Msg] count_badge(label : String, tone : Int32) -> @moui.View[Msg] {
   let color = match tone {
     1 => ide_success()
     2 => ide_warning()
@@ -507,15 +507,15 @@ pub fn[Msg] action_chip(
 pub fn[Msg] tree_row(
   label : String,
   meta : String,
-  depth : Int,
+  depth : Int32,
   selected : Bool,
   has_children : Bool,
   expanded : Bool,
   on_click : Msg?,
   on_toggle : Msg?,
   width : Double,
-  trailing? : @moui.View[Msg]? = None,
-  trailing_width? : Double = 0.0,
+  trailing~ : @moui.View[Msg]? = None,
+  trailing_width~ : Double = 0.0,
 ) -> @moui.View[Msg] {
   let cells : Array[@moui.View[Msg]] = []
   // 展开箭头：只有分组行有；叶子占位保持缩进对齐
@@ -682,7 +682,7 @@ pub fn[Msg] inline_card(
 
 ///|
 /// 进度条：AI 计划卡的进度（4pt 高，两段容器拼）。
-pub fn[Msg] progress_bar(percent : Int, width : Double) -> @moui.View[Msg] {
+pub fn[Msg] progress_bar(percent : Int32, width : Double) -> @moui.View[Msg] {
   let clamped = percent.max(0).min(100)
   let filled = width * clamped.to_double() / 100.0
   @views.container(
@@ -871,7 +871,7 @@ pub fn text_estimate_width(label : String) -> Double {
 /// 状态栏：等宽读数条。cells 为空时只留品牌段（不塌成 0 高）。
 /// 单元格宽度按内容算，并整体钳进可用宽度（窗口窄时截断而不是溢出）。
 pub fn[Msg] status_cells(
-  cells : Array[(String, Int)],
+  cells : Array[(String, Int32)],
   width : Double,
   right_align : Bool,
 ) -> @moui.View[Msg] {

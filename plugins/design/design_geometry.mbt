@@ -127,7 +127,7 @@ pub(all) enum DesignDrawOp {
   // 拟真窗口：标题条（含红黄绿信号点）——设计稿的舞台是一个浅色 App
   // 窗口，不是纯色画板；标题条让「这是运行中的应用」一眼可读。
   WindowTitleBar(@geometry.Rect)
-  TrafficLight(@geometry.Rect, Int)
+  TrafficLight(@geometry.Rect, Int32)
   // 设计期可视提示：每个控件的常驻边界框（真实控件可能是透明的一块，
   // 空标签/空表格没有可见内容）+ 空内容控件的名字幽灵文字。
   BoundsOutline(@geometry.Rect)
@@ -437,7 +437,7 @@ pub fn design_overlay_plan(
   program : @ir.StudioProgram,
   selection : String,
   drag_control : String?,
-  multi_selected? : Array[String] = [],
+  multi_selected~ : Array[String] = [],
 ) -> Array[DesignDrawOp] {
   let ops : Array[DesignDrawOp] = []
   for control in program.controls {

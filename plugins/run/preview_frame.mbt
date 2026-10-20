@@ -17,7 +17,7 @@
 ///|
 /// 解析后的预览帧:重放画布按序 push commands;语义树供点选层消费。
 pub(all) struct PreviewFrame {
-  version : Int
+  version : Int32
   width : Double
   height : Double
   commands : Array[@core.DrawCommand]
@@ -28,7 +28,7 @@ pub(all) struct PreviewFrame {
 
 ///|
 /// 数组安全索引(本版本 Array::get 直接返回元素,无 Option)。
-fn json_at(items : Array[Json], index : Int) -> Json? {
+fn json_at(items : Array[Json], index : Int32) -> Json? {
   if index >= 0 && index < items.length() {
     Some(items[index])
   } else {
@@ -46,7 +46,7 @@ fn text_to_chars(text : String) -> Array[Char] {
 }
 
 ///|
-fn parse_int_text(text : String) -> Int? {
+fn parse_int_text(text : String) -> Int32? {
   let chars = text_to_chars(text)
   if chars.length() == 0 {
     return None

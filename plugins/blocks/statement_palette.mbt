@@ -428,7 +428,7 @@ pub fn expression_templates() -> Array[ExpressionTemplate] {
 /// 而且**失败信息完全指不到原因**（例如「拖拽测试失败」其实是因为
 /// `InsertStatement(2, 1)` 从「计次循环」变成了「如果…否则」）。
 /// 按稳定的键查找，插入不影响既有引用。
-pub fn template_index_of(category_index : Int, label_key : String) -> Int? {
+pub fn template_index_of(category_index : Int32, label_key : String) -> Int32? {
   let category = match category_at(category_index) {
     None => return None
     Some(category) => category
@@ -462,7 +462,7 @@ pub fn templates_for_category(
 ///|
 /// 分类轨的固定顺序（下标 → 分类）。分类轨视图与插入面板共用同一顺序，
 /// 两处各写一份就会「点第三个分类出现第二个分类的模板」。
-pub fn category_at(index : Int) -> @blk.BlockCategory? {
+pub fn category_at(index : Int32) -> @blk.BlockCategory? {
   match index {
     0 => Some(@blk.CatEvent)
     1 => Some(@blk.CatVariable)

@@ -48,7 +48,7 @@ pub(all) struct BlockSpec {
   category : BlockCategory
   value : BlockValueType
   label_key : String
-  arity : Int
+  arity : Int32
 }
 
 ///|
@@ -211,13 +211,13 @@ pub fn category_color_key(category : BlockCategory) -> String {
 /// 积木链条目：渲染层拿到的扁平投影（缩进深度 + 规范文本）。
 pub(all) struct BlockItem {
   kind : BlockKind
-  depth : Int
+  depth : Int32
   text : String
   builtin : String
   // 语句路径：从 handler 根出发的下标链（如 [2] = 第三条顶层语句；
   // [1,0,0] = 第二条顶层 If 的 then 体第一条）。控制流装饰块
   // （else/end）没有对应语句，path 为空。
-  path : Array[Int]
+  path : Array[Int32]
   // 行内**分段**（字面段 / 插槽段），供绘制层画洞、命中层认洞。
   //
   // 与 `text` **同一次投影产出**：两处各切一次就会分叉（文本改了而段表
@@ -263,8 +263,8 @@ fn attach_segments(items : Array[BlockItem], body : Array[Stmt]) -> Unit {
 fn emit_chain(
   items : Array[BlockItem],
   body : Array[Stmt],
-  depth : Int,
-  prefix : Array[Int],
+  depth : Int32,
+  prefix : Array[Int32],
 ) -> Unit {
   let mut index = 0
   for stmt in body {
@@ -491,8 +491,8 @@ fn emit_chain(
 
 ///|
 /// 路径追加（显式拷贝；spread 不可用）。
-fn child_path(prefix : Array[Int], index : Int) -> Array[Int] {
-  let path : Array[Int] = []
+fn child_path(prefix : Array[Int32], index : Int32) -> Array[Int32] {
+  let path : Array[Int32] = []
   for part in prefix {
     path.push(part)
   }
@@ -505,7 +505,7 @@ fn child_path(prefix : Array[Int], index : Int) -> Array[Int] {
 /// 路径非法（越界/指向装饰块/指向无子体的语句）时原样返回。
 pub fn replace_stmt_at(
   body : Array[Stmt],
-  path : Array[Int],
+  path : Array[Int32],
   stmt : Stmt,
 ) -> Array[Stmt] {
   if path.length() == 0 {
@@ -593,7 +593,7 @@ pub fn replace_stmt_at(
 
 ///|
 /// 按路径删除语句（与 replace 同一套寻径规则）。
-pub fn delete_stmt_at(body : Array[Stmt], path : Array[Int]) -> Array[Stmt] {
+pub fn delete_stmt_at(body : Array[Stmt], path : Array[Int32]) -> Array[Stmt] {
   if path.length() == 0 {
     return body
   }
@@ -684,8 +684,8 @@ pub fn delete_stmt_at(body : Array[Stmt], path : Array[Int]) -> Array[Stmt] {
 }
 
 ///|
-fn drop_first(path : Array[Int]) -> Array[Int] {
-  let rest : Array[Int] = []
+fn drop_first(path : Array[Int32]) -> Array[Int32] {
+  let rest : Array[Int32] = []
   let mut i = 1
   while i < path.length() {
     rest.push(path[i])
@@ -695,8 +695,8 @@ fn drop_first(path : Array[Int]) -> Array[Int] {
 }
 
 ///|
-fn drop_second(path : Array[Int]) -> Array[Int] {
-  let rest : Array[Int] = []
+fn drop_second(path : Array[Int32]) -> Array[Int32] {
+  let rest : Array[Int32] = []
   let mut i = 2
   while i < path.length() {
     rest.push(path[i])
@@ -707,7 +707,7 @@ fn drop_second(path : Array[Int]) -> Array[Int] {
 
 ///|
 /// 按路径取语句（编辑回放用；越界返回 None）。
-pub fn stmt_at(body : Array[Stmt], path : Array[Int]) -> Stmt? {
+pub fn stmt_at(body : Array[Stmt], path : Array[Int32]) -> Stmt? {
   if path.length() == 0 {
     return None
   }
@@ -888,7 +888,7 @@ pub fn clone_expr(expr : Expr) -> Expr {
 /// 而不是「静默丢弃」。
 pub fn drop_accepts_stmt(
   body : Array[Stmt],
-  to_list_path : Array[Int],
+  to_list_path : Array[Int32],
   stmt : Stmt,
 ) -> Bool {
   let needs_loop = match stmt {
@@ -910,7 +910,7 @@ pub fn drop_accepts_stmt(
 /// `if…else` 当成循环，于是 `break` 被错误放行）。
 fn stmt_list_in_loop(
   body : Array[Stmt],
-  list_path : Array[Int],
+  list_path : Array[Int32],
   inside : Bool,
 ) -> Bool {
   if list_path.length() == 0 {
@@ -946,7 +946,7 @@ fn stmt_list_in_loop(
       if list_path.length() < 2 {
         inside
       } else {
-        let rest : Array[Int] = []
+        let rest : Array[Int32] = []
         let mut k = 2
         while k < list_path.length() {
           rest.push(list_path[k])
@@ -961,7 +961,7 @@ fn stmt_list_in_loop(
               -1
             }
             if arm_index >= 0 && arm_index < arms.length() {
-              let arm_rest : Array[Int] = []
+              let arm_rest : Array[Int32] = []
               let mut j = 3
               while j < list_path.length() {
                 arm_rest.push(list_path[j])
@@ -1000,9 +1000,9 @@ fn stmt_list_in_loop(
 /// 而不是静默丢弃——静默丢弃让用户以为拖成功但块没动。
 pub fn move_stmt_at(
   body : Array[Stmt],
-  from_path : Array[Int],
-  to_list_path : Array[Int],
-  at : Int,
+  from_path : Array[Int32],
+  to_list_path : Array[Int32],
+  at : Int32,
 ) -> Array[Stmt]? {
   if from_path.length() == 0 {
     return None
@@ -1015,7 +1015,7 @@ pub fn move_stmt_at(
     None => return None
   }
   // 源语句所属的**列表路径** = 语句路径去掉最后一位
-  let from_list : Array[Int] = []
+  let from_list : Array[Int32] = []
   let mut i = 0
   while i < from_path.length() - 1 {
     from_list.push(from_path[i])
@@ -1062,7 +1062,7 @@ pub fn move_stmt_at(
   // 不补偿的后果是**拖拽静默失败**：实测把顶层第 0 条拖进顶层第 1 条的
   // if 体里，删掉第 0 条后那个 if 变成第 0 条，而目标路径仍指向 [1,0]，
   // `stmt_list_at` 越界返回 None，整次移动被丢弃（用户看到「拖了没反应」）。
-  let adjusted : Array[Int] = []
+  let adjusted : Array[Int32] = []
   for part in to_list_path {
     adjusted.push(part)
   }
@@ -1095,8 +1095,8 @@ pub fn move_stmt_at(
 /// 要求语句已存在，所以积木视图加不出一行逻辑（见 `statement_palette.mbt`）。
 pub fn insert_stmt_at(
   body : Array[Stmt],
-  list_path : Array[Int],
-  at : Int,
+  list_path : Array[Int32],
+  at : Int32,
   stmt : Stmt,
 ) -> Array[Stmt]? {
   let working = clone_stmts(body)
@@ -1115,7 +1115,10 @@ pub fn insert_stmt_at(
 /// 语句列表寻址：list_path 指向一棵语句列表（[] = 顶层；
 /// [i,0] = If@i 的 then；[i,1,k] = If@i 的第 k 个 else-if 臂；
 /// [i,2] = If@i 的 else 或循环体）。返回活数组引用。
-pub fn stmt_list_at(body : Array[Stmt], list_path : Array[Int]) -> Array[Stmt]? {
+pub fn stmt_list_at(
+  body : Array[Stmt],
+  list_path : Array[Int32],
+) -> Array[Stmt]? {
   if list_path.length() == 0 {
     return Some(body)
   }
@@ -1193,9 +1196,9 @@ pub fn stmt_list_at(body : Array[Stmt], list_path : Array[Int]) -> Array[Stmt]? 
 /// 视作原位——搬到自己内部没有意义，返回 `None` 让调用方当无操作处理。
 pub fn reorder_stack(
   body : Array[Stmt],
-  list_path : Array[Int],
-  from : Int,
-  drop_before : Int,
+  list_path : Array[Int32],
+  from : Int32,
+  drop_before : Int32,
 ) -> Array[Stmt]? {
   let working = clone_stmts(body)
   let list = match stmt_list_at(working, list_path) {
@@ -1267,9 +1270,9 @@ pub fn reorder_stack(
 /// from/to 越界或目标列表不存在返回 None。
 pub fn reorder_stmt(
   body : Array[Stmt],
-  list_path : Array[Int],
-  from : Int,
-  drop_before : Int,
+  list_path : Array[Int32],
+  from : Int32,
+  drop_before : Int32,
 ) -> Array[Stmt]? {
   let working = clone_stmts(body)
   let list = match stmt_list_at(working, list_path) {

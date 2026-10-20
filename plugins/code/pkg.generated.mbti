@@ -8,15 +8,15 @@ import {
 }
 
 // Values
-pub fn apply_completion(String, Int, String) -> (String, Int)
+pub fn apply_completion(String, Int32, String) -> (String, Int32)
 
 pub fn code_ui_feature() -> @core.Feature[CodeUiState, CodeUiMsg]
 
 pub fn completions_for(@studio_lang.Language, Array[@ir.Control], String, String) -> Array[String]
 
-pub fn declaration_line_of(@studio_lang.Language, String, Int) -> Int
+pub fn declaration_line_of(@studio_lang.Language, String, Int32) -> Int32
 
-pub fn dsl_indent_for_newline(@studio_lang.Language, String, Int) -> String
+pub fn dsl_indent_for_newline(@studio_lang.Language, String, Int32) -> String
 
 pub fn file_tab_label(String) -> String
 
@@ -26,22 +26,22 @@ pub fn split_line_texts(String) -> Array[String]
 
 pub fn update_code_ui(CodeUiState, CodeUiMsg) -> (CodeUiState, @core.Effect[CodeUiMsg])
 
-pub fn word_at_caret(String, Int) -> (String, Int)
+pub fn word_at_caret(String, Int32) -> (String, Int32)
 
 // Errors
 
 // Types and methods
 pub(all) enum CodeUiMsg {
-  CaretMoved(Int, @core.TextRange?)
+  CaretMoved(Int32, @core.TextRange?)
   Scrolled(Double)
   DismissCompletion
   SetCompletions(Array[String])
-  ApplyCompletion(Int)
-  GoToLine(Int, Double)
+  ApplyCompletion(Int32)
+  GoToLine(Int32, Double)
 }
 
 pub(all) struct CodeUiState {
-  mut caret : Int
+  mut caret : Int32
   mut selection : @core.TextRange?
   mut scroll : @core.Point
   mut completions : Array[String]

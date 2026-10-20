@@ -10,20 +10,20 @@
 pub const PROJECT_FORMAT : String = "moui.studio.project"
 
 ///|
-pub const PROJECT_VERSION : Int = 1
+pub const PROJECT_VERSION : Int32 = 1
 
 ///|
 /// 编码错误（界面层本地化）。
 pub(all) enum CodecError {
   InvalidJson
   BadFormat
-  UnsupportedVersion(Int)
+  UnsupportedVersion(Int32)
   MissingField(String)
   BadControlKind(String)
   BadEventKind(String)
   BadStatement(String)
   BadExpr(String)
-  LanguageIssue(String, Int)
+  LanguageIssue(String, Int32)
   Structural(@ir.IrError)
 }
 
@@ -36,7 +36,7 @@ fn json_string_field(fields : Map[String, Json], key : String) -> String? {
 }
 
 ///|
-fn json_int_field(fields : Map[String, Json], key : String) -> Int? {
+fn json_int_field(fields : Map[String, Json], key : String) -> Int32? {
   match fields.get(key) {
     Some(Number(n, ..)) => Some(n.to_int())
     _ => None
@@ -191,7 +191,7 @@ fn decode_props_inner(prop_fields : Map[String, Json]) -> @ir.ControlProps {
 }
 
 ///|
-fn prop_int_field(fields : Map[String, Json], key : String) -> Int? {
+fn prop_int_field(fields : Map[String, Json], key : String) -> Int32? {
   match fields.get(key) {
     Some(Number(value, ..)) => Some(value.to_int())
     _ => None

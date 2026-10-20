@@ -15,8 +15,8 @@ pub(all) struct CompileDiagnostic {
   severity : String // "error" | "warning"
   code : String // 例如 "4014"，无码时为空串
   file : String // 诊断里的文件路径（可能是绝对路径）
-  line : Int // 1-based；未知为 0
-  column : Int // 1-based；未知为 0
+  line : Int32 // 1-based；未知为 0
+  column : Int32 // 1-based；未知为 0
   text : String // 诊断正文（已去掉行号边框与装饰线）
 }
 
@@ -76,7 +76,7 @@ pub fn compile_phases() -> Array[CompilePhase] {
 
 ///|
 /// 阶段序号（1-based）：进度读数「第 N 步 / 共 M 步」。
-pub fn CompilePhase::ordinal(self : CompilePhase) -> Int {
+pub fn CompilePhase::ordinal(self : CompilePhase) -> Int32 {
   let mut index = 0
   for phase in compile_phases() {
     index = index + 1
@@ -89,7 +89,7 @@ pub fn CompilePhase::ordinal(self : CompilePhase) -> Int {
 
 ///|
 /// 阶段总数（进度条分母）。
-pub fn compile_phase_total() -> Int {
+pub fn compile_phase_total() -> Int32 {
   compile_phases().length()
 }
 
@@ -115,14 +115,14 @@ pub(all) struct CompileArtifact {
   kind : String // "native-exe" | "wasm" | "source"
   label : String // 人类可读名（"native 可执行" / "Web wasm 模块" …）
   path : String // 绝对路径
-  bytes : Int // 文件大小（0 = 未知/不存在）
+  bytes : Int32 // 文件大小（0 = 未知/不存在）
 }
 
 ///|
 /// 一次真编译的结果。
 pub(all) struct CompileReport {
   ok : Bool
-  exit_code : Int
+  exit_code : Int32
   target : String // "native" | "wasm-gc"
   source_path : String // 被检查的生成源码路径（可为空）
   output : String // 原始工具链输出（视图可展开）
@@ -276,7 +276,7 @@ fn header_code(header : StringView) -> String {
 
 ///|
 /// `╭─[ /abs/src/main.mbt:12:7 ]` → (path, line, col)。
-fn parse_location(probe : StringView) -> (String, Int, Int)? {
+fn parse_location(probe : StringView) -> (String, Int32, Int32)? {
   let open = match probe.find("[") {
     Some(index) => index
     None => return None
@@ -312,7 +312,7 @@ fn parse_location(probe : StringView) -> (String, Int, Int)? {
 
 ///|
 /// 十进制解析（诊断里的行列号一定是十进制；失败返回 0）。
-fn parse_decimal(text : StringView) -> Int {
+fn parse_decimal(text : StringView) -> Int32 {
   if text.is_empty() {
     return 0
   }

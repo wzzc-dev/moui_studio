@@ -10,7 +10,7 @@ import {
 // Values
 pub fn markdown_content_height(content~ : String, width~ : Double, font~ : @core.FontSpec) -> Double
 
-pub fn[Msg] markdown_document_info_panel_view(theme~ : @core.Theme, info~ : @moui_markdown.MarkdownDocumentInfo, word_count~ : Int, line_count~ : Int, reading_time_label~ : String, height~ : Double, width? : Double) -> @core.View[Msg]
+pub fn[Msg] markdown_document_info_panel_view(theme~ : @core.Theme, info~ : @moui_markdown.MarkdownDocumentInfo, word_count~ : Int32, line_count~ : Int32, reading_time_label~ : String, height~ : Double, width? : Double) -> @core.View[Msg]
 
 pub fn[Msg] markdown_file_view(content~ : String, on_input~ : (String) -> Msg, width~ : Double, height~ : Double, font~ : @core.FontSpec, foreground~ : @core.Color, placeholder_color~ : @core.Color, background~ : @core.Brush, cursor_color~ : @core.Color, key? : String) -> @core.View[Msg]
 
@@ -18,11 +18,11 @@ pub fn[Msg] markdown_find_bar_view(theme~ : @core.Theme, query~ : String, replac
 
 pub fn[Msg] markdown_format_palette_view(theme~ : @core.Theme, query~ : String, items~ : Array[@moui_markdown.MarkdownPaletteItem], on_query_input~ : (String) -> Msg, on_submit~ : Msg, on_action~ : (String) -> Msg, on_done~ : Msg, width~ : Double) -> @core.View[Msg]
 
-pub fn[Msg] markdown_outline_panel_view(theme~ : @core.Theme, outline~ : Array[@moui_richtext.MarkdownEditorOutlineItem], folded_starts~ : Array[Int], caret~ : Int, on_jump~ : (Int) -> Msg, on_toggle_fold~ : (Int) -> Msg, height~ : Double, width? : Double) -> @core.View[Msg]
+pub fn[Msg] markdown_outline_panel_view(theme~ : @core.Theme, outline~ : Array[@moui_richtext.MarkdownEditorOutlineItem], folded_starts~ : Array[Int32], caret~ : Int32, on_jump~ : (Int32) -> Msg, on_toggle_fold~ : (Int32) -> Msg, height~ : Double, width? : Double) -> @core.View[Msg]
 
 pub fn markdown_session_document_info(session~ : @moui_richtext.MarkdownDocumentSession) -> @moui_markdown.MarkdownDocumentInfo
 
-pub fn[Msg] markdown_session_file_view(session~ : @moui_richtext.MarkdownDocumentSession, selection~ : @moui_richtext.MarkdownEditorSelection, on_transaction~ : (@moui_richtext.MarkdownEditTransaction) -> Msg, on_selection_change~ : (Int, @core.TextRange?) -> Msg, width~ : Double, height~ : Double, font~ : @core.FontSpec, foreground~ : @core.Color, placeholder_color~ : @core.Color, background~ : @core.Brush, cursor_color~ : @core.Color, key? : String) -> @core.View[Msg]
+pub fn[Msg] markdown_session_file_view(session~ : @moui_richtext.MarkdownDocumentSession, selection~ : @moui_richtext.MarkdownEditorSelection, on_transaction~ : (@moui_richtext.MarkdownEditTransaction) -> Msg, on_selection_change~ : (Int32, @core.TextRange?) -> Msg, width~ : Double, height~ : Double, font~ : @core.FontSpec, foreground~ : @core.Color, placeholder_color~ : @core.Color, background~ : @core.Brush, cursor_color~ : @core.Color, key? : String) -> @core.View[Msg]
 
 pub fn markdown_session_find_matches(source~ : String, query~ : String, options~ : @moui_markdown.MarkdownFindOptions) -> Array[@core.TextRange]
 

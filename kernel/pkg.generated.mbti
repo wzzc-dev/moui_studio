@@ -41,7 +41,7 @@ pub(all) struct ActivityItem[Model, Msg] {
 pub(all) struct BottomTab[Model, Msg] {
   id : String
   label_key : String
-  badge : (Model) -> Int
+  badge : (Model) -> Int32
   selected : (Model) -> Bool
   on_select : (Model) -> Msg
   render_body : (Model, Double, Double) -> @core.View[Msg]
@@ -81,7 +81,7 @@ pub fn HighlightService::new() -> Self
 pub fn HighlightService::register(Self, Highlighter) -> Unit
 
 pub(all) struct HighlightToken {
-  start : Int
+  start : Int32
   text : String
   kind : HighlightKind
 }
@@ -112,7 +112,7 @@ pub(all) struct PluginDescriptor {
 }
 
 pub(all) struct PreviewWebControls[Msg] {
-  port : Int
+  port : Int32
   set_directory : (String) -> Unit
   navigate : (String) -> @core.Effect[Msg]
   reload : () -> @core.Effect[Msg]
@@ -132,10 +132,10 @@ pub(all) struct ProviderRequestSpec {
 
 pub(all) struct PtyService[Msg] {
   available : Bool
-  spawn : (Int, Int, (String) -> Msg, () -> Msg, (Msg) -> Unit) -> Int?
-  write : (Int, String) -> Unit
-  resize : (Int, Int, Int) -> Unit
-  kill : (Int) -> Unit
+  spawn : (Int32, Int32, (String) -> Msg, () -> Msg, (Msg) -> Unit) -> Int32?
+  write : (Int32, String) -> Unit
+  resize : (Int32, Int32, Int32) -> Unit
+  kill : (Int32) -> Unit
 }
 pub fn[Msg] PtyService::unavailable() -> Self[Msg]
 

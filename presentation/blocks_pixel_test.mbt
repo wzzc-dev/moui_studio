@@ -122,10 +122,10 @@ test "blocks workbench rasterizes bottom bar, right panel and status bar" {
 /// 把当前帧离屏栅格化，断言 [x0,x1)×[y0,y1) 内明暗极差超过阈值。
 fn contrast_gate(
   runtime : @runtime.AppRuntime,
-  x0 : Int,
-  y0 : Int,
-  x1 : Int,
-  y1 : Int,
+  x0 : Int32,
+  y0 : Int32,
+  x1 : Int32,
+  y1 : Int32,
   label : String,
 ) -> Unit raise {
   let captured : Ref[@render_skia.SkiaPixelFrame?] = Ref(None)

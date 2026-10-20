@@ -24,7 +24,7 @@ fn main {
 }
 
 ///|
-fn run(source_path : String, app_name : String, target_dir : String) -> Int {
+fn run(source_path : String, app_name : String, target_dir : String) -> Int32 {
   let source = @x/fs.read_file_to_string(source_path) catch {
     _ => {
       println("cannot read \{source_path}")

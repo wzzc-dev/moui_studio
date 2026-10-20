@@ -20,7 +20,7 @@
 pub(all) struct TextSegment {
   text : String
   /// 该段对应的表达式路径；`None` = 纯字面文本（不是洞）
-  expr_path : Array[Int]?
+  expr_path : Array[Int32]?
   /// 该段是否画成**插槽**（圆角凹槽背景）。文本段为 `false`。
   is_slot : Bool
   /// 字段访问胶囊（M7②）：表达式是 FieldAccess 的洞画成**胶囊**
@@ -122,7 +122,7 @@ fn push_literal(segments : Array[TextSegment], text : String) -> Unit {
 pub fn push_slot(
   segments : Array[TextSegment],
   expr : Expr,
-  path : Array[Int],
+  path : Array[Int32],
 ) -> Unit {
   // **值是叶子，其余都是洞**：字面量与变量名是可直接读取的值（点它们是
   // 改值/看值），而运算、调用、索引是**能再塞一块积木**的凹槽。
@@ -149,7 +149,7 @@ pub fn push_slot(
 ///|
 /// 一段的**像素宽度**由其文本与字体决定，绘制层用注入的度量函数算。
 /// 这里给出纯结构的**总段数**与**插槽数**，供测试与命中层快速判定。
-pub fn segments_slot_count(segments : Array[TextSegment]) -> Int {
+pub fn segments_slot_count(segments : Array[TextSegment]) -> Int32 {
   let mut count = 0
   for segment in segments {
     if segment.is_slot {

@@ -22,7 +22,7 @@ pub(all) enum MarkdownInline {
 /// 块模型：解析产物（渲染层的唯一输入）。
 pub(all) enum MarkdownBlock {
   /// 1-3 级标题 + 文本（去掉 # 前缀后的内容）
-  MbHeading(Int, String)
+  MbHeading(Int32, String)
   /// 段落（一段连续普通文本的行内片段序列）
   MbParagraph(Array[MarkdownInline])
   /// 无序列表：每项一组行内片段
@@ -224,7 +224,7 @@ fn first_word(text : String) -> String {
 
 ///|
 /// 丢掉前 n 个字符后的剩余文本（无内建 substring 依赖，逐字符重建）。
-fn drop_chars(text : String, n : Int) -> String {
+fn drop_chars(text : String, n : Int32) -> String {
   let buf = StringBuilder()
   let mut index = 0
   for c in text {
@@ -266,7 +266,7 @@ fn is_rule(line : String) -> Bool {
 
 ///|
 /// 标题前缀：返回 # 的个数（无 # 前缀返回 None）。
-fn starts_with_hashes(line : String) -> Int? {
+fn starts_with_hashes(line : String) -> Int32? {
   let trimmed = line.trim().to_owned()
   if !trimmed.has_prefix("#") {
     return None
@@ -283,7 +283,7 @@ fn starts_with_hashes(line : String) -> Int? {
 }
 
 ///|
-fn strip_hashes(line : String, level : Int) -> String {
+fn strip_hashes(line : String, level : Int32) -> String {
   let trimmed = line.trim().to_owned()
   // 跳过 level 个 # 后再 trim 一层空格
   drop_chars(trimmed, level).trim().to_owned()

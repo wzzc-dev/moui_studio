@@ -39,7 +39,7 @@ pub fn kernel_studio_lang_printer_mbt() -> String {
     #|fn write_stmts(
     #|  buf : StringBuilder,
     #|  body : Array[Stmt],
-    #|  indent : Int,
+    #|  indent : Int32,
     #|  language : Language,
     #|) -> Unit {
     #|  let keywords = keywords_for(language)
@@ -51,7 +51,7 @@ pub fn kernel_studio_lang_printer_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn write_indent(buf : StringBuilder, indent : Int) -> Unit {
+    #|fn write_indent(buf : StringBuilder, indent : Int32) -> Unit {
     #|  for _ in 0..<indent {
     #|    buf.write_string("  ")
     #|  }
@@ -61,7 +61,7 @@ pub fn kernel_studio_lang_printer_mbt() -> String {
     #|fn write_stmt(
     #|  buf : StringBuilder,
     #|  stmt : Stmt,
-    #|  indent : Int,
+    #|  indent : Int32,
     #|  keywords : Keywords,
     #|  language : Language,
     #|) -> Unit {
@@ -171,7 +171,7 @@ pub fn kernel_studio_lang_printer_mbt() -> String {
     #|///|
     #|/// 优先级（数字越大绑得越紧）：或 1 / 且 2 / 比较 3 / 加减 4 / 乘除 5 /
     #|/// 一元 6 / 初等 7。右子节点同优先级要加括号（左结合）。
-    #|fn expr_precedence(expr : Expr) -> Int {
+    #|fn expr_precedence(expr : Expr) -> Int32 {
     #|  match expr {
     #|    @ir.Binary(@ir.Or, _, _) => 1
     #|    @ir.Binary(@ir.And, _, _) => 2
@@ -198,7 +198,7 @@ pub fn kernel_studio_lang_printer_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn needs_parens(expr : Expr, parent_prec : Int, is_right : Bool) -> Bool {
+    #|fn needs_parens(expr : Expr, parent_prec : Int32, is_right : Bool) -> Bool {
     #|  let prec = expr_precedence(expr)
     #|  if prec < parent_prec {
     #|    true
@@ -213,7 +213,7 @@ pub fn kernel_studio_lang_printer_mbt() -> String {
     #|fn write_expr(
     #|  buf : StringBuilder,
     #|  expr : Expr,
-    #|  parent_prec : Int,
+    #|  parent_prec : Int32,
     #|  is_right : Bool,
     #|  keywords : Keywords,
     #|  language : Language,
@@ -422,7 +422,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|///|
     #|/// 审计记录：一行一句人话（detail 是语言中立的规范形式，界面层本地化）。
     #|pub(all) struct StepRecord {
-    #|  line : Int
+    #|  line : Int32
     #|  op : StepOp
     #|  detail : String
     #|}
@@ -430,7 +430,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|///|
     #|pub(all) enum Value {
     #|  VNum(Double)
-    #|  VInt(Int)
+    #|  VInt(Int32)
     #|  VStr(String)
     #|  VArr(Array[Value])
     #|  VBool(Bool)
@@ -460,40 +460,40 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  SetIndexVar(String, Expr, Expr)
     #|  ReturnInstr(Expr?)
     #|  ExprStmt(Expr)
-    #|  JumpIfFalse(Expr, Int)
-    #|  Jump(Int)
-    #|  LoopInit(Expr, String, Int) // 次数表达式, 计数器槽, 循环结束目标
-    #|  LoopCheck(String, String, Int) // 计数器槽, 循环变量(""=无), 循环结束目标
-    #|  LoopNext(String, Int) // 计数器槽, 循环开始目标
+    #|  JumpIfFalse(Expr, Int32)
+    #|  Jump(Int32)
+    #|  LoopInit(Expr, String, Int32) // 次数表达式, 计数器槽, 循环结束目标
+    #|  LoopCheck(String, String, Int32) // 计数器槽, 循环变量(""=无), 循环结束目标
+    #|  LoopNext(String, Int32) // 计数器槽, 循环开始目标
     #|  // ForEach（G7.1）:列表表达式求值一次存隐藏槽（`@i{n}#l`,内部槽命名
     #|  // 纪律使其不进终值比对）,计数器逐个索引
-    #|  FeInit(Expr, String, Int) // 列表表达式, 计数器槽, 循环结束目标
-    #|  FeCheck(String, String, Int) // 计数器槽, 元素变量, 循环结束目标
-    #|  CaseOf(Expr, Array[String], Array[Int], Int) // subject, 情况名, 各臂跳转目标, else 目标（M5-5d）
+    #|  FeInit(Expr, String, Int32) // 列表表达式, 计数器槽, 循环结束目标
+    #|  FeCheck(String, String, Int32) // 计数器槽, 元素变量, 循环结束目标
+    #|  CaseOf(Expr, Array[String], Array[Int32], Int32) // subject, 情况名, 各臂跳转目标, else 目标（M5-5d）
     #|}
     #|
     #|///|
     #|pub(all) struct Plan {
     #|  instrs : Array[Instr]
-    #|  lines : Array[Int]
+    #|  lines : Array[Int32]
     #|}
     #|
     #|///|
     #|pub(all) struct RunState {
     #|  mut plan : Plan
-    #|  mut pc : Int
+    #|  mut pc : Int32
     #|  mut vars : Map[String, Value]
     #|  texts : Map[String, String]
     #|  rows : Map[String, Array[String]]
-    #|  selections : Map[String, Int]
+    #|  selections : Map[String, Int32]
     #|  messages : Array[String]
     #|  audit : Array[StepRecord]
     #|  mut status : RunStatus
     #|  mut gate : Gate?
     #|  mut error : LangError?
-    #|  mut steps : Int
-    #|  max_steps : Int
-    #|  mut rng : Int
+    #|  mut steps : Int32
+    #|  max_steps : Int32
+    #|  mut rng : Int32
     #|  gate_answers : Array[Bool]
     #|  /// `询问` 的**回答文本**（与 `gate_answers` 一一对应）。
     #|  ///
@@ -504,34 +504,34 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  /// 最近一次 `询问` 的回答（Scratch 的 `回答` 报告块读取它）。
     #|  mut last_answer : String
     #|  mut declared : Array[String]
-    #|  mut gate_cursor : Int
+    #|  mut gate_cursor : Int32
     #|  mut paused : Bool
     #|  /// `等待 N 秒` 的**剩余 tick 数**（0 = 没在等）。
     #|  ///
     #|  /// 用 tick 计数而不是墙钟：解释器是**纯函数式状态机**（测试不碰 UI），
     #|  /// 读真实时间会让同一程序两次运行结果不同。宿主每个 `RunTick` 调一次
     #|  /// `tick_wait`，减到 0 才继续执行下一条语句。
-    #|  mut wait_ticks : Int
+    #|  mut wait_ticks : Int32
     #|  // 广播总线（切片 G）：`广播(文案)` 入队，宿主事件收尾时排空——
     #|  // 每个 on_broadcast 窗体级处理器依次收到一条
     #|  mut broadcasts : Array[String]
     #|  // 用户自定义函数（切片 F）：调用解析与帧执行
     #|  functions : Array[@ir.FuncDef]
-    #|  mut call_depth : Int
+    #|  mut call_depth : Int32
     #|  mut return_slot : Value?
     #|}
     #|
     #|///|
     #|/// 默认步数预算：防死循环冻结 UI。
-    #|pub const DEFAULT_MAX_STEPS : Int = 100_000
+    #|pub const DEFAULT_MAX_STEPS : Int32 = 100_000
     #|
     #|///|
     #|/// 用户函数调用深度上限（防失控递归；步数预算之外的第二道闸）。
-    #|pub const MAX_CALL_DEPTH : Int = 16
+    #|pub const MAX_CALL_DEPTH : Int32 = 16
     #|
     #|///|
     #|/// 默认随机种子（两轨同口径：编译轨的 RANDOM_SEED 是同一个数）。
-    #|pub const DEFAULT_SEED : Int = 20260927
+    #|pub const DEFAULT_SEED : Int32 = 20260927
     #|
     #|///|
     #|/// 推进一格 xorshift 种子（与 `random` 内建同一递推）。
@@ -541,7 +541,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|/// （实测点名册每次都是「王五」），用户读到的现象就是「运行之后点按钮
     #|/// 没反应」。宿主把上次的种子推进一格再交给下一次事件，随机序列因此跨
     #|/// 事件连续；事件内部的多次 `random` 照常各自推进。
-    #|pub fn next_seed(seed : Int) -> Int {
+    #|pub fn next_seed(seed : Int32) -> Int32 {
     #|  let mut next = if seed <= 0 { DEFAULT_SEED } else { seed % 2147483647 }
     #|  next = next ^ ((next << 13) & 2147483647)
     #|  next = next ^ (next >> 17)
@@ -643,9 +643,9 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  texts : Map[String, String],
     #|  values : Map[String, Value],
     #|  rows : Map[String, Array[String]],
-    #|  max_steps? : Int = DEFAULT_MAX_STEPS,
-    #|  seed? : Int = DEFAULT_SEED,
-    #|  functions? : Array[@ir.FuncDef] = [],
+    #|  max_steps~ : Int32 = DEFAULT_MAX_STEPS,
+    #|  seed~ : Int32 = DEFAULT_SEED,
+    #|  functions~ : Array[@ir.FuncDef] = [],
     #|) -> RunState {
     #|  RunState::{
     #|    plan: compile_body(body),
@@ -687,9 +687,9 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  texts : Map[String, String],
     #|  values : Map[String, Value],
     #|  rows : Map[String, Array[String]],
-    #|  max_steps? : Int = DEFAULT_MAX_STEPS,
-    #|  seed? : Int = DEFAULT_SEED,
-    #|  functions? : Array[@ir.FuncDef] = [],
+    #|  max_steps~ : Int32 = DEFAULT_MAX_STEPS,
+    #|  seed~ : Int32 = DEFAULT_SEED,
+    #|  functions~ : Array[@ir.FuncDef] = [],
     #|) -> RunState {
     #|  start_run(
     #|    traced_from_stmts(body),
@@ -706,7 +706,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|/// 执行到断点行或终止态（G7.4）：逐条 step,当前源码行命中断点集即停
     #|/// （状态保持 Running,由调用方以 single_step 语义接管）。返回是否因
     #|/// 命中断点而停（false = 跑到终止态）。
-    #|pub fn run_to_breakpoint(state : RunState, breakpoints : Array[Int]) -> Bool {
+    #|pub fn run_to_breakpoint(state : RunState, breakpoints : Array[Int32]) -> Bool {
     #|  let mut budget = state.max_steps + 64
     #|  while state.status is Running && budget > 0 {
     #|    // 先看下一条指令的源码行:命中断点即停（还没执行它）
@@ -1027,7 +1027,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|fn RunState::lookup_number(
     #|  self : RunState,
     #|  name : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Double raise LangError {
     #|  match self.vars.get(name) {
     #|    Some(VNum(n)) => n
@@ -1042,7 +1042,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  _self : RunState,
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Bool raise LangError {
     #|  match value {
     #|    VBool(flag) => flag
@@ -1059,7 +1059,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  self : RunState,
     #|  func : @ir.FuncDef,
     #|  arg_values : Array[Value],
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise LangError {
     #|  if self.call_depth >= MAX_CALL_DEPTH {
     #|    raise LangError(StepBudget, line, "call depth", "\{MAX_CALL_DEPTH}")
@@ -1166,7 +1166,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  _self : RunState,
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> String raise LangError {
     #|  match value {
     #|    VUnit => raise LangError(TypeMismatch, line, role, "text")
@@ -1180,7 +1180,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|fn RunState::control_name(
     #|  self : RunState,
     #|  arg : Expr,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> String raise LangError {
     #|  match arg {
     #|    @ir.Var(name) => name
@@ -1194,7 +1194,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|fn RunState::eval(
     #|  self : RunState,
     #|  expr : Expr,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise LangError {
     #|  match expr {
     #|    @ir.NumLit(n) => VNum(n)
@@ -1265,7 +1265,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  self : RunState,
     #|  expr : Expr,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Double raise LangError {
     #|  match self.eval(expr, line) {
     #|    VNum(n) => n
@@ -1280,7 +1280,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  op : BinOp,
     #|  left : Expr,
     #|  right : Expr,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise LangError {
     #|  if op is @ir.And || op is @ir.Or {
     #|    let l = self.as_bool(self.eval(left, line), "logic operand", line)
@@ -1423,7 +1423,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  base : Value,
     #|  index : Value,
     #|  value : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Unit raise LangError {
     #|  let items = match base {
     #|    VArr(items) => items
@@ -1446,7 +1446,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  _self : RunState,
     #|  base : Value,
     #|  index : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise LangError {
     #|  // **字符串也能按下标取字符**（Scratch 的「第 N 个字符」）。
     #|  // 1-based，与列表一致：`"abc"[1]` = `"a"`。越界报错而不是返回空串
@@ -1489,7 +1489,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  _self : RunState,
     #|  l : Value,
     #|  r : Value,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Bool raise LangError {
     #|  match (l, r) {
     #|    (VNum(a), VNum(b)) => a == b
@@ -1509,7 +1509,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  self : RunState,
     #|  name : String,
     #|  args : Array[Expr],
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise LangError {
     #|  match find_builtin(name) {
     #|    None => {
@@ -1560,7 +1560,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  self : RunState,
     #|  spec : BuiltinSpec,
     #|  args : Array[Expr],
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise LangError {
     #|  let prompt = if spec.id == "submit_data" {
     #|    self.control_name(args[1], line)
@@ -1627,7 +1627,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  self : RunState,
     #|  spec : BuiltinSpec,
     #|  args : Array[Expr],
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise LangError {
     #|  match spec.id {
     #|    "wait" => {
@@ -1815,7 +1815,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|fn list_items_of(
     #|  state : RunState,
     #|  arg : @ir.Expr,
-    #|  line : Int,
+    #|  line : Int32,
     #|  op : String,
     #|) -> Array[Value] raise LangError {
     #|  match arg {
@@ -1835,7 +1835,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  self : RunState,
     #|  spec : BuiltinSpec,
     #|  args : Array[Expr],
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Value raise LangError {
     #|  match spec.id {
     #|    "get_text" => {
@@ -2128,7 +2128,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|/// 嵌套语句沿用外层 Trace 行号（IR 树本身不存行号）。
     #|fn compile_body(body : Array[TracedStmt]) -> Plan {
     #|  let instrs : Array[Instr] = []
-    #|  let lines : Array[Int] = []
+    #|  let lines : Array[Int32] = []
     #|  emit_stmts(instrs, lines, body, [])
     #|  Plan::{ instrs, lines, }
     #|}
@@ -2136,9 +2136,9 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|///|
     #|fn emit_stmts(
     #|  instrs : Array[Instr],
-    #|  lines : Array[Int],
+    #|  lines : Array[Int32],
     #|  body : Array[TracedStmt],
-    #|  break_patches : Array[Array[Int]],
+    #|  break_patches : Array[Array[Int32]],
     #|) -> Unit {
     #|  for traced in body {
     #|    emit_stmt(instrs, lines, traced.stmt, traced.line, break_patches)
@@ -2149,10 +2149,10 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|/// 无 Trace 的语句块（IR 内嵌体）：统一用外层行号。
     #|fn emit_body(
     #|  instrs : Array[Instr],
-    #|  lines : Array[Int],
+    #|  lines : Array[Int32],
     #|  body : Array[Stmt],
-    #|  line : Int,
-    #|  break_patches : Array[Array[Int]],
+    #|  line : Int32,
+    #|  break_patches : Array[Array[Int32]],
     #|) -> Unit {
     #|  for stmt in body {
     #|    emit_stmt(instrs, lines, stmt, line, break_patches)
@@ -2162,10 +2162,10 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|///|
     #|fn emit_stmt(
     #|  instrs : Array[Instr],
-    #|  lines : Array[Int],
+    #|  lines : Array[Int32],
     #|  stmt : Stmt,
-    #|  line : Int,
-    #|  break_patches : Array[Array[Int]],
+    #|  line : Int32,
+    #|  break_patches : Array[Array[Int32]],
     #|) -> Unit {
     #|  match stmt {
     #|    @ir.Declare(name, expr) => {
@@ -2201,12 +2201,12 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|      instrs.push(JumpIfFalse(cond, -1))
     #|      lines.push(line)
     #|      emit_body(instrs, lines, then_body, line, break_patches)
-    #|      let end_jumps : Array[Int] = []
+    #|      let end_jumps : Array[Int32] = []
     #|      let then_jump = instrs.length()
     #|      instrs.push(Jump(-1))
     #|      lines.push(line)
     #|      end_jumps.push(then_jump)
-    #|      let arm_cond_slots : Array[Int] = []
+    #|      let arm_cond_slots : Array[Int32] = []
     #|      for arm in else_ifs {
     #|        let slot = instrs.length()
     #|        instrs.push(JumpIfFalse(arm.0, -1))
@@ -2250,7 +2250,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|    @ir.Match(subject, arms, else_body) => {
     #|      // 单次求值：subject 只在分派指令里求值一次（M5-5d）
     #|      let case_names : Array[String] = []
-    #|      let open_targets : Array[Int] = []
+    #|      let open_targets : Array[Int32] = []
     #|      for arm in arms {
     #|        case_names.push(arm.case_name)
     #|        open_targets.push(-1)
@@ -2258,8 +2258,8 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|      let dispatch_slot = instrs.length()
     #|      instrs.push(CaseOf(subject, case_names, open_targets, -1))
     #|      lines.push(line)
-    #|      let body_starts : Array[Int] = []
-    #|      let end_jumps : Array[Int] = []
+    #|      let body_starts : Array[Int32] = []
+    #|      let end_jumps : Array[Int32] = []
     #|      for arm in arms {
     #|        body_starts.push(instrs.length())
     #|        emit_body(instrs, lines, arm.body, line, break_patches)
@@ -2298,7 +2298,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|      }
     #|      instrs.push(LoopCheck(counter, loop_var_name, -1))
     #|      lines.push(line)
-    #|      let patches : Array[Array[Int]] = []
+    #|      let patches : Array[Array[Int32]] = []
     #|      for existing in break_patches {
     #|        patches.push(existing)
     #|      }
@@ -2333,7 +2333,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|      let check_slot = start
     #|      instrs.push(FeCheck(counter, loop_var, -1))
     #|      lines.push(line)
-    #|      let patches : Array[Array[Int]] = []
+    #|      let patches : Array[Array[Int32]] = []
     #|      for existing in break_patches {
     #|        patches.push(existing)
     #|      }
@@ -2365,7 +2365,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|      let cond_slot = start
     #|      instrs.push(JumpIfFalse(cond, -1))
     #|      lines.push(line)
-    #|      let patches : Array[Array[Int]] = []
+    #|      let patches : Array[Array[Int32]] = []
     #|      for existing in break_patches {
     #|        patches.push(existing)
     #|      }
@@ -2407,7 +2407,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|///
     #|/// 向上取整并保底 1：`等待 0.01 秒` 在 30ms 帧率下也应该**至少等一帧**，
     #|/// 否则「等待」会退化成「什么都不做」，用户看到的是「这句没生效」。
-    #|pub fn wait_ticks_for_seconds(seconds : Double) -> Int {
+    #|pub fn wait_ticks_for_seconds(seconds : Double) -> Int32 {
     #|  let ticks = (seconds * 1000.0 / 30.0).ceil().to_int()
     #|  if ticks < 1 {
     #|    1
@@ -2421,7 +2421,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|fn number_of_value(
     #|  value : Value,
     #|  role : String,
-    #|  line : Int,
+    #|  line : Int32,
     #|) -> Double raise LangError {
     #|  match value {
     #|    VNum(n) => n
@@ -2463,7 +2463,7 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|
     #|///|
     #|/// 四舍五入到整数（.5 向上，与 Scratch 一致）。
-    #|fn round_to_int(value : Double) -> Int {
+    #|fn round_to_int(value : Double) -> Int32 {
     #|  floor_of(value + 0.5).to_int()
     #|}
     #|
@@ -2908,7 +2908,7 @@ pub fn kernel_studio_lang_semantics_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn is_control_name_arg(name : String, index : Int, arg : Expr) -> Bool {
+    #|fn is_control_name_arg(name : String, index : Int32, arg : Expr) -> Bool {
     #|  let target_slot = index == 0 &&
     #|    (
     #|      name == "set_text" ||

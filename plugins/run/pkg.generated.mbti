@@ -14,7 +14,7 @@ import {
 // Values
 pub fn compile_active_phase(Array[@export.CompileProgress]) -> @export.CompilePhase?
 
-pub fn compile_progress_counts(Array[@export.CompileProgress]) -> (Int, Int)
+pub fn compile_progress_counts(Array[@export.CompileProgress]) -> (Int32, Int32)
 
 pub fn compile_step_state(Array[@export.CompileProgress], @export.CompilePhase) -> Bool?
 
@@ -22,23 +22,23 @@ pub fn[Msg] compiled_run_header(CompileViewsParams[Msg], @moui_i18n.Translator) 
 
 pub fn draw_command_from_json(Json) -> Result[@core.DrawCommand, String]
 
-pub fn find_literal_span(String, String) -> (Int, Int)?
+pub fn find_literal_span(String, String) -> (Int32, Int32)?
 
 pub fn middle_ellipsis(String, Double) -> String
 
 pub fn parse_preview_frame(String) -> Result[PreviewFrame, String]
 
-pub fn[Msg] preview_replay_canvas(PreviewFrame, Int?, Double, on_select~ : (Int) -> Msg) -> @core.View[Msg]
+pub fn[Msg] preview_replay_canvas(PreviewFrame, Int32?, Double, on_select~ : (Int32) -> Msg) -> @core.View[Msg]
 
 pub fn run_ui_feature() -> @core.Feature[RunUiState, RunUiMsg]
 
-pub fn semantic_hit_index(Array[SemanticHitNode], Double, Double) -> Int
+pub fn semantic_hit_index(Array[SemanticHitNode], Double, Double) -> Int32
 
 pub fn semantic_hit_nodes(PreviewFrame) -> Array[SemanticHitNode]
 
 pub fn semantic_label_patch_task(@services.FileServices, SemanticPatchRequest) -> @services.ServiceTask[Result[String, String]]
 
-pub fn[Msg] semantic_property_strip(PreviewFrame?, Int?, String, @moui_i18n.Translator, Double, on_label_input~ : (String) -> Msg, on_label_commit~ : Msg) -> @core.View[Msg]
+pub fn[Msg] semantic_property_strip(PreviewFrame?, Int32?, String, @moui_i18n.Translator, Double, on_label_input~ : (String) -> Msg, on_label_commit~ : Msg) -> @core.View[Msg]
 
 pub fn update_run_ui(RunUiState, RunUiMsg) -> (RunUiState, @core.Effect[RunUiMsg])
 
@@ -58,7 +58,7 @@ pub(all) struct CompileViewsParams[Msg] {
   on_run_artifact : (String) -> Msg
   on_copy_path : (String) -> Msg
   on_reveal : (String) -> Msg
-  on_jump : (Int) -> Msg
+  on_jump : (Int32) -> Msg
 }
 
 pub(all) struct CompiledRun {
@@ -68,7 +68,7 @@ pub(all) struct CompiledRun {
 }
 
 pub(all) struct PreviewFrame {
-  version : Int
+  version : Int32
   width : Double
   height : Double
   commands : Array[@core.DrawCommand]

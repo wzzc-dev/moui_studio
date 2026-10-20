@@ -202,7 +202,7 @@ fn all_outputs() -> Array[(String, String)] raise {
 }
 
 ///|
-fn check_mode() -> Int raise {
+fn check_mode() -> Int32 raise {
   let mut ok = true
   for pair in all_outputs() {
     let output = resolve_write_path(pair.0)
@@ -229,7 +229,7 @@ fn check_mode() -> Int raise {
 }
 
 ///|
-fn write_mode() -> Int raise {
+fn write_mode() -> Int32 raise {
   let mut count = 0
   for pair in all_outputs() {
     let output = resolve_write_path(pair.0)

@@ -27,7 +27,7 @@ pub(all) struct Observation {
   gate_prompt : String
   gate_payload : String
   error_kind : String
-  error_line : Int
+  error_line : Int32
   texts : Array[(String, String)]
   vars : Array[(String, String)]
   audit : Array[String]
@@ -60,7 +60,7 @@ pub fn compiled_value_text(value : @compiled_runtime.Value) -> String {
 
 ///|
 /// 审计操作类型序号：两轨 StepOp 枚举同构，用同一张表归一化。
-pub fn interp_op_rank(op : @studio_lang.StepOp) -> Int {
+pub fn interp_op_rank(op : @studio_lang.StepOp) -> Int32 {
   match op {
     @studio_lang.OpAssign => 0
     @studio_lang.OpMessage => 1
@@ -72,7 +72,7 @@ pub fn interp_op_rank(op : @studio_lang.StepOp) -> Int {
 }
 
 ///|
-pub fn compiled_op_rank(op : @compiled_runtime.StepOp) -> Int {
+pub fn compiled_op_rank(op : @compiled_runtime.StepOp) -> Int32 {
   match op {
     @compiled_runtime.OpAssign => 0
     @compiled_runtime.OpMessage => 1
@@ -241,7 +241,7 @@ pub fn observe_interp(
   body : Array[@studio_lang.TracedStmt],
   program : @ir.StudioProgram,
   gate_answers : Array[Bool],
-  seed? : Int = 20260927,
+  seed~ : Int32 = 20260927,
 ) -> Observation {
   let state = @studio_lang.start_run(
     body,
@@ -289,7 +289,7 @@ pub fn observe_compiled(
   body : Array[@studio_lang.TracedStmt],
   program : @ir.StudioProgram,
   gate_answers : Array[Bool],
-  seed? : Int = 20260927,
+  seed~ : Int32 = 20260927,
 ) -> Observation {
   let runtime = @compiled_runtime.runtime_for_program(program)
   let handler = @compiled_runtime.lower_traced_handler(body)

@@ -4,12 +4,12 @@
 /// 「定点修改」的统一形状：add/update/remove 三态 diff。
 
 ///|
-pub const PROPOSAL_VERSION : Int = 1
+pub const PROPOSAL_VERSION : Int32 = 1
 
 ///|
 /// 提案：对当前程序的一组受约束修改。summary 双语必填（说清做了什么）。
 pub(all) struct ProposalV1 {
-  version : Int
+  version : Int32
   summary_zh : String
   summary_en : String
   window : @ir.WindowSpec?
@@ -36,7 +36,7 @@ pub(all) struct HandlerRef {
 /// 提案错误（界面层本地化）。
 pub(all) enum ProposalError {
   InvalidJson
-  BadVersion(Int)
+  BadVersion(Int32)
   MissingField(String)
   BadControlKind(String)
   BadEventKind(String)
@@ -59,7 +59,7 @@ fn json_string_field(fields : Map[String, Json], key : String) -> String? {
 }
 
 ///|
-fn json_int_field(fields : Map[String, Json], key : String) -> Int? {
+fn json_int_field(fields : Map[String, Json], key : String) -> Int32? {
   match fields.get(key) {
     Some(Number(n, ..)) => Some(n.to_int())
     _ => None

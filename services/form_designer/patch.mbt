@@ -7,8 +7,8 @@
 /// 数字字面量补丁:把 source 中 [start, end) 替换为 formatted。
 pub fn apply_number_patch(
   source : String,
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
   formatted : String,
 ) -> String {
   if start < 0 || end > source.length() || start > end {
@@ -59,8 +59,8 @@ pub fn apply_control_patch(
 /// 文本字面量补丁:span 含引号,替换为 `"escaped"`。
 pub fn apply_text_patch(
   source : String,
-  text_span : Int,
-  text_len : Int,
+  text_span : Int32,
+  text_len : Int32,
   new_text : String,
 ) -> String {
   if text_span < 0 || text_len <= 0 {
@@ -77,7 +77,7 @@ pub fn apply_text_patch(
 
 ///|
 /// span 起点处数字字面量的长度(到非数字字符止)。
-pub fn number_len(source : String, start : Int) -> Int {
+pub fn number_len(source : String, start : Int32) -> Int32 {
   let chars : Array[Char] = []
   for c in source {
     chars.push(c)

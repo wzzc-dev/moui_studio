@@ -8,7 +8,7 @@
 /// 读跨域真相；触发补全由壳算完候选后经 `SetCompletions` 回写本切片。
 pub(all) struct CodeUiState {
   /// 受控编辑器回传的光标/选区（切换 tab 恢复，不串台）。
-  mut caret : Int
+  mut caret : Int32
   mut selection : @core.TextRange?
   /// 「行号槽 / IR 竖尺 ↔ 编辑面」同步滚动的唯一事实。
   mut scroll : @geometry.Point
@@ -32,15 +32,15 @@ pub fn CodeUiState::new() -> CodeUiState {
 ///|
 /// 代码编辑器 UI 域消息：只承载纯界面态。
 pub(all) enum CodeUiMsg {
-  CaretMoved(Int, @core.TextRange?)
+  CaretMoved(Int32, @core.TextRange?)
   Scrolled(Double)
   DismissCompletion
   /// 内部回写：壳 TriggerCompletion 算完候选词后落进切片。
   SetCompletions(Array[String])
   /// 采纳补全后的 UI 结果：推进光标、清选区、关弹层（代码草稿由壳回写）。
-  ApplyCompletion(Int)
+  ApplyCompletion(Int32)
   /// 跳到声明/问题行的 UI 结果：钉光标、清选区、滚动对齐（目标由壳算）。
-  GoToLine(Int, Double)
+  GoToLine(Int32, Double)
 }
 
 ///|

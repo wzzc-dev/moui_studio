@@ -58,13 +58,13 @@ pub(all) struct AiViewParams[Msg] {
   model_picker_open : Bool
   /// 计划卡的积木计数（None = 不显示芯片）。由壳在提案 apply 后从
   /// `block_chain` 行数投影。
-  plan_block_count : Int?
+  plan_block_count : Int32?
   explanation : String
   prompt_error : String
   pending : PendingProposal?
   transcript_follow : Bool
   transcript_scroll : @geometry.Point
-  transcript_scroll_seq : Int
+  transcript_scroll_seq : Int32
   /// 当前工程名（None = 默认工程标签）。
   project_name : String?
   /// 上下文芯片选中对象读数（name / kind；name 可能为「未选中对象」）。
@@ -84,16 +84,16 @@ pub(all) struct AiViewParams[Msg] {
   on_toggle_history : Msg
   on_accept : Msg
   on_reject : Msg
-  on_copy : (Int) -> Msg
+  on_copy : (Int32) -> Msg
   /// 块级复制（代码块的复制钮）：(卡 seq, 块下标)。
-  on_copy_code : (Int, Int) -> Msg
-  on_edit : (Int) -> Msg
-  on_retry : (Int) -> Msg
+  on_copy_code : (Int32, Int32) -> Msg
+  on_edit : (Int32) -> Msg
+  on_retry : (Int32) -> Msg
   on_scroll : (@geometry.Point) -> Msg
   on_scroll_bottom : Msg
   on_toggle_fold : Msg
-  on_pin : (Int, Bool) -> Msg
-  on_remove : (Int) -> Msg
+  on_pin : (Int32, Bool) -> Msg
+  on_remove : (Int32) -> Msg
   on_open_project : Msg
   on_settings : Msg
   /// 幽灵图标按钮（历史入口）：壳用 ghost_icon_button 构造（要发 HoverHint）。
@@ -102,7 +102,7 @@ pub(all) struct AiViewParams[Msg] {
 
 ///|
 /// 待审计卡数（diff / 副作用未处理）。
-fn[Msg] pending_ai_cards(p : AiViewParams[Msg]) -> Int {
+fn[Msg] pending_ai_cards(p : AiViewParams[Msg]) -> Int32 {
   let mut count = 0
   for card in p.sessions.current().cards {
     if !card.settled && (card.kind is CardDiff || card.kind is CardSideEffect) {
@@ -114,7 +114,7 @@ fn[Msg] pending_ai_cards(p : AiViewParams[Msg]) -> Int {
 
 ///|
 /// HH:MM 时间戳（按 UTC 秒；与壳 clock 同口径）。
-fn hhmm_of_stamp(at : Int) -> String {
+fn hhmm_of_stamp(at : Int32) -> String {
   let in_day = (at % 86400 + 86400) % 86400
   let hour = in_day / 3600
   let minute = in_day % 3600 / 60
@@ -628,7 +628,7 @@ fn[Msg] ai_message_row(
           blocks,
           inner,
           t,
-          on_copy_code=Some(fn(index : Int) {
+          on_copy_code=Some(fn(index : Int32) {
             (p.on_copy_code)(card.seq, index)
           }),
         ),
@@ -862,7 +862,7 @@ fn[Msg] ai_card_view(
   p : AiViewParams[Msg],
   t : @i18n.Translator,
   card : AiCard,
-  index : Int,
+  index : Int32,
   width : Double,
 ) -> @moui.View[Msg] {
   let accent = match card.kind {
@@ -910,7 +910,7 @@ fn[Msg] ai_card_view(
           @markdown.parse_markdown(card.body),
           width,
           t,
-          on_copy_code=Some(fn(index : Int) {
+          on_copy_code=Some(fn(index : Int32) {
             (p.on_copy_code)(card.seq, index)
           }),
         ),

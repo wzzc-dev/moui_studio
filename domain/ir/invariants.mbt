@@ -4,31 +4,31 @@
 /// `studio_lang` 与 `proposals`（它们不依赖本包，避免反向依赖）。
 
 ///|
-pub const MAX_CONTROLS : Int = 128
+pub const MAX_CONTROLS : Int32 = 128
 
 ///|
-pub const MAX_VARIABLES : Int = 64
+pub const MAX_VARIABLES : Int32 = 64
 
 ///|
-pub const MAX_HANDLERS : Int = 64
+pub const MAX_HANDLERS : Int32 = 64
 
 ///|
-pub const MAX_FUNCS : Int = 16
+pub const MAX_FUNCS : Int32 = 16
 
 ///|
-pub const MAX_PARAMS : Int = 8
+pub const MAX_PARAMS : Int32 = 8
 
 ///|
-pub const MAX_STMTS_PER_HANDLER : Int = 512
+pub const MAX_STMTS_PER_HANDLER : Int32 = 512
 
 ///|
-pub const MAX_TOTAL_STMTS : Int = 4096
+pub const MAX_TOTAL_STMTS : Int32 = 4096
 
 ///|
-pub const MAX_LOOP_DEPTH : Int = 64
+pub const MAX_LOOP_DEPTH : Int32 = 64
 
 ///|
-pub const MAX_EXPR_DEPTH : Int = 32
+pub const MAX_EXPR_DEPTH : Int32 = 32
 
 ///|
 /// 结构错误（可读文案由界面层经 i18n catalog 本地化）。
@@ -44,9 +44,9 @@ pub(all) enum IrError {
   TooManyControls
   TooManyVariables
   TooManyHandlers
-  TooManyStatements(Int)
-  LoopTooDeep(Int)
-  ExprTooDeep(Int)
+  TooManyStatements(Int32)
+  LoopTooDeep(Int32)
+  ExprTooDeep(Int32)
   DuplicateFunctionName(String)
   InvalidFunctionName(String)
   DuplicateParam(String, String)
@@ -180,7 +180,7 @@ pub fn validate_program(program : StudioProgram) -> Array[IrError] {
 
 ///|
 /// 语句总数（循环体按静态出现一次计，不展开）。
-pub fn count_stmts(body : Array[Stmt]) -> Int {
+pub fn count_stmts(body : Array[Stmt]) -> Int32 {
   let mut total = 0
   for stmt in body {
     total = total + count_stmt(stmt)
@@ -189,7 +189,7 @@ pub fn count_stmts(body : Array[Stmt]) -> Int {
 }
 
 ///|
-fn count_stmt(stmt : Stmt) -> Int {
+fn count_stmt(stmt : Stmt) -> Int32 {
   match stmt {
     Declare(_, _)
     | Assign(_, _)
@@ -210,7 +210,7 @@ fn count_stmt(stmt : Stmt) -> Int {
 }
 
 ///|
-fn count_match_arms(arms : Array[MatchArm]) -> Int {
+fn count_match_arms(arms : Array[MatchArm]) -> Int32 {
   let mut total = 0
   for arm in arms {
     total = total + count_stmts(arm.body)
@@ -219,7 +219,7 @@ fn count_match_arms(arms : Array[MatchArm]) -> Int {
 }
 
 ///|
-fn count_if_chain(arms : Array[(Expr, Array[Stmt])]) -> Int {
+fn count_if_chain(arms : Array[(Expr, Array[Stmt])]) -> Int32 {
   let mut total = 0
   for arm in arms {
     total = total + 1 + count_stmts(arm.1)
@@ -229,12 +229,12 @@ fn count_if_chain(arms : Array[(Expr, Array[Stmt])]) -> Int {
 
 ///|
 /// 循环嵌套深度（If 不计入；循环内嵌循环才计）。
-pub fn stmt_loop_depth(body : Array[Stmt]) -> Int {
+pub fn stmt_loop_depth(body : Array[Stmt]) -> Int32 {
   body_loop_depth(body, 0)
 }
 
 ///|
-fn body_loop_depth(body : Array[Stmt], current : Int) -> Int {
+fn body_loop_depth(body : Array[Stmt], current : Int32) -> Int32 {
   let mut deepest = current
   for stmt in body {
     let depth = match stmt {
@@ -283,7 +283,7 @@ fn body_loop_depth(body : Array[Stmt], current : Int) -> Int {
 
 ///|
 /// 表达式最大深度（防栈爆与不可读的巨型单行）。
-pub fn expr_depth(expr : Expr) -> Int {
+pub fn expr_depth(expr : Expr) -> Int32 {
   match expr {
     NumLit(_) | IntLit(_) | StrLit(_) | BoolLit(_) | Var(_) => 1
     Not(inner) | Neg(inner) => 1 + expr_depth(inner)
@@ -323,7 +323,7 @@ pub fn expr_depth(expr : Expr) -> Int {
 }
 
 ///|
-fn body_expr_depth(body : Array[Stmt]) -> Int {
+fn body_expr_depth(body : Array[Stmt]) -> Int32 {
   let mut deepest = 0
   for stmt in body {
     let d = stmt_expr_depth(stmt)
@@ -335,7 +335,7 @@ fn body_expr_depth(body : Array[Stmt]) -> Int {
 }
 
 ///|
-fn stmt_expr_depth(stmt : Stmt) -> Int {
+fn stmt_expr_depth(stmt : Stmt) -> Int32 {
   match stmt {
     Declare(_, expr) | Assign(_, expr) => expr_depth(expr)
     Return(expr) =>

@@ -36,8 +36,8 @@ pub(all) struct AiCard {
   body : String
   // 计划卡：步骤文本 + 已完成步数 + 进度百分比
   steps : Array[String]
-  steps_done : Int
-  progress : Int
+  steps_done : Int32
+  progress : Int32
   // diff 卡：逐行 ± 文本
   diff_lines : Array[(String, String)]
   // 生成的积木代码：(标题, 代码文本) 序列。标题 = handler_key。
@@ -46,10 +46,10 @@ pub(all) struct AiCard {
   settled : Bool
   settled_note : String
   // 单调递增序号：用于稳定 key 与「最新一张」判定
-  seq : Int
+  seq : Int32
   // 推送时刻的 civil_seconds 戳（时间线显示 HH:MM 与「已工作 N 秒」时长）。
   // 0 = 未知（构造点未盖戳；push_ai_card 是唯一盖章漏斗）
-  at : Int
+  at : Int32
 }
 
 ///|
@@ -60,7 +60,7 @@ pub(all) struct ProposalRecord {
   /// 采纳时的代码真源文本 diff（M6②：历史回放看代码改了哪几行）。
   code_diff : Array[(String, String)]
   accepted : Bool
-  seq : Int
+  seq : Int32
 }
 
 ///|
@@ -70,7 +70,7 @@ pub(all) struct AiSession {
   title : String
   prompt_draft : String
   cards : Array[AiCard]
-  card_seq : Int
+  card_seq : Int32
   proposal_history : Array[ProposalRecord]
   /// 所属工程（提交首轮提问时盖 active_project 的 module_name 戳；
   /// "" = 无工程，列表按它分组显示为「默认工程」）
@@ -79,10 +79,10 @@ pub(all) struct AiSession {
   pinned : Bool
   /// 最近一次**结构性事件**的 civil_seconds 戳（提交/采纳/拒绝/切换/流式完成；
   /// 草稿键入不盖戳——避免列表按 updated 排序时随打字抖动）。0 = 未知。
-  updated : Int
+  updated : Int32
   /// 创建时刻的 civil_seconds 戳（VS Code 基准：会话行常显「N 周前」类元信息
   /// 的数据根源）。0 = 未知（一期存量会话）；显示回退链 created > updated。
-  created : Int
+  created : Int32
 }
 
 ///|
@@ -94,9 +94,9 @@ pub(all) struct AiSession {
 /// `create`/`switch`/`remove`/`amend` 原位生效，调用方不必重建容器。
 pub(all) struct AiSessions {
   sessions : Array[AiSession]
-  mut active : Int
+  mut active : Int32
   /// 历史开过的会话总数（默认命名单调递增，删除重建不重名）
-  mut seq : Int
+  mut seq : Int32
 }
 
 ///|
@@ -107,12 +107,12 @@ pub fn AiSessions::new() -> AiSessions {
 
 ///|
 /// 带 会话计数 的全新状态（第 n 个默认会话名随 n 递增，供删除重建续名）。
-pub fn AiSessions::fresh(count : Int) -> AiSessions {
+pub fn AiSessions::fresh(count : Int32) -> AiSessions {
   { sessions: [AiSession::default(count)], active: 0, seq: count, }
 }
 
 ///|
-pub fn AiSession::default(count : Int) -> AiSession {
+pub fn AiSession::default(count : Int32) -> AiSession {
   {
     title: "会话 \{count}",
     prompt_draft: "",
@@ -136,19 +136,19 @@ pub fn AiSessions::current(self : AiSessions) -> AiSession {
 
 ///|
 /// 当前会话下标（状态栏/列表高亮读数）。
-pub fn AiSessions::active_index(self : AiSessions) -> Int {
+pub fn AiSessions::active_index(self : AiSessions) -> Int32 {
   self.active
 }
 
 ///|
 /// 会话数（列表读数）。
-pub fn AiSessions::count(self : AiSessions) -> Int {
+pub fn AiSessions::count(self : AiSessions) -> Int32 {
   self.sessions.length()
 }
 
 ///|
 /// 按下标读会话（越界返回 None；列表渲染用）。
-pub fn AiSessions::session_at(self : AiSessions, index : Int) -> AiSession? {
+pub fn AiSessions::session_at(self : AiSessions, index : Int32) -> AiSession? {
   if index >= 0 && index < self.sessions.length() {
     Some(self.sessions[index])
   } else {
@@ -169,7 +169,7 @@ pub fn AiSessions::amend(self : AiSessions, session : AiSession) -> Unit {
 /// 开过的最大序号 + 1（删除重建不重名）。`now` = 创建时刻（civil_seconds），
 /// 同时盖 created 与 updated——会话行「N 前」元信息常显的数据来源；
 /// 切片本身无钟，由调用方（持 model.clock 的视图/命令层）传入。
-pub fn AiSessions::create(self : AiSessions, now : Int) -> Int {
+pub fn AiSessions::create(self : AiSessions, now : Int32) -> Int32 {
   self.seq = self.seq + 1
   let session = AiSession::default(self.seq)
   self.sessions.push({ ..session, created: now, updated: now, })
@@ -179,7 +179,7 @@ pub fn AiSessions::create(self : AiSessions, now : Int) -> Int {
 
 ///|
 /// 切换会话（越界 no-op，返回是否生效）。
-pub fn AiSessions::switch(self : AiSessions, index : Int) -> Bool {
+pub fn AiSessions::switch(self : AiSessions, index : Int32) -> Bool {
   if index >= 0 && index < self.sessions.length() {
     self.active = index
     true
@@ -191,7 +191,7 @@ pub fn AiSessions::switch(self : AiSessions, index : Int) -> Bool {
 ///|
 /// 删除会话（RemoveProject 惯例）：删当前 → 落到同位下一个；删前面的 →
 /// 指针左移；**删最后一个 → 重建一个全新会话**（列表永不为空）。
-pub fn AiSessions::remove(self : AiSessions, index : Int) -> Unit {
+pub fn AiSessions::remove(self : AiSessions, index : Int32) -> Unit {
   if index < 0 || index >= self.sessions.length() {
     return
   }
@@ -212,7 +212,7 @@ pub fn AiSessions::remove(self : AiSessions, index : Int) -> Unit {
 /// 自动命名不再覆盖它（composer_run 只在默认名形态下置题）。
 pub fn AiSessions::rename(
   self : AiSessions,
-  index : Int,
+  index : Int32,
   title : String,
 ) -> Bool {
   match self.session_at(index) {
@@ -228,7 +228,7 @@ pub fn AiSessions::rename(
 /// 置顶/取消置顶（越界 no-op，返回是否生效）。列表渲染按它分组。
 pub fn AiSessions::set_pinned(
   self : AiSessions,
-  index : Int,
+  index : Int32,
   pinned : Bool,
 ) -> Bool {
   match self.session_at(index) {
@@ -244,7 +244,7 @@ pub fn AiSessions::set_pinned(
 /// 给当前会话盖「最近活动」时间戳（civil_seconds）。只在**结构性事件**
 /// （提交/采纳/拒绝/切换/流式完成）调用——草稿键入走 SetPrompt，不经过
 /// 这里，列表按 updated 排序才不会随打字抖动。
-pub fn AiSessions::touch(self : AiSessions, at : Int) -> Unit {
+pub fn AiSessions::touch(self : AiSessions, at : Int32) -> Unit {
   let session = self.current()
   self.amend({ ..session, updated: at, })
 }

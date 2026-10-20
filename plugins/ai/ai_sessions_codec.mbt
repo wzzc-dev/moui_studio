@@ -7,14 +7,14 @@
 pub const AI_SESSIONS_FORMAT : String = "moui.studio.ai-sessions"
 
 ///|
-pub const AI_SESSIONS_VERSION : Int = 1
+pub const AI_SESSIONS_VERSION : Int32 = 1
 
 ///|
 /// 存储解码错误（界面层本地化为 notice）。
 pub(all) enum AiStoreError {
   StoreBadJson
   StoreBadFormat
-  StoreBadVersion(Int)
+  StoreBadVersion(Int32)
   StoreBadPayload
 }
 
@@ -27,7 +27,7 @@ fn json_string_field(fields : Map[String, Json], key : String) -> String? {
 }
 
 ///|
-fn json_int_field(fields : Map[String, Json], key : String) -> Int? {
+fn json_int_field(fields : Map[String, Json], key : String) -> Int32? {
   match fields.get(key) {
     Some(Number(n, ..)) => Some(n.to_int())
     _ => None

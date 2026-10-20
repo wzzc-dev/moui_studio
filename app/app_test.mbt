@@ -560,7 +560,7 @@ test "explanation prompt payload walks the handler" {
 /// 界面语言切换（每个模板讲解的是其首个子程序）。
 test "explanation prompt payload covers every template in both languages" {
   // (模板下标, zh note 片段, en note 片段)
-  let cases : Array[(Int, String, String)] = [
+  let cases : Array[(Int32, String, String)] = [
     (0, "问候语", "greeting"),
     (1, "随机序号", "random row index"),
     (2, "随机出", "roll two numbers"),

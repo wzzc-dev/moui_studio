@@ -91,7 +91,7 @@ fn exec_body(
 fn exec_nested(
   rt : Runtime,
   body : Array[@ir.Stmt],
-  line : Int,
+  line : Int32,
 ) -> Unit raise ExecError {
   for stmt in body {
     // 嵌套块（循环体 / if 体）同样要检查：`停止全部` 可能出现在循环内部，
@@ -104,7 +104,11 @@ fn exec_nested(
 }
 
 ///|
-fn exec_stmt(rt : Runtime, stmt : @ir.Stmt, line : Int) -> Unit raise ExecError {
+fn exec_stmt(
+  rt : Runtime,
+  stmt : @ir.Stmt,
+  line : Int32,
+) -> Unit raise ExecError {
   match stmt {
     @ir.Declare(name, expr) =>
       rt.audit_assign(
@@ -244,7 +248,7 @@ fn exec_command(
   rt : Runtime,
   name : String,
   args : Array[@ir.Expr],
-  line : Int,
+  line : Int32,
 ) -> Unit raise ExecError {
   let detail = @studio_lang.canonical_call_text(name, args)
   match name {
@@ -379,7 +383,7 @@ fn exec_gate(
   rt : Runtime,
   name : String,
   args : Array[@ir.Expr],
-  line : Int,
+  line : Int32,
 ) -> Value raise ExecError {
   let detail = @studio_lang.canonical_call_text(name, args)
   match name {
@@ -412,7 +416,7 @@ fn exec_gate(
 fn control_name_of(
   rt : Runtime,
   arg : @ir.Expr,
-  line : Int,
+  line : Int32,
 ) -> String raise ExecError {
   match arg {
     @ir.Var(name) => name
@@ -426,7 +430,7 @@ fn control_name_of(
 fn eval_expr(
   rt : Runtime,
   expr : @ir.Expr,
-  line : Int,
+  line : Int32,
 ) -> Value raise ExecError {
   match expr {
     @ir.NumLit(n) => VNum(n)
@@ -466,7 +470,7 @@ fn eval_binary(
   op : @ir.BinOp,
   left : @ir.Expr,
   right : @ir.Expr,
-  line : Int,
+  line : Int32,
 ) -> Value raise ExecError {
   match op {
     @ir.Add =>
@@ -542,7 +546,7 @@ fn eval_call(
   rt : Runtime,
   name : String,
   args : Array[@ir.Expr],
-  line : Int,
+  line : Int32,
 ) -> Value raise ExecError {
   match name {
     "get_text" => get_text(rt, control_name_of(rt, args[0], line))

@@ -115,24 +115,24 @@ pub fn kernel_ir_mbt() -> String {
     #|
     #|///|
     #|/// 设计空间：固定 640x480 画布（与前代一致，运行时按窗口缩放）。
-    #|pub const DESIGN_WIDTH : Int = 640
+    #|pub const DESIGN_WIDTH : Int32 = 640
     #|
     #|///|
-    #|pub const DESIGN_HEIGHT : Int = 480
+    #|pub const DESIGN_HEIGHT : Int32 = 480
     #|
     #|///|
     #|/// 控件：表单上的一件实物。items 按种类承载不同载荷（属性 schema 的
     #|/// 数据面）：列表框/下拉框=选项、表格=初始行、进度条=[绑定变量名]、
     #|/// 图片=[资源路径]。
     #|pub(all) struct Control {
-    #|  id : Int
+    #|  id : Int32
     #|  kind : ControlKind
     #|  name : String
     #|  text : String
-    #|  x : Int
-    #|  y : Int
-    #|  width : Int
-    #|  height : Int
+    #|  x : Int32
+    #|  y : Int32
+    #|  width : Int32
+    #|  height : Int32
     #|  items : Array[String]
     #|  /// 属性 v2（G7.2）：固定字段 + 默认值；缺省构造见 `ControlProps::default`。
     #|  props : ControlProps
@@ -144,7 +144,7 @@ pub fn kernel_ir_mbt() -> String {
     #|/// 解码缺字段 = 默认值——旧工程文件无损加载（兼容不迁移）。
     #|pub(all) struct ControlProps {
     #|  /// 字号（pt）；0 = 主题默认
-    #|  font_size : Int
+    #|  font_size : Int32
     #|  /// 加粗
     #|  bold : Bool
     #|  /// 文字颜色（#RRGGBB；空 = 主题默认）
@@ -243,7 +243,7 @@ pub fn kernel_ir_mbt() -> String {
     #|/// 表达式。
     #|pub(all) enum Expr {
     #|  NumLit(Double)
-    #|  IntLit(Int)
+    #|  IntLit(Int32)
     #|  StrLit(String)
     #|  ListLit(Array[Expr])
     #|  BoolLit(Bool)
@@ -294,10 +294,10 @@ pub fn kernel_ir_mbt() -> String {
     #|///|
     #|pub(all) struct WindowSpec {
     #|  title : String
-    #|  width : Int
-    #|  height : Int
+    #|  width : Int32
+    #|  height : Int32
     #|  // 定时器间隔（秒；0 = 关闭）——OnTimer 虚拟时钟只在运行期间步进
-    #|  timer_interval : Int
+    #|  timer_interval : Int32
     #|  /// 窗体背景色（G7.2；#RRGGBB，空 = 主题默认）
     #|  back_color : String
     #|}
@@ -305,8 +305,8 @@ pub fn kernel_ir_mbt() -> String {
     #|///|
     #|pub fn WindowSpec::default(
     #|  title~ : String,
-    #|  width~ : Int,
-    #|  height~ : Int,
+    #|  width~ : Int32,
+    #|  height~ : Int32,
     #|) -> WindowSpec {
     #|  { title, width, height, timer_interval: 0, back_color: "", }
     #|}
@@ -326,7 +326,7 @@ pub fn kernel_ir_mbt() -> String {
     #|///|
     #|/// 程序：`.studio.json` 的根。
     #|pub(all) struct StudioProgram {
-    #|  version : Int
+    #|  version : Int32
     #|  window : WindowSpec
     #|  controls : Array[Control]
     #|  variables : Array[Variable]
@@ -430,7 +430,7 @@ pub fn kernel_ir_mbt() -> String {
     #|
     #|///|
     #|/// 下一个控件 id（比现有最大 id 大 1）。
-    #|pub fn next_control_id(program : StudioProgram) -> Int {
+    #|pub fn next_control_id(program : StudioProgram) -> Int32 {
     #|  let mut max_id = 0
     #|  for control in program.controls {
     #|    if control.id > max_id {
@@ -453,7 +453,7 @@ pub fn kernel_ir_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn name_syntax_valid_inner(name : String, max_length : Int) -> Bool {
+    #|fn name_syntax_valid_inner(name : String, max_length : Int32) -> Bool {
     #|  if name.length() == 0 || name.length() > max_length {
     #|    return false
     #|  }
@@ -485,7 +485,7 @@ pub fn kernel_ir_mbt() -> String {
     #|
     #|///|
     #|/// CJK 统一表意文字主区（覆盖常用汉字；扩展区罕见不做）。
-    #|fn is_cjk(code : Int) -> Bool {
+    #|fn is_cjk(code : Int32) -> Bool {
     #|  code >= 0x4E00 && code <= 0x9FFF
     #|}
     #|
@@ -508,7 +508,7 @@ pub fn kernel_ir_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn clamp_int(value : Int, min : Int, max : Int) -> Int {
+    #|fn clamp_int(value : Int32, min : Int32, max : Int32) -> Int32 {
     #|  if value < min {
     #|    min
     #|  } else if value > max {
@@ -520,7 +520,7 @@ pub fn kernel_ir_mbt() -> String {
     #|
     #|///|
     #|/// 控件最小边长（属性框误输入 0/负数的防线）。
-    #|pub const MIN_CONTROL_SIZE : Int = 8
+    #|pub const MIN_CONTROL_SIZE : Int32 = 8
     #|
     #|///|
     #|/// 更新矩形分量并夹回设计画布：控件永远完整落在 640x480 内，
@@ -528,7 +528,7 @@ pub fn kernel_ir_mbt() -> String {
     #|pub fn Control::with_rect_field(
     #|  self : Control,
     #|  field : RectField,
-    #|  value : Int,
+    #|  value : Int32,
     #|) -> Control {
     #|  match field {
     #|    RectWidth => {
@@ -557,8 +557,8 @@ pub fn kernel_ir_mbt() -> String {
     #|pub fn Control::resize_from_corner(
     #|  self : Control,
     #|  corner : DragCorner,
-    #|  to_x : Int,
-    #|  to_y : Int,
+    #|  to_x : Int32,
+    #|  to_y : Int32,
     #|) -> Control {
     #|  match corner {
     #|    CornerSE =>
@@ -682,31 +682,31 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|/// `studio_lang` 与 `proposals`（它们不依赖本包，避免反向依赖）。
     #|
     #|///|
-    #|pub const MAX_CONTROLS : Int = 128
+    #|pub const MAX_CONTROLS : Int32 = 128
     #|
     #|///|
-    #|pub const MAX_VARIABLES : Int = 64
+    #|pub const MAX_VARIABLES : Int32 = 64
     #|
     #|///|
-    #|pub const MAX_HANDLERS : Int = 64
+    #|pub const MAX_HANDLERS : Int32 = 64
     #|
     #|///|
-    #|pub const MAX_FUNCS : Int = 16
+    #|pub const MAX_FUNCS : Int32 = 16
     #|
     #|///|
-    #|pub const MAX_PARAMS : Int = 8
+    #|pub const MAX_PARAMS : Int32 = 8
     #|
     #|///|
-    #|pub const MAX_STMTS_PER_HANDLER : Int = 512
+    #|pub const MAX_STMTS_PER_HANDLER : Int32 = 512
     #|
     #|///|
-    #|pub const MAX_TOTAL_STMTS : Int = 4096
+    #|pub const MAX_TOTAL_STMTS : Int32 = 4096
     #|
     #|///|
-    #|pub const MAX_LOOP_DEPTH : Int = 64
+    #|pub const MAX_LOOP_DEPTH : Int32 = 64
     #|
     #|///|
-    #|pub const MAX_EXPR_DEPTH : Int = 32
+    #|pub const MAX_EXPR_DEPTH : Int32 = 32
     #|
     #|///|
     #|/// 结构错误（可读文案由界面层经 i18n catalog 本地化）。
@@ -722,9 +722,9 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|  TooManyControls
     #|  TooManyVariables
     #|  TooManyHandlers
-    #|  TooManyStatements(Int)
-    #|  LoopTooDeep(Int)
-    #|  ExprTooDeep(Int)
+    #|  TooManyStatements(Int32)
+    #|  LoopTooDeep(Int32)
+    #|  ExprTooDeep(Int32)
     #|  DuplicateFunctionName(String)
     #|  InvalidFunctionName(String)
     #|  DuplicateParam(String, String)
@@ -858,7 +858,7 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|
     #|///|
     #|/// 语句总数（循环体按静态出现一次计，不展开）。
-    #|pub fn count_stmts(body : Array[Stmt]) -> Int {
+    #|pub fn count_stmts(body : Array[Stmt]) -> Int32 {
     #|  let mut total = 0
     #|  for stmt in body {
     #|    total = total + count_stmt(stmt)
@@ -867,7 +867,7 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn count_stmt(stmt : Stmt) -> Int {
+    #|fn count_stmt(stmt : Stmt) -> Int32 {
     #|  match stmt {
     #|    Declare(_, _)
     #|    | Assign(_, _)
@@ -888,7 +888,7 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn count_match_arms(arms : Array[MatchArm]) -> Int {
+    #|fn count_match_arms(arms : Array[MatchArm]) -> Int32 {
     #|  let mut total = 0
     #|  for arm in arms {
     #|    total = total + count_stmts(arm.body)
@@ -897,7 +897,7 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn count_if_chain(arms : Array[(Expr, Array[Stmt])]) -> Int {
+    #|fn count_if_chain(arms : Array[(Expr, Array[Stmt])]) -> Int32 {
     #|  let mut total = 0
     #|  for arm in arms {
     #|    total = total + 1 + count_stmts(arm.1)
@@ -907,12 +907,12 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|
     #|///|
     #|/// 循环嵌套深度（If 不计入；循环内嵌循环才计）。
-    #|pub fn stmt_loop_depth(body : Array[Stmt]) -> Int {
+    #|pub fn stmt_loop_depth(body : Array[Stmt]) -> Int32 {
     #|  body_loop_depth(body, 0)
     #|}
     #|
     #|///|
-    #|fn body_loop_depth(body : Array[Stmt], current : Int) -> Int {
+    #|fn body_loop_depth(body : Array[Stmt], current : Int32) -> Int32 {
     #|  let mut deepest = current
     #|  for stmt in body {
     #|    let depth = match stmt {
@@ -961,7 +961,7 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|
     #|///|
     #|/// 表达式最大深度（防栈爆与不可读的巨型单行）。
-    #|pub fn expr_depth(expr : Expr) -> Int {
+    #|pub fn expr_depth(expr : Expr) -> Int32 {
     #|  match expr {
     #|    NumLit(_) | IntLit(_) | StrLit(_) | BoolLit(_) | Var(_) => 1
     #|    Not(inner) | Neg(inner) => 1 + expr_depth(inner)
@@ -1001,7 +1001,7 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn body_expr_depth(body : Array[Stmt]) -> Int {
+    #|fn body_expr_depth(body : Array[Stmt]) -> Int32 {
     #|  let mut deepest = 0
     #|  for stmt in body {
     #|    let d = stmt_expr_depth(stmt)
@@ -1013,7 +1013,7 @@ pub fn kernel_ir_invariants_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn stmt_expr_depth(stmt : Stmt) -> Int {
+    #|fn stmt_expr_depth(stmt : Stmt) -> Int32 {
     #|  match stmt {
     #|    Declare(_, expr) | Assign(_, expr) => expr_depth(expr)
     #|    Return(expr) =>
@@ -1171,7 +1171,7 @@ pub fn kernel_ir_signature_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn write_stmts(buf : StringBuilder, body : Array[Stmt], indent : Int) -> Unit {
+    #|fn write_stmts(buf : StringBuilder, body : Array[Stmt], indent : Int32) -> Unit {
     #|  for stmt in body {
     #|    write_indent(buf, indent)
     #|    write_stmt(buf, stmt, indent)
@@ -1179,7 +1179,7 @@ pub fn kernel_ir_signature_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn write_indent(buf : StringBuilder, indent : Int) -> Unit {
+    #|fn write_indent(buf : StringBuilder, indent : Int32) -> Unit {
     #|  buf.write_string("\n")
     #|  for _ in 0..<indent {
     #|    buf.write_string("  ")
@@ -1187,7 +1187,7 @@ pub fn kernel_ir_signature_mbt() -> String {
     #|}
     #|
     #|///|
-    #|fn write_stmt(buf : StringBuilder, stmt : Stmt, indent : Int) -> Unit {
+    #|fn write_stmt(buf : StringBuilder, stmt : Stmt, indent : Int32) -> Unit {
     #|  match stmt {
     #|    Declare(name, expr) => {
     #|      buf.write_string("declare \{name} = ")

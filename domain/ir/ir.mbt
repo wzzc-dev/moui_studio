@@ -107,24 +107,24 @@ pub fn ControlKind::supports_event(
 
 ///|
 /// 设计空间：固定 640x480 画布（与前代一致，运行时按窗口缩放）。
-pub const DESIGN_WIDTH : Int = 640
+pub const DESIGN_WIDTH : Int32 = 640
 
 ///|
-pub const DESIGN_HEIGHT : Int = 480
+pub const DESIGN_HEIGHT : Int32 = 480
 
 ///|
 /// 控件：表单上的一件实物。items 按种类承载不同载荷（属性 schema 的
 /// 数据面）：列表框/下拉框=选项、表格=初始行、进度条=[绑定变量名]、
 /// 图片=[资源路径]。
 pub(all) struct Control {
-  id : Int
+  id : Int32
   kind : ControlKind
   name : String
   text : String
-  x : Int
-  y : Int
-  width : Int
-  height : Int
+  x : Int32
+  y : Int32
+  width : Int32
+  height : Int32
   items : Array[String]
   /// 属性 v2（G7.2）：固定字段 + 默认值；缺省构造见 `ControlProps::default`。
   props : ControlProps
@@ -136,7 +136,7 @@ pub(all) struct Control {
 /// 解码缺字段 = 默认值——旧工程文件无损加载（兼容不迁移）。
 pub(all) struct ControlProps {
   /// 字号（pt）；0 = 主题默认
-  font_size : Int
+  font_size : Int32
   /// 加粗
   bold : Bool
   /// 文字颜色（#RRGGBB；空 = 主题默认）
@@ -235,7 +235,7 @@ pub fn BinOp::canonical(self : BinOp) -> String {
 /// 表达式。
 pub(all) enum Expr {
   NumLit(Double)
-  IntLit(Int)
+  IntLit(Int32)
   StrLit(String)
   ListLit(Array[Expr])
   BoolLit(Bool)
@@ -286,10 +286,10 @@ pub(all) struct Handler {
 ///|
 pub(all) struct WindowSpec {
   title : String
-  width : Int
-  height : Int
+  width : Int32
+  height : Int32
   // 定时器间隔（秒；0 = 关闭）——OnTimer 虚拟时钟只在运行期间步进
-  timer_interval : Int
+  timer_interval : Int32
   /// 窗体背景色（G7.2；#RRGGBB，空 = 主题默认）
   back_color : String
 }
@@ -297,8 +297,8 @@ pub(all) struct WindowSpec {
 ///|
 pub fn WindowSpec::default(
   title~ : String,
-  width~ : Int,
-  height~ : Int,
+  width~ : Int32,
+  height~ : Int32,
 ) -> WindowSpec {
   { title, width, height, timer_interval: 0, back_color: "", }
 }
@@ -318,7 +318,7 @@ pub(all) struct FuncDef {
 ///|
 /// 程序：`.studio.json` 的根。
 pub(all) struct StudioProgram {
-  version : Int
+  version : Int32
   window : WindowSpec
   controls : Array[Control]
   variables : Array[Variable]
@@ -422,7 +422,7 @@ pub fn find_handler(
 
 ///|
 /// 下一个控件 id（比现有最大 id 大 1）。
-pub fn next_control_id(program : StudioProgram) -> Int {
+pub fn next_control_id(program : StudioProgram) -> Int32 {
   let mut max_id = 0
   for control in program.controls {
     if control.id > max_id {
@@ -445,7 +445,7 @@ pub fn variable_name_syntax_valid(name : String) -> Bool {
 }
 
 ///|
-fn name_syntax_valid_inner(name : String, max_length : Int) -> Bool {
+fn name_syntax_valid_inner(name : String, max_length : Int32) -> Bool {
   if name.length() == 0 || name.length() > max_length {
     return false
   }
@@ -477,7 +477,7 @@ fn is_name_part(c : Char) -> Bool {
 
 ///|
 /// CJK 统一表意文字主区（覆盖常用汉字；扩展区罕见不做）。
-fn is_cjk(code : Int) -> Bool {
+fn is_cjk(code : Int32) -> Bool {
   code >= 0x4E00 && code <= 0x9FFF
 }
 
@@ -500,7 +500,7 @@ pub(all) enum DragCorner {
 }
 
 ///|
-fn clamp_int(value : Int, min : Int, max : Int) -> Int {
+fn clamp_int(value : Int32, min : Int32, max : Int32) -> Int32 {
   if value < min {
     min
   } else if value > max {
@@ -512,7 +512,7 @@ fn clamp_int(value : Int, min : Int, max : Int) -> Int {
 
 ///|
 /// 控件最小边长（属性框误输入 0/负数的防线）。
-pub const MIN_CONTROL_SIZE : Int = 8
+pub const MIN_CONTROL_SIZE : Int32 = 8
 
 ///|
 /// 更新矩形分量并夹回设计画布：控件永远完整落在 640x480 内，
@@ -520,7 +520,7 @@ pub const MIN_CONTROL_SIZE : Int = 8
 pub fn Control::with_rect_field(
   self : Control,
   field : RectField,
-  value : Int,
+  value : Int32,
 ) -> Control {
   match field {
     RectWidth => {
@@ -549,8 +549,8 @@ pub fn Control::with_rect_field(
 pub fn Control::resize_from_corner(
   self : Control,
   corner : DragCorner,
-  to_x : Int,
-  to_y : Int,
+  to_x : Int32,
+  to_y : Int32,
 ) -> Control {
   match corner {
     CornerSE =>

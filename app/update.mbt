@@ -602,7 +602,7 @@ fn update_shell_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
 /// 旧程序进撤销栈可找回，运行态、选中态、积木草稿全部重置；随后发
 /// EvCodeProjectWrite（组合根按工程布局写代码真源 + 内嵌 IR）与 IR 快照
 /// 事件。`index` = 模板下标（-1 = 空白程序）。
-pub fn load_template_program(model : Model, index : Int) -> Model {
+pub fn load_template_program(model : Model, index : Int32) -> Model {
   let program = @scaffold.template_program(index)
   let label = if index < 0 {
     "app.recent.action.new"
@@ -1479,7 +1479,7 @@ pub fn split_lines(value : String) -> Array[String] {
 
 ///|
 /// 属性框整数解析：仅接受 1-4 位纯数字（负号/小数/空串拒绝）。
-fn parse_design_int(raw : String) -> Int? {
+fn parse_design_int(raw : String) -> Int32? {
   if raw.length() == 0 || raw.length() > 4 {
     return None
   }
@@ -1590,7 +1590,7 @@ fn create_control_handler(
 fn goto_problem_program(
   model : Model,
   key : String,
-  line : Int,
+  line : Int32,
 ) -> (Model, @moui.Effect[Msg]) {
   let committed = commit_code(model)
   let next = sync_code_draft(select_handler_key(committed, key))
@@ -1610,7 +1610,7 @@ fn goto_problem_program(
 
 ///|
 /// 把光标钉到目标行行首并滚动对齐（GotoProblem 的共用核心）。
-fn goto_line(model : Model, line : Int) -> Model {
+fn goto_line(model : Model, line : Int32) -> Model {
   let lines = @code.split_line_texts(model.code_draft)
   let target = if line >= 1 && line <= lines.length() { line } else { 1 }
   let mut caret = 0

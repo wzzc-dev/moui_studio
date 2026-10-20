@@ -16,7 +16,7 @@ pub fn form_design_hit_index(
   rects : Array[@geometry.Rect],
   x : Double,
   y : Double,
-) -> Int {
+) -> Int32 {
   let mut hit = -1
   let mut i = 0
   for rect in rects {
@@ -36,7 +36,7 @@ pub fn form_design_hit_index(
 /// 命中半径与设计画布四角手柄同口径（@design.handle_hit_radius）。
 pub fn form_design_handle_hit(
   rects : Array[@geometry.Rect],
-  index : Int,
+  index : Int32,
   x : Double,
   y : Double,
 ) -> Bool {
@@ -59,14 +59,14 @@ pub fn form_design_handle_hit(
 /// 会让"按住 A 拖走"在中途变成"抓住 B"。
 pub fn[Msg] form_design_drag_commit(
   rects : Array[@geometry.Rect],
-  selected : Int?,
+  selected : Int32?,
   start_x : Double,
   start_y : Double,
   tx : Double,
   ty : Double,
   noop~ : Msg,
-  on_resize~ : (Int, Double, Double) -> Msg,
-  on_drag~ : (Int, Double, Double) -> Msg,
+  on_resize~ : (Int32, Double, Double) -> Msg,
+  on_drag~ : (Int32, Double, Double) -> Msg,
 ) -> Msg {
   if tx.abs() < 0.5 && ty.abs() < 0.5 {
     return noop
@@ -91,13 +91,13 @@ pub fn[Msg] form_design_drag_commit(
 /// 纯视图：会话/补丁/写回由壳处理，手势经回调上交 typed Msg。
 pub fn[Msg] form_design_canvas(
   form_model : @form_designer.FormModel,
-  selected : Int?,
+  selected : Int32?,
   width : Double,
   height : Double,
   noop~ : Msg,
-  on_select~ : (Int) -> Msg,
-  on_drag~ : (Int, Double, Double) -> Msg,
-  on_resize~ : (Int, Double, Double) -> Msg,
+  on_select~ : (Int32) -> Msg,
+  on_drag~ : (Int32, Double, Double) -> Msg,
+  on_resize~ : (Int32, Double, Double) -> Msg,
 ) -> @moui.View[Msg] {
   let controls = @form_designer.form_controls_to_ir(form_model)
   let rects : Array[@geometry.Rect] = []

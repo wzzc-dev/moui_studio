@@ -130,7 +130,7 @@ fn palette_expression_drop_at(
 ///|
 fn block_at(
   blocks : Array[@blocks.BlockItem],
-  index : Int,
+  index : Int32,
 ) -> @blocks.BlockItem? {
   if index < 0 || index >= blocks.length() {
     None
@@ -141,7 +141,7 @@ fn block_at(
 
 ///|
 /// 选中积木：把该语句的 DSL 源码预填进编辑草稿。
-fn select_block(model : Model, index : Int) -> Model {
+fn select_block(model : Model, index : Int32) -> Model {
   let blocks = block_chain_of(model)
   let draft = match block_at(blocks, index) {
     Some(item) =>
@@ -174,7 +174,7 @@ fn select_block(model : Model, index : Int) -> Model {
 /// - **越界不循环**：走到端点就保持原选中（循环会让「按到底」突然跳回开头，
 ///   用户以为选中丢了；清空则等于把用户丢到「什么都没选」）。
 /// - **不写 IR**：纯选中态变更，不产生撤销点。
-pub fn select_block_step(model : Model, step : Int) -> Model {
+pub fn select_block_step(model : Model, step : Int32) -> Model {
   let blocks = block_chain_of(model)
   if blocks.length() == 0 {
     return model
@@ -209,7 +209,7 @@ pub fn select_block_step(model : Model, step : Int) -> Model {
 /// 按语句路径选中积木（编译诊断行号 → 生成源码里的语句路径 → 此处）。
 /// 与 `SelectBlock` 的区别是入口按路径而非链下标，供「编译错误点击跳积木」
 /// 使用：路径是 IR 的稳定坐标，链下标随展开块（if/end）变化。
-pub fn select_block_by_path(model : Model, path : Array[Int]) -> Model {
+pub fn select_block_by_path(model : Model, path : Array[Int32]) -> Model {
   if path.length() == 0 {
     return model
   }
@@ -333,7 +333,7 @@ fn duplicate_block(model : Model) -> Model {
             let next = replace_target_body(model, target.label, working)
             let synced = sync_code_draft(next)
             let new_path = {
-              let path : Array[Int] = []
+              let path : Array[Int32] = []
               for part in parent {
                 path.push(part)
               }
@@ -556,7 +556,7 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
             drag.to
           }
           let new_path = {
-            let path : Array[Int] = []
+            let path : Array[Int32] = []
             for part in drag.list_path {
               path.push(part)
             }
@@ -764,7 +764,7 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
               _ => false
             }
             if is_head && lower {
-              let body : Array[Int] = []
+              let body : Array[Int32] = []
               for part in item.path {
                 body.push(part)
               }
@@ -776,7 +776,7 @@ fn update_blocks_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
               (parent, if lower { idx + 1 } else { idx })
             }
           } else {
-            let top : Array[Int] = []
+            let top : Array[Int32] = []
             (top, blocks.length())
           }
           let cleared = { ..model, }
@@ -911,8 +911,8 @@ pub fn target_note(model : Model) -> String {
 /// 与拖拽语义冲突。
 fn open_value_edit(
   model : Model,
-  block_index : Int,
-  expr_path : Array[Int],
+  block_index : Int32,
+  expr_path : Array[Int32],
 ) -> (Model, String)? {
   let target = match current_target(model) {
     None => return None
@@ -983,8 +983,8 @@ fn commit_value_edit(model : Model) -> Model {
 /// 插入一条语句骨架（面板的默认落点：选中块之后）。
 fn insert_statement(
   model : Model,
-  category_index : Int,
-  template_index : Int,
+  category_index : Int32,
+  template_index : Int32,
 ) -> Model {
   insert_statement_at(model, category_index, template_index, None)
 }
@@ -996,7 +996,7 @@ fn insert_statement(
 /// 形参类型都吃得下的字面量；用形参名会与程序里的变量重名、解析出来是另
 /// 一回事）。拼出的文本走 `parse_handler_body` 同一条校验链——解析失败
 /// 什么都不做，与模板插入的失败口径一致。
-fn insert_custom_function(model : Model, function_index : Int) -> Model {
+fn insert_custom_function(model : Model, function_index : Int32) -> Model {
   if function_index < 0 || function_index >= model.program.functions.length() {
     return model
   }
@@ -1036,7 +1036,7 @@ fn insert_custom_function(model : Model, function_index : Int) -> Model {
         (parent, item.path[item.path.length() - 1] + 1)
       }
       _ => {
-        let top : Array[Int] = []
+        let top : Array[Int32] = []
         (top, target.body.length())
       }
     }
@@ -1059,7 +1059,7 @@ fn insert_custom_function(model : Model, function_index : Int) -> Model {
   }
   let next = replace_target_body(model, target.label, working)
   let synced = sync_code_draft(next)
-  let new_path : Array[Int] = []
+  let new_path : Array[Int32] = []
   for part in list_path {
     new_path.push(part)
   }
@@ -1080,9 +1080,9 @@ fn insert_custom_function(model : Model, function_index : Int) -> Model {
 /// 还是那一行）——跳到别的块会让右栏编辑卡突然换内容。
 fn drop_expression(
   model : Model,
-  template_index : Int,
-  block_index : Int,
-  expr_path : Array[Int],
+  template_index : Int32,
+  block_index : Int32,
+  expr_path : Array[Int32],
 ) -> Model {
   let templates = @blk.expression_templates()
   if template_index < 0 || template_index >= templates.length() {
@@ -1142,9 +1142,9 @@ fn drop_expression(
 /// 哪个位置，就插到哪里，与点击插入共用同一套校验与手术。
 fn insert_statement_at(
   model : Model,
-  category_index : Int,
-  template_index : Int,
-  drop_at : (Array[Int], Int)?,
+  category_index : Int32,
+  template_index : Int32,
+  drop_at : (Array[Int32], Int32)?,
 ) -> Model {
   // **统一编辑目标**：事件子程序与自定义积木的体走同一条插入路径。
   // 早先这里只认 `current_handler`，于是「在自定义积木里插一条语句」被
@@ -1194,7 +1194,7 @@ fn insert_statement_at(
           (parent, item.path[item.path.length() - 1] + 1)
         }
         _ => {
-          let top : Array[Int] = []
+          let top : Array[Int32] = []
           (top, target.body.length())
         }
       }
@@ -1221,7 +1221,7 @@ fn insert_statement_at(
   let next = replace_target_body(model, target.label, working)
   let synced = sync_code_draft(next)
   // 选中新插入的第一条语句（按路径定位，链下标随展开块变化）。
-  let new_path : Array[Int] = []
+  let new_path : Array[Int32] = []
   for part in list_path {
     new_path.push(part)
   }

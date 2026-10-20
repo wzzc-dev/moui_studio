@@ -31,7 +31,7 @@ fn run_zh(
   source : String,
   texts : Map[String, String],
   values : Map[String, @studio_lang.Value],
-  seed? : Int = 42,
+  seed~ : Int32 = 42,
 ) -> @studio_lang.RunState {
   let state = @studio_lang.start_run(
     parse_ok(source, @studio_lang.ZhHans),

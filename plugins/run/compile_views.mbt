@@ -23,7 +23,7 @@ pub(all) struct CompileViewsParams[Msg] {
   on_run_artifact : (String) -> Msg
   on_copy_path : (String) -> Msg
   on_reveal : (String) -> Msg
-  on_jump : (Int) -> Msg
+  on_jump : (Int32) -> Msg
 }
 
 ///|
@@ -46,7 +46,7 @@ pub fn compile_step_state(
 /// (已完成数, 总步数)。
 pub fn compile_progress_counts(
   progress : Array[@export.CompileProgress],
-) -> (Int, Int) {
+) -> (Int32, Int32) {
   let mut done = 0
   for phase in @export.compile_phases() {
     match compile_step_state(progress, phase) {
@@ -571,7 +571,7 @@ pub fn middle_ellipsis(label : String, max_width : Double) -> String {
 
 ///|
 /// 字节数 → 紧凑可读串（KB/MB 档；源码文件按字节直出）。
-fn byte_size_label(bytes : Int) -> String {
+fn byte_size_label(bytes : Int32) -> String {
   if bytes <= 0 {
     "—"
   } else if bytes < 1024 {

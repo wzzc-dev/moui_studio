@@ -71,7 +71,7 @@ pub type BuildSubmit = (
 /// `noop`——不可达能力的统一口径是 noop 返回 `Effect::none`，调用方不必分叉）。
 pub(all) struct PreviewWebControls[Msg] {
   /// 静态服务实际端口（0 = 未启动/web 不可用）
-  port : Int
+  port : Int32
   /// 设置静态服务的服务目录（构建回执后调用）
   set_directory : (String) -> Unit
   /// webview 导航（返回 Effect 走运行时 effect 泵）
@@ -171,7 +171,7 @@ pub fn[Msg] noop_preview_web_controls() -> PreviewWebControls[Msg] {
 /// 不可用，web 控制为 noop。供无平台环境的组合根（测试/无头入口）使用；
 /// 各 noop 文案是平台入口的统一口径。
 pub fn[Msg] StudioServices::denied(
-  files? : @services.FileServices = @services.FileServices::unavailable(),
+  files~ : @services.FileServices = @services.FileServices::unavailable(),
 ) -> StudioServices[Msg] {
   {
     provider_submit: noop_provider_submit,

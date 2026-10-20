@@ -26,7 +26,7 @@ pub(all) struct TreeNode {
   label : String
   meta : String
   group : String
-  depth : Int
+  depth : Int32
   locked : Bool
   // 选中定位键：控件节点 = 控件名；子程序节点 = handler_key；
   // 其余为空串（不可选中）
@@ -405,7 +405,7 @@ pub fn code_lines(model : Model) -> Array[CodeLine] {
 /// 约定（start 为全文绝对偏移，由 line_start 平移内核 token 的行内偏移）。
 pub fn moonbit_line_ranged(
   line : String,
-  line_start : Int,
+  line_start : Int32,
 ) -> Array[RangedToken] {
   let tokens : Array[RangedToken] = []
   for token in @kernel.moonbit_highlight(line) {
@@ -483,7 +483,7 @@ fn highlight_line(
 /// 起始偏移，产出的 start/end 是**全文绝对偏移**。
 fn highlight_line_ranged(
   text : String,
-  line_start : Int,
+  line_start : Int32,
   keywords : @studio_lang.Keywords,
   builtins : Array[String],
 ) -> Array[RangedToken] {
@@ -677,7 +677,10 @@ pub fn ir_line_spans(model : Model) -> Array[IrLineSpan] {
 
 ///|
 /// 按语句路径查行区间（路径为空或无匹配时 None）。
-pub fn ir_span_at(spans : Array[IrLineSpan], path : Array[Int]) -> IrLineSpan? {
+pub fn ir_span_at(
+  spans : Array[IrLineSpan],
+  path : Array[Int32],
+) -> IrLineSpan? {
   if path.length() == 0 {
     return None
   }
@@ -691,7 +694,7 @@ pub fn ir_span_at(spans : Array[IrLineSpan], path : Array[Int]) -> IrLineSpan? {
 
 ///|
 /// 行号落在哪个区间（IR 行 → 积木块的反向映射）。
-pub fn ir_span_for_line(spans : Array[IrLineSpan], line : Int) -> IrLineSpan? {
+pub fn ir_span_for_line(spans : Array[IrLineSpan], line : Int32) -> IrLineSpan? {
   for span in spans {
     if line >= span.first_line && line <= span.last_line {
       return Some(span)
@@ -881,7 +884,7 @@ pub fn gate_pending(model : Model) -> Bool {
 
 ///|
 /// 待处理副作用数（审计 warn 未 settled）：状态栏计数 + 药丸徽标共用。
-pub fn pending_side_effects(model : Model) -> Int {
+pub fn pending_side_effects(model : Model) -> Int32 {
   let mut count = 0
   for entry in model.audit_entries {
     if entry.kind is AuditWarn && !entry.settled {
@@ -893,7 +896,7 @@ pub fn pending_side_effects(model : Model) -> Int {
 
 ///|
 /// 运行错误数（审计 error 未 settled）。
-pub fn audit_error_count(model : Model) -> Int {
+pub fn audit_error_count(model : Model) -> Int32 {
   let mut count = 0
   for entry in model.audit_entries {
     if entry.kind is AuditError && !entry.settled {
@@ -905,7 +908,7 @@ pub fn audit_error_count(model : Model) -> Int {
 
 ///|
 /// 待审计的 AI 卡数（未 settled 的 diff/副作用卡）：药丸徽标 + 折叠条共用。
-pub fn pending_ai_cards(model : Model) -> Int {
+pub fn pending_ai_cards(model : Model) -> Int32 {
   let mut count = 0
   for card in model.ai_sessions.current().cards {
     if !card.settled && (card.kind is CardDiff || card.kind is CardSideEffect) {

@@ -23,7 +23,7 @@ pub fn icon_button(
   width : Double,
   height : Double,
   icon_size : Double,
-  tile? : Bool = true,
+  tile~ : Bool = true,
 ) -> @moui.View[Msg] {
   // VS Code 活动栏口径：选中 = **深灰微高亮底 + 白色字形**（不是蓝底蓝字
   // ——蓝色块连排是「不协调」的主因）；未选中 = 灰字形裸露（底色与所在
@@ -135,7 +135,7 @@ pub fn shortcut_icon_button(
   width : Double,
   height : Double,
   icon_size : Double,
-  alt_shortcut? : @core.KeyboardShortcut? = None,
+  alt_shortcut~ : @core.KeyboardShortcut? = None,
 ) -> @moui.View[Msg] {
   @views.stack([
     @views.container(

@@ -47,7 +47,7 @@ pub fn code_workspace(
       // scroll_view 承担滚动**(滚轮/滚动条都走它,与块画布同一机制),
       // 行号槽与编辑器放进同一行,一起滚;编辑器按**内容全高**渲染
       // (不传 viewport/overscan,不做窗口化)。
-      let content_height = (open.draft.split("\n").length().to_double() *
+      let content_height = (open.draft.split("\n").count().to_double() *
       CODE_LINE_HEIGHT +
       60.0).max((height - 26.0 - 8.0).max(120.0))
       let editor_width = (width - 48.0).max(80.0)
@@ -401,14 +401,14 @@ fn code_document(
 /// 单行 → 富文本块：ranged token 直接映射 run（颜色取渲染层调色板）。
 fn code_line_block(
   line : String,
-  line_start~ : Int,
-  content_end~ : Int,
-  source_end~ : Int,
+  line_start~ : Int32,
+  content_end~ : Int32,
+  source_end~ : Int32,
   keywords~ : @studio_lang.Keywords,
   builtins~ : Array[String],
   diagnostics~ : Array[@code_editor.CodeDiagnostic],
   font~ : @text.FontSpec,
-  moonbit? : Bool = false,
+  moonbit~ : Bool = false,
 ) -> @moui_richtext.RichTextBlock {
   let runs : Array[@moui_richtext.RichTextRun] = []
   let tokens : Array[RangedToken] = if moonbit {
@@ -466,7 +466,7 @@ fn code_line_block(
 fn code_newline_transform(
   model : Model,
   source : String,
-  caret : Int,
+  caret : Int32,
 ) -> @moui_richtext.RichTextInputTransform? {
   let indent = @code.dsl_indent_for_newline(
     model.language.dsl_language(),
@@ -1181,7 +1181,7 @@ fn project_file_body_height(
 fn plain_code_document(
   source : String,
   font : @text.FontSpec,
-  moonbit? : Bool = false,
+  moonbit~ : Bool = false,
 ) -> @moui_richtext.RichTextDocument {
   // **与 IR 编辑面同一条文档管线**（实测光标/选区问题的收敛手段）：
   // 复用 code_line_block（分词/空行/区间约定完全一致）。默认关键字表与

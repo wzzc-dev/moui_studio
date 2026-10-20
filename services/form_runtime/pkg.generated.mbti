@@ -13,7 +13,7 @@ import {
 pub(all) struct FormRuntime {
   inner : @compiled_runtime.Runtime
 }
-pub fn FormRuntime::audit_assign(Self, String, @compiled_runtime.Value, Int, String) -> Unit
+pub fn FormRuntime::audit_assign(Self, String, @compiled_runtime.Value, Int32, String) -> Unit
 pub fn FormRuntime::from(@compiled_runtime.Runtime) -> Self
 pub fn FormRuntime::get(Self, String) -> @compiled_runtime.Value
 pub fn FormRuntime::inner(Self) -> @compiled_runtime.Runtime

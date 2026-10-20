@@ -4,14 +4,14 @@
 /// (mo_desktop 的 DesktopClock 同款先例)。它是瞬时值不是定时器:需要走动
 /// 的显示(AI 模式时间线/相对时间)由 1s 订阅的 ClockUpdated 每秒重取一次。
 pub(all) struct StudioClock {
-  year : Int
-  month : Int
-  day : Int
+  year : Int32
+  month : Int32
+  day : Int32
   /// 周日 = 0(与平台 FFI 同口径)
-  weekday : Int
-  hour : Int
-  minute : Int
-  second : Int
+  weekday : Int32
+  hour : Int32
+  minute : Int32
+  second : Int32
 }
 
 ///|
@@ -25,7 +25,7 @@ pub fn default_studio_clock() -> StudioClock {
 ///|
 /// 从民用日期算自 1970-01-01 起的天数(Howard Hinnant days_from_civil,
 /// 公历)。整除向零截断——负年份分支的 `- 399` 正是为此。
-fn days_from_civil(year : Int, month : Int, day : Int) -> Int {
+fn days_from_civil(year : Int32, month : Int32, day : Int32) -> Int32 {
   let y2 = if month <= 2 { year - 1 } else { year }
   let era = (if y2 >= 0 { y2 } else { y2 - 399 }) / 400
   let yoe = y2 - era * 400
@@ -38,7 +38,7 @@ fn days_from_civil(year : Int, month : Int, day : Int) -> Int {
 ///|
 /// 时间戳:自 epoch 起的秒数(可比较、可求差)。卡片的 at 戳、会话的
 /// updated 戳、「已工作 N 秒」时长与相对时间都从它派生。
-pub fn civil_seconds(clock : StudioClock) -> Int {
+pub fn civil_seconds(clock : StudioClock) -> Int32 {
   days_from_civil(clock.year, clock.month, clock.day) * 86400 +
   clock.hour * 3600 +
   clock.minute * 60 +
@@ -59,7 +59,7 @@ pub fn format_hhmm(clock : StudioClock) -> String {
 
 ///|
 /// 从 civil_seconds 戳还原 HH:MM 显示(卡片只存整数戳,不存整个时钟)。
-pub fn hhmm_of_stamp(at : Int) -> String {
+pub fn hhmm_of_stamp(at : Int32) -> String {
   let in_day = (at % 86400 + 86400) % 86400
   let hour = in_day / 3600
   let minute = in_day % 3600 / 60
@@ -71,7 +71,7 @@ pub fn hhmm_of_stamp(at : Int) -> String {
 ///|
 /// 相对时间分桶:(i18n 键, 数量)。just_now 桶不带数量。
 /// 刷新由 AI 模式的 1s ClockUpdated 订阅承担(不需要单独的 30s 计时)。
-pub fn relative_time_bucket(now : Int, at : Int) -> (String, Int) {
+pub fn relative_time_bucket(now : Int32, at : Int32) -> (String, Int32) {
   let diff = (now - at).max(0)
   if diff < 60 {
     ("app.ai.time.just_now", 0)

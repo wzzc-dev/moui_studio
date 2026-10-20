@@ -12,7 +12,7 @@ pub fn compare(String, Observation, Observation) -> DiffReport
 
 pub fn compiled_error_kind(@compiled_runtime.ErrorKind) -> String
 
-pub fn compiled_op_rank(@compiled_runtime.StepOp) -> Int
+pub fn compiled_op_rank(@compiled_runtime.StepOp) -> Int32
 
 pub fn compiled_value_text(@compiled_runtime.Value) -> String
 
@@ -20,13 +20,13 @@ pub fn diff_case(String, @ir.StudioProgram, @ir.Handler, @studio_lang.Language, 
 
 pub fn interp_error_kind(@studio_lang.LangErrorKind) -> String
 
-pub fn interp_op_rank(@studio_lang.StepOp) -> Int
+pub fn interp_op_rank(@studio_lang.StepOp) -> Int32
 
 pub fn interp_value_text(@studio_lang.Value) -> String
 
-pub fn observe_compiled(Array[@studio_lang.TracedStmt], @ir.StudioProgram, Array[Bool], seed? : Int) -> Observation
+pub fn observe_compiled(Array[@studio_lang.TracedStmt], @ir.StudioProgram, Array[Bool], seed? : Int32) -> Observation
 
-pub fn observe_interp(Array[@studio_lang.TracedStmt], @ir.StudioProgram, Array[Bool], seed? : Int) -> Observation
+pub fn observe_interp(Array[@studio_lang.TracedStmt], @ir.StudioProgram, Array[Bool], seed? : Int32) -> Observation
 
 // Errors
 
@@ -42,7 +42,7 @@ pub(all) struct Observation {
   gate_prompt : String
   gate_payload : String
   error_kind : String
-  error_line : Int
+  error_line : Int32
   texts : Array[(String, String)]
   vars : Array[(String, String)]
   audit : Array[String]

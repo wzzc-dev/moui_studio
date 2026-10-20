@@ -27,7 +27,7 @@ fn noop_runtime_snapshot() -> RuntimeInspectSample? {
 ///|
 /// 历史条上限：快照摘要按新到旧排列，超限丢弃最旧的。
 /// moui_devtools 的 SnapshotHistory 无界，这里在 app 侧自己封顶。
-const RUNTIME_HISTORY_LIMIT : Int = 24
+const RUNTIME_HISTORY_LIMIT : Int32 = 24
 
 ///|
 /// 采样到达：写入当前报告 + 追加历史（新到旧）。

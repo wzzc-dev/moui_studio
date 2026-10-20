@@ -834,7 +834,7 @@ fn data_view(
 
 ///|
 /// 预览行数：按换行数估算（限制 8 行以内，避免一块数据吃掉整个左栏）。
-fn preview_height(preview : String) -> Int {
+fn preview_height(preview : String) -> Int32 {
   let mut lines = 1
   for c in preview {
     if c == '\n' {
@@ -1141,7 +1141,7 @@ fn tab_button(
   label : String,
   selected : Bool,
   on_click : Msg,
-  count : Int,
+  count : Int32,
 ) -> @moui.View[Msg] {
   let cells : Array[@moui.View[Msg]] = [
     @views.text(
@@ -1221,7 +1221,7 @@ fn audit_card(
   model : Model,
   t : @i18n.Translator,
   entry : AuditEntry,
-  index : Int,
+  index : Int32,
   width : Double,
 ) -> @moui.View[Msg] {
   ignore(model)

@@ -16,10 +16,10 @@ pub(all) enum ConfirmKind {
   CkDeleteVariable(String)
   CkDeleteProjectFile(String)
   /// 新建工程（folder projects）：载荷 = 模板下标（-1 = 空白程序）
-  CkNewProject(Int)
+  CkNewProject(Int32)
   CkOpen
   /// 关闭脏 tab（G4 多标签）：载荷 = tab 下标
-  CkCloseFileTab(Int)
+  CkCloseFileTab(Int32)
 }
 
 ///|

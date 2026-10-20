@@ -124,7 +124,7 @@ pub fn update_with_services(
   model : Model,
   msg : Msg,
   services : @services.AppServices,
-  pty? : @kernel.PtyService[Msg] = @kernel.PtyService::unavailable(),
+  pty~ : @kernel.PtyService[Msg] = @kernel.PtyService::unavailable(),
 ) -> (Model, @moui.Effect[Msg]) {
   match msg {
     // 终端（M5）：PTY 输出增量喂屏；派生回执挂句柄；输入行经服务写出；
@@ -1867,7 +1867,7 @@ fn percent_encode_path(path : String) -> String {
 
 ///|
 /// 码点 → UTF-8 字节序列（1–4 字节），逐字节百分号编码用。
-fn utf8_bytes(code : Int) -> Array[Int] {
+fn utf8_bytes(code : Int32) -> Array[Int32] {
   if code < 0x80 {
     [code]
   } else if code < 0x800 {
@@ -1962,36 +1962,36 @@ fn run_subscription(
 /// Web 入口注入 noop 并声明 ai_available=false——浏览器没有 HTTP 通道，
 /// AI 显式降级，不出假按钮）。
 pub fn program(
-  environment? : @services.AppEnvironment = @services.AppEnvironment::new(),
-  provider_submit? : ProviderSubmit = @kernel.noop_provider_submit,
-  compile_submit? : CompileSubmit = @kernel.noop_compile_submit,
-  launch_submit? : LaunchSubmit = @kernel.noop_launch_submit,
-  runtime_snapshot? : RuntimeSnapshotFn = noop_runtime_snapshot,
-  compile_cancel? : () -> Unit = @kernel.noop_compile_cancel,
-  build_submit? : BuildSubmit = @kernel.noop_build_submit,
-  build_cancel? : () -> Unit = @kernel.noop_build_cancel,
-  webview_controller? : @webview_host.WebViewController? = None,
-  preview_web? : PreviewWebControls = @kernel.noop_preview_web_controls(),
+  environment~ : @services.AppEnvironment = @services.AppEnvironment::new(),
+  provider_submit~ : ProviderSubmit = @kernel.noop_provider_submit,
+  compile_submit~ : CompileSubmit = @kernel.noop_compile_submit,
+  launch_submit~ : LaunchSubmit = @kernel.noop_launch_submit,
+  runtime_snapshot~ : RuntimeSnapshotFn = noop_runtime_snapshot,
+  compile_cancel~ : () -> Unit = @kernel.noop_compile_cancel,
+  build_submit~ : BuildSubmit = @kernel.noop_build_submit,
+  build_cancel~ : () -> Unit = @kernel.noop_build_cancel,
+  webview_controller~ : @webview_host.WebViewController? = None,
+  preview_web~ : PreviewWebControls = @kernel.noop_preview_web_controls(),
   provider_config? : ProviderConfig,
-  compile_track_available? : Bool = false,
-  export_available? : Bool = false,
-  immersive? : Bool = false,
-  pty? : @kernel.PtyService[Msg] = @kernel.PtyService::unavailable(),
-  focus_terminal? : () -> Unit = fn() { () },
-  profile? : StudioProfile = Full,
-  apply_locale? : (String) -> Unit = _tag => (),
+  compile_track_available~ : Bool = false,
+  export_available~ : Bool = false,
+  immersive~ : Bool = false,
+  pty~ : @kernel.PtyService[Msg] = @kernel.PtyService::unavailable(),
+  focus_terminal~ : () -> Unit = fn() { () },
+  profile~ : StudioProfile = Full,
+  apply_locale~ : (String) -> Unit = _tag => (),
   /// 墙钟闭包（组合根映射平台 FFI 注入；缺省 = 常数钟）。时间戳/时长/
   /// 相对时间的唯一来源；订阅只在 AI 模式活跃（run_subscription）。
-  wall_clock? : (() -> StudioClock)? = None,
+  wall_clock~ : (() -> StudioClock)? = None,
   /// AI 会话存储路径（M5）：非空 = native 持久化开启（init 读取 +
   /// 结构性事件写盘）；空 = 关闭（web 入口），UI 无持久化入口。
-  sessions_store_path? : String = "",
+  sessions_store_path~ : String = "",
   /// 工程记录存储路径（G2）：`.studio/projects.json`（只存 root/module_name
   /// 摘要,启动重扫拿新鲜树）；空 = 关闭（web 入口）。
-  projects_store_path? : String = "",
+  projects_store_path~ : String = "",
   /// AI 能力可用性：浏览器没有 HTTP 通道，Web 入口传 false——composer
   /// 隐藏 + native 引导文案（显式降级，不出假按钮）。
-  ai_available? : Bool = true,
+  ai_available~ : Bool = true,
   /// 画布锚点帧查询（组合根注入，键 = "blocks-canvas"）。
   ///
   /// 调色板拖拽的指针换算（视口 → 链）需要画布内容节点的**布局帧**——
@@ -1999,7 +1999,7 @@ pub fn program(
   /// 锚点注册表为每个带 key 的元素登记布局帧，组合根把
   /// `runtime.anchor_frame` 包成回调注入（与 `runtime_snapshot` 同一
   /// 先例）。缺省恒 None = 调色板拖拽落不下来（headless/测试入口）。
-  canvas_frame? : (String) -> @core.Rect? = _key => None,
+  canvas_frame~ : (String) -> @core.Rect? = _key => None,
 ) -> @moui.Program[Model, Msg] {
   let services = environment.services()
   let timer = environment.timer()

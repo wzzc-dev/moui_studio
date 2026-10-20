@@ -148,7 +148,7 @@ fn render() -> Result[String, String] {
 }
 
 ///|
-fn check_mode() -> Int {
+fn check_mode() -> Int32 {
   let expected = match render() {
     Err(message) => {
       println("version sync failed: \{message}")
@@ -174,7 +174,7 @@ fn check_mode() -> Int {
 }
 
 ///|
-fn write_mode() -> Int raise {
+fn write_mode() -> Int32 raise {
   let expected = match render() {
     Err(message) => {
       println("version sync failed: \{message}")

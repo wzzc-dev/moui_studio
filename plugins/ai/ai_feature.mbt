@@ -11,11 +11,11 @@
 /// 会话操作消息：新建 / 切换 / 删除 / 改名 / 置顶。
 pub(all) enum AiSessionMsg {
   /// 新建会话；载荷 = 创建时刻（civil_seconds，调用方经 model.clock 取）
-  AiSessionCreate(Int)
-  AiSessionSwitch(Int)
-  AiSessionRemove(Int)
-  AiSessionRename(Int, String)
-  AiSessionPin(Int, Bool)
+  AiSessionCreate(Int32)
+  AiSessionSwitch(Int32)
+  AiSessionRemove(Int32)
+  AiSessionRename(Int32, String)
+  AiSessionPin(Int32, Bool)
   /// 当前会话 composer 草稿（S5h 自壳并入）：随打随存进当前会话，零副作用。
   /// 壳在委托后清一次 prompt_error（错误提示跨域，仍住壳）。
   SetPromptDraft(String)
@@ -69,8 +69,8 @@ pub fn ai_sessions_feature() -> @moui.Feature[AiSessions, AiSessionMsg] {
 /// 会话列表的读数投影：[(下标, 会话名, 是否当前)]，供壳渲染列表。
 pub fn AiSessions::list_entries(
   self : AiSessions,
-) -> Array[(Int, String, Bool)] {
-  let entries : Array[(Int, String, Bool)] = []
+) -> Array[(Int32, String, Bool)] {
+  let entries : Array[(Int32, String, Bool)] = []
   let mut index = 0
   for session in self.sessions {
     entries.push((index, session.title, index == self.active))

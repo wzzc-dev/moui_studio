@@ -16,24 +16,24 @@ pub(all) struct TerminalState {
   /// 本端 PTY 能力（由组合根注入的服务决定；web = false → 空态）
   available : Bool
   /// 会话句柄（组合根登记表 id；None = 未派生）
-  mut handle : Int?
+  mut handle : Int32?
   /// 行缓冲屏（已应用最小 VT 处理的可见行；数组共享可变，audit_entries 同款）
   screen : Array[String]
   /// 用户正在键入的行（回车提交给 PTY）
   mut input_draft : String
   /// PTY 输出的列光标（\r 只移列不删内容——覆盖发生在后续可见字符写入时，
   /// 这是进度条回车覆盖与 \r\n 行终止得以共存的关键）
-  mut col : Int
-  cols : Int
-  rows : Int
+  mut col : Int32
+  cols : Int32
+  rows : Int32
 }
 
 ///|
 /// 初始状态：available 由组合根按服务能力注入。
 pub fn TerminalState::new(
-  available? : Bool = false,
-  cols? : Int = 80,
-  rows? : Int = 24,
+  available~ : Bool = false,
+  cols~ : Int32 = 80,
+  rows~ : Int32 = 24,
 ) -> TerminalState {
   { available, handle: None, screen: [], input_draft: "", col: 0, cols, rows, }
 }
@@ -147,7 +147,7 @@ pub fn TerminalState::feed_output(self : TerminalState, text : String) -> Unit {
 ///|
 /// 剥离一个转义序列，返回序列之后的下标。CSI：ESC [ 参数字节(0x30-0x3F)
 /// 中间字节(0x20-0x2F) 终止字节(0x40-0x7E)；OSC：ESC ] 到 BEL 或 ESC \。
-fn skip_escape(chars : Array[Char], start : Int) -> Int {
+fn skip_escape(chars : Array[Char], start : Int32) -> Int32 {
   let count = chars.length()
   // start = ESC 本身的下标；kind 取 ESC 后一字节
   if start + 1 >= count {

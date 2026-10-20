@@ -36,15 +36,15 @@ pub(all) struct AiUiState {
   ai_cards_folded : Bool
   /// 时间线受控滚动（终端同款）。
   mut transcript_scroll : @geometry.Point
-  mut transcript_scroll_seq : Int
+  mut transcript_scroll_seq : Int32
   mut transcript_follow : Bool
   /// 左栏会话列表：搜索过滤行开合 + 查询 + 悬停行下标。
   ai_sessions_search_open : Bool
   ai_sessions_query : String
-  ai_session_hover : Int
+  ai_session_hover : Int32
   /// 行内改名编辑态：(下标, 草稿)；Start/Commit 需读会话或触发存储，住壳，
   /// 切片只承接草稿编辑（Draft）与清空（ClearRename 由壳在提交/取消后调用）。
-  mut session_rename : (Int, String)?
+  mut session_rename : (Int32, String)?
   /// 设置 / AI 历史对话框开合。
   settings_open : Bool
   ai_history_open : Bool
@@ -106,7 +106,7 @@ pub(all) enum AiUiMsg {
   TranscriptScrollToBottom
   ToggleSessionSearch
   SetSessionsQuery(String)
-  SessionHover(Int, Bool)
+  SessionHover(Int32, Bool)
   SetRenameDraft(String)
   ClearRename
   ToggleSettings

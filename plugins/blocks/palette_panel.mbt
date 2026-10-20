@@ -22,7 +22,7 @@
 /// 「自制积木」在分类轨里的下标（五个内置分类之后）。
 /// 与 app 侧 `CATEGORY_INDEX_CUSTOM` 同一口径——两处各写一个数就会
 /// 「点第 6 格出现第 5 格的骨架」。
-pub const CATEGORY_INDEX_CUSTOM : Int = 5
+pub const CATEGORY_INDEX_CUSTOM : Int32 = 5
 
 ///|
 /// 自定义函数的插入骨架展示名：`名字(0, 0)`（占位实参按形参个数生成）。
@@ -60,26 +60,26 @@ pub const STATEMENT_DRAG_HINT_HEIGHT : Double = 20.0
 /// 面板参数：读数 + 动作（不读壳 Model）。
 pub(all) struct PalettePanelParams[Msg] {
   /// 当前选中分类下标（-1 = 全部；面板由壳在分类非空时才建）。
-  category_index : Int
+  category_index : Int32
   /// 搜索查询（"" = 无过滤）。
   query : String
   language : @studio_lang.Language
-  on_insert : (Int) -> Msg
+  on_insert : (Int32) -> Msg
   /// 拖拽手势**全程**（含相位与视口坐标）。行是拖拽的发起者，也是
   /// runtime 捕获语义下唯一收得到移动/松手事件的元素——把事件整个交回
   /// 壳侧，由壳按相位派发开始/移动/松手消息（视口 → 链的换算在 update，
   /// 那里才拿得到画布的布局帧）。
-  on_drag_event : (Int, @core.DragGestureEvent) -> Msg
+  on_drag_event : (Int32, @core.DragGestureEvent) -> Msg
   on_query : (String) -> Msg
   on_new_variable : Msg
   /// 报告块（表达式）拖动源：落点（哪个洞）由画布侧按指针算。
-  on_expr_drag_event : (Int, @core.DragGestureEvent) -> Msg
+  on_expr_drag_event : (Int32, @core.DragGestureEvent) -> Msg
   /// 自制积木组的函数条目（名字 + 形参个数）；空 = 该组显示空态说明。
   /// 由壳从 `program.functions` 投影（插件不读壳 Model）。
   custom_entries : Array[CustomEntry]
   /// 点/拖一条自定义函数（下标 = `custom_entries` 的下标）。
-  on_insert_custom : (Int) -> Msg
-  on_drag_custom_event : (Int, @core.DragGestureEvent) -> Msg
+  on_insert_custom : (Int32) -> Msg
+  on_drag_custom_event : (Int32, @core.DragGestureEvent) -> Msg
 }
 
 ///|
@@ -90,7 +90,7 @@ pub(all) struct PalettePanelParams[Msg] {
 /// 也少一处「壳结构改了插件跟着改」的耦合。
 pub(all) struct CustomEntry {
   name : String
-  arity : Int
+  arity : Int32
 }
 
 ///|
@@ -132,9 +132,9 @@ fn[Msg] palette_block_row(
   label : String,
   category : @blk.BlockCategory,
   width : Double,
-  tap_msg? : Msg? = None,
+  tap_msg~ : Msg? = None,
   drag_event~ : (@core.DragGestureEvent) -> Msg,
-  acc_label? : String = "",
+  acc_label~ : String = "",
 ) -> @moui.View[Msg] {
   let w = (width - 12.0).max(60.0)
   // 预览行的块形与画布同一剪影：事件族戴帽子圆顶——圆顶在**行框上方**

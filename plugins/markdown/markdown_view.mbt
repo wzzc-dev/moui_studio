@@ -24,7 +24,7 @@ pub fn[Msg] markdown_file_view(
   placeholder_color~ : @graphics.Color,
   background~ : @graphics.Brush,
   cursor_color~ : @graphics.Color,
-  key? : String = "studio-markdown-editor",
+  key~ : String = "studio-markdown-editor",
 ) -> @moui.View[Msg] {
   let editor_width = (width - 32.0).max(80.0)
   let content_height = markdown_content_height(
@@ -57,7 +57,7 @@ pub fn[Msg] markdown_session_file_view(
   session~ : @richtext.MarkdownDocumentSession,
   selection~ : @richtext.MarkdownEditorSelection,
   on_transaction~ : (@richtext.MarkdownEditTransaction) -> Msg,
-  on_selection_change~ : (Int, @core.TextRange?) -> Msg,
+  on_selection_change~ : (Int32, @core.TextRange?) -> Msg,
   width~ : Double,
   height~ : Double,
   font~ : @text.FontSpec,
@@ -65,7 +65,7 @@ pub fn[Msg] markdown_session_file_view(
   placeholder_color~ : @graphics.Color,
   background~ : @graphics.Brush,
   cursor_color~ : @graphics.Color,
-  key? : String = "studio-markdown-session-editor",
+  key~ : String = "studio-markdown-session-editor",
 ) -> @moui.View[Msg] {
   let editor_width = (width - 32.0).max(80.0)
   let content_height = session
@@ -135,7 +135,10 @@ pub fn markdown_session_find_status(
 
 ///|
 /// 替换选区语义：start == end（替换文本为空）时不保留选区。
-fn markdown_replacement_selection(start : Int, end : Int) -> @core.TextRange? {
+fn markdown_replacement_selection(
+  start : Int32,
+  end : Int32,
+) -> @core.TextRange? {
   if start == end {
     None
   } else {
@@ -312,12 +315,12 @@ pub fn[Msg] markdown_find_bar_view(
 pub fn[Msg] markdown_outline_panel_view(
   theme~ : @moui.Theme,
   outline~ : Array[@richtext.MarkdownEditorOutlineItem],
-  folded_starts~ : Array[Int],
-  caret~ : Int,
-  on_jump~ : (Int) -> Msg,
-  on_toggle_fold~ : (Int) -> Msg,
+  folded_starts~ : Array[Int32],
+  caret~ : Int32,
+  on_jump~ : (Int32) -> Msg,
+  on_toggle_fold~ : (Int32) -> Msg,
   height~ : Double,
-  width? : Double = 240.0,
+  width~ : Double = 240.0,
 ) -> @moui.View[Msg] {
   @mdchrome.markdown_outline_panel(
     theme~,
@@ -338,11 +341,11 @@ pub fn[Msg] markdown_outline_panel_view(
 pub fn[Msg] markdown_document_info_panel_view(
   theme~ : @moui.Theme,
   info~ : @mdchrome.MarkdownDocumentInfo,
-  word_count~ : Int,
-  line_count~ : Int,
+  word_count~ : Int32,
+  line_count~ : Int32,
   reading_time_label~ : String,
   height~ : Double,
-  width? : Double = 240.0,
+  width~ : Double = 240.0,
 ) -> @moui.View[Msg] {
   @mdchrome.markdown_document_info_panel(
     theme~,
