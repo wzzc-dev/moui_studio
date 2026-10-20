@@ -1232,7 +1232,7 @@ fn plain_code_document(
 /// 行号列跟随编辑器滚动（共享 project_file_scroll）。
 fn project_file_gutter(open : OpenProjectFile) -> @moui.View[Msg] {
   let rows : Array[@moui.View[Msg]] = []
-  let line_count = open.draft.split("\n").length()
+  let line_count = open.draft.split("\n").count()
   let mut number = 1
   while number <= line_count {
     rows.push(

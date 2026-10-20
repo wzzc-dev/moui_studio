@@ -285,7 +285,7 @@ fn[Msg] compile_report_card(
                 ),
                 @views.badge(
                   theme=@chrome.studio_theme(),
-                  report.output.split("\n").length().to_string(),
+                  report.output.split("\n").count().to_string(),
                   tone=@style.BadgeTone::Neutral,
                   width=48.0,
                   height=20.0,
