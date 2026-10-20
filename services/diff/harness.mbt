@@ -393,9 +393,8 @@ pub fn diff_case(
   gate_answers : Array[Bool],
 ) -> DiffReport {
   let source = @studio_lang.render_handler(handler, language)
-  let body = match @studio_lang.parse_handler_body(source, language) {
-    Ok(body) => body
-    Err(error) =>
+  let body = @studio_lang.parse_handler_body(source, language) catch {
+    error =>
       return DiffReport::{
         case_name: name,
         mismatches: [

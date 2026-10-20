@@ -241,14 +241,13 @@ fn check_name(name : String, errors : Array[LangError]) -> Unit {
 fn check_round_trip(body : Array[Stmt], errors : Array[LangError]) -> Unit {
   for language in [ZhHans, En] {
     let rendered = render_stmts(body, language)
-    match parse_handler_body(rendered, language) {
-      Ok(traced) => {
-        let parsed = traced.map(item => item.stmt)
-        if @ir.stmts_signature(parsed) != @ir.stmts_signature(body) {
-          errors.push(LangError(UnexpectedToken, 0, "round-trip", ""))
-        }
+    try {
+      let parsed = parse_handler_body(rendered, language).map(item => item.stmt)
+      if @ir.stmts_signature(parsed) != @ir.stmts_signature(body) {
+        errors.push(LangError(UnexpectedToken, 0, "round-trip", ""))
       }
-      Err(error) => errors.push(error)
+    } catch {
+      error => errors.push(error)
     }
   }
 }

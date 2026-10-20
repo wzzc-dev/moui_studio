@@ -159,19 +159,27 @@ test "expression templates are not inserted as statements" {
   let exprs = @blk.expression_templates()
   assert_true(exprs.length() > 0)
   // 表达式骨架本身不是合法**语句**：`1 + 1` 作为语句解析应失败
-  let parsed = @studio_lang.parse_handler_body(
-    exprs[0].skeleton(@studio_lang.ZhHans),
-    @studio_lang.ZhHans,
-  )
-  assert_true(parsed is Err(_))
+  let rejected = try {
+    ignore(
+      @studio_lang.parse_handler_body(
+        exprs[0].skeleton(@studio_lang.ZhHans),
+        @studio_lang.ZhHans,
+      ),
+    )
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(rejected)
   // 语句骨架表（运算分类）里那一条是**完整语句**（赋值），不是裸表达式
   let stmts = @blk.templates_for_category(@blocks.CatExpression)
   for template in stmts {
-    let body = @studio_lang.parse_handler_body(
-      template.skeleton(@studio_lang.ZhHans),
-      @studio_lang.ZhHans,
+    ignore(
+      @studio_lang.parse_handler_body(
+        template.skeleton(@studio_lang.ZhHans),
+        @studio_lang.ZhHans,
+      ),
     )
-    assert_true(body is Ok(_))
   }
 }
 
@@ -278,22 +286,20 @@ test "every command builtin is reachable from the palette" {
   let palette = @blk.templates_for_category(@blocks.CatCommand)
   let reachable : Array[String] = []
   for template in palette {
-    let body = @studio_lang.parse_handler_body(
+    let stmts = @studio_lang.parse_handler_body(
       template.skeleton(@studio_lang.ZhHans),
       @studio_lang.ZhHans,
-    )
-    match body {
-      Ok(stmts) =>
-        for traced in stmts {
-          match traced.stmt {
-            @ir.Stmt::Call(name, _) => reachable.push(name)
-            _ => ()
-          }
-        }
-      Err(_) =>
+    ) catch {
+      _ =>
         fail(
           "a palette skeleton must be parseable: \{template.skeleton(@studio_lang.ZhHans)}",
         )
+    }
+    for traced in stmts {
+      match traced.stmt {
+        @ir.Stmt::Call(name, _) => reachable.push(name)
+        _ => ()
+      }
     }
   }
   // 目录里所有**可插入语句**的类都必须可达：`Command`（普通命令）与
@@ -326,13 +332,11 @@ test "every function builtin is reachable from the reporter palette" {
   let palette = @blk.expression_templates()
   let reachable : Array[String] = []
   for template in palette {
-    let expr = match
-      @studio_lang.parse_expression_text(
-        template.skeleton(@studio_lang.ZhHans),
-        @studio_lang.ZhHans,
-      ) {
-      Ok(expr) => expr
-      Err(_) =>
+    let expr = @studio_lang.parse_expression_text(
+      template.skeleton(@studio_lang.ZhHans),
+      @studio_lang.ZhHans,
+    ) catch {
+      _ =>
         fail(
           "a reporter skeleton must be parseable: \{template.skeleton(@studio_lang.ZhHans)}",
         )
@@ -388,25 +392,26 @@ test "every palette skeleton parses in both UI languages" {
   let languages = [@studio_lang.ZhHans, @studio_lang.En]
   for language in languages {
     for template in @blk.statement_templates() {
-      let result = @studio_lang.parse_handler_body(
-        template.skeleton(language),
-        language,
-      )
-      if result is Err(_) {
-        fail(
-          "statement skeleton fails to parse: [\{template.label_key}] \{template.skeleton(language)}",
-        )
+      ignore(
+        @studio_lang.parse_handler_body(template.skeleton(language), language),
+      ) catch {
+        _ =>
+          fail(
+            "statement skeleton fails to parse: [\{template.label_key}] \{template.skeleton(language)}",
+          )
       }
     }
     for template in @blk.expression_templates() {
-      let result = @studio_lang.parse_expression_text(
-        template.skeleton(language),
-        language,
-      )
-      if result is Err(_) {
-        fail(
-          "expression skeleton fails to parse: [\{template.label_key}] \{template.skeleton(language)}",
-        )
+      ignore(
+        @studio_lang.parse_expression_text(
+          template.skeleton(language),
+          language,
+        ),
+      ) catch {
+        _ =>
+          fail(
+            "expression skeleton fails to parse: [\{template.label_key}] \{template.skeleton(language)}",
+          )
       }
     }
   }
@@ -811,15 +816,16 @@ test "the if-else skeleton produces a real else branch" {
   // 「骨架坏了」——已有的 if / repeat / while 骨架有同样性质，它们的用例
   // 也只查积木形状。骨架的契约是「可解析 + 形状正确」，语义合法性由用户
   // 把示例名改成自己的名字后成立。
-  assert_true(
+  ignore(
     @studio_lang.parse_handler_body(
       @blk.templates_for_category(@blocks.CatFlow)[@blk.template_index_of(
         2, "app.stmt.tpl.if_else",
       ).unwrap()].skeleton(@studio_lang.ZhHans),
       @studio_lang.ZhHans,
-    )
-    is Ok(_),
-  )
+    ),
+  ) catch {
+    _ => fail("if/else skeleton must parse")
+  }
 }
 
 ///|
@@ -833,10 +839,8 @@ test "repeat-until negates its condition" {
   let skeleton = @blk.templates_for_category(@blocks.CatFlow)[index].skeleton(
     @studio_lang.ZhHans,
   )
-  let parsed = @studio_lang.parse_handler_body(skeleton, @studio_lang.ZhHans)
-  let stmts = match parsed {
-    Ok(stmts) => stmts
-    Err(_) => fail("repeat-until skeleton must parse: \{skeleton}")
+  let stmts = @studio_lang.parse_handler_body(skeleton, @studio_lang.ZhHans) catch {
+    _ => fail("repeat-until skeleton must parse: \{skeleton}")
   }
   let mut found_while = false
   for traced in stmts {
@@ -867,10 +871,8 @@ test "forever terminates at the step budget instead of hanging" {
   let skeleton = @blk.templates_for_category(@blocks.CatFlow)[index].skeleton(
     @studio_lang.ZhHans,
   )
-  let stmts = match
-    @studio_lang.parse_handler_body(skeleton, @studio_lang.ZhHans) {
-    Ok(stmts) => stmts
-    Err(_) => fail("forever skeleton must parse: \{skeleton}")
+  let stmts = @studio_lang.parse_handler_body(skeleton, @studio_lang.ZhHans) catch {
+    _ => fail("forever skeleton must parse: \{skeleton}")
   }
   // 用小预算跑，避免测试本身耗时（语义与默认预算完全一致）
   let state = @studio_lang.start_run_stmts(
@@ -908,9 +910,9 @@ test "every flow and command skeleton parses in Chinese" {
       }
       for template in templates {
         let skeleton = template.skeleton(language)
-        let parsed = @studio_lang.parse_handler_body(skeleton, language)
-        if parsed is Err(_) {
-          fail("skeleton fails to parse: [\{template.label_key}] \{skeleton}")
+        ignore(@studio_lang.parse_handler_body(skeleton, language)) catch {
+          _ =>
+            fail("skeleton fails to parse: [\{template.label_key}] \{skeleton}")
         }
       }
     }

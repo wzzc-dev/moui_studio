@@ -344,25 +344,24 @@ pub fn parse_leaf_value(
   if trimmed.length() == 0 {
     return @ir.StrLit("")
   }
-  match @studio_lang.parse_expression_text(trimmed, language) {
-    Ok(expr) =>
-      match expr {
-        @ir.NumLit(_) | @ir.IntLit(_) | @ir.StrLit(_) => expr
-        @ir.BoolLit(_) => expr
-        // 变量名要**真的像变量名**才当变量。词法器对标识符极宽松
-        // （任何非空白非运算符的连续字符都算 Ident），于是「你好」也会被
-        // 解析成变量——但用户在值格子里打中文想要的是**文本**。
-        // 这里加一道形状检查：标识符必须由字母/数字/下划线/中文**标识符**
-        // 组成且不以数字开头，否则回落成字符串。
-        @ir.Var(name) =>
-          if leaf_is_identifier_shaped(name) {
-            expr
-          } else {
-            @ir.StrLit(source)
-          }
-        _ => @ir.StrLit(source)
+  let expr = @studio_lang.parse_expression_text(trimmed, language) catch {
+    _ => return @ir.StrLit(source)
+  }
+  match expr {
+    @ir.NumLit(_) | @ir.IntLit(_) | @ir.StrLit(_) => expr
+    @ir.BoolLit(_) => expr
+    // 变量名要**真的像变量名**才当变量。词法器对标识符极宽松
+    // （任何非空白非运算符的连续字符都算 Ident），于是「你好」也会被
+    // 解析成变量——但用户在值格子里打中文想要的是**文本**。
+    // 这里加一道形状检查：标识符必须由字母/数字/下划线/中文**标识符**
+    // 组成且不以数字开头，否则回落成字符串。
+    @ir.Var(name) =>
+      if leaf_is_identifier_shaped(name) {
+        expr
+      } else {
+        @ir.StrLit(source)
       }
-    Err(_) => @ir.StrLit(source)
+    _ => @ir.StrLit(source)
   }
 }
 

@@ -466,9 +466,8 @@ test "diff matrix: unresolved gate shape matches before answering" {
     ])
     for language in languages() {
       let source = @studio_lang.render_handler(handler, language)
-      let body = match @studio_lang.parse_handler_body(source, language) {
-        Ok(body) => body
-        Err(error) => fail("闸门合成样例无法解析: \{error.line()}")
+      let body = @studio_lang.parse_handler_body(source, language) catch {
+        error => fail("闸门合成样例无法解析: \{error.line()}")
       }
       for answers in [[], [true], [false]] {
         let report = @diff.compare(

@@ -370,31 +370,27 @@ fn commit_code(model : Model) -> Model {
       if model.code_draft.trim().to_owned() == "" {
         with_draft_diagnostics(model)
       } else {
-        match
-          @studio_lang.parse_handler_body(
+        try {
+          let body = @studio_lang.parse_handler_body(
             model.code_draft,
             model.language.dsl_language(),
-          ) {
-          Err(_) => with_draft_diagnostics(model)
-          Ok(body) => {
-            let updated = @ir.Handler::{
-              ..handler,
-              body: body.map(t => t.stmt),
+          )
+          let updated = @ir.Handler::{ ..handler, body: body.map(t => t.stmt), }
+          let handlers : Array[@ir.Handler] = []
+          for existing in model.program.handlers {
+            if existing.control_name == handler.control_name &&
+              existing.event.tag() == handler.event.tag() {
+              handlers.push(updated)
+            } else {
+              handlers.push(existing)
             }
-            let handlers : Array[@ir.Handler] = []
-            for existing in model.program.handlers {
-              if existing.control_name == handler.control_name &&
-                existing.event.tag() == handler.event.tag() {
-                handlers.push(updated)
-              } else {
-                handlers.push(existing)
-              }
-            }
-            with_draft_diagnostics({
-              ..model,
-              program: { ..model.program, handlers, },
-            })
           }
+          with_draft_diagnostics({
+            ..model,
+            program: { ..model.program, handlers, },
+          })
+        } catch {
+          _ => with_draft_diagnostics(model)
         }
       }
   }

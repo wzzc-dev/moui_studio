@@ -243,34 +243,34 @@ fn commit_block(model : Model) -> Model {
           if item.path.length() == 0 {
             model
           } else {
-            match
-              @studio_lang.parse_handler_body(
+            try {
+              let body = @studio_lang.parse_handler_body(
                 model.block_draft,
                 model.language.dsl_language(),
-              ) {
-              Err(_) =>
+              )
+              if body.length() == 0 {
+                model
+              } else {
+                // 克隆后再手术：replace_stmt_at 是就地语义，
+                // 直接改 handler.body 会污染撤销快照（共享数组引用）
+                let working = @blocks.clone_stmts(target.body)
+                let updated = @blocks.replace_stmt_at(
+                  working,
+                  item.path,
+                  body[0].stmt,
+                )
+                let next = replace_target_body(model, target.label, updated)
+                // 同步代码视图（同一份 IR 的另一种渲染）
+                let synced = sync_code_draft(next)
+                { ..synced, notice: "", }
+              }
+            } catch {
+              _ =>
                 with_notice(
                   model,
                   text(translator(model), "app.status.parse_error"),
                   true,
                 )
-              Ok(body) =>
-                if body.length() == 0 {
-                  model
-                } else {
-                  // 克隆后再手术：replace_stmt_at 是就地语义，
-                  // 直接改 handler.body 会污染撤销快照（共享数组引用）
-                  let working = @blocks.clone_stmts(target.body)
-                  let updated = @blocks.replace_stmt_at(
-                    working,
-                    item.path,
-                    body[0].stmt,
-                  )
-                  let next = replace_target_body(model, target.label, updated)
-                  // 同步代码视图（同一份 IR 的另一种渲染）
-                  let synced = sync_code_draft(next)
-                  { ..synced, notice: "", }
-                }
             }
           }
       }
@@ -1005,15 +1005,16 @@ fn insert_custom_function(model : Model, function_index : Int32) -> Model {
     name: func.name,
     arity: func.params.length(),
   })
-  let parsed = match
-    @studio_lang.parse_handler_body(skeleton, model.language.dsl_language()) {
-    Err(_) =>
+  let parsed = @studio_lang.parse_handler_body(
+    skeleton,
+    model.language.dsl_language(),
+  ) catch {
+    _ =>
       return with_notice(
         model,
         text(translator(model), "app.stmt.palette.parse_error"),
         true,
       )
-    Ok(body) => body
   }
   if parsed.length() == 0 {
     return model
@@ -1106,18 +1107,16 @@ fn drop_expression(
     // 装饰块没有可替换的表达式
     return model
   }
-  let parsed = match
-    @studio_lang.parse_expression_text(
-      templates[template_index].skeleton(model.language.dsl_language()),
-      model.language.dsl_language(),
-    ) {
-    Err(_) =>
+  let parsed = @studio_lang.parse_expression_text(
+    templates[template_index].skeleton(model.language.dsl_language()),
+    model.language.dsl_language(),
+  ) catch {
+    _ =>
       return with_notice(
         model,
         text(translator(model), "app.stmt.palette.parse_error"),
         true,
       )
-    Ok(expr) => expr
   }
   let updated = match
     @blocks.replace_expr_at(target.body, item.path, expr_path, parsed) {
@@ -1166,18 +1165,16 @@ fn insert_statement_at(
   if template_index < 0 || template_index >= templates.length() {
     return model
   }
-  let parsed = match
-    @studio_lang.parse_handler_body(
-      templates[template_index].skeleton(model.language.dsl_language()),
-      model.language.dsl_language(),
-    ) {
-    Err(_) =>
+  let parsed = @studio_lang.parse_handler_body(
+    templates[template_index].skeleton(model.language.dsl_language()),
+    model.language.dsl_language(),
+  ) catch {
+    _ =>
       return with_notice(
         model,
         text(translator(model), "app.stmt.palette.parse_error"),
         true,
       )
-    Ok(body) => body
   }
   if parsed.length() == 0 {
     return model

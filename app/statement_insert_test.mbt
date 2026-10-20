@@ -91,9 +91,8 @@ test "every statement template parses in both languages" {
         "en"
       }
       let source = template.skeleton(language)
-      match @studio_lang.parse_handler_body(source, language) {
-        Ok(body) => assert_true(body.length() > 0)
-        Err(_) =>
+      let body = @studio_lang.parse_handler_body(source, language) catch {
+        _ =>
           fail(
             "template " +
             template.label_key +
@@ -103,6 +102,7 @@ test "every statement template parses in both languages" {
             source,
           )
       }
+      assert_true(body.length() > 0)
     }
   }
 }

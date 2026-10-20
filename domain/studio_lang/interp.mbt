@@ -199,9 +199,8 @@ pub fn constant_value(text : String) -> Value? {
   if !trimmed.has_prefix("[") || !trimmed.has_suffix("]") {
     return None
   }
-  match parse_expression_text(trimmed, ZhHans) {
-    Err(_) => None
-    Ok(expr) => constant_of_expr(expr)
+  constant_of_expr(parse_expression_text(trimmed, ZhHans)) catch {
+    _ => None
   }
 }
 

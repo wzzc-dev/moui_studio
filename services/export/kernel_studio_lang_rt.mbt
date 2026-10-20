@@ -579,9 +579,8 @@ pub fn kernel_studio_lang_interp_mbt() -> String {
     #|  if !trimmed.has_prefix("[") || !trimmed.has_suffix("]") {
     #|    return None
     #|  }
-    #|  match parse_expression_text(trimmed, ZhHans) {
-    #|    Err(_) => None
-    #|    Ok(expr) => constant_of_expr(expr)
+    #|  constant_of_expr(parse_expression_text(trimmed, ZhHans)) catch {
+    #|    _ => None
     #|  }
     #|}
     #|
@@ -2773,14 +2772,13 @@ pub fn kernel_studio_lang_semantics_mbt() -> String {
     #|fn check_round_trip(body : Array[Stmt], errors : Array[LangError]) -> Unit {
     #|  for language in [ZhHans, En] {
     #|    let rendered = render_stmts(body, language)
-    #|    match parse_handler_body(rendered, language) {
-    #|      Ok(traced) => {
-    #|        let parsed = traced.map(item => item.stmt)
-    #|        if @ir.stmts_signature(parsed) != @ir.stmts_signature(body) {
-    #|          errors.push(LangError(UnexpectedToken, 0, "round-trip", ""))
-    #|        }
+    #|    try {
+    #|      let parsed = parse_handler_body(rendered, language).map(item => item.stmt)
+    #|      if @ir.stmts_signature(parsed) != @ir.stmts_signature(body) {
+    #|        errors.push(LangError(UnexpectedToken, 0, "round-trip", ""))
     #|      }
-    #|      Err(error) => errors.push(error)
+    #|    } catch {
+    #|      error => errors.push(error)
     #|    }
     #|  }
     #|}

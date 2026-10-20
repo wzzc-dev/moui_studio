@@ -37,22 +37,15 @@ fn canonical_call_name(name : String) -> String {
 pub fn parse_handler_body(
   source : String,
   language : Language,
-) -> Result[Array[TracedStmt], LangError] {
-  let tokens = match lex(source) {
-    Ok(tokens) => tokens
-    Err(error) => return Err(error)
-  }
+) -> Array[TracedStmt] raise LangError {
+  let tokens = lex(source)
   let parser = Parser::{ tokens, pos: 0, keywords: keywords_for(language), }
-  try {
-    let stmts = parser.parse_stmts_until([])
-    parser.skip_newlines()
-    if parser.peek().kind is Eof {
-      Ok(stmts)
-    } else {
-      parser.fail_unexpected()
-    }
-  } catch {
-    error => Err(error)
+  let stmts = parser.parse_stmts_until([])
+  parser.skip_newlines()
+  if parser.peek().kind is Eof {
+    stmts
+  } else {
+    parser.fail_unexpected()
   }
 }
 
@@ -64,21 +57,14 @@ pub fn parse_handler_body(
 pub fn parse_expression_text(
   source : String,
   language : Language,
-) -> Result[Expr, LangError] {
-  let tokens = match lex(source) {
-    Ok(tokens) => tokens
-    Err(error) => return Err(error)
-  }
+) -> Expr raise LangError {
+  let tokens = lex(source)
   let parser = Parser::{ tokens, pos: 0, keywords: keywords_for(language), }
-  try {
-    let expr = parser.parse_expr()
-    if parser.peek().kind is Eof {
-      Ok(expr)
-    } else {
-      parser.fail(UnexpectedToken, "表达式后有多余内容", "")
-    }
-  } catch {
-    error => Err(error)
+  let expr = parser.parse_expr()
+  if parser.peek().kind is Eof {
+    expr
+  } else {
+    parser.fail(UnexpectedToken, "表达式后有多余内容", "")
   }
 }
 
@@ -92,23 +78,16 @@ pub fn parse_expression_text(
 pub fn parse_struct_declarations(
   source : String,
   language : Language,
-) -> Result[Array[@ir.StructDecl], LangError] {
-  let tokens = match lex(source) {
-    Ok(tokens) => tokens
-    Err(error) => return Err(error)
-  }
+) -> Array[@ir.StructDecl] raise LangError {
+  let tokens = lex(source)
   let parser = Parser::{ tokens, pos: 0, keywords: keywords_for(language), }
-  try {
-    let decls : Array[@ir.StructDecl] = []
+  let decls : Array[@ir.StructDecl] = []
+  parser.skip_newlines()
+  while !(parser.peek().kind is Eof) {
+    decls.push(parser.parse_struct_decl())
     parser.skip_newlines()
-    while !(parser.peek().kind is Eof) {
-      decls.push(parser.parse_struct_decl())
-      parser.skip_newlines()
-    }
-    Ok(decls)
-  } catch {
-    error => Err(error)
   }
+  decls
 }
 
 ///|
@@ -188,9 +167,11 @@ fn Parser::parse_struct_decl(self : Parser) -> @ir.StructDecl raise LangError {
 
 ///|
 pub fn check_syntax(source : String, language : Language) -> LangError? {
-  match parse_handler_body(source, language) {
-    Ok(_) => None
-    Err(error) => Some(error)
+  try {
+    ignore(parse_handler_body(source, language))
+    None
+  } catch {
+    error => Some(error)
   }
 }
 
@@ -766,23 +747,16 @@ fn Parser::parse_primary(self : Parser) -> Expr raise LangError {
 pub fn parse_enum_declarations(
   source : String,
   language : Language,
-) -> Result[Array[@ir.EnumDecl], LangError] {
-  let tokens = match lex(source) {
-    Ok(tokens) => tokens
-    Err(error) => return Err(error)
-  }
+) -> Array[@ir.EnumDecl] raise LangError {
+  let tokens = lex(source)
   let parser = Parser::{ tokens, pos: 0, keywords: keywords_for(language), }
-  try {
-    let decls : Array[@ir.EnumDecl] = []
+  let decls : Array[@ir.EnumDecl] = []
+  parser.skip_newlines()
+  while !(parser.peek().kind is Eof) {
+    decls.push(parser.parse_enum_decl())
     parser.skip_newlines()
-    while !(parser.peek().kind is Eof) {
-      decls.push(parser.parse_enum_decl())
-      parser.skip_newlines()
-    }
-    Ok(decls)
-  } catch {
-    error => Err(error)
   }
+  decls
 }
 
 ///|

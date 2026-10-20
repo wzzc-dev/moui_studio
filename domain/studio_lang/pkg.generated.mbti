@@ -54,15 +54,15 @@ pub fn next_seed(Int32) -> Int32
 
 pub fn number_to_text(Double) -> String
 
-pub fn parse_enum_declarations(String, Language) -> Result[Array[@ir.EnumDecl], LangError]
+pub fn parse_enum_declarations(String, Language) -> Array[@ir.EnumDecl] raise LangError
 
-pub fn parse_expression_text(String, Language) -> Result[@ir.Expr, LangError]
+pub fn parse_expression_text(String, Language) -> @ir.Expr raise LangError
 
-pub fn parse_handler_body(String, Language) -> Result[Array[TracedStmt], LangError]
+pub fn parse_handler_body(String, Language) -> Array[TracedStmt] raise LangError
 
 pub fn parse_language(String) -> Language?
 
-pub fn parse_struct_declarations(String, Language) -> Result[Array[@ir.StructDecl], LangError]
+pub fn parse_struct_declarations(String, Language) -> Array[@ir.StructDecl] raise LangError
 
 pub fn render_enum_declarations(Array[@ir.EnumDecl], Language) -> String
 

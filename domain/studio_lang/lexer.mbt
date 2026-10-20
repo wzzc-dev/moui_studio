@@ -107,7 +107,7 @@ fn is_operator_char(c : Char) -> Bool {
 }
 
 ///|
-fn lex(source : String) -> Result[Array[Token], LangError] {
+fn lex(source : String) -> Array[Token] raise LangError {
   let chars : Array[Char] = []
   for c in source {
     chars.push(c)
@@ -146,7 +146,7 @@ fn lex(source : String) -> Result[Array[Token], LangError] {
         j = j + 1
       }
       if !closed {
-        return Err(LangError(UnterminatedString, line, "", ""))
+        raise LangError(UnterminatedString, line, "", "")
       }
       tokens.push({ kind: Str(buf.to_string()), line, })
       i = j + 1
@@ -171,7 +171,7 @@ fn lex(source : String) -> Result[Array[Token], LangError] {
           } else {
             tokens.push({ kind: Int(v.to_int()), line, })
           }
-        None => return Err(LangError(BadNumber, line, text, ""))
+        None => raise LangError(BadNumber, line, text, "")
       }
     } else if is_operator_char(c) {
       // ≠ ≤ ≥ 由单字符归一化而来，只前进一格
@@ -240,7 +240,7 @@ fn lex(source : String) -> Result[Array[Token], LangError] {
     }
   }
   tokens.push({ kind: Eof, line, })
-  Ok(tokens)
+  tokens
 }
 
 ///|
