@@ -334,7 +334,7 @@ test "empty session composer is vertically centered in a tall window" {
 /// **每一段都走具名常量**：手写数字正是这条测试要防的「双算账」——卡片化时
 /// 漏记卡内衬 12pt，状态行被顶出面板，就是这条断言抓到的。
 test "the docked composer block reserves room for its own chrome" {
-  let model = apply_ai(initial_model(), TogglePaneBlocks)
+  let model = apply_ai(initial_model(), WorkbenchOp(@wb.TogglePaneBlocks))
   for width in [@chrome.RIGHTBAR_MIN_WIDTH, @chrome.RIGHTBAR_WIDTH, 560.0] {
     let docked = ai_docked_height(model, width)
     // 逐段对齐视图：外衬 + 卡内衬 + 上下文芯片 + composer 块 + 决策条足迹

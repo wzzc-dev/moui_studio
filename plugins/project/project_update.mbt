@@ -1,18 +1,21 @@
 ///|
 /// MoUI Studio 工程域·子消息与切片 update(S2b-2 出壳)。
 ///
-/// 14 个纯态臂从壳 `update_ide_msgs` 迁来:全部只读写 `ProjectState`,
+/// 纯态臂从壳 `update_ide_msgs` 迁来:全部只读写 `ProjectState`,
 /// effect 恒为 none(切片零副作用,ai_sessions 先例)。跨域臂仍住壳:
 /// 文件装载/保存回执(通知 + 自动构建)、选中装载(服务任务)、扫描/导入/
 /// 改名/删除/构建/存储回执、新建工程流——它们触碰通知、事件出站、
 /// 服务任务或程序真源,按 ADR 0038 契约 3 留根臂。
 ///
+/// 文档正文与 tab 已归 `moui_studio/workbench`,本切片只留资源管理器
+/// 交互与 CRUD 输入态。
+///
 /// `ToggleProjectDirAt` 的「展开揭示滚动」需要行推导 + translator,由
 /// 根 `ProjectOp` 委托臂后处理(切片只做纯折叠翻转)。
 
 ///|
-/// 工程域子消息:资源管理器交互 + 工程 tab 编辑(active tab 的草稿/
-/// 光标/MoMark 事务)。载荷与壳侧原变体逐字一致。
+/// 工程域子消息:资源管理器交互 + 文件 CRUD 输入态。文档正文与 tab
+/// （打开/切换/关闭/编辑/光标/MoMark 事务）已迁 `moui_studio/workbench`。
 pub(all) enum ProjectMsg {
   SetActiveProject(Int32) // 切活动工程(选中文件复位)
   ToggleProjectDirAt(Int32, String) // 单树多根:根下标 + 目录 rel(纯折叠翻转)
@@ -25,13 +28,7 @@ pub(all) enum ProjectMsg {
   FolderCreateDismiss // 文件夹输入行关闭
   ExplorerCollapseAll // 全部折叠(整棵树逐层)
   ExplorerScrolled(@core.Point) // 树区滚动偏移(单一事实源)
-  ProjectFileCaretMoved(Int32, @core.TextRange?) // active tab 光标/选区回传
-  EditProjectFile(String) // active tab 草稿编辑
-  ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
-  // .md tab 的 MoMark 编辑事务
-  // --- S5f 从壳并入的纯 UI 臂（文件 tab/CRUD 输入态 + 结构树 + 搜索草稿） ---
-  SelectFileTab(Int32) // 选中已打开的 tab（只切 active，不装载）
-  CloseFileTab(Int32) // 关闭 tab 并把 active 收敛到合法范围
+  // --- S5f 从壳并入的纯 UI 臂（文件 CRUD 输入态 + 结构树 + 搜索草稿） ---
   FileCreateDraft(String) // 新建文件名草稿（仅在新建输入打开时接受）
   FileCreateDismiss // 关闭新建输入行
   FileRenameStart(String) // 打开改名输入（带 rel，草稿只填文件名）
@@ -50,8 +47,6 @@ pub fn ProjectState::new() -> ProjectState {
     projects: [],
     active_project: -1,
     workspace_root: None,
-    open_project_files: [],
-    open_file_index: -1,
     project_tree_collapsed: [],
     explorer_sections_collapsed: [],
     selected_project_file: None,
@@ -170,76 +165,6 @@ pub fn update_project(
         none,
       )
     ExplorerScrolled(offset) => ({ ..state, explorer_scroll: offset, }, none)
-    ProjectFileCaretMoved(caret, selection) =>
-      // 受控编辑器光标回传:没有这个往返,光标会被模型旧值复位。
-      match active_file_of(state) {
-        None => (state, none)
-        Some(open) =>
-          (
-            {
-              ..state,
-              open_project_files: replace_open_file_at(
-                state.open_project_files,
-                state.open_file_index,
-                { ..open, caret, selection, },
-              ),
-            },
-            none,
-          )
-      }
-    EditProjectFile(draft) =>
-      match active_file_of(state) {
-        None => (state, none)
-        Some(open) =>
-          (
-            {
-              ..state,
-              open_project_files: replace_open_file_at(
-                state.open_project_files,
-                state.open_file_index,
-                { ..open, draft, },
-              ),
-            },
-            none,
-          )
-      }
-    ProjectFileMarkdownTransaction(transaction) =>
-      // `.md` tab 的 MoMark session 编辑事务:session apply(增量),
-      // 草稿/光标随事务回写;session 缺失时换源重建,不让事务丢失。
-      match active_file_of(state) {
-        None => (state, none)
-        Some(open) => {
-          let session = match open.md_session {
-            Some(session) => session.apply(transaction)
-            None =>
-              @moui_richtext.MarkdownDocumentSession::new(transaction.source)
-          }
-          (
-            {
-              ..state,
-              open_project_files: replace_open_file_at(
-                state.open_project_files,
-                state.open_file_index,
-                {
-                  ..open,
-                  draft: transaction.source,
-                  caret: transaction.caret,
-                  selection: transaction.selection,
-                  md_session: Some(session),
-                },
-              ),
-            },
-            none,
-          )
-        }
-      }
-    SelectFileTab(index) =>
-      if index >= 0 && index < state.open_project_files.length() {
-        ({ ..state, open_file_index: index, }, none)
-      } else {
-        (state, none)
-      }
-    CloseFileTab(index) => (close_open_file(state, index), none)
     FileCreateDraft(value) =>
       if state.file_create_open {
         ({ ..state, file_name_draft: value, }, none)
@@ -322,17 +247,6 @@ pub fn project_feature() -> @moui.Feature[ProjectState, ProjectMsg] {
 // ============================================================================
 // 切片私有助手(随臂迁来;壳侧同名包装保留给根臂调用)
 // ============================================================================
-
-///|
-/// active tab(越界/无 tab 返回 None)。
-fn active_file_of(state : ProjectState) -> OpenProjectFile? {
-  if state.open_file_index >= 0 &&
-    state.open_file_index < state.open_project_files.length() {
-    Some(state.open_project_files[state.open_file_index])
-  } else {
-    None
-  }
-}
 
 ///|
 /// 把目标目录从折叠集里摘掉(就地新建前调用:输入行要在可见处出现)。
@@ -454,45 +368,4 @@ pub fn tree_rel_under_workspace(
   } else {
     ""
   }
-}
-
-///|
-/// 关闭下标处的 tab 并把 active 收敛到合法范围（S5f 自壳迁入）。
-/// 删的是 active 时停在同位置的下一个 tab，尾部则回退一格。
-pub fn close_open_file(state : ProjectState, index : Int32) -> ProjectState {
-  if index < 0 || index >= state.open_project_files.length() {
-    return state
-  }
-  let files : Array[OpenProjectFile] = []
-  for i, file in state.open_project_files {
-    if i != index {
-      files.push(file)
-    }
-  }
-  let next_index = if files.is_empty() {
-    -1
-  } else if index < files.length() {
-    index
-  } else {
-    files.length() - 1
-  }
-  { ..state, open_project_files: files, open_file_index: next_index, }
-}
-
-///|
-/// 原位替换下标处的 tab(光标/草稿/脏基准回写;壳根臂装载/保存也走这里)。
-pub fn replace_open_file_at(
-  files : Array[OpenProjectFile],
-  index : Int32,
-  open : OpenProjectFile,
-) -> Array[OpenProjectFile] {
-  let next : Array[OpenProjectFile] = []
-  for i, file in files {
-    if i == index {
-      next.push(open)
-    } else {
-      next.push(file)
-    }
-  }
-  next
 }

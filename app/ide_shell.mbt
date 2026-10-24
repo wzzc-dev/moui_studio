@@ -960,82 +960,102 @@ fn actor_label(t : @i18n.Translator, by_agent : Bool) -> String {
   }
 }
 
+// ============================================================================
+// 面板注册表（M4）
+// ============================================================================
+
 ///|
-/// 底栏：拖动条 + 页签头 + 面板体。收起时只剩 26pt 页签头。
+/// 静态面板贡献表：插件缺席即不注册（终端）。底栏页签头的选中态、徽标
+/// 与正文都从这里派生。左/右栏正文暂不进食谱——全量注册会越过 M3 的
+/// 实测行数，按计划先只做底栏。
+fn studio_panels(model : Model) -> Array[@wb.PanelContribution[StudioCtx, Msg]] {
+  let panels : Array[@wb.PanelContribution[StudioCtx, Msg]] = [
+    {
+      id: "bottom.audit",
+      location: @wb.PanelBottom,
+      label_key: "app.bottom.audit",
+      badge: ctx => pending_side_effects(ctx.model),
+      selected: ctx => ctx.model.bottom_tab is BtAudit,
+      on_select: _ => SetBottomTab(BtAudit),
+      render: (ctx, w, h) => audit_pane(ctx.model, ctx.t, w, h),
+    },
+    {
+      id: "bottom.console",
+      location: @wb.PanelBottom,
+      label_key: "app.bottom.console",
+      badge: ctx => ctx.model.log_lines.length(),
+      selected: ctx => ctx.model.bottom_tab is BtConsole,
+      on_select: _ => SetBottomTab(BtConsole),
+      render: (ctx, w, h) => console_pane(ctx.model, ctx.t, w, h),
+    },
+    {
+      id: "bottom.problems",
+      location: @wb.PanelBottom,
+      label_key: "app.bottom.problems",
+      badge: ctx => problem_rows(ctx.model, ctx.t).length(),
+      selected: ctx => ctx.model.bottom_tab is BtProblems,
+      on_select: _ => SetBottomTab(BtProblems),
+      render: (ctx, w, h) => problems_pane(ctx.model, ctx.t, w, h),
+    },
+    {
+      id: "bottom.search",
+      location: @wb.PanelBottom,
+      label_key: "app.bottom.search",
+      badge: ctx => ctx.model.search_hits.length(),
+      selected: ctx => ctx.model.bottom_tab is BtSearch,
+      on_select: _ => SetBottomTab(BtSearch),
+      render: (ctx, w, h) => search_pane(ctx.model, ctx.t, w, h),
+    },
+  ]
+  if plugin_active(model, "terminal") {
+    panels.push({
+      id: "bottom.terminal",
+      location: @wb.PanelBottom,
+      label_key: "app.bottom.terminal",
+      badge: _ => 0,
+      selected: ctx => {
+        ctx.model.bottom_tab is BtTerminal && ctx.model.terminal_open
+      },
+      on_select: ctx => {
+        if ctx.model.bottom_tab is BtTerminal && ctx.model.terminal_open {
+          TerminalTabClose
+        } else {
+          SetBottomTab(BtTerminal)
+        }
+      },
+      render: (ctx, w, h) => terminal_pane(ctx.model, ctx.t, w, h),
+    })
+  }
+  panels
+}
 
 ///|
 /// 底栏：页签头 + 当前页签的体。
 ///
-/// `height` 由**调用方**给（`shell_view` 里按内容算出的 `bottom_height`），
-/// 不再读 `model.bottom_height`——那两个值会分叉：AI 页签的内容高随线程卡
-/// 数量变化，模型里存的仍是用户上次的拖拽值，于是面板被算成 164pt、
-/// 体内的卡片却按 168pt 布局，多出的部分把窗口底色（`#16181C`）露在底栏里
-/// （实测底栏底部一条 14px 的暗带）。高度只有一个来源。
+/// `height` 由**调用方**给（`shell_view` 按内容算出）：模型里存的只是
+/// 用户上次的拖拽值，与体内卡片布局会分叉，高度只能有一个来源。
 pub fn ide_bottom_bar(
   model : Model,
   t : @i18n.Translator,
   width : Double,
   height : Double,
 ) -> @moui.View[Msg] {
+  let ctx : StudioCtx = { model, t, }
+  let panels = studio_panels(model)
   let pending = pending_side_effects(model)
   let errors = audit_error_count(model)
-  let problems = problem_rows(model, t).length()
-  // 底栏只承载**只读**面板（审计 / Console / 问题 / 搜索 / 终端）。
-  // AI 输入面不在这里——它只有一个宿主：右栏底部（`ide_right_panel` 的
-  // 钉底 composer）。旧版有一条「AI 输入」页签，与右栏停靠档二选一，
-  // 还要一对互为出口的切换钮；宿主唯一化后那条页签与切换钮一并取消。
-  let head_cells : Array[@moui.View[Msg]] = [
-    tab_button(
-      text(t, "app.bottom.audit"),
-      model.bottom_tab is BtAudit,
-      SetBottomTab(BtAudit),
-      pending,
-    ),
-    tab_button(
-      text(t, "app.bottom.console"),
-      model.bottom_tab is BtConsole,
-      SetBottomTab(BtConsole),
-      model.log_lines.length(),
-    ),
-    tab_button(
-      text(t, "app.bottom.problems"),
-      model.bottom_tab is BtProblems,
-      SetBottomTab(BtProblems),
-      problems,
-    ),
-    // 全文搜索页签（G4 F3）:徽标 = 命中数（0 = 不画）
-    tab_button(
-      text(t, "app.bottom.search"),
-      model.bottom_tab is BtSearch,
-      SetBottomTab(BtSearch),
-      model.search_hits.length(),
-    ),
-  ]
-  // 真终端页签（M5）：AI 模式专属（预设表：模式 3 底栏 = 真终端）
-  // 终端页签（M8）：全模式可用——关闭态点击重开（重派生）；选中态再点
-  // = 关闭（kill + 收起，见 select_bottom_tab 的开关语义）
-  // 终端页签（M8）：关闭态点击 = 重开（SetBottomTab）；开+选中态再点 =
-  // 关闭（TerminalTabClose → kill + 收起）
-  let terminal_tab_cells : Array[@moui.View[Msg]] = if !plugin_active(
-      model, "terminal",
-    ) {
-    // G7.3:终端插件被禁用时页签整体不渲染
-    []
-  } else {
-    [
+  // 底栏只承载只读面板；AI 输入面唯一的家是右栏底部的钉底 composer。
+  let head_cells : Array[@moui.View[Msg]] = []
+  for panel in @wb.panels_at(panels, @wb.PanelBottom) {
+    head_cells.push(
       tab_button(
-        text(t, "app.bottom.terminal"),
-        model.bottom_tab is BtTerminal && model.terminal_open,
-        if model.bottom_tab is BtTerminal && model.terminal_open {
-          TerminalTabClose
-        } else {
-          SetBottomTab(BtTerminal)
-        },
-        0,
+        text(t, panel.label_key),
+        (panel.selected)(ctx),
+        (panel.on_select)(ctx),
+        (panel.badge)(ctx),
       ),
-    ]
+    )
   }
-  let head_cells = head_cells + terminal_tab_cells
   if model.bottom_tab is BtAudit && pending > 0 {
     head_cells.push(
       @chrome.action_chip(
@@ -1073,18 +1093,15 @@ pub fn ide_bottom_bar(
   )
   // 收起/展开按钮贴页签行最右端（右缘即右栏左缘）——VS Code 面板口径。
   head_cells.push(@views.spacer(min_length=8.0, weight=1.0))
+  let (collapse_icon, collapse_label) : (@style.IconName, String) = if model.bottom_open {
+    (ChevronDown, text(t, "app.bottom.collapse"))
+  } else {
+    (ChevronRight, text(t, "app.bottom.expand"))
+  }
   head_cells.push(
     icon_button(
-      if model.bottom_open {
-        ChevronDown
-      } else {
-        ChevronRight
-      },
-      if model.bottom_open {
-        text(t, "app.bottom.collapse")
-      } else {
-        text(t, "app.bottom.expand")
-      },
+      collapse_icon,
+      collapse_label,
       model.bottom_open,
       ToggleBottom,
       22.0,
@@ -1115,16 +1132,17 @@ pub fn ide_bottom_bar(
       padding=0.0,
     )
   }
-  let body = match model.bottom_tab {
-    BtAudit => audit_pane(model, t, width, height - 30.0)
-    BtConsole => console_pane(model, t, width, height - 30.0)
-    BtProblems => problems_pane(model, t, width, height - 30.0)
-    BtSearch => search_pane(model, t, width, height - 30.0)
-    // 真终端（M5）：可用 = 屏行滚动 + 输入行；不可用（web/无头/教学版）
-    // = 显式空态
-    // 真终端（M5/M8 交互式）：不可用端（web/无头/教学版）上层已降级空态
-    BtTerminal =>
-      terminal_pane(model, t, width, height - @chrome.PANEL_HEAD_HEIGHT)
+  let body_height = (height - @chrome.PANEL_HEAD_HEIGHT).max(0.0)
+  let body = match @wb.selected_panel(panels, @wb.PanelBottom, ctx) {
+    Some(panel) => (panel.render)(ctx, width, body_height)
+    None =>
+      @views.container(
+        @views.empty(),
+        background=@chrome.ide_panel(),
+        width~,
+        height=body_height,
+        padding=0.0,
+      )
   }
   @views.container(
     @views.column([@chrome.hairline(), head, body], spacing=0.0),

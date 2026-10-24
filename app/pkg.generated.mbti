@@ -6,7 +6,6 @@ import {
   "wzzc-dev/moui/services",
   "wzzc-dev/moui/views/style",
   "wzzc-dev/moui_i18n",
-  "wzzc-dev/moui_richtext",
   "wzzc-dev/moui_richtext/code_editor",
   "wzzc-dev/moui_studio/chrome",
   "wzzc-dev/moui_studio/domain/ir",
@@ -22,6 +21,7 @@ import {
   "wzzc-dev/moui_studio/services/compiled_runtime",
   "wzzc-dev/moui_studio/services/export",
   "wzzc-dev/moui_studio/services/form_designer",
+  "wzzc-dev/moui_studio/workbench",
   "wzzc-dev/moui_webview/host",
 }
 
@@ -100,7 +100,7 @@ pub const UI_DARK_SETTINGS_KEY : String = "studio.ui_dark"
 
 pub const UNDO_DEPTH : Int32 = 50
 
-pub fn active_project_file(Model) -> @wzzc-dev/moui_studio/plugins/project.OpenProjectFile?
+pub fn active_project_file(Model) -> (@workbench.Document, @workbench.TextBuffer)?
 
 pub fn active_project_of(Model) -> @wzzc-dev/moui_studio/plugins/project.ProjectRecord?
 
@@ -111,8 +111,6 @@ pub fn ai_docked_height(Model, Double) -> Double
 pub fn ai_history_dialog(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
 pub fn ai_page(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
-
-pub fn any_file_dirty(Model) -> Bool
 
 pub fn app_running(Model) -> Bool
 
@@ -171,8 +169,6 @@ pub fn chat_system_prompt() -> String
 pub fn civil_seconds(StudioClock) -> Int32
 
 pub fn clear_selection(Model) -> Model
-
-pub fn close_open_file_at(Model, Int32) -> Model
 
 pub fn code_lines(Model) -> Array[CodeLine]
 
@@ -255,8 +251,6 @@ pub fn explorer_rows_for_test(Model) -> Array[String]
 pub fn explorer_section_expanded(Model, String) -> Bool
 
 pub fn file_icon_for_test(String) -> @style.IconName
-
-pub fn file_is_dirty(@wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> Bool
 
 pub fn file_tint_for_test(String) -> @chrome.IconTint
 
@@ -362,8 +356,6 @@ pub fn normalize_disabled_plugins(Model) -> Model
 
 pub fn onstart_hat_row(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
-pub fn open_file_index_of(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String) -> Int32?
-
 pub fn outline_symbols(String, String) -> Array[@wzzc-dev/moui_studio/plugins/project.OutlineSymbol]
 
 pub fn palette_pointer_to_chain(Model, (String) -> @core.Rect?, @core.Point) -> (Double, Double)?
@@ -385,6 +377,8 @@ pub fn pending_side_effects(Model) -> Int32
 pub fn plan_block_count_of(Model) -> Int32?
 
 pub fn plugin_active(Model, String) -> Bool
+
+pub fn preferred_provider(Model) -> String
 
 pub fn preview_replay_canvas(Model, @run.PreviewFrame, Double) -> @core.View[Msg]
 
@@ -443,10 +437,6 @@ pub fn push_toast(Model, String, Bool) -> Model
 pub fn rel_path_last_segment(String) -> String
 
 pub fn relative_time_bucket(Int32, Int32) -> (String, Int32)
-
-pub fn rename_open_file(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], String, String) -> Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
-
-pub fn replace_open_file_at(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], Int32, @wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile]
 
 pub fn replace_target_body(Model, String, Array[@ir.Stmt]) -> Model
 
@@ -578,8 +568,6 @@ pub fn update_with_launch_for_test(Model, Msg, @services.AppServices, (String, (
 
 pub fn update_with_services(Model, Msg, @services.AppServices, pty? : @kernel.PtyService[Msg]) -> (Model, @core.Effect[Msg])
 
-pub fn upsert_open_file(Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], @wzzc-dev/moui_studio/plugins/project.OpenProjectFile) -> (Array[@wzzc-dev/moui_studio/plugins/project.OpenProjectFile], Int32)
-
 pub fn upsert_project(Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], @wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> (Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], Int32)
 
 pub fn valid_new_file_rel(String) -> Bool
@@ -593,8 +581,6 @@ pub fn visible_groups(Array[TreeNode]) -> Array[String]
 pub fn visual_workspace(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn watch_rows(Model) -> Array[WatchRow]
-
-pub fn with_md_session(rel~ : String, content~ : String) -> @moui_richtext.MarkdownDocumentSession?
 
 pub fn with_notice(Model, String, Bool) -> Model
 
@@ -671,7 +657,7 @@ pub(all) enum ConfirmKind {
   CkDeleteProjectFile(String)
   CkNewProject(Int32)
   CkOpen
-  CkCloseFileTab(Int32)
+  CkCloseFileTab(String)
 }
 
 pub(all) enum ContextTab {
@@ -824,9 +810,7 @@ pub(all) struct Model {
   redo_stack : Array[UndoEntry]
   block_drag : @wzzc-dev/moui_studio/plugins/blocks.BlocksDragState?
   workspace : WorkSpace
-  pane_live : Bool
-  pane_blocks : Bool
-  split_ratio : Double
+  workbench : @workbench.WorkbenchState
   left_view : LeftView
   left_width : Double
   right_width : Double
@@ -1088,11 +1072,7 @@ pub(all) enum Msg {
   AiSessionsStoreWriteRequested
   AiSessionsStoreSaved(@services.ServiceTaskResult[Unit])
   SetWorkSpace(WorkSpace)
-  TogglePaneLive
-  TogglePaneBlocks
-  ShowPaneLive
-  ShowPaneBlocks
-  SetSplitRatio(Double)
+  WorkbenchOp(@workbench.WorkbenchMsg)
   SetPerspective(StudioPerspective)
   SetLeftView(LeftView)
   SetRightView(RightView)
@@ -1337,8 +1317,6 @@ pub using @run {type CompiledRun}
 pub using @ai {type ComposerMode}
 
 pub type LaunchSubmit = (String, (Result[Unit, String]) -> Unit) -> Unit
-
-pub using @wzzc-dev/moui_studio/plugins/project {type OpenProjectFile}
 
 pub using @wzzc-dev/moui_studio/plugins/project {type OutlineSymbol}
 

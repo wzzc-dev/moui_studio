@@ -30,29 +30,6 @@ pub fn noop_provider_submit(ProviderRequestSpec, (Result[String, String]) -> Uni
 // Errors
 
 // Types and methods
-pub(all) struct ActivityItem[Model, Msg] {
-  id : String
-  icon : String
-  label_key : String
-  active : (Model) -> Bool
-  on_click : (Model) -> Msg
-}
-
-pub(all) struct BottomTab[Model, Msg] {
-  id : String
-  label_key : String
-  badge : (Model) -> Int32
-  selected : (Model) -> Bool
-  on_select : (Model) -> Msg
-  render_body : (Model, Double, Double) -> @core.View[Msg]
-}
-
-pub(all) struct CommandContribution[Model, Msg] {
-  id : String
-  label_key : String
-  run : (Model) -> Msg?
-}
-
 pub struct EventBus[Event, Msg] {
   // private fields
 }
@@ -89,26 +66,6 @@ pub(all) struct HighlightToken {
 pub(all) struct Highlighter {
   language : String
   run : (String) -> Array[HighlightToken]
-}
-
-pub(all) struct PanelView[Model, Msg] {
-  id : String
-  render : (Model, Double, Double) -> @core.View[Msg]
-}
-
-pub(all) struct Perspective[Model] {
-  id : String
-  label_key : String
-  left_panel : String
-  center : String
-  right_panel : String
-  bottom_tab : String
-  apply : (Model) -> Model
-}
-
-pub(all) struct PluginDescriptor {
-  name : String
-  summary : String
 }
 
 pub(all) struct PreviewWebControls[Msg] {

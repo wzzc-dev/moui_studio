@@ -187,43 +187,40 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     }
     SetPerspective(p) => Some(set_perspective(model, p))
     SetWorkSpace(workspace) => Some(set_workspace(model, workspace))
-    TogglePaneLive => Some(toggle_pane_live(model))
-    ShowPaneLive => Some(show_pane_live(model))
-    ShowPaneBlocks => Some(show_pane_blocks(model))
-    TogglePaneBlocks => Some(toggle_pane_blocks(model))
-    SetSplitRatio(ratio) => Some(set_split_ratio(model, ratio))
+    // 编辑工作台的纯迁移（文档/窗格/分隔比）。ShowPane* 的壳策略——
+    // 切回可视化工作区、积木窗格自动选第一个子程序——在纯迁移之后补。
+    WorkbenchOp(op) => {
+      let next = {
+        ..model,
+        workbench: @wb.update_workbench(model.workbench, op),
+      }
+      let next = match op {
+        @wb.ShowPaneLive => { ..next, workspace: WsVisual, mode: ModeDesign, }
+        @wb.ShowPaneBlocks => show_pane_blocks_policy(next)
+        _ => next
+      }
+      Some((next, @moui.Effect::none()))
+    }
     SetLeftView(view) => Some(set_left_view(model, view))
     ProjectFileLoaded(rel, result) =>
       match result {
         Success(content) =>
           // 文件仍处于选中态才挂载编辑器（再点同文件 = 取消选中）;
-          // G4 多标签:同 rel 原位替换(重新读取=刷新内容),否则追加并激活。
+          // 文档库同 id 原位替换（重新读取 = 刷新内容），否则追加并激活。
           if model.project_state.selected_project_file is Some(current) &&
             current == rel {
-            let (files, index) = upsert_open_file(
-              model.project_state.open_project_files,
-              OpenProjectFile::{
-                rel,
-                saved_content: content,
-                draft: content,
-                caret: 0,
-                selection: None,
-                md_session: with_md_session(rel~, content~),
-              },
+            let (docs, _) = model.workbench.docs.upsert_file(
+              @wb.file_document(rel, @code.file_tab_label(rel)),
+              @wb.TextBuffer::new(rel, content),
             )
-            Some(
-              (
-                {
-                  ..model,
-                  project_state: {
-                    ..model.project_state,
-                    open_project_files: files,
-                    open_file_index: index,
-                  },
-                },
-                @moui.Effect::none(),
-              ),
-            )
+            let next = { ..model, workbench: { ..model.workbench, docs, }, }
+            // AI 中心不挂文件 tab：点文件时切回代码预设（文档仍保持激活）。
+            let (next, _) = if next.perspective is PsAi {
+              set_perspective(next, PsCode)
+            } else {
+              (next, @moui.Effect::none())
+            }
+            Some((next, @moui.Effect::none()))
           } else {
             Some((model, @moui.Effect::none()))
           }
@@ -232,45 +229,35 @@ pub fn update_ide_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
         Cancelled => Some((model, @moui.Effect::none()))
       }
     ProjectFileSaveFinished(rel, result) =>
-      // 落盘完成:按 rel 定位 tab,脏基准对齐草稿（写盘任务在服务层）。
+      // 落盘完成:按资源定位文档,脏基准对齐草稿（写盘任务在服务层）。
       // F4 live 诊断:保存 .mbt 即自动起一次 web 构建（build 通道原样复用,
       // 诊断汇 Problems）——保存是天然节流点,不做独立防抖计时器。
       match result {
         Success(_) =>
-          match
-            open_file_index_of(model.project_state.open_project_files, rel) {
-            Some(index) => {
-              let open = model.project_state.open_project_files[index]
-              let aligned = with_notice(
-                {
-                  ..model,
-                  project_state: {
-                    ..model.project_state,
-                    open_project_files: replace_open_file_at(
-                      model.project_state.open_project_files,
-                      index,
-                      { ..open, saved_content: open.draft, },
-                    ),
-                  },
+          if model.workbench.docs.find_file(rel) < 0 {
+            Some((model, @moui.Effect::none()))
+          } else {
+            let aligned = with_notice(
+              {
+                ..model,
+                workbench: {
+                  ..model.workbench,
+                  docs: model.workbench.docs.mark_saved(rel),
                 },
-                "已保存",
-                false,
-              )
-              let (with_build, build_effect) = auto_build_after_save(
-                aligned,
-                open.rel,
-              )
-              Some((with_build, build_effect))
-            }
-            None => Some((model, @moui.Effect::none()))
+              },
+              "已保存",
+              false,
+            )
+            let (with_build, build_effect) = auto_build_after_save(aligned, rel)
+            Some((with_build, build_effect))
           }
         Failure(error) =>
           Some((with_notice(model, error.message, true), @moui.Effect::none()))
         Cancelled => Some((model, @moui.Effect::none()))
       }
-    // tab 切换/关闭（SelectFileTab/CloseFileTab）、文件 CRUD 输入态
-    // （FileCreateDraft/Dismiss、FileRenameStart/Draft/Dismiss）与全文搜索
-    // 草稿（SearchQueryDraft）均已并入 project_state 切片（ProjectOp 委托）。
+    // tab 切换/关闭与文档编辑已迁 workbench（WorkbenchOp）；文件 CRUD
+    // 输入态（FileCreateDraft/Dismiss、FileRenameStart/Draft/Dismiss）与
+    // 全文搜索草稿（SearchQueryDraft）仍走 project_state 切片（ProjectOp）。
     // 断点（G7.4）：行号槽点击切换断点集
     ToggleBreakpoint(line) => {
       let next : Array[Int32] = if model.breakpoints.contains(line) {
@@ -591,8 +578,14 @@ fn set_workspace(
         ..model,
         workspace: WsVisual,
         mode: ModeDesign,
-        pane_live: true,
-        pane_blocks: true,
+        workbench: {
+          ..model.workbench,
+          layout: {
+            ..model.workbench.layout,
+            pane_live: true,
+            pane_blocks: true,
+          },
+        },
       }
     WsCode => { ..model, workspace: WsCode, mode: ModeCode, }
     // WsEmpty 不再是任何入口的目标（空舞台 = 两窗格全关的自然结果，
@@ -603,45 +596,12 @@ fn set_workspace(
 }
 
 ///|
-fn toggle_pane_live(model : Model) -> (Model, @moui.Effect[Msg]) {
-  ({ ..model, pane_live: !model.pane_live, }, @moui.Effect::none())
-}
-
-///|
-fn toggle_pane_blocks(model : Model) -> (Model, @moui.Effect[Msg]) {
-  ({ ..model, pane_blocks: !model.pane_blocks, }, @moui.Effect::none())
-}
-
-///|
-/// 幂等显示 Live App 窗格（空舞台的恢复入口）。
-///
-/// 必须用**赋值**而不是取反：空舞台只在两个窗格都关掉时出现，所以
-/// `ShowPaneLive` 执行时 `pane_live` 一定是 false——但用取反会让这条消息
-/// 在别处（比如命令面板）变成「关掉它」，语义不可预测。赋值才是
-/// 设计稿 `#btnAddLive` 的语义：`S.live=true`。
-///
-/// 同时把工作区切回可视化：空舞台可以是 `WsEmpty`（点图标栏收起）造成的，
-/// 那时只把 pane 打开、工作区还停在 `WsEmpty`，用户点了按钮却什么都没变。
-fn show_pane_live(model : Model) -> (Model, @moui.Effect[Msg]) {
-  (
-    { ..model, workspace: WsVisual, mode: ModeDesign, pane_live: true, },
-    @moui.Effect::none(),
-  )
-}
-
-///|
-/// 幂等显示积木窗格（空舞台的恢复入口）。
-///
-/// 积木窗格还要**有选中的子程序**才画得出来（`blocks_pane_wanted` 判据）。
-/// 从空舞台进来时如果没有选中的子程序，就顺手选上第一个——否则用户点了
-/// 「+ 积木窗格」而屏幕上只有 Live App，看起来就是按钮没反应。
-fn show_pane_blocks(model : Model) -> (Model, @moui.Effect[Msg]) {
-  let mut next = {
-    ..model,
-    workspace: WsVisual,
-    mode: ModeDesign,
-    pane_blocks: true,
-  }
+/// 显示积木窗格后，壳还要保证**有选中的子程序**才画得出来
+/// （`blocks_pane_wanted` 判据）。从空舞台进来时如果没有选中的子程序，
+/// 就顺手选上第一个——否则用户点了「+ 积木窗格」而屏幕上只有 Live App，
+/// 看起来就是按钮没反应。
+fn show_pane_blocks_policy(model : Model) -> Model {
+  let mut next = { ..model, workspace: WsVisual, mode: ModeDesign, }
   if current_handler(next) is None {
     match next.program.handlers {
       [first, ..] =>
@@ -653,14 +613,7 @@ fn show_pane_blocks(model : Model) -> (Model, @moui.Effect[Msg]) {
       [] => ()
     }
   }
-  (next, @moui.Effect::none())
-}
-
-///|
-/// 分隔条比例：钳在 0.2–0.8（两端都留得住内容，拖到底不会把窗格压没）。
-fn set_split_ratio(model : Model, ratio : Double) -> (Model, @moui.Effect[Msg]) {
-  let clamped = if ratio.is_nan() { 0.55 } else { ratio.max(0.2).min(0.8) }
-  ({ ..model, split_ratio: clamped, }, @moui.Effect::none())
+  next
 }
 
 ///|
@@ -1144,101 +1097,19 @@ pub fn with_notice(model : Model, notice : String, warning : Bool) -> Model {
 }
 
 ///|
-/// Studio 自有命令：比 moui 文本命令协议的 10 个 intent 更宽的壳操作。
-/// 每条命令都是既有消息的封装——命令面板不引入新的状态通道。
+/// Studio 自有命令：贡献表（M5）是唯一事实来源——id 不在表里就是未知命令
+/// （no-op），表与处理器不再可能成对漂移。Apply 走纯更新，Dispatch 走
+/// 效果派发回程序环（服务臂接住），与点按钮完全同一条状态转移。
 fn run_studio_command(model : Model, id : String) -> (Model, @moui.Effect[Msg]) {
-  match id {
-    // 三模式（M2）：面板命令 = 模式命令；预览是图形化模式的中心形态
-    "studio.mode.visual" => update_pure(model, SetPerspective(PsVisual))
-    "studio.mode.code" => update_pure(model, SetPerspective(PsCode))
-    "studio.mode.ai" => update_pure(model, SetPerspective(PsAi))
-    "studio.workspace.visual" => update_pure(model, SetPerspective(PsVisual))
-    "studio.workspace.code" => update_pure(model, SetPerspective(PsCode))
-    // 设计/积木独立工作台（M5）：与 ws.* 同级的顶层入口
-    "studio.workspace.design" => update_pure(model, SetPerspective(PsDesign))
-    "studio.workspace.blocks" => update_pure(model, SetPerspective(PsBlocks))
-    "studio.workspace.preview" => update_pure(model, SetWorkSpace(WsPreview))
-    "studio.pane.split" => update_pure(model, SetSplitRatio(0.55))
-    "studio.left.toggle" =>
-      update_pure(
-        model,
-        SetLeftView(
-          if model.left_view is LeftHidden {
-            LeftTree
-          } else {
-            LeftHidden
-          },
-        ),
-      )
-    "studio.pane.live" => update_pure(model, TogglePaneLive)
-    "studio.pane.blocks" => update_pure(model, TogglePaneBlocks)
-    "studio.left.tree" => update_pure(model, SetLeftView(LeftTree))
-    "studio.left.data" => update_pure(model, SetLeftView(LeftData))
-    "studio.right.toggle" =>
-      update_pure(
-        model,
-        SetRightView(
-          if model.right_view is RvHidden {
-            // AI 模式展开 = 工作区面板（更改/文件——VS Code 智能体模式口径）;
-            // 其余模式 = 检查器页
-            if model.perspective is PsAi {
-              RvWorkspace
-            } else {
-              RvContext
-            }
-          } else {
-            RvHidden
-          },
-        ),
-      )
-    // 右栏两页各一条直达命令（页块切换器的命令面板镜像——与 studio.left.*
-    // 同一口径：图标栏/页块能做的，命令面板也能做）。
-    "studio.right.context" => update_pure(model, SetRightView(RvContext))
-    "studio.right.ai" => update_pure(model, SetRightView(RvAi))
-    "studio.ctx.runtime" => update_pure(model, SetContextTab(CtxRuntime))
-    "studio.code.complete" => update_pure(model, TriggerCompletion)
-    "studio.code.jump" => update_pure(model, JumpToDeclaration)
-    "studio.bottom.audit" => update_pure(model, SetBottomTab(BtAudit))
-    "studio.bottom.console" => update_pure(model, SetBottomTab(BtConsole))
-    "studio.bottom.problems" => update_pure(model, SetBottomTab(BtProblems))
-    "studio.bottom.toggle" => update_pure(model, ToggleBottom)
-    "studio.audit.settle_all" =>
-      update_pure(model, AuditSettleAll("app.audit.confirmed"))
-    // AI 落点曾经有两条显式 move-to 命令（落底栏 / 停靠右栏）与一对互为
-    // 出口的 ghost 钮。宿主唯一化（输入面只在右栏底部）后它们一并取消：
-    // 「把输入面放到某处」不再是一个需要用户决定的问题。
-    // 会话管理（M6,对白转录）：命令面板与键盘同走 run_studio_command
-    "studio.ai.new_session" =>
-      update_pure(
-        model,
-        AiSessionOp(AiSessionCreate(civil_seconds(model.clock))),
-      )
-    "studio.ai.search" => update_pure(model, AiUiOp(@ai.ToggleSessionSearch))
-    "studio.ai.history" => update_pure(model, AiUiOp(@ai.ToggleAiHistory))
-    "studio.settings" => update_pure(model, AiUiOp(@ai.ToggleSettings))
-    "studio.run.start" => update_pure(model, RunStart)
-    "studio.run.stop" => update_pure(model, RunStop)
-    "studio.compile.run" => update_pure(model, CompileRun)
-    // 新建工程（folder projects）：选本地文件夹落盘骨架 + 装载模板。
-    // 服务流消息经**效果派发**回程序环（update_with_services 的臂接住），
-    // 纯链没有目录对话框——同 CkOpen 续行的既有口径。
-    "studio.file.new" =>
-      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(-1))))
-    "studio.file.save" => update_pure(model, SaveRequested)
-    "studio.file.open" => update_pure(model, OpenRequested)
-    "studio.file.export" => update_pure(model, ExportRequested)
-    "studio.lang.switch" => update_pure(model, SwitchLanguage)
-    "studio.help" => update_pure(model, SetMode(ModeHelp))
-    "studio.preview" => update_pure(model, SetMode(ModePreview))
-    "studio.template.hello" =>
-      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(0))))
-    "studio.template.roll_call" =>
-      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(1))))
-    "studio.template.drill" =>
-      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(2))))
-    "studio.template.store" =>
-      (model, @moui.Effect::dispatch(emit => emit(NewProjectRequested(3))))
-    _ => (model, @moui.Effect::none())
+  let ctx : StudioCtx = { model, t: translator(model), }
+  match @wb.find_command(studio_command_registry(), id) {
+    None => (model, @moui.Effect::none())
+    Some(command) =>
+      match (command.run)(ctx) {
+        @wb.Apply(msg) => update_pure(model, msg)
+        @wb.Dispatch(msg) => (model, @moui.Effect::dispatch(emit => emit(msg)))
+        @wb.Unavailable => (model, @moui.Effect::none())
+      }
   }
 }
 

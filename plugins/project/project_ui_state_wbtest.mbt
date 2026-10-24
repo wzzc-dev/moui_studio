@@ -1,61 +1,65 @@
 ///|
-/// S5f 工程域纯 UI 状态切片白盒测试：文件 tab 切换/关闭、文件 CRUD 输入态、
-/// 全文搜索草稿、结构树搜索/分组折叠/「新建」菜单开合。这些臂自壳迁入，
-/// 全部零副作用（Effect::none）；运行/写盘/回执仍住壳。
+/// S5f 工程域纯 UI 状态切片白盒测试：文件 CRUD 输入态、全文搜索草稿、
+/// 结构树搜索/分组折叠/「新建」菜单开合。这些臂自壳迁入，全部零副作用
+/// （Effect::none）；运行/写盘/回执仍住壳。文档 tab 归 workbench，
+/// 这里只验证资源管理器的只读行投影。
 fn apply_ui(state : ProjectState, msg : ProjectMsg) -> ProjectState {
   update_project(state, msg).0
 }
 
 ///|
-fn ui_open_file(rel : String) -> OpenProjectFile {
-  OpenProjectFile::{
-    rel,
-    saved_content: "",
-    draft: "",
-    caret: 0,
-    selection: None,
-    md_session: None,
+fn explorer_data_with_editors(
+  editors : Array[OpenEditorRow],
+  active : Int32,
+) -> ExplorerData {
+  {
+    projects: [],
+    active_project: -1,
+    workspace_root: None,
+    open_editors: editors,
+    open_editor_active: active,
+    project_tree_collapsed: [],
+    explorer_sections_collapsed: [],
+    selected_project_file: None,
+    recent_changes: [],
+    file_create_dir: "",
+    file_create_open: false,
+    file_rename_open: None,
+    folder_create_open: false,
   }
 }
 
 ///|
-fn state_with_tabs(rels : Array[String]) -> ProjectState {
-  let files : Array[OpenProjectFile] = []
-  for rel in rels {
-    files.push(ui_open_file(rel))
-  }
-  { ..ProjectState::new(), open_project_files: files, open_file_index: 0, }
-}
-
-///|
-test "select file tab moves active index within range" {
-  let state = state_with_tabs(["a", "b", "c"])
-  assert_eq(apply_ui(state, SelectFileTab(2)).open_file_index, 2)
-  // 越界不动（不 panic，不产生 effect）
-  assert_eq(apply_ui(state, SelectFileTab(9)).open_file_index, 0)
-  assert_eq(apply_ui(state, SelectFileTab(-1)).open_file_index, 0)
-}
-
-///|
-test "close file tab removes tab and collapses active to a valid index" {
-  // 关闭中间下标：tab 移除、其后元素前移，active 收敛到删除下标
-  // （沿用壳原 close_open_file_at 的同位置规则）。
-  let three = state_with_tabs(["a", "b", "c"])
-  let after_b = apply_ui(three, CloseFileTab(1))
-  assert_eq(after_b.open_project_files.length(), 2)
-  assert_eq(after_b.open_project_files[0].rel, "a")
-  assert_eq(after_b.open_project_files[1].rel, "c")
-  assert_eq(after_b.open_file_index, 1)
-  // 关闭尾部 active：active 回退一格
-  let tail = { ..state_with_tabs(["a", "b", "c"]), open_file_index: 2, }
-  let after_tail = apply_ui(tail, CloseFileTab(2))
-  assert_eq(after_tail.open_file_index, 1)
-  // 关到空：active 归 -1
-  let single = apply_ui(state_with_tabs(["a"]), CloseFileTab(0))
-  assert_eq(single.open_project_files.length(), 0)
-  assert_eq(single.open_file_index, -1)
-  // 越界 no-op
-  assert_eq(apply_ui(three, CloseFileTab(9)).open_project_files.length(), 3)
+test "open editor projection returns the active row only" {
+  let data = explorer_data_with_editors(
+    [
+      OpenEditorRow::{
+        id: "file:a.md",
+        index: 0,
+        rel: "a.md",
+        label: "a.md",
+        dirty: false,
+        draft: "# A",
+      },
+      OpenEditorRow::{
+        id: "file:b.mbt",
+        index: 1,
+        rel: "b.mbt",
+        label: "b.mbt",
+        dirty: true,
+        draft: "fn main {}",
+      },
+    ],
+    1,
+  )
+  let active = active_open_editor(data).unwrap()
+  assert_eq(active.rel, "b.mbt")
+  assert_true(active.dirty)
+  // Studio 文档是活动文档时没有文件行
+  assert_true(
+    active_open_editor(explorer_data_with_editors(data.open_editors, -1))
+    is None,
+  )
 }
 
 ///|
@@ -126,8 +130,6 @@ test "tree query and group collapse toggle" {
 ///|
 test "all ui arms return no effect" {
   let messages : Array[ProjectMsg] = [
-    SelectFileTab(0),
-    CloseFileTab(0),
     FileCreateDraft("x"),
     FileCreateDismiss,
     FileRenameStart("a/b.mbt"),

@@ -617,107 +617,10 @@ pub fn preview_write_current(state : PreviewWriteState) -> (String, String)? {
 /// app 侧别名见本文件顶部。
 
 ///|
-/// `.md` tab 的会话字段构造：md 文件建/换源重建 MoMark 文档会话,
-/// 其余文件恒 None。所有 `OpenProjectFile::{..}` 构造点统一走它,
-/// 避免 `md_session` 在各处手写后缀判断。
-pub fn with_md_session(
-  rel~ : String,
-  content~ : String,
-) -> @moui_richtext.MarkdownDocumentSession? {
-  if rel.has_suffix(".md") {
-    Some(@moui_richtext.MarkdownDocumentSession::new(content))
-  } else {
-    None
-  }
-}
-
-///|
-/// 任一 tab 脏（「保存全部」chip 的出现条件）。
-pub fn any_file_dirty(model : Model) -> Bool {
-  for file in model.project_state.open_project_files {
-    if file_is_dirty(file) {
-      return true
-    }
-  }
-  false
-}
-
-///|
-/// 打开文件 upsert:同 rel 原位替换（重新读取=刷新内容）,否则追加并激活。
-pub fn upsert_open_file(
-  files : Array[OpenProjectFile],
-  open : OpenProjectFile,
-) -> (Array[OpenProjectFile], Int32) {
-  let mut existing = -1
-  let mut i = 0
-  for file in files {
-    if file.rel == open.rel {
-      existing = i
-    }
-    i = i + 1
-  }
-  let next : Array[OpenProjectFile] = []
-  for j, file in files {
-    if j == existing {
-      next.push(open)
-    } else {
-      next.push(file)
-    }
-  }
-  if existing >= 0 {
-    (next, existing)
-  } else {
-    next.push(open)
-    (next, files.length())
-  }
-}
-
-///|
-/// 按 rel 找 tab 下标（无则 None）。
-pub fn open_file_index_of(
-  files : Array[OpenProjectFile],
-  rel : String,
-) -> Int32? {
-  let mut found : Int32? = None
-  for i, file in files {
-    if file.rel == rel {
-      found = Some(i)
-    }
-  }
-  found
-}
-
-///|
-/// 关闭下标处的 tab,并把 active 收敛到合法范围（删的是 active 时停在
-/// 同位置的下一个 tab,尾部则回退一格）。
-pub fn close_open_file_at(model : Model, index : Int32) -> Model {
-  // tab 关闭纯态已随 S5f 入 plugins/project；壳包装保留给确认流/服务根臂。
-  { ..model, project_state: @proj.close_open_file(model.project_state, index), }
-}
-
-///|
 /// 新文件 rel 校验（G4 CRUD）：非空、不以 `/` 开头（工程内相对路径）、
 /// 不含 `..`（不逃逸工程根）。空格等其余字符交给文件系统裁决。
 pub fn valid_new_file_rel(rel : String) -> Bool {
   rel != "" && !rel.has_prefix("/") && !rel.contains("..")
-}
-
-///|
-/// 改名后同步 open tabs:rel 替换,内容与光标状态原样保留。
-pub fn rename_open_file(
-  files : Array[OpenProjectFile],
-  old : String,
-  new : String,
-) -> Array[OpenProjectFile] {
-  let next : Array[OpenProjectFile] = []
-  for file in files {
-    if file.rel == old {
-      next.push({ ..file, rel: new, })
-    } else {
-      next.push(file)
-    }
-  }
-  next
 }
 
 ///|
@@ -829,16 +732,6 @@ pub fn decode_plugin_disabled(text : String) -> Array[String] {
     }
   }
   ids
-}
-
-///|
-/// 原位替换下标处的 tab(转发切片版;装载/保存等根臂仍走这里)。
-pub fn replace_open_file_at(
-  files : Array[OpenProjectFile],
-  index : Int32,
-  open : OpenProjectFile,
-) -> Array[OpenProjectFile] {
-  @proj.replace_open_file_at(files, index, open)
 }
 
 ///|

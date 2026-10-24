@@ -78,13 +78,13 @@ pub fn blocks_pane(
     [
       icon_button(
         Columns,
-        if model.pane_live {
+        if model.workbench.layout.pane_live {
           text(t, "app.pane.hide_live")
         } else {
           text(t, "app.pane.show_live")
         },
-        model.pane_live,
-        TogglePaneLive,
+        model.workbench.layout.pane_live,
+        WorkbenchOp(@wb.TogglePaneLive),
         24.0,
         22.0,
         13.0,
@@ -94,7 +94,7 @@ pub fn blocks_pane(
         Close,
         text(t, "app.pane.hide"),
         false,
-        TogglePaneBlocks,
+        WorkbenchOp(@wb.TogglePaneBlocks),
         24.0,
         22.0,
         13.0,

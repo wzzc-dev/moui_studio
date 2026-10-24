@@ -398,11 +398,12 @@ test "explorer 大纲分区列出当前文件符号" {
   let mut main_x = -1.0
   let mut x_x = -1.0
   for run in runs {
-    if run.text == "main" {
+    // 只取左栏（大纲分区）里的同名 run：编辑区正文也会画出 main / x。
+    if run.frame.origin.x < 300.0 && run.text == "main" {
       seen_main = true
       main_x = run.frame.origin.x
     }
-    if run.text == "x" {
+    if run.frame.origin.x < 300.0 && run.text == "x" {
       seen_x = true
       x_x = run.frame.origin.x
     }
@@ -451,7 +452,7 @@ test "explorer 打开的编辑器分区" {
   // 编辑后出现脏标记
   let edited = explorer_apply(
     loaded,
-    ProjectOp(EditProjectFile("pub fn main { 1 }\n")),
+    WorkbenchOp(@wb.EditDocument("file:app/app.mbt", "pub fn main { 1 }\n")),
   )
   let mut dirty_after = false
   for run in shell_texts(explorer_draw(edited, 1280.0, 800.0)) {
@@ -460,6 +461,87 @@ test "explorer 打开的编辑器分区" {
     }
   }
   assert_true(dirty_after, msg="编辑后应出现脏标记")
+}
+
+///|
+/// M3:全局编辑区 tab——常驻 Studio tab 不可关闭;文件 tab 带脏点;切换透视
+/// 不切走活动文件;AI 模式隐藏文件 tab 但保留文档状态。
+test "全局 editor tab:Studio 常驻、文件脏点与 AI 隐藏" {
+  let services = @services.AppServices::new()
+  let base = update_with_services(
+      initial_model(),
+      SetPerspective(PsCode),
+      services,
+    ).0
+  // Studio tab 常驻:关闭请求是 no-op
+  let closed = update_with_services(
+      base,
+      WorkbenchOp(@wb.CloseDocument(@wb.STUDIO_DOC_ID)),
+      services,
+    ).0
+  assert_eq(closed.workbench.docs.entries.length(), 1)
+  assert_eq(
+    closed.workbench.docs.active_entry().unwrap().doc.id,
+    @wb.STUDIO_DOC_ID,
+  )
+  // 打开并编辑文件 → 文件 tab 出现脏点
+  let selected = update_with_services(
+      base,
+      SelectProjectFile("app/app.mbt"),
+      services,
+    ).0
+  let loaded = update_with_services(
+      selected,
+      ProjectFileLoaded("app/app.mbt", Success("pub fn main {}\n")),
+      services,
+    ).0
+  let edited = update_with_services(
+      loaded,
+      WorkbenchOp(@wb.EditDocument("file:app/app.mbt", "pub fn main { 1 }\n")),
+      services,
+    ).0
+  let mut seen_dirty_tab = false
+  let mut seen_studio = false
+  for run in shell_texts(shell_draw(edited, 1280.0, 800.0)) {
+    if run.text == "Studio" {
+      seen_studio = true
+    }
+    if run.text == "app.mbt ●" {
+      seen_dirty_tab = true
+    }
+  }
+  assert_true(seen_studio, msg="常驻 Studio tab 应出现")
+  assert_true(seen_dirty_tab, msg="脏文件 tab 应带脏点")
+  // 切到可视化透视:活动文件不变（透视只决定 Studio 文档的 provider）
+  let visual = update_with_services(edited, SetPerspective(PsVisual), services).0
+  assert_eq(
+    visual.workbench.docs.active_entry().unwrap().doc.id,
+    "file:app/app.mbt",
+  )
+  // AI 模式:中心是会话流,文件 tab 隐藏但文档状态保留
+  let ai = update_with_services(edited, SetPerspective(PsAi), services).0
+  assert_eq(
+    ai.workbench.docs.active_entry().unwrap().doc.id,
+    "file:app/app.mbt",
+  )
+  let mut ai_file_tab = false
+  for run in shell_texts(shell_draw(ai, 1280.0, 800.0)) {
+    if run.text == "app.mbt ●" {
+      ai_file_tab = true
+    }
+  }
+  assert_false(ai_file_tab, msg="AI 模式不应画文件 tab")
+  // 关闭干净文件 tab → 回到 Studio 文档
+  let clean = update_with_services(
+      loaded,
+      WorkbenchOp(@wb.CloseDocument("file:app/app.mbt")),
+      services,
+    ).0
+  assert_true(clean.workbench.docs.file_entries().is_empty())
+  assert_eq(
+    clean.workbench.docs.active_entry().unwrap().doc.id,
+    @wb.STUDIO_DOC_ID,
+  )
 }
 
 ///|

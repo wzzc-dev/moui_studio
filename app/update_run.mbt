@@ -774,7 +774,10 @@ fn update_run_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
               compiled_run: None,
               mode: ModeDesign,
               workspace: WsVisual,
-              pane_live: true,
+              workbench: {
+                ..model.workbench,
+                layout: { ..model.workbench.layout, pane_live: true, },
+              },
             },
             @moui.Effect::none(),
           ),
@@ -787,7 +790,10 @@ fn update_run_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
               run: None,
               mode: ModeDesign,
               workspace: WsVisual,
-              pane_live: true,
+              workbench: {
+                ..model.workbench,
+                layout: { ..model.workbench.layout, pane_live: true, },
+              },
             },
             @moui.Effect::none(),
           ),

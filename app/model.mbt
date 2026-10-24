@@ -596,12 +596,8 @@ pub(all) struct Model {
   // === v4 IDE 壳工作区状态（全部会话内，不持久化）===
   // 中心工作区：可视化 / 代码 / 空舞台
   workspace : WorkSpace
-  // Live App 窗格显隐（可视化工作区内的多窗格编排）
-  pane_live : Bool
-  // 积木窗格显隐
-  pane_blocks : Bool
-  // Live App 窗格占可视化工作区宽度的比例（分隔条拖拽，0.2–0.8）
-  split_ratio : Double
+  // 编辑工作台：文档、编辑器布局与窗格编排。壳只负责模式/工作区策略。
+  workbench : @wb.WorkbenchState
   // 左栏视图（图标栏切换；收起时不占宽度）
   left_view : LeftView
   // 左/右栏宽度（列间 sash 拖拽改宽；默认 = LEFTBAR/@chrome.RIGHTBAR_WIDTH，
@@ -709,14 +705,11 @@ pub(all) enum Msg {
   SwitchLanguage
   CycleCodeAppearance // 代码视图外观切换：MoonBit（默认显示）⇄ 中英 DSL（M5-5e）
   SetCodeAppearance(CodeAppearance) // 直达目标外观（双芯片入口，实测反馈）
-  ProjectFileLoaded(String, @services.ServiceTaskResult[String]) // 工程文件读取回执
-  // `.md` tab 的 MoMark session 编辑事务（active tab）：回写会话+草稿+光标
-  // 资源管理器虚拟化列表的滚动偏移回传（应用持有）
-  SaveProjectFile // 保存 active tab（写盘）
-  SaveAllFiles // 保存全部脏 tab（G4 多标签）
-  ProjectFileSaveFinished(String, @services.ServiceTaskResult[Unit]) // 保存回执(rel 定位 tab)
-  // tab 切换 / 关闭（SelectFileTab/CloseFileTab）已并入 project_state 切片
-  // 的 ProjectOp（纯 tab 态；脏 tab 经确认流放行）。
+  ProjectFileLoaded(String, @services.ServiceTaskResult[String]) // 工程文件读取回执（挂载/刷新 workbench 文档）
+  SaveProjectFile // 保存活动文件文档（写盘）
+  SaveAllFiles // 保存全部脏文件文档（G4 多标签）
+  ProjectFileSaveFinished(String, @services.ServiceTaskResult[Unit]) // 保存回执（rel 定位文档）
+  // 文档切换/编辑/关闭已迁 workbench（WorkbenchOp）；脏文档关闭经确认流放行。
   // === 文件 CRUD（G4）：新建 / 重命名（inline 输入 + 服务链）===
   // 新建 = write_text → 回执开 tab + 重扫;改名 = read→write→delete 三步链,
   // 每步回执驱动,失败结构化提示已到哪步（半完成不静默）。
@@ -1138,15 +1131,8 @@ pub(all) enum Msg {
   AiSessionsStoreSaved(@services.ServiceTaskResult[Unit])
   // 工作区编排：图标栏切换（同一工作区再点一次 = 空舞台）
   SetWorkSpace(WorkSpace)
-  TogglePaneLive
-  TogglePaneBlocks
-  /// 幂等地**显示**窗格（设计稿 `#btnAddLive` / `#btnAddBlocks`）。
-  /// 空舞台用它们做恢复入口——那里必须是「打开」而不是「取反」，
-  /// 否则从空舞台点一次反而会把已经为真的开关关掉。
-  ShowPaneLive
-  ShowPaneBlocks
-  // 分隔条拖拽：比例（0.2–0.8，越界由 update 钳制）
-  SetSplitRatio(Double)
+  // 编辑工作台的纯状态迁移（文档、窗格、分隔比）。
+  WorkbenchOp(@wb.WorkbenchMsg)
   // 任务模式切换（M2）：进模式按预设置位四区域；同值再点 no-op
   SetPerspective(StudioPerspective)
   // 左栏：视图切换 / 关闭；结构树搜索 / 分组展开折叠（SetTreeQuery/
@@ -1345,9 +1331,7 @@ pub fn initial_model(
     redo_stack: [],
     block_drag: None,
     workspace: WsVisual,
-    pane_live: true,
-    pane_blocks: true,
-    split_ratio: 0.55,
+    workbench: @wb.WorkbenchState::new(),
     left_view: LeftTree,
     left_width: @chrome.LEFTBAR_WIDTH,
     right_width: @chrome.RIGHTBAR_WIDTH,

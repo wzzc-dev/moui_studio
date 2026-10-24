@@ -1,7 +1,7 @@
 ///|
-/// 内核容器测试：用一个假插件（假模型/假消息/假贡献项）验证 Plugin 契约
-/// 的四个机械件——事件总线（注册序派发/纯监听器）、outbox 排空、服务容器
-/// （denied 语义）、贡献点（提升后可收进同构数组并被壳调用）。
+/// 内核容器测试：用一个假插件（假模型/假消息）验证 Plugin 契约的四个
+/// 机械件——事件总线（注册序派发/纯监听器）、outbox 排空、服务容器
+/// （denied 语义）、切片 scope（lens + wrap）。
 
 ///|
 /// 假域消息：包装变体形态（根 Msg 收子 Msg，与真实 app 同构）。
@@ -107,12 +107,6 @@ fn fake_scope() -> @moui.ScopedFeature[
     write=(state, model) => { ..model, state, },
     wrap=message => FakeMsg::FakeInner(message),
   )
-}
-
-///|
-/// 假面板视图（根消息类型）：切片视图经 wrap 提升——与组合根的提升同形。
-fn fake_root_view() -> @moui.View[FakeMsg] {
-  fake_inner_view().map(message => FakeMsg::FakeInner(message))
 }
 
 ///|
@@ -246,45 +240,4 @@ test "kernel/denied services fail explicitly" {
   assert_eq(services.preview_web.port, 0)
   assert_no_effect((services.preview_web.navigate)("http://localhost"))
   assert_no_effect((services.preview_web.reload)())
-}
-
-///|
-/// 测试 6：贡献点——面板视图可渲染、活动栏项按模型快照判定、模式预设
-/// apply 是一次性纯置位。
-test "kernel/contributions render and apply are pure" {
-  let panel : PanelView[FakeModel, FakeMsg] = {
-    id: "fake.panel",
-    render: (_model, _width, _height) => fake_root_view(),
-  }
-  // 渲染调用闭合（视图树深检归渲染层测试）
-  let view = (panel.render)(
-    { title: "m", state: { asked: "", }, },
-    100.0,
-    100.0,
-  )
-  ignore(view)
-  let item : ActivityItem[FakeModel, FakeMsg] = {
-    id: "fake.activity",
-    icon: "focus",
-    label_key: "app.ai.title",
-    active: model => model.state.asked != "",
-    on_click: model => FakeMsg::FakePing(model.state.asked),
-  }
-  assert_eq((item.active)({ title: "", state: { asked: "", }, }), false)
-  assert_eq(
-    (item.on_click)({ title: "", state: { asked: "x", }, }),
-    FakeMsg::FakePing("x"),
-  )
-  let perspective : Perspective[FakeModel] = {
-    id: "fake.mode",
-    label_key: "app.mode.fake",
-    left_panel: "fake.panel",
-    center: "fake.center",
-    right_panel: "",
-    bottom_tab: "fake.tab",
-    apply: model => { ..model, title: "entered", },
-  }
-  let entered = (perspective.apply)({ title: "root", state: { asked: "", }, })
-  assert_eq(entered.title, "entered")
-  assert_eq(entered.state.asked, "")
 }

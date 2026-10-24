@@ -5,24 +5,16 @@
 
 ///|
 fn md_pane_model(rel~ : String, content~ : String) -> Model {
+  let base = initial_model()
+  let (docs, _) = base.workbench.docs.upsert_file(
+    @wb.file_document(rel, rel),
+    @wb.TextBuffer::new(rel, content),
+  )
   {
-    ..initial_model(),
+    ..base,
     // .md 面板挂在代码工作区（WsCode 是 code_workspace 的宿主）
     workspace: WsCode,
-    project_state: {
-      ..initial_model().project_state,
-      open_project_files: [
-        OpenProjectFile::{
-          rel,
-          saved_content: content,
-          draft: content,
-          caret: 0,
-          selection: None,
-          md_session: with_md_session(rel~, content~),
-        },
-      ],
-      open_file_index: 0,
-    },
+    workbench: { ..base.workbench, docs, },
   }
 }
 
@@ -78,7 +70,37 @@ test "打开 .mbt 仍走 mono 原文渲染" {
 }
 
 ///|
-/// G7.3:AI 插件禁用时切 AI 模式 no-op;markdown 禁用时 .md 走 plain 编辑。
+/// M3:透视 → 常驻 Studio 文档的偏好 provider;文件文档按 accepts + 优先级
+/// 认领（md 插件开关切换 file.markdown ⇄ file.text）。
+test "provider:透视映射与文件认领" {
+  let services = @services.AppServices::new()
+  let visual = initial_model()
+  assert_eq(preferred_provider(visual), "studio.visual")
+  let code = update_with_services(visual, SetPerspective(PsCode), services).0
+  assert_eq(preferred_provider(code), "studio.code")
+  let preview = update_with_services(visual, SetWorkSpace(WsPreview), services).0
+  assert_eq(preferred_provider(preview), "studio.preview")
+  let design = update_with_services(visual, SetPerspective(PsDesign), services).0
+  assert_eq(preferred_provider(design), "studio.design")
+  let blocks = update_with_services(visual, SetPerspective(PsBlocks), services).0
+  assert_eq(preferred_provider(blocks), "studio.blocks")
+  let md_doc = @wb.file_document("guide.md", "guide.md")
+  let text_doc = @wb.file_document("lib.mbt", "lib.mbt")
+  let provider_of = fn(model, doc) {
+    @wb.resolve_provider(
+      editor_providers(),
+      StudioCtx::{ model, t: translator(model), },
+      doc,
+      preferred_provider(model),
+    ).unwrap()
+  }
+  assert_eq(provider_of(code, md_doc).id, "file.markdown")
+  assert_eq(provider_of(code, text_doc).id, "file.text")
+  let plain = update_with_services(code, TogglePlugin("markdown"), services).0
+  assert_eq(provider_of(plain, md_doc).id, "file.text")
+}
+
+///|
 test "插件管理:AI 门控与 markdown 回退" {
   let services = @services.AppServices::new()
   let ai_off = update_with_services(
@@ -97,19 +119,12 @@ test "插件管理:AI 门控与 markdown 回退" {
   let with_file = {
     ..md_off,
     workspace: WsCode,
-    project_state: {
-      ..md_off.project_state,
-      open_project_files: [
-        OpenProjectFile::{
-          rel: "guide.md",
-          saved_content: "# t",
-          draft: "# t",
-          caret: 0,
-          selection: None,
-          md_session: with_md_session(rel="guide.md", content="# t"),
-        },
-      ],
-      open_file_index: 0,
+    workbench: {
+      ..md_off.workbench,
+      docs: md_off.workbench.docs.upsert_file(
+        @wb.file_document("guide.md", "guide.md"),
+        @wb.TextBuffer::new("guide.md", "# t"),
+      ).0,
     },
   }
   // 插件禁用 → plain 渲染:原始 `#` 标记原样出现（差分于 Markdown 面板）

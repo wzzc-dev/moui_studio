@@ -124,7 +124,7 @@ test "stopping a run returns to the workspace instead of a blank page" {
   assert_true(stopped.run is None)
   assert_true(stopped.mode is @app.ModeDesign)
   assert_true(stopped.workspace is @app.WsVisual)
-  assert_true(stopped.pane_live)
+  assert_true(stopped.workbench.layout.pane_live)
   // 编译轨同口径（两轨都走同一个停止动作）。
   let compiled = apply(
     apply(

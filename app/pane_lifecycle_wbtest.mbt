@@ -40,8 +40,8 @@ fn select_block_index(model : Model, index : Int32) -> Model {
 test "hiding panes funnels into the empty stage with restore entries" {
   let model = initial_model()
   // 隐藏积木窗格：Live App 占满**整列**，且没有恢复带
-  let no_blocks = apply_shell(model, TogglePaneBlocks)
-  assert_eq(no_blocks.pane_blocks, false)
+  let no_blocks = apply_shell(model, WorkbenchOp(@wb.TogglePaneBlocks))
+  assert_eq(no_blocks.workbench.layout.pane_blocks, false)
   let commands = shell_draw(no_blocks, 1280.0, 800.0)
   assert_false(blocks_pane_wanted(no_blocks))
   if shell_has_text(commands, "+ 积木窗格") {
@@ -59,15 +59,15 @@ test "hiding panes funnels into the empty stage with restore entries" {
     )
   }
   // 隐藏实时应用：只剩积木，同样没有恢复带
-  let no_live = apply_shell(model, TogglePaneLive)
-  assert_eq(no_live.pane_live, false)
+  let no_live = apply_shell(model, WorkbenchOp(@wb.TogglePaneLive))
+  assert_eq(no_live.workbench.layout.pane_live, false)
   if shell_has_text(shell_draw(no_live, 1280.0, 800.0), "+ 实时应用") {
     fail("single-pane layout must not add a restore strip above the pane")
   }
   // 两个都隐藏 → 空舞台，且两个恢复入口都在（这是唯一的恢复路径）
-  let none = apply_shell(no_live, TogglePaneBlocks)
-  assert_eq(none.pane_live, false)
-  assert_eq(none.pane_blocks, false)
+  let none = apply_shell(no_live, WorkbenchOp(@wb.TogglePaneBlocks))
+  assert_eq(none.workbench.layout.pane_live, false)
+  assert_eq(none.workbench.layout.pane_blocks, false)
   let empty_commands = shell_draw(none, 1280.0, 800.0)
   for label in ["+ 实时应用", "+ 积木窗格"] {
     if !shell_has_text(empty_commands, label) {
@@ -75,14 +75,14 @@ test "hiding panes funnels into the empty stage with restore entries" {
     }
   }
   // 恢复入口必须**真的能点回来**（不是画着好看）
-  let back_live = apply_shell(none, ShowPaneLive)
-  assert_eq(back_live.pane_live, true)
+  let back_live = apply_shell(none, WorkbenchOp(@wb.ShowPaneLive))
+  assert_eq(back_live.workbench.layout.pane_live, true)
   assert_true(back_live.workspace is WsVisual)
   assert_true(
     shell_has_text(shell_draw(back_live, 1280.0, 800.0), "实时应用"),
   )
-  let back_blocks = apply_shell(none, ShowPaneBlocks)
-  assert_eq(back_blocks.pane_blocks, true)
+  let back_blocks = apply_shell(none, WorkbenchOp(@wb.ShowPaneBlocks))
+  assert_eq(back_blocks.workbench.layout.pane_blocks, true)
   assert_true(back_blocks.workspace is WsVisual)
   // 积木窗格要画出来还得有选中的子程序——恢复入口必须顺带选上，
   // 否则用户点了按钮只看到 Live App，像是没反应。

@@ -477,8 +477,8 @@ fn explorer_row_view(
         )
       FileRow(index, rel, name, depth, selected) =>
         explorer_file_row(model, t, index, rel, name, depth, selected, width)
-      EditorRow(index, name, dirty, active) =>
-        explorer_editor_row(model, index, name, dirty, active, width)
+      EditorRow(index, id, name, dirty, active) =>
+        explorer_editor_row(model, index, id, name, dirty, active, width)
       OutlineRow(name, line, depth) =>
         explorer_outline_row(name, line, depth, width)
       TimelineRow(target, by_agent, action) =>
@@ -847,13 +847,14 @@ fn explorer_file_row(
 /// 打开的编辑器条目:脏点 + 文件名 + 关闭 ×。
 fn explorer_editor_row(
   model : Model,
-  index : Int32,
+  _index : Int32,
+  id : String,
   name : String,
   dirty : Bool,
   active : Bool,
   width : Double,
 ) -> @moui.View[Msg] {
-  let key = "editor-\{index}"
+  let key = "editor-\{id}"
   explorer_tree_row(
     model,
     key~,
@@ -870,7 +871,7 @@ fn explorer_editor_row(
     meta=if dirty { "●" } else { "" },
     selected=active,
     width~,
-    on_click=Some(ProjectOp(@proj.SelectFileTab(index))),
+    on_click=Some(WorkbenchOp(@wb.ActivateDocument(id))),
     trailing=Some(
       @views.text(
         "×",
@@ -880,7 +881,7 @@ fn explorer_editor_row(
         align=TextCenter,
       )
       .foreground(@chrome.ide_text_faint())
-      .on_tap(ProjectOp(@proj.CloseFileTab(index))),
+      .on_tap(WorkbenchOp(@wb.CloseDocument(id))),
     ),
     trailing_width=18.0,
   )
@@ -1152,23 +1153,50 @@ pub type ProjectRecord = @proj.ProjectRecord
 pub type WorkspaceRecord = @proj.WorkspaceRecord
 
 ///|
-pub type OpenProjectFile = @proj.OpenProjectFile
-
-///|
 pub type RecentChange = @proj.RecentChange
 
 ///|
 pub type OutlineSymbol = @proj.OutlineSymbol
 
 ///|
+/// 从 workbench 文档装配资源管理器的只读编辑器行投影。
+fn open_editor_rows_of(model : Model) -> (Array[@proj.OpenEditorRow], Int32) {
+  let rows : Array[@proj.OpenEditorRow] = []
+  let mut active = -1
+  let docs = model.workbench.docs
+  for i, entry in docs.entries {
+    if entry.doc.kind is @wb.FileDoc {
+      let index = rows.length()
+      if i == docs.active {
+        active = index
+      }
+      let draft = match entry.text_buffer() {
+        Some(buffer) => buffer.draft
+        None => ""
+      }
+      rows.push(@proj.OpenEditorRow::{
+        id: entry.doc.id,
+        index,
+        rel: entry.doc.resource,
+        label: entry.doc.title,
+        dirty: entry.is_dirty(),
+        draft,
+      })
+    }
+  }
+  (rows, active)
+}
+
+///|
 /// 行模型快照:从 Model 组装工程域只读视图数据。
 fn explorer_data_of(model : Model) -> @proj.ExplorerData {
+  let (open_editors, open_editor_active) = open_editor_rows_of(model)
   {
     projects: model.project_state.projects,
     active_project: model.project_state.active_project,
     workspace_root: model.project_state.workspace_root,
-    open_project_files: model.project_state.open_project_files,
-    open_file_index: model.project_state.open_file_index,
+    open_editors,
+    open_editor_active,
     project_tree_collapsed: model.project_state.project_tree_collapsed,
     explorer_sections_collapsed: model.project_state.explorer_sections_collapsed,
     selected_project_file: model.project_state.selected_project_file,
@@ -1277,13 +1305,9 @@ pub fn tree_rel_of_project_file(
 }
 
 ///|
-pub fn active_project_file(model : Model) -> OpenProjectFile? {
-  @proj.active_project_file(explorer_data_of(model))
-}
-
-///|
-pub fn file_is_dirty(open : OpenProjectFile) -> Bool {
-  @proj.file_is_dirty(open)
+/// 活动文件文档与正文（来自 workbench）；Studio 文档或没有文件时为 None。
+pub fn active_project_file(model : Model) -> (@wb.Document, @wb.TextBuffer)? {
+  model.workbench.docs.active_file()
 }
 
 ///|

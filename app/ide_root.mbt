@@ -107,7 +107,7 @@ fn shell_view(
     content
   } else {
     @views.container(
-      center_workspace(model, t, center_width, pane_height),
+      workspace_content(model, t, center_width, pane_height),
       background=@chrome.ide_editor_background(),
       width=center_width,
       height=pane_height,
@@ -231,19 +231,13 @@ fn shell_view(
     // 其余 = 检查器 + 钉底 composer（VS Code 侧面板口径，见
     // `ide_right_panel`）。AI 输入面**只有一个家**——右栏底部；底栏不再
     // 承载它，也就不再需要「停靠右栏 / 放到底栏」这对互为出口的切换钮。
-    if model.right_view is RvWorkspace {
-      lower_cells.push(
-        ai_workspace_panel(model, t, chrome_widths.right, lower_height).key(
-          "shell-right-panel",
-        ),
-      )
-    } else {
-      lower_cells.push(
-        ide_right_panel(model, t, chrome_widths.right, lower_height).key(
-          "shell-right-panel",
-        ),
-      )
-    }
+    lower_cells.push(
+      (if model.right_view is RvWorkspace {
+        ai_workspace_panel(model, t, chrome_widths.right, lower_height)
+      } else {
+        ide_right_panel(model, t, chrome_widths.right, lower_height)
+      }).key("shell-right-panel"),
+    )
   }
   let lower_row = @views.row(lower_cells, spacing=0.0, align=Stretch).frame(
     width=side_width,
@@ -300,24 +294,6 @@ fn v_sash(on_drag_x : (Double) -> Msg, height : Double) -> @moui.View[Msg] {
       _ => Msg::Noop
     }
   })
-}
-
-///|
-/// 中心列的工作区段：**直接**铺满整行，不再有任何 AI 叠放层或避让带。
-///
-/// **历史（重要）**：这里曾经是「工作区内容 + AI 浮动层」的叠放宿主，并为
-/// 贴底浮卡在中心列底部预留一条 134pt 的「AI 保留带」——带横跨左右两个
-/// 窗格，与相邻面只差 1.05:1 而读不出边界，用户报的「这块区域不协调」
-/// 就是它。浮层形态被两种内联落点（底栏页签 / 右栏停靠）取代后，带、
-/// 避让计算、分隔线一并删除：**中心列拿回全部高度**，输入条改由它所在的
-/// 那个面板自己承载，不再需要「预留区」这种跨窗格的结构。
-fn center_workspace(
-  model : Model,
-  t : @i18n.Translator,
-  center_width : Double,
-  row_height : Double,
-) -> @moui.View[Msg] {
-  workspace_content(model, t, center_width, row_height)
 }
 
 ///|
@@ -405,9 +381,11 @@ fn shell_chrome_widths(model : Model, width : Double) -> ShellChromeWidths {
 }
 
 ///|
-/// 中心内容：AI 工作区（PsAi 优先）——可视化 / 代码 / 预览 / 空舞台。
-/// M2 过渡态：AI 模式的中心 = 全幅 composer（线程卡 + 输入盒），
-/// M3 升级为会话流。
+/// 中心内容：统一编辑区（全局文档 tab + provider 渲染）。
+///
+/// M3 起中心不再由透视直接分派：PSDesign/PsBlocks/预览/代码都只是常驻
+/// Studio 文档的 provider，文件文档则由 `file.markdown` / `file.text`
+/// 认领。AI 模式仍独占中心（会话流），文件 tab 在该模式下隐藏但状态保留。
 fn workspace_content(
   model : Model,
   t : @i18n.Translator,
@@ -417,22 +395,16 @@ fn workspace_content(
   if model.perspective is PsAi {
     return ai_center(model, t, width, height)
   }
-  // 独立工作台（M5）：设计台 = 组合工作区同一 `live_pane` 构造器的全幅
-  // 形态（拖放/属性编辑与组合一致由构造保证）；积木台 = 全幅积木画布
-  // （宽度不再受中心列对半分制约）+ 右栏 AI。左右栏的收放由
-  // `apply_perspective_preset` 预设（PsDesign/PsBlocks 左栏隐藏）。
-  if model.perspective is PsDesign {
-    return live_pane(model, t, width, height)
-  }
-  if model.perspective is PsBlocks {
-    return blocks_pane(model, t, width, height)
-  }
-  match model.workspace {
-    WsVisual => visual_workspace(model, t, width, height)
-    WsCode => code_workspace(model, t, width, height)
-    WsPreview => preview_workspace(model, t, width, height)
-    WsEmpty => empty_stage(model, t, width, height)
-  }
+  @wb.editor_area(
+    model.workbench,
+    { model, t, },
+    editor_providers(),
+    preferred_provider(model),
+    msg => WorkbenchOp(msg),
+    SaveProjectFile,
+    width,
+    height,
+  )
 }
 
 ///|

@@ -1804,31 +1804,28 @@ test "project file opens editable and saves" {
     ),
   )
   match @app.active_project_file(loaded) {
-    Some(open) => {
-      assert_eq(open.rel, "app/main.mbt")
-      assert_true(open.draft.contains("println"))
-      assert_false(@app.file_is_dirty(open))
+    Some((doc, buffer)) => {
+      assert_eq(doc.resource, "app/main.mbt")
+      assert_true(buffer.draft.contains("println"))
+      assert_false(buffer.is_dirty())
       // 编辑:草稿变化 → 脏
-      let edited = apply(loaded, ProjectOp(EditProjectFile("fn main {}\n")))
-      match @app.active_project_file(edited) {
-        Some(open2) => assert_true(@app.file_is_dirty(open2))
-        None => fail("编辑后文件应仍打开")
-      }
-      // 保存:回执按 rel 定位 tab,对齐脏基准
+      let edited = apply(
+        loaded,
+        WorkbenchOp(@wb.EditDocument(doc.id, "fn main {}\n")),
+      )
+      assert_true(@app.active_project_file(edited).unwrap().1.is_dirty())
+      // 保存:回执按 rel 定位文档,对齐脏基准
       let saver = apply(edited, SaveProjectFile)
       let saved = apply(
         saver,
         ProjectFileSaveFinished("app/main.mbt", Success(())),
       )
-      match @app.active_project_file(saved) {
-        Some(open3) => assert_false(@app.file_is_dirty(open3))
-        None => fail("保存后文件应仍打开")
-      }
+      assert_false(@app.active_project_file(saved).unwrap().1.is_dirty())
       // 关闭:回到 IR 编辑面
-      let close_idx = saved.project_state.open_file_index
-      let closed = apply(saved, ProjectOp(@proj.CloseFileTab(close_idx)))
-      assert_true(closed.project_state.open_project_files.is_empty())
-      assert_eq(closed.project_state.open_file_index, -1)
+      let closed = apply(saved, WorkbenchOp(@wb.CloseDocument(doc.id)))
+      assert_true(closed.workbench.docs.file_entries().is_empty())
+      let active = closed.workbench.docs.active_entry().unwrap()
+      assert_eq(active.doc.id, @wb.STUDIO_DOC_ID)
     }
     None => fail("读取回执后文件应打开")
   }

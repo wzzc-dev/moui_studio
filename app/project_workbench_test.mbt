@@ -1135,43 +1135,46 @@ test "多标签:并行打开 + 切换 + 脏关闭确认" {
       ProjectFileLoaded("b.mbt", Success("fn main {}")),
       services,
     ).0
-  assert_eq(loaded_b.project_state.open_project_files.length(), 2)
-  assert_eq(loaded_b.project_state.open_file_index, 1)
-  // 切回 a:active tab 正确,光标随 tab(初始 0)
+  assert_eq(loaded_b.workbench.docs.file_entries().length(), 2)
+  assert_eq(
+    loaded_b.workbench.docs.active_entry().unwrap().doc.resource,
+    "b.mbt",
+  )
+  // 切回 a:active 文档正确,光标随文档(初始 0)
   let switched = @app.update_with_services(
       loaded_b,
-      ProjectOp(@proj.SelectFileTab(0)),
+      WorkbenchOp(@wb.ActivateDocument("file:a.md")),
       services,
     ).0
   match @app.active_project_file(switched) {
-    Some(open) => {
-      assert_eq(open.rel, "a.md")
-      assert_eq(open.caret, 0)
+    Some((doc, buffer)) => {
+      assert_eq(doc.resource, "a.md")
+      assert_eq(buffer.caret, 0)
     }
-    None => fail("切换后应有 active tab")
+    None => fail("切换后应有活动文档")
   }
-  // 编辑 a → 脏;关闭命中确认流(tab 未关)
+  // 编辑 a → 脏;关闭命中确认流(文档未关)
   let edited = @app.update_with_services(
       switched,
-      ProjectOp(EditProjectFile("# A2")),
+      WorkbenchOp(@wb.EditDocument("file:a.md", "# A2")),
       services,
     ).0
   let guarded = @app.update_with_services(
       edited,
-      ProjectOp(@proj.CloseFileTab(0)),
+      WorkbenchOp(@wb.CloseDocument("file:a.md")),
       services,
     ).0
   assert_true(
-    guarded.pending_confirm is Some(CkCloseFileTab(0)),
-    msg="脏 tab 关闭应进确认",
+    guarded.pending_confirm is Some(CkCloseFileTab("file:a.md")),
+    msg="脏文档关闭应进确认",
   )
-  assert_eq(guarded.project_state.open_project_files.length(), 2)
+  assert_eq(guarded.workbench.docs.file_entries().length(), 2)
   // 确认 → 续行关闭
   let accepted = @app.update_with_services(guarded, ConfirmAccepted, services).0
-  assert_eq(accepted.project_state.open_project_files.length(), 1)
+  assert_eq(accepted.workbench.docs.file_entries().length(), 1)
   match @app.active_project_file(accepted) {
-    Some(open) => assert_eq(open.rel, "b.mbt")
-    None => fail("关闭后应停在剩余 tab")
+    Some((doc, _)) => assert_eq(doc.resource, "b.mbt")
+    None => fail("关闭后应停在剩余文档")
   }
 }
 
@@ -1198,7 +1201,7 @@ test "文件 CRUD:新建拒绝重名,成功开 tab" {
       services,
     ).0
   assert_true(dup.notice.contains("已存在"), msg=dup.notice)
-  assert_eq(dup.project_state.open_project_files.length(), 0)
+  assert_eq(dup.workbench.docs.file_entries().length(), 0)
   // 合法新建:回执后开空 tab、输入态关闭
   let created = @app.update_with_services(
       {
@@ -1212,15 +1215,18 @@ test "文件 CRUD:新建拒绝重名,成功开 tab" {
       ProjectFileCreated("app/notes.md", Success(())),
       services,
     ).0
-  assert_eq(created.project_state.open_project_files.length(), 1)
-  assert_eq(created.project_state.open_file_index, 0)
+  assert_eq(created.workbench.docs.file_entries().length(), 1)
+  assert_eq(
+    created.workbench.docs.active_entry().unwrap().doc.id,
+    "file:app/notes.md",
+  )
   assert_false(created.project_state.file_create_open)
   match @app.active_project_file(created) {
-    Some(open) => {
-      assert_eq(open.rel, "app/notes.md")
-      assert_eq(open.draft, "")
+    Some((doc, buffer)) => {
+      assert_eq(doc.resource, "app/notes.md")
+      assert_eq(buffer.draft, "")
     }
-    None => fail("新建后应打开空 tab")
+    None => fail("新建后应打开空文档")
   }
 }
 
@@ -1228,24 +1234,17 @@ test "文件 CRUD:新建拒绝重名,成功开 tab" {
 /// G4 CRUD:改名三步链——回执逐段驱动,tab 的 rel 同步替换、内容保留。
 test "文件 CRUD:改名链走完 tab rel 替换" {
   let services = @services.AppServices::new()
+  let base = @app.initial_model()
+  let (docs, _) = base.workbench.docs.upsert_file(
+    @wb.file_document("app/old.md", "old.md"),
+    @wb.TextBuffer::new("app/old.md", "# 旧草稿"),
+  )
+  let docs = docs.move_caret("file:app/old.md", 3, None)
   let open_tab = {
-    ..@app.initial_model(),
+    ..base,
+    workbench: { ..base.workbench, docs, },
     project_state: {
-      ..@app.initial_model().project_state,
-      open_project_files: [
-        @app.OpenProjectFile::{
-          rel: "app/old.md",
-          saved_content: "# 旧",
-          draft: "# 旧草稿",
-          caret: 3,
-          selection: None,
-          md_session: @app.with_md_session(
-            rel="app/old.md",
-            content="# 旧草稿",
-          ),
-        },
-      ],
-      open_file_index: 0,
+      ..base.project_state,
       file_rename_open: Some("app/old.md"),
       file_name_draft: "app/new.md",
     },
@@ -1266,15 +1265,15 @@ test "文件 CRUD:改名链走完 tab rel 替换" {
       ProjectRenameDeleted("app/old.md", "app/new.md", Success(())),
       services,
     ).0
-  assert_eq(deleted.project_state.open_project_files.length(), 1)
+  assert_eq(deleted.workbench.docs.file_entries().length(), 1)
   match @app.active_project_file(deleted) {
-    Some(open) => {
-      assert_eq(open.rel, "app/new.md")
+    Some((doc, buffer)) => {
+      assert_eq(doc.resource, "app/new.md")
       // 草稿与光标原样保留
-      assert_eq(open.draft, "# 旧草稿")
-      assert_eq(open.caret, 3)
+      assert_eq(buffer.draft, "# 旧草稿")
+      assert_eq(buffer.caret, 3)
     }
-    None => fail("改名后 tab 应保留")
+    None => fail("改名后文档应保留")
   }
   assert_false(deleted.project_state.file_rename_open is Some(_))
 }
@@ -1316,24 +1315,12 @@ test "保存后自动构建:mbt 触发,md 不触发" {
       ProjectScanCompleted(Success(Ok(Single(counter_source())))),
       services,
     ).0
+  let (md_docs, _) = md_base.workbench.docs.upsert_file(
+    @wb.file_document("README.md", "README.md"),
+    @wb.TextBuffer::new("README.md", "x"),
+  )
   let md_loaded = @app.update_with_services(
-      {
-        ..md_base,
-        project_state: {
-          ..md_base.project_state,
-          open_project_files: [
-            @app.OpenProjectFile::{
-              rel: "README.md",
-              saved_content: "x",
-              draft: "x",
-              caret: 0,
-              selection: None,
-              md_session: @app.with_md_session(rel="README.md", content="x"),
-            },
-          ],
-          open_file_index: 0,
-        },
-      },
+      { ..md_base, workbench: { ..md_base.workbench, docs: md_docs, }, },
       ProjectFileSaveFinished("README.md", Success(())),
       services,
     ).0

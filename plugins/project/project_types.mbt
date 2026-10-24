@@ -49,31 +49,14 @@ pub(all) struct RecentChange {
 }
 
 ///|
-/// 打开的工程文件 tab（G4 多标签:数组承载,随 tab 携带光标状态）。
-/// saved_content 是脏标记的基准;draft 是编辑中的内容。
-pub(all) struct OpenProjectFile {
-  rel : String
-  saved_content : String
-  draft : String
-  /// 该 tab 的光标/选区（受控编辑器回传,切换 tab 恢复,不串台）
-  caret : Int32
-  selection : @core.TextRange?
-  /// `.md` tab 的 MoMark 文档会话（块级结构 + 选区 reveal 的真编辑面）;
-  /// 非 md tab 恒为 None。用 `with_md_session` 惰性重建,避免每个构造点
-  /// 都要判后缀。
-  md_session : @moui_richtext.MarkdownDocumentSession?
-}
-
-///|
-/// 工程域状态切片(S2b-1 出壳):资源管理器/工程文件 tab 的全部壳状态。
-/// 壳经 `Feature::scope` 式单一字段 `model.project_state` 读写;跨域真相
-/// (IR/undo/通知/事件出站)仍住壳——切片零副作用,ai_sessions 先例。
+/// 工程域状态切片(S2b-1 出壳):资源管理器/工程树的全部壳状态。
+/// 壳经 `Feature::scope` 式单一字段 `model.project_state` 读写;文档正文
+/// 与 tab 归 `moui_studio/workbench`(DocumentStore),这里不再持有可写副本。
+/// 跨域真相(IR/undo/通知/事件出站)仍住壳——切片零副作用,ai_sessions 先例。
 pub(all) struct ProjectState {
   projects : Array[ProjectRecord]
   active_project : Int32
   workspace_root : WorkspaceRecord?
-  open_project_files : Array[OpenProjectFile]
-  open_file_index : Int32
   project_tree_collapsed : Array[String]
   explorer_sections_collapsed : Array[String]
   selected_project_file : String?

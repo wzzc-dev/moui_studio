@@ -1,11 +1,11 @@
 ///|
 /// Markdown 插件·.md 文件面板（G3）。
 ///
-/// 无状态视图贡献：面板状态（草稿/脏标记/光标）住在壳的
-/// `open_project_file`，本插件不复制状态切片（terminal 插件先例——状态由
+/// 无状态视图贡献：面板状态（草稿/脏标记/光标）住在 workbench 的
+/// `DocumentStore`，本插件不复制状态切片（terminal 插件先例——状态由
 /// 壳消息驱动）。渲染基于 `wzzc-dev/moui_richtext` 的 `markdown_editor`
 /// （MoMark 编辑面同款引擎）：受控、块级格式渲染，`on_input` 把新文本
-/// 送回壳的草稿通道（EditProjectFile → 脏 ● → SaveProjectFile 写盘）。
+/// 送回壳的草稿通道（EditDocument → 脏 ● → SaveProjectFile 写盘）。
 ///
 /// 零 app 依赖：字体/颜色全部由壳注入;零 app 引用（插件互不 import 纪律）。
 
@@ -106,7 +106,7 @@ pub fn markdown_content_height(
 /// Studio `.md` 面板不再自建第二份匹配语义：查找/替换全部走
 /// `wzzc-dev/moui_markdown` 的公共 chrome 内核。下面这组适配器把
 /// 「会话快照 + 选区 + 选项」翻译成 `MarkdownEditTransaction`，由壳走既有
-/// `ProjectFileMarkdownTransaction` 通道回写（与 MoMark 同一条事务链）。
+/// `ApplyMarkdownTransaction` 通道回写（与 MoMark 同一条事务链）。
 ///
 /// 视图侧同理：`markdown_find_bar_view` / `markdown_outline_panel_view` /
 /// `markdown_document_info_panel_view` / `markdown_format_palette_view` 是

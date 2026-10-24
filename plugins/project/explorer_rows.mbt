@@ -24,8 +24,8 @@ pub(all) enum ExplorerRow {
   DirRow(Int32, String, String, String, Int32, Bool)
   /// 文件行（根下标, 文件 rel, 名称, 深度, 是否选中）
   FileRow(Int32, String, String, Int32, Bool)
-  /// 打开的编辑器条目（tab 下标, 名称, 是否脏, 是否活动）
-  EditorRow(Int32, String, Bool, Bool)
+  /// 打开的编辑器条目（tab 下标, 文档 id, 名称, 是否脏, 是否活动）
+  EditorRow(Int32, String, String, Bool, Bool)
   /// 大纲条目（符号名, 行号, 深度）
   OutlineRow(String, Int32, Int32)
   /// 时间线条目（目标, 作者是 Agent, 动作文案）
@@ -78,7 +78,7 @@ fn push_editor_section(
   t : @i18n.Translator,
   rows : Array[ExplorerRow],
 ) -> Unit {
-  let count = data.open_project_files.length()
+  let count = data.open_editors.length()
   if count == 0 {
     return
   }
@@ -90,13 +90,14 @@ fn push_editor_section(
   if !expanded {
     return
   }
-  for index, open in data.open_project_files {
+  for editor in data.open_editors {
     rows.push(
       EditorRow(
-        index,
-        rel_path_last_segment(open.rel),
-        file_is_dirty(open),
-        index == data.open_file_index,
+        editor.index,
+        editor.id,
+        editor.label,
+        editor.dirty,
+        editor.index == data.open_editor_active,
       ),
     )
   }
@@ -513,8 +514,8 @@ fn push_outline_section(
   rows : Array[ExplorerRow],
 ) -> Unit {
   let id = "outline"
-  let symbols = match active_project_file(data) {
-    Some(open) => outline_symbols(open.rel, open.draft)
+  let symbols = match active_open_editor(data) {
+    Some(editor) => outline_symbols(editor.rel, editor.draft)
     None => []
   }
   let expanded = !section_collapsed(data, id)
@@ -949,7 +950,7 @@ pub fn explorer_row_key(row : ExplorerRow) -> String {
     RootRow(index, _, _, _) => "root-\{index}"
     DirRow(index, rel, _, _, _, _) => "dir-\{index}:\{rel}"
     FileRow(index, rel, _, _, _) => "file-\{index}:\{rel}"
-    EditorRow(index, _, _, _) => "editor-\{index}"
+    EditorRow(_, id, _, _, _) => "editor-\{id}"
     OutlineRow(name, line, _) => "outline-\{line}:\{name}"
     TimelineRow(target, _, action) => "timeline-\{target}:\{action}"
   }
@@ -1024,14 +1025,27 @@ pub fn explorer_child_dirs_for_test(
 ///|
 
 ///|
+/// 打开的编辑器只读行投影：文档正文归 workbench，插件只读展示与本行
+/// 派生（大纲取活动行草稿），不持有可写副本。
+pub(all) struct OpenEditorRow {
+  id : String
+  index : Int32
+  rel : String
+  label : String
+  dirty : Bool
+  draft : String
+}
+
+///|
 /// 资源管理器行模型的只读快照:壳从 ExplorerData 组装,行模型只经它读取工程域
 /// 状态(插件不持有可变状态——markdown/terminal 无状态视图贡献先例)。
 pub(all) struct ExplorerData {
   projects : Array[ProjectRecord]
   active_project : Int32
   workspace_root : WorkspaceRecord?
-  open_project_files : Array[OpenProjectFile]
-  open_file_index : Int32
+  open_editors : Array[OpenEditorRow]
+  /// 文件行里的活动下标；-1 = 活动的是 Studio 文档（不画文件编辑器行）
+  open_editor_active : Int32
   project_tree_collapsed : Array[String]
   explorer_sections_collapsed : Array[String]
   selected_project_file : String?
@@ -1083,20 +1097,14 @@ pub fn tree_rel_of_project_file(
 }
 
 ///|
-/// active tab（G4 多标签;下标越界 = None）。
-pub fn active_project_file(data : ExplorerData) -> OpenProjectFile? {
-  if data.open_file_index >= 0 &&
-    data.open_file_index < data.open_project_files.length() {
-    Some(data.open_project_files[data.open_file_index])
+/// 活动文件行（-1 = Studio 文档常驻，或下标越界）。
+pub fn active_open_editor(data : ExplorerData) -> OpenEditorRow? {
+  if data.open_editor_active >= 0 &&
+    data.open_editor_active < data.open_editors.length() {
+    Some(data.open_editors[data.open_editor_active])
   } else {
     None
   }
-}
-
-///|
-/// tab 脏标记：草稿偏离落盘基准。
-pub fn file_is_dirty(open : OpenProjectFile) -> Bool {
-  open.draft != open.saved_content
 }
 
 ///|

@@ -604,265 +604,270 @@ pub fn ide_status_bar(
 }
 
 // ============================================================================
-// 命令面（Studio 自有命令表）
+// 命令面（Studio 自有命令贡献表）
 // ============================================================================
 
 ///|
-/// Studio 命令表：比文本命令协议的 10 个 intent 更宽——壳操作（工作区/
-/// 面板/审计/AI 层/设置）与运行/文件操作都在这里，全部收敛回既有 Msg。
-pub fn studio_commands(t : @i18n.Translator) -> Array[StudioCommand] {
-  let group_ws = text(t, "app.command.group.workspace")
-  let group_pane = text(t, "app.command.group.pane")
-  let group_ai = text(t, "app.command.group.ai")
-  let group_run = text(t, "app.command.group.run")
-  let group_file = text(t, "app.command.group.file")
-  let group_view = text(t, "app.command.group.mode")
-  let group_template = text(t, "app.templates")
+/// Studio 命令贡献表（M5）：命令面板（`studio_commands` 派生描述符）与
+/// 执行通道（`run_studio_command`）共用同一份定义，表与处理器不可能再漂移。
+/// `label_key == ""` 的命令不进面板——只保留内部/兼容入口。
+fn studio_command_registry() -> Array[@wb.CommandContribution[StudioCtx, Msg]] {
+  let ws = "app.command.group.workspace"
+  let pane = "app.command.group.pane"
+  let ai = "app.command.group.ai"
+  let run_group = "app.command.group.run"
+  let file = "app.command.group.file"
+  let view = "app.command.group.mode"
+  let tmpl = "app.templates"
   [
-    StudioCommand::{
-      id: "studio.mode.visual",
-      label: text(t, "app.command.perspective.visual"),
-      group: group_ws,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.mode.code",
-      label: text(t, "app.command.perspective.code"),
-      group: group_ws,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.mode.ai",
-      label: text(t, "app.command.perspective.ai"),
-      group: group_ws,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.workspace.preview",
-      label: text(t, "app.command.ws.preview"),
-      group: group_ws,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.workspace.design",
-      label: text(t, "app.command.ws.design"),
-      group: group_ws,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.workspace.blocks",
-      label: text(t, "app.command.ws.blocks"),
-      group: group_ws,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.left.toggle",
-      label: text(t, "app.topbar.left_panel"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.pane.live",
-      label: text(t, "app.command.pane.live"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.pane.blocks",
-      label: text(t, "app.command.pane.blocks"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.pane.split",
-      label: text(t, "app.command.pane.split"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.left.tree",
-      label: text(t, "app.command.left.tree"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.left.data",
-      label: text(t, "app.command.left.data"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.right.toggle",
-      label: text(t, "app.command.right.toggle"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.right.ai",
-      label: text(t, "app.command.right.ai"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.ctx.runtime",
-      label: text(t, "app.command.ctx.runtime"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.code.complete",
-      label: text(t, "app.command.code.complete"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.code.jump",
-      label: text(t, "app.command.code.jump"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.bottom.toggle",
-      label: text(t, "app.command.bottom.toggle"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.bottom.audit",
-      label: text(t, "app.command.bottom.audit"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.bottom.console",
-      label: text(t, "app.command.bottom.console"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.bottom.problems",
-      label: text(t, "app.command.bottom.problems"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.audit.settle_all",
-      label: text(t, "app.command.audit.settle_all"),
-      group: group_pane,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.ai.new_session",
-      label: text(t, "app.command.ai.new_session"),
-      group: group_ai,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.ai.search",
-      label: text(t, "app.command.ai.search_sessions"),
-      group: group_ai,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.ai.history",
-      label: text(t, "app.command.ai.history"),
-      group: group_ai,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.run.start",
-      label: text(t, "app.command.run.start"),
-      group: group_run,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.run.stop",
-      label: text(t, "app.command.run.stop"),
-      group: group_run,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.compile.run",
-      label: text(t, "app.command.compile.run"),
-      group: group_run,
-      hint: "",
-    },
-    // 模板四件套必须进表：run_studio_command 早有处理器，但表里没有——
-    // 「口算训练营 / 班级小卖部」（提交数据闸门的核心教案）此前没有任何
-    // UI 入口，是死命令。表与处理器必须成对出现。
-    StudioCommand::{
-      id: "studio.template.hello",
-      label: text(t, "app.templates.hello"),
-      group: group_template,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.template.roll_call",
-      label: text(t, "app.templates.roll_call"),
-      group: group_template,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.template.drill",
-      label: text(t, "app.templates.drill"),
-      group: group_template,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.template.store",
-      label: text(t, "app.templates.store"),
-      group: group_template,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.file.new",
-      label: text(t, "app.command.file.new"),
-      group: group_file,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.file.save",
-      label: text(t, "app.command.file.save"),
-      group: group_file,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.file.open",
-      label: text(t, "app.command.file.open"),
-      group: group_file,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.file.export",
-      label: text(t, "app.command.file.export"),
-      group: group_file,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.preview",
-      label: text(t, "app.preview.title"),
-      group: group_view,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.help",
-      label: text(t, "app.help.title"),
-      group: group_view,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.settings",
-      label: text(t, "app.command.settings"),
-      group: group_file,
-      hint: "",
-    },
-    StudioCommand::{
-      id: "studio.lang.switch",
-      label: text(t, "app.command.lang.switch"),
-      group: group_file,
-      hint: "",
-    },
+    cmd(
+      "studio.mode.visual",
+      "app.command.perspective.visual",
+      ws,
+      SetPerspective(PsVisual),
+    ),
+    cmd(
+      "studio.mode.code",
+      "app.command.perspective.code",
+      ws,
+      SetPerspective(PsCode),
+    ),
+    cmd(
+      "studio.mode.ai",
+      "app.command.perspective.ai",
+      ws,
+      SetPerspective(PsAi),
+    ),
+    cmd("studio.workspace.visual", "", ws, SetPerspective(PsVisual)),
+    cmd("studio.workspace.code", "", ws, SetPerspective(PsCode)),
+    cmd(
+      "studio.workspace.preview",
+      "app.command.ws.preview",
+      ws,
+      SetWorkSpace(WsPreview),
+    ),
+    cmd(
+      "studio.workspace.design",
+      "app.command.ws.design",
+      ws,
+      SetPerspective(PsDesign),
+    ),
+    cmd(
+      "studio.workspace.blocks",
+      "app.command.ws.blocks",
+      ws,
+      SetPerspective(PsBlocks),
+    ),
+    cmd_with("studio.left.toggle", "app.topbar.left_panel", pane, ctx => {
+      SetLeftView(
+        if ctx.model.left_view is LeftHidden {
+          LeftTree
+        } else {
+          LeftHidden
+        },
+      )
+    }),
+    cmd(
+      "studio.pane.live",
+      "app.command.pane.live",
+      pane,
+      WorkbenchOp(@wb.TogglePaneLive),
+    ),
+    cmd(
+      "studio.pane.blocks",
+      "app.command.pane.blocks",
+      pane,
+      WorkbenchOp(@wb.TogglePaneBlocks),
+    ),
+    cmd(
+      "studio.pane.split",
+      "app.command.pane.split",
+      pane,
+      WorkbenchOp(@wb.SetSplitRatio(0.55)),
+    ),
+    cmd(
+      "studio.left.tree",
+      "app.command.left.tree",
+      pane,
+      SetLeftView(LeftTree),
+    ),
+    cmd(
+      "studio.left.data",
+      "app.command.left.data",
+      pane,
+      SetLeftView(LeftData),
+    ),
+    cmd_with("studio.right.toggle", "app.command.right.toggle", pane, ctx => {
+      SetRightView(
+        if ctx.model.right_view is RvHidden {
+          // AI 模式展开 = 工作区面板（更改/文件——VS Code 智能体模式口径）;
+          // 其余模式 = 检查器页
+          if ctx.model.perspective is PsAi {
+            RvWorkspace
+          } else {
+            RvContext
+          }
+        } else {
+          RvHidden
+        },
+      )
+    }),
+    cmd("studio.right.context", "", pane, SetRightView(RvContext)),
+    cmd("studio.right.ai", "app.command.right.ai", pane, SetRightView(RvAi)),
+    cmd(
+      "studio.ctx.runtime",
+      "app.command.ctx.runtime",
+      pane,
+      SetContextTab(CtxRuntime),
+    ),
+    cmd(
+      "studio.code.complete",
+      "app.command.code.complete",
+      pane,
+      TriggerCompletion,
+    ),
+    cmd("studio.code.jump", "app.command.code.jump", pane, JumpToDeclaration),
+    cmd("studio.bottom.toggle", "app.command.bottom.toggle", pane, ToggleBottom),
+    cmd(
+      "studio.bottom.audit",
+      "app.command.bottom.audit",
+      pane,
+      SetBottomTab(BtAudit),
+    ),
+    cmd(
+      "studio.bottom.console",
+      "app.command.bottom.console",
+      pane,
+      SetBottomTab(BtConsole),
+    ),
+    cmd(
+      "studio.bottom.problems",
+      "app.command.bottom.problems",
+      pane,
+      SetBottomTab(BtProblems),
+    ),
+    cmd(
+      "studio.audit.settle_all",
+      "app.command.audit.settle_all",
+      pane,
+      AuditSettleAll("app.audit.confirmed"),
+    ),
+    cmd_with("studio.ai.new_session", "app.command.ai.new_session", ai, ctx => {
+      AiSessionOp(AiSessionCreate(civil_seconds(ctx.model.clock)))
+    }),
+    cmd(
+      "studio.ai.search",
+      "app.command.ai.search_sessions",
+      ai,
+      AiUiOp(@ai.ToggleSessionSearch),
+    ),
+    cmd(
+      "studio.ai.history",
+      "app.command.ai.history",
+      ai,
+      AiUiOp(@ai.ToggleAiHistory),
+    ),
+    cmd("studio.run.start", "app.command.run.start", run_group, RunStart),
+    cmd("studio.run.stop", "app.command.run.stop", run_group, RunStop),
+    cmd("studio.compile.run", "app.command.compile.run", run_group, CompileRun),
+    // 模板四件套必须进表：此前处理器在而表里没有——「口算训练营 /
+    // 班级小卖部」（提交数据闸门的核心教案）没有任何 UI 入口，是死命令。
+    dispatch_cmd(
+      "studio.template.hello",
+      "app.templates.hello",
+      tmpl,
+      NewProjectRequested(0),
+    ),
+    dispatch_cmd(
+      "studio.template.roll_call",
+      "app.templates.roll_call",
+      tmpl,
+      NewProjectRequested(1),
+    ),
+    dispatch_cmd(
+      "studio.template.drill",
+      "app.templates.drill",
+      tmpl,
+      NewProjectRequested(2),
+    ),
+    dispatch_cmd(
+      "studio.template.store",
+      "app.templates.store",
+      tmpl,
+      NewProjectRequested(3),
+    ),
+    // 新建工程（folder projects）：服务流消息经**效果派发**回程序环
+    // （update_with_services 的臂接住），纯链没有目录对话框。
+    dispatch_cmd(
+      "studio.file.new",
+      "app.command.file.new",
+      file,
+      NewProjectRequested(-1),
+    ),
+    cmd("studio.file.save", "app.command.file.save", file, SaveRequested),
+    cmd("studio.file.open", "app.command.file.open", file, OpenRequested),
+    cmd("studio.file.export", "app.command.file.export", file, ExportRequested),
+    cmd("studio.preview", "app.preview.title", view, SetMode(ModePreview)),
+    cmd("studio.help", "app.help.title", view, SetMode(ModeHelp)),
+    cmd(
+      "studio.settings",
+      "app.command.settings",
+      file,
+      AiUiOp(@ai.ToggleSettings),
+    ),
+    cmd("studio.lang.switch", "app.command.lang.switch", file, SwitchLanguage),
   ]
+}
+
+///|
+/// 静态消息命令：走纯更新通道。
+fn cmd(
+  id : String,
+  label_key : String,
+  group_key : String,
+  msg : Msg,
+) -> @wb.CommandContribution[StudioCtx, Msg] {
+  { id, label_key, group_key, run: _ => @wb.Apply(msg), }
+}
+
+///|
+/// 依赖当前状态（Model）的消息。
+fn cmd_with(
+  id : String,
+  label_key : String,
+  group_key : String,
+  msg_of : (StudioCtx) -> Msg,
+) -> @wb.CommandContribution[StudioCtx, Msg] {
+  { id, label_key, group_key, run: ctx => @wb.Apply(msg_of(ctx)), }
+}
+
+///|
+/// 副作用消息（服务流）：效果派发回程序环，与点按钮同一状态转移。
+fn dispatch_cmd(
+  id : String,
+  label_key : String,
+  group_key : String,
+  msg : Msg,
+) -> @wb.CommandContribution[StudioCtx, Msg] {
+  { id, label_key, group_key, run: _ => @wb.Dispatch(msg), }
+}
+
+///|
+/// 命令面板描述符：跳过 `label_key == ""` 的内部命令，其余按注册顺序渲染
+/// （顺序即旧命令表的顺序——过滤测试与用户肌肉记忆都依赖它）。
+pub fn studio_commands(t : @i18n.Translator) -> Array[StudioCommand] {
+  let commands : Array[StudioCommand] = []
+  for contribution in studio_command_registry() {
+    if contribution.label_key != "" {
+      commands.push({
+        id: contribution.id,
+        label: text(t, contribution.label_key),
+        group: text(t, contribution.group_key),
+        hint: "",
+      })
+    }
+  }
+  commands
 }
 
 ///|

@@ -264,15 +264,15 @@ pub fn update_with_services(
     // 保存工程文件（试用反馈：点开的文件可编辑,保存写回磁盘）。
     SaveProjectFile =>
       match active_project_file(model) {
-        Some(open) =>
-          match tree_abs_path(model, open.rel) {
+        Some((doc, buffer)) =>
+          match tree_abs_path(model, doc.resource) {
             Some(path) =>
               (
                 model,
                 services
                 .files()
-                .write_text(path, open.draft)
-                .effect(map=r => ProjectFileSaveFinished(open.rel, r)),
+                .write_text(path, buffer.draft)
+                .effect(map=r => ProjectFileSaveFinished(doc.resource, r)),
               )
             None => (model, @moui.Effect::none())
           }
@@ -612,25 +612,17 @@ pub fn update_with_services(
           match active_project_of(model) {
             None => (model, @moui.Effect::none())
             Some(project) => {
-              // 开空 tab + 重扫刷新文件树
-              let (files, index) = upsert_open_file(
-                model.project_state.open_project_files,
-                OpenProjectFile::{
-                  rel,
-                  saved_content: "",
-                  draft: "",
-                  caret: 0,
-                  selection: None,
-                  md_session: with_md_session(rel~, content=""),
-                },
+              // 开空文档 + 重扫刷新文件树
+              let (docs, _) = model.workbench.docs.upsert_file(
+                @wb.file_document(rel, @code.file_tab_label(rel)),
+                @wb.TextBuffer::new(rel, ""),
               )
               let created = with_notice(
                 {
                   ..model,
+                  workbench: { ..model.workbench, docs, },
                   project_state: {
                     ..model.project_state,
-                    open_project_files: files,
-                    open_file_index: index,
                     file_create_open: false,
                     file_name_draft: "",
                   },
@@ -776,13 +768,16 @@ pub fn update_with_services(
         Success(_) => {
           let renamed = {
             ..model,
-            project_state: {
-              ..model.project_state,
-              open_project_files: rename_open_file(
-                model.project_state.open_project_files,
+            workbench: {
+              ..model.workbench,
+              docs: model.workbench.docs.rename_file(
                 old,
                 new,
+                @code.file_tab_label(new),
               ),
+            },
+            project_state: {
+              ..model.project_state,
               file_rename_open: None,
               file_name_draft: "",
             },
@@ -830,15 +825,14 @@ pub fn update_with_services(
         None => (model, @moui.Effect::none())
         Some(_root) => {
           let writes : Array[@moui.Effect[Msg]] = []
-          for open in model.project_state.open_project_files {
-            if open.draft != open.saved_content {
-              writes.push(
-                services
-                .files()
-                .write_text(join_rel(_root, open.rel), open.draft)
-                .effect(map=r => ProjectFileSaveFinished(open.rel, r)),
-              )
-            }
+          for pair in model.workbench.docs.dirty_files() {
+            let (rel, draft) = pair
+            writes.push(
+              services
+              .files()
+              .write_text(join_rel(_root, rel), draft)
+              .effect(map=r => ProjectFileSaveFinished(rel, r)),
+            )
           }
           if writes.is_empty() {
             (model, @moui.Effect::none())
@@ -1248,12 +1242,14 @@ pub fn update_with_services(
           match active_project_of(model) {
             None => (model, @moui.Effect::none())
             Some(project) => {
-              // 打开中的 tab 一并关闭（文件已不存在;删除本身走确认流,
-              // 这里不再对脏 tab 二次打扰）
-              let model = match
-                open_file_index_of(model.project_state.open_project_files, rel) {
-                Some(index) => close_open_file_at(model, index)
-                None => model
+              // 打开中的文档一并关闭（文件已不存在;删除本身走确认流,
+              // 这里不再对脏文档二次打扰）
+              let model = {
+                ..model,
+                workbench: {
+                  ..model.workbench,
+                  docs: model.workbench.docs.close_file(rel),
+                },
               }
               (
                 with_notice(

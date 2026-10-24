@@ -1,0 +1,13 @@
+import {
+  "wzzc-dev/moui",
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui/views",
+  "wzzc-dev/moui_richtext",
+  "wzzc-dev/moui_studio/chrome",
+}
+
+supported_targets = "native+wasm-gc"
+
+options(
+  targets: { },
+)

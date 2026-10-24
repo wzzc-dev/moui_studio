@@ -19,6 +19,9 @@
 /// 代码工作区：行号槽 + 受控编辑面 + IR 行尺 + 脚注。
 /// 三列共用一份滚动状态（`model.code_ui.scroll`）：编辑面是滚动的事实来源，
 /// 行号槽与竖尺是跟随者，行号 ↔ 色块的对应才不会错位。
+///
+/// 工程文件不再走这里：M3 起文件编辑面由统一 `editor_area` 的
+/// `file.markdown` / `file.text` provider 承载。
 pub fn code_workspace(
   model : Model,
   t : @i18n.Translator,
@@ -33,132 +36,36 @@ pub fn code_workspace(
   }
   // 外观胶囊（M5-5e）：MoonBit（默认显示）⇄ DSL，点按循环。
   let head = pane_head(text(t, "app.pane.code"), handler_subtitle, width, [])
-  // 工程文件只读查看器（M8 反馈：工程树点文件没反应）——打开工程文件
-  // 时代码工作区整面切到文件内容，脚注/编辑面都不参与（文件不是 IR 投影）。
-  let body_view = match active_project_file(model) {
-    Some(open) => {
-      let dirty = file_is_dirty(open)
-      // **code editor**(试用反馈:为什么不用 code editor)——与 IR 编辑面
-      // 同一套受控富文本编辑器:mono 字体、光标/选区/撤销/剪贴板框架侧,
-      // 工程文件不做 DSL 着色(plain 文档)。
-      //
-      // **滚动方案(实测反馈:受控滚动不滚、无滚动条)**:受控编辑器的
-      // visible_scroll_y 需要外部驱动,滚轮路径不可靠——改为**外层
-      // scroll_view 承担滚动**(滚轮/滚动条都走它,与块画布同一机制),
-      // 行号槽与编辑器放进同一行,一起滚;编辑器按**内容全高**渲染
-      // (不传 viewport/overscan,不做窗口化)。
-      let content_height = (open.draft.split("\n").count().to_double() *
-      CODE_LINE_HEIGHT +
-      60.0).max((height - 26.0 - 8.0).max(120.0))
-      let editor_width = (width - 48.0).max(80.0)
-      let body_height = project_file_body_height(
-        model,
-        open~,
-        editor_width,
-        content_height,
-      )
-      let file_rows : Array[@moui.View[Msg]] = [
-        @views.container(
-          @views.row(
-            [
-              @views.text(
-                open.rel + (if dirty { " ●" } else { "" }),
-                theme=@chrome.studio_theme(),
-                role=Mono,
-                width=(width - 220.0).max(60.0),
-                height=16.0,
-                align=TextStart,
-              ).foreground(@chrome.ide_text()),
-              @views.spacer(min_length=6.0, weight=1.0),
-              foot_chip(
-                "保存",
-                @chrome.text_estimate_width("保存") + 24.0,
-                dirty,
-                SaveProjectFile,
-              ),
-              foot_chip(
-                "保存全部",
-                @chrome.text_estimate_width("保存全部") + 24.0,
-                any_file_dirty(model),
-                SaveAllFiles,
-              ),
-              @views.text(
-                "关闭",
-                theme=@chrome.studio_theme(),
-                width=36.0,
-                height=16.0,
-              )
-              .foreground(@chrome.ide_accent())
-              .on_tap(
-                ProjectOp(
-                  @proj.CloseFileTab(model.project_state.open_file_index),
-                ),
-              ),
-            ],
-            spacing=6.0,
-            align=Center,
-          ),
-          background=@chrome.ide_panel(),
-          width~,
-          height=26.0,
-          padding=0.0,
-        ),
-        file_tab_strip(model, width),
-        @views.scroll_view(
-          @views.row(
-            [project_file_body(model, open~, editor_width, content_height)],
-            spacing=0.0,
-            align=Start,
-          ).frame(width=(width - 30.0).max(80.0), height=body_height),
-          width=(width - 8.0).max(80.0),
-          height=(height - 26.0 - 8.0).max(120.0),
-          shows_indicator=true,
-        ),
-      ]
-      @views.column(file_rows, spacing=0.0).frame(width~, height~)
-    }
-    None => {
-      let spans = ir_line_spans(model)
-      // 高度预算：头 30 + 说明条 30 + 脚注 36 + 补全占位 1 + **底栏页签带 26**
-      //（中心列的下缘与收起底栏的页签头相接——实测这 26pt 会被底栏盖住，
-      // 脚注整行「消失」，切换芯片也随之不可见）,错误条可见时再 +24。
-      let error_reserve = if model.code_error == "" { 0.0 } else { 24.0 }
-      let chrome = 123.0 + error_reserve
-      let code_height = (height - chrome).max(120.0)
-      let editor_width = (width - 2.0 - CODE_GUTTER_WIDTH - IR_RAIL_WIDTH).max(
-        80.0,
-      )
-      @views.container(
-        @views.column(
+  let spans = ir_line_spans(model)
+  // 高度预算：头 30 + 说明条 30 + 脚注 36 + 补全占位 1 + **底栏页签带 26**
+  //（中心列的下缘与收起底栏的页签头相接——实测这 26pt 会被底栏盖住，
+  // 脚注整行「消失」，切换芯片也随之不可见）,错误条可见时再 +24。
+  let error_reserve = if model.code_error == "" { 0.0 } else { 24.0 }
+  let chrome = 123.0 + error_reserve
+  let code_height = (height - chrome).max(120.0)
+  let editor_width = (width - 2.0 - CODE_GUTTER_WIDTH - IR_RAIL_WIDTH).max(80.0)
+  @views.container(
+    @views.column(
+      [
+        head,
+        code_error_bar(model, t, width),
+        // 行号槽 | 编辑面 | IR 竖尺 并排：三者同高，滚动同步由
+        // `EditorScrolled` 单向汇聚到 model 再各自回填 offset。
+        @views.row(
           [
-            head,
-            code_error_bar(model, t, width),
-            // 行号槽 | 编辑面 | IR 竖尺 并排：三者同高，滚动同步由
-            // `EditorScrolled` 单向汇聚到 model 再各自回填 offset。
-            @views.row(
-              [
-                code_gutter(model, CODE_GUTTER_WIDTH, code_height),
-                code_editor_surface(model, t, editor_width, code_height),
-                ir_ruler(model, spans, code_height),
-              ],
-              spacing=0.0,
-              align=Start,
-            ).frame(width=width - 2.0, height=code_height),
-            completion_popup(model, width),
-            code_hint_bar(t, width),
-            code_foot(model, t, width),
+            code_gutter(model, CODE_GUTTER_WIDTH, code_height),
+            code_editor_surface(model, t, editor_width, code_height),
+            ir_ruler(model, spans, code_height),
           ],
           spacing=0.0,
-        ).frame(width~, height~),
-        background=@chrome.ide_editor_background(),
-        width~,
-        height~,
-        padding=0.0,
-      )
-    }
-  }
-  @views.container(
-    body_view,
+          align=Start,
+        ).frame(width=width - 2.0, height=code_height),
+        completion_popup(model, width),
+        code_hint_bar(t, width),
+        code_foot(model, t, width),
+      ],
+      spacing=0.0,
+    ).frame(width~, height~),
     background=@chrome.ide_editor_background(),
     width~,
     height~,
@@ -888,11 +795,19 @@ pub fn empty_stage(
   // 窗格都被关掉时，空舞台就是**唯一的恢复入口**（设计稿 `#btnAddLive` /
   // `#btnAddBlocks`）。只在真的有窗格被关掉时才加——否则「+ 实时应用」
   // 在一个已经显示着实时的界面上是个说不通的按钮。
-  if !model.pane_live {
-    specs.push((text(t, "app.pane.show_live"), ShowPaneLive, Outline))
+  if !model.workbench.layout.pane_live {
+    specs.push(
+      (text(t, "app.pane.show_live"), WorkbenchOp(@wb.ShowPaneLive), Outline),
+    )
   }
   if !blocks_pane_wanted(model) {
-    specs.push((text(t, "app.pane.show_blocks"), ShowPaneBlocks, Outline))
+    specs.push(
+      (
+        text(t, "app.pane.show_blocks"),
+        WorkbenchOp(@wb.ShowPaneBlocks),
+        Outline,
+      ),
+    )
   }
   let buttons : Array[@moui.View[Msg]] = []
   let widths : Array[Double] = []
@@ -998,180 +913,335 @@ fn completion_popup(model : Model, width : Double) -> @moui.View[Msg] {
 }
 
 ///|
-/// tab strip（G4 多标签）:一排 tab,active 高亮,× 关闭(脏经确认流)。
-/// 行宽不足时裁切——v1 不做横向滚动,tab 数量由用户控制。
-fn file_tab_strip(model : Model, width : Double) -> @moui.View[Msg] {
-  let cells : Array[@moui.View[Msg]] = []
-  for i, file in model.project_state.open_project_files {
-    let active = i == model.project_state.open_file_index
-    let label = @code.file_tab_label(file.rel) +
-      (if file_is_dirty(file) { " ●" } else { "" })
-    let cell_width = (@chrome.text_estimate_width(label) + 40.0)
-      .min(150.0)
-      .max(64.0)
-    cells.push(
+/// 编辑面 provider 的上下文：Studio 视图需要 `Model` 与翻译器。
+priv struct StudioCtx {
+  model : Model
+  t : @i18n.Translator
+}
+
+///|
+fn file_provider_view(
+  model : Model,
+  entry : @wb.DocumentEntry,
+  host : @wb.EditorHost[Msg],
+  width : Double,
+  height : Double,
+  markdown~ : Bool,
+) -> @moui.View[Msg] {
+  match entry.text_buffer() {
+    Some(buffer) =>
+      file_editor_frame(
+        model,
+        entry.doc,
+        buffer,
+        host,
+        width,
+        height,
+        markdown~,
+      )
+    None =>
       @views.container(
-        @views.row(
-          [
-            @views.text(
-              @chrome.fit_label(label, cell_width - 20.0),
-              theme=@chrome.studio_theme(),
-              role=Mono,
-              width=cell_width - 20.0,
-              height=14.0,
-              align=TextStart,
-            ).foreground(
-              if active {
-                @chrome.ide_text()
-              } else {
-                @chrome.ide_text_faint()
-              },
-            ),
-            @views.text(
-              "×",
-              theme=@chrome.studio_theme(),
-              width=14.0,
-              height=14.0,
-              align=TextCenter,
-            )
-            .foreground(@chrome.ide_text_faint())
-            .on_tap(ProjectOp(@proj.CloseFileTab(i))),
-          ],
-          spacing=2.0,
-          align=Center,
-        ),
-        background=if active {
-          @chrome.ide_panel()
-        } else {
-          @chrome.ide_editor_background()
-        },
-        width=cell_width,
-        height=22.0,
+        @views.empty(),
+        background=@chrome.ide_editor_background(),
+        width~,
+        height~,
         padding=0.0,
-      ).on_tap(ProjectOp(@proj.SelectFileTab(i))),
-    )
+      )
   }
-  @views.row(cells, spacing=2.0, align=Start).frame(
-    width=(width - 12.0).max(80.0),
-    height=24.0,
+}
+
+///|
+/// 文件编辑面外框：保存条 + 可滚动正文。文件名/脏点/关闭由全局 tab 承担，
+/// 这里只留保存动作与正文。
+fn file_editor_frame(
+  model : Model,
+  doc : @wb.Document,
+  buffer : @wb.TextBuffer,
+  host : @wb.EditorHost[Msg],
+  width : Double,
+  height : Double,
+  markdown~ : Bool,
+) -> @moui.View[Msg] {
+  // **滚动方案(实测反馈:受控滚动不滚、无滚动条)**:受控编辑器的
+  // visible_scroll_y 需要外部驱动,滚轮路径不可靠——改为**外层
+  // scroll_view 承担滚动**(滚轮/滚动条都走它,与块画布同一机制),
+  // 行号槽与编辑器放进同一行,一起滚;编辑器按**内容全高**渲染
+  // (不传 viewport/overscan,不做窗口化)。
+  let content_height = (buffer.draft.split("\n").count().to_double() *
+  CODE_LINE_HEIGHT +
+  60.0).max((height - 26.0 - 8.0).max(120.0))
+  let editor_width = (width - 48.0).max(80.0)
+  let body_height = if markdown {
+    markdown_file_body_height(buffer~, editor_width, content_height)
+  } else {
+    content_height
+  }
+  let body = if markdown {
+    markdown_file_body(buffer, host, editor_width, content_height)
+  } else {
+    text_file_body(buffer, host, editor_width, content_height)
+  }
+  let dirty = buffer.is_dirty()
+  let header = @views.container(
+    @views.row(
+      [
+        @views.text(
+          doc.resource + (if dirty { " ●" } else { "" }),
+          theme=@chrome.studio_theme(),
+          role=Mono,
+          width=(width - 220.0).max(60.0),
+          height=16.0,
+          align=TextStart,
+        ).foreground(@chrome.ide_text()),
+        @views.spacer(min_length=6.0, weight=1.0),
+        foot_chip(
+          "保存",
+          @chrome.text_estimate_width("保存") + 24.0,
+          dirty,
+          host.save,
+        ),
+        foot_chip(
+          "保存全部",
+          @chrome.text_estimate_width("保存全部") + 24.0,
+          model.workbench.docs.any_file_dirty(),
+          SaveAllFiles,
+        ),
+      ],
+      spacing=6.0,
+      align=Center,
+    ),
+    background=@chrome.ide_panel(),
+    width~,
+    height=26.0,
+    padding=0.0,
+  )
+  @views.column(
+    [
+      header,
+      @views.scroll_view(
+        @views.row([body], spacing=0.0, align=Start).frame(
+          width=(width - 30.0).max(80.0),
+          height=body_height,
+        ),
+        width=(width - 8.0).max(80.0),
+        height=(height - 26.0 - 8.0).max(120.0),
+        shows_indicator=true,
+      ),
+    ],
+    spacing=0.0,
+  ).frame(width~, height~)
+}
+
+///|
+/// Markdown 编辑面：MoMark session（块级结构渲染 + 标记就地 reveal +
+/// 真编辑事务）；无会话时退回一次性格式化渲染。
+fn markdown_file_body(
+  buffer : @wb.TextBuffer,
+  host : @wb.EditorHost[Msg],
+  editor_width : Double,
+  content_height : Double,
+) -> @moui.View[Msg] {
+  match buffer.md_session {
+    Some(session) =>
+      @md.markdown_session_file_view(
+        session~,
+        selection=@moui_richtext.MarkdownEditorSelection::{
+          caret: buffer.caret,
+          selection: buffer.selection,
+        },
+        on_transaction=host.markdown,
+        on_selection_change=host.caret,
+        width=editor_width,
+        height=content_height,
+        font=@text.FontSpec::new(size=13.0),
+        foreground=@chrome.ide_text(),
+        placeholder_color=@chrome.ide_text_faint(),
+        background=@graphics.Brush::solid(@chrome.ide_editor_background()),
+        cursor_color=@chrome.ide_accent(),
+      )
+    None =>
+      @md.markdown_file_view(
+        content=buffer.draft,
+        on_input=host.edit,
+        width=editor_width,
+        height=content_height,
+        font=@text.FontSpec::new(size=13.0),
+        foreground=@chrome.ide_text(),
+        placeholder_color=@chrome.ide_text_faint(),
+        background=@graphics.Brush::solid(@chrome.ide_editor_background()),
+        cursor_color=@chrome.ide_accent(),
+      )
+  }
+}
+
+///|
+/// 文本编辑面：行号槽 + mono 受控编辑器（MoonBit 词法着色）。
+fn text_file_body(
+  buffer : @wb.TextBuffer,
+  host : @wb.EditorHost[Msg],
+  editor_width : Double,
+  content_height : Double,
+) -> @moui.View[Msg] {
+  @views.row(
+    [
+      project_file_gutter(buffer),
+      @moui_richtext.controlled_rich_text_editor(
+        value=buffer.draft,
+        on_input=host.edit,
+        placeholder="",
+        size=@geometry.Size::new(width=editor_width, height=content_height),
+        // M6①：工程文件是用户手改的 MoonBit 源码——着色升级为
+        // 内核 MoonBit 词法器（此前 plain：永不匹配的空关键字表）
+        format=source => {
+          plain_code_document(source, @code.mono_code_font(), moonbit=true)
+        },
+        font=@code.mono_code_font(),
+        foreground=@chrome.ide_text(),
+        placeholder_color=@chrome.ide_text_faint(),
+        background=@graphics.Brush::solid(@chrome.ide_editor_background()),
+        cursor_color=@chrome.ide_accent(),
+        corner_radius=0.0,
+        on_selection_change=Some(host.caret),
+        selection_caret=buffer.caret,
+        selection_range=buffer.selection,
+        kind="StudioProjectFileEditor",
+        key=Some("studio-project-file-editor"),
+      ),
+    ],
+    spacing=0.0,
+    align=Start,
   )
 }
 
 ///|
-/// 工程文件编辑面（G3）：`.md` → Markdown 插件面板（MoMark 引擎,格式
-/// 渲染 + on_input 回草稿通道）;其余文件 → 既有 mono 受控编辑器
-/// （MoonBit 词法着色 + 光标/选区受控回传）。
-fn project_file_body(
-  model : Model,
-  open~ : OpenProjectFile,
+/// Markdown 编辑面内容全高（scroll_view 外层滚动需要）：session 块级
+/// 几何优先，无会话时退回一次性格式化估算。
+fn markdown_file_body_height(
+  buffer~ : @wb.TextBuffer,
   editor_width : Double,
   content_height : Double,
-) -> @moui.View[Msg] {
-  if open.rel.has_suffix(".md") && plugin_active(model, "markdown") {
-    // MoMark session 编辑面（与 momark 编辑面同引擎档位）：块级结构渲染 +
-    // 光标所在 span 的标记就地 reveal + 真编辑事务（Enter 拆段/列表续行/
-    // 表格键）。事务经 ProjectFileMarkdownTransaction 回写会话与草稿。
-    match open.md_session {
-      Some(session) =>
-        @md.markdown_session_file_view(
-          session~,
-          selection=@moui_richtext.MarkdownEditorSelection::{
-            caret: open.caret,
-            selection: open.selection,
-          },
-          on_transaction=transaction => {
-            ProjectOp(ProjectFileMarkdownTransaction(transaction))
-          },
-          on_selection_change=(caret, selection) => {
-            ProjectOp(ProjectFileCaretMoved(caret, selection))
-          },
-          width=editor_width,
-          height=content_height,
-          font=@text.FontSpec::new(size=13.0),
-          foreground=@chrome.ide_text(),
-          placeholder_color=@chrome.ide_text_faint(),
-          background=@graphics.Brush::solid(@chrome.ide_editor_background()),
-          cursor_color=@chrome.ide_accent(),
-        )
-      // 无会话（异常路径兜底）：退回一次性格式化渲染,仍可编辑
-      None =>
-        @md.markdown_file_view(
-          content=open.draft,
-          on_input=value => ProjectOp(EditProjectFile(value)),
-          width=editor_width,
-          height=content_height,
-          font=@text.FontSpec::new(size=13.0),
-          foreground=@chrome.ide_text(),
-          placeholder_color=@chrome.ide_text_faint(),
-          background=@graphics.Brush::solid(@chrome.ide_editor_background()),
-          cursor_color=@chrome.ide_accent(),
-        )
-    }
-  } else {
-    @views.row(
-      [
-        project_file_gutter(open),
-        @moui_richtext.controlled_rich_text_editor(
-          value=open.draft,
-          on_input=value => ProjectOp(EditProjectFile(value)),
-          placeholder="",
-          size=@geometry.Size::new(width=editor_width, height=content_height),
-          // M6①：工程文件是用户手改的 MoonBit 源码——着色升级为
-          // 内核 MoonBit 词法器（此前 plain：永不匹配的空关键字表）
-          format=source => {
-            plain_code_document(source, @code.mono_code_font(), moonbit=true)
-          },
-          font=@code.mono_code_font(),
-          foreground=@chrome.ide_text(),
-          placeholder_color=@chrome.ide_text_faint(),
-          background=@graphics.Brush::solid(@chrome.ide_editor_background()),
-          cursor_color=@chrome.ide_accent(),
-          corner_radius=0.0,
-          on_selection_change=Some((caret, selection) => {
-            ProjectOp(ProjectFileCaretMoved(caret, selection))
-          }),
-          selection_caret=open.caret,
-          selection_range=open.selection,
-          kind="StudioProjectFileEditor",
-          key=Some("studio-project-file-editor"),
-        ),
-      ],
-      spacing=0.0,
-      align=Start,
-    )
+) -> Double {
+  match buffer.md_session {
+    Some(session) =>
+      session
+      .estimated_content_height(
+        base=@text.FontSpec::new(size=13.0),
+        content_width=editor_width,
+      )
+      .max(content_height)
+    None =>
+      @md.markdown_content_height(
+        content=buffer.draft,
+        width=editor_width,
+        font=@text.FontSpec::new(size=13.0),
+      ).max(content_height)
   }
 }
 
 ///|
-/// 编辑面内容全高：`.md` 用 Markdown 渲染高度估算（scroll_view 外层
-/// 滚动需要）;其余文件 = 行数 × 行高（既有口径）。
-fn project_file_body_height(
-  model : Model,
-  open~ : OpenProjectFile,
-  editor_width : Double,
-  content_height : Double,
-) -> Double {
-  if open.rel.has_suffix(".md") && plugin_active(model, "markdown") {
-    // session 高度口径优先（块级几何,与 session 编辑面同一条测量链）;
-    // 无会话时退回一次性格式化估算。
-    match open.md_session {
-      Some(session) =>
-        session
-        .estimated_content_height(
-          base=@text.FontSpec::new(size=13.0),
-          content_width=editor_width,
-        )
-        .max(content_height)
-      None =>
-        @md.markdown_content_height(
-          content=open.draft,
-          width=editor_width,
-          font=@text.FontSpec::new(size=13.0),
-        ).max(content_height)
-    }
-  } else {
-    content_height
+fn studio_editor_provider(
+  id : String,
+  accepts : (Model) -> Bool,
+  render : (Model, @i18n.Translator, Double, Double) -> @moui.View[Msg],
+) -> @wb.EditorProvider[StudioCtx, Msg] {
+  {
+    id,
+    priority: 100,
+    accepts: (ctx, doc) => doc.kind is @wb.StudioDoc && accepts(ctx.model),
+    render: (ctx, _entry, _host, width, height) => {
+      render(ctx.model, ctx.t, width, height)
+    },
   }
+}
+
+///|
+fn file_editor_provider(
+  id : String,
+  priority : Int32,
+  accepts : (Model, @wb.Document) -> Bool,
+  markdown~ : Bool,
+) -> @wb.EditorProvider[StudioCtx, Msg] {
+  {
+    id,
+    priority,
+    accepts: (ctx, doc) => doc.kind is @wb.FileDoc && accepts(ctx.model, doc),
+    render: (ctx, entry, host, width, height) => {
+      file_provider_view(ctx.model, entry, host, width, height, markdown~)
+    },
+  }
+}
+
+///|
+/// 透视 → 常驻 Studio 文档的偏好 provider。文件文档不受影响：
+/// `resolve_provider` 找不到认领的 Studio provider 后，会按优先级回退到
+/// `file.markdown` / `file.text`。
+pub fn preferred_provider(model : Model) -> String {
+  if model.perspective is PsDesign {
+    "studio.design"
+  } else if model.perspective is PsBlocks {
+    "studio.blocks"
+  } else {
+    match model.workspace {
+      WsPreview => "studio.preview"
+      WsCode => "studio.code"
+      _ => "studio.visual"
+    }
+  }
+}
+
+///|
+/// 编译期注册的编辑面 provider（ADR 0038：静态组合，无动态加载）。
+fn editor_providers() -> Array[@wb.EditorProvider[StudioCtx, Msg]] {
+  [
+    studio_editor_provider(
+      "studio.visual",
+      model => {
+        !perspective_standalone(model) &&
+        (model.workspace is WsVisual || model.workspace is WsEmpty)
+      },
+      (model, t, width, height) => {
+        if model.workspace is WsEmpty {
+          empty_stage(model, t, width, height)
+        } else {
+          visual_workspace(model, t, width, height)
+        }
+      },
+    ),
+    studio_editor_provider(
+      "studio.code",
+      model => !perspective_standalone(model) && model.workspace is WsCode,
+      code_workspace,
+    ),
+    studio_editor_provider(
+      "studio.preview",
+      model => !perspective_standalone(model) && model.workspace is WsPreview,
+      preview_workspace,
+    ),
+    studio_editor_provider(
+      "studio.design",
+      model => model.perspective is PsDesign,
+      live_pane,
+    ),
+    studio_editor_provider(
+      "studio.blocks",
+      model => model.perspective is PsBlocks,
+      blocks_pane,
+    ),
+    file_editor_provider(
+      "file.markdown",
+      20,
+      (model, doc) => {
+        doc.resource.has_suffix(".md") && plugin_active(model, "markdown")
+      },
+      markdown=true,
+    ),
+    file_editor_provider("file.text", 0, (_, _) => true, markdown=false),
+  ]
+}
+
+///|
+fn perspective_standalone(model : Model) -> Bool {
+  model.perspective is PsDesign || model.perspective is PsBlocks
 }
 
 ///|
@@ -1230,9 +1300,9 @@ fn plain_code_document(
 ///|
 /// 工程文件编辑器的行号槽:与 IR 编辑面的 code_gutter 同构——
 /// 行号列跟随编辑器滚动（共享 project_file_scroll）。
-fn project_file_gutter(open : OpenProjectFile) -> @moui.View[Msg] {
+fn project_file_gutter(buffer : @wb.TextBuffer) -> @moui.View[Msg] {
   let rows : Array[@moui.View[Msg]] = []
-  let line_count = open.draft.split("\n").count()
+  let line_count = buffer.draft.split("\n").count()
   let mut number = 1
   while number <= line_count {
     rows.push(

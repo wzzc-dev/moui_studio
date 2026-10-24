@@ -18,8 +18,8 @@ pub(all) enum ConfirmKind {
   /// 新建工程（folder projects）：载荷 = 模板下标（-1 = 空白程序）
   CkNewProject(Int32)
   CkOpen
-  /// 关闭脏 tab（G4 多标签）：载荷 = tab 下标
-  CkCloseFileTab(Int32)
+  /// 关闭脏文档（G4 多标签）：载荷 = 文档 id
+  CkCloseFileTab(String)
 }
 
 ///|
@@ -56,7 +56,7 @@ fn confirm_kind_of(msg : Msg) -> ConfirmKind {
     DeleteControl(name) => CkDeleteControl(name)
     DeleteVariable(name) => CkDeleteVariable(name)
     NewProjectRequested(index) => CkNewProject(index)
-    ProjectOp(@proj.CloseFileTab(index)) => CkCloseFileTab(index)
+    WorkbenchOp(@wb.CloseDocument(id)) => CkCloseFileTab(id)
     _ => CkOpen
   }
 }
@@ -118,7 +118,7 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
                 CkDeleteProjectFile(_) => OpenRequested
                 CkNewProject(_) => OpenRequested
                 CkOpen => OpenRequested
-                CkCloseFileTab(index) => ProjectOp(@proj.CloseFileTab(index))
+                CkCloseFileTab(id) => WorkbenchOp(@wb.CloseDocument(id))
               }
               Some(update_pure_inner(cleared, follow))
             }
@@ -130,17 +130,17 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
     DeleteControl(_)
     | DeleteVariable(_)
     | NewProjectRequested(_)
-    | ProjectOp(@proj.CloseFileTab(_)) =>
+    | WorkbenchOp(@wb.CloseDocument(_)) =>
       if model.pending_confirm is Some(_) {
         None
       } else {
         // 删除类无条件守卫；新建工程只挡「有未保存工作」的程序；
-        // 关闭 tab 只挡脏 tab（干净 tab 直接关,不打扰）。
+        // 关闭文档只挡脏文件（干净文件与常驻 Studio 文档直接关,不打扰）。
         let guarded = match msg {
           DeleteControl(_) | DeleteVariable(_) => true
-          ProjectOp(@proj.CloseFileTab(index)) =>
-            match model.project_state.open_project_files.get(index) {
-              Some(open) => file_is_dirty(open)
+          WorkbenchOp(@wb.CloseDocument(id)) =>
+            match model.workbench.docs.entry(id) {
+              Some(entry) => entry.doc.closable && entry.is_dirty()
               None => false
             }
           _ => program_has_work(model)

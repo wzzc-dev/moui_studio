@@ -5,7 +5,6 @@ import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/views/style",
   "wzzc-dev/moui_i18n",
-  "wzzc-dev/moui_richtext",
   "wzzc-dev/moui_studio/chrome",
   "wzzc-dev/moui_studio/domain/ir",
 }
@@ -17,11 +16,9 @@ pub const EXPLORER_SECTION_INDENT : Int32 = 1
 
 pub const WORKSPACE_ROOT_INDEX : Int32 = -1
 
-pub fn active_project_file(ExplorerData) -> OpenProjectFile?
+pub fn active_open_editor(ExplorerData) -> OpenEditorRow?
 
 pub fn child_dirs_of(Array[@wzzc-dev/moui_studio/services/project.ScannedDir], String) -> Array[@wzzc-dev/moui_studio/services/project.ScannedDir]
-
-pub fn close_open_file(ProjectState, Int32) -> ProjectState
 
 pub fn code_project_files(@ir.StudioProgram) -> CodeProjectFiles
 
@@ -49,8 +46,6 @@ pub fn explorer_section_expanded(ExplorerData, String) -> Bool
 
 pub fn file_icon(String) -> @style.IconName
 
-pub fn file_is_dirty(OpenProjectFile) -> Bool
-
 pub fn file_tint(String) -> @chrome.IconTint
 
 pub fn is_studio_app_bundle(ProjectRecord) -> Bool
@@ -74,8 +69,6 @@ pub fn project_kind_label(@wzzc-dev/moui_studio/services/project.PackageKind, @m
 pub fn recent_tail(Array[RecentChange], Int32) -> Array[RecentChange]
 
 pub fn rel_path_last_segment(String) -> String
-
-pub fn replace_open_file_at(Array[OpenProjectFile], Int32, OpenProjectFile) -> Array[OpenProjectFile]
 
 pub fn root_collapse_key(Int32, String) -> String
 
@@ -109,8 +102,8 @@ pub(all) struct ExplorerData {
   projects : Array[ProjectRecord]
   active_project : Int32
   workspace_root : WorkspaceRecord?
-  open_project_files : Array[OpenProjectFile]
-  open_file_index : Int32
+  open_editors : Array[OpenEditorRow]
+  open_editor_active : Int32
   project_tree_collapsed : Array[String]
   explorer_sections_collapsed : Array[String]
   selected_project_file : String?
@@ -128,7 +121,7 @@ pub(all) enum ExplorerRow {
   RootRow(Int32, String, String, Bool)
   DirRow(Int32, String, String, String, Int32, Bool)
   FileRow(Int32, String, String, Int32, Bool)
-  EditorRow(Int32, String, Bool, Bool)
+  EditorRow(Int32, String, String, Bool, Bool)
   OutlineRow(String, Int32, Int32)
   TimelineRow(String, Bool, String)
 }
@@ -140,13 +133,13 @@ pub(all) struct MigrationOutcome {
   files : CodeProjectFiles
 }
 
-pub(all) struct OpenProjectFile {
+pub(all) struct OpenEditorRow {
+  id : String
+  index : Int32
   rel : String
-  saved_content : String
+  label : String
+  dirty : Bool
   draft : String
-  caret : Int32
-  selection : @core.TextRange?
-  md_session : @moui_richtext.MarkdownDocumentSession?
 }
 
 pub(all) struct OutlineSymbol {
@@ -167,11 +160,6 @@ pub(all) enum ProjectMsg {
   FolderCreateDismiss
   ExplorerCollapseAll
   ExplorerScrolled(@core.Point)
-  ProjectFileCaretMoved(Int32, @core.TextRange?)
-  EditProjectFile(String)
-  ProjectFileMarkdownTransaction(@moui_richtext.MarkdownEditTransaction)
-  SelectFileTab(Int32)
-  CloseFileTab(Int32)
   FileCreateDraft(String)
   FileCreateDismiss
   FileRenameStart(String)
@@ -193,8 +181,6 @@ pub(all) struct ProjectState {
   projects : Array[ProjectRecord]
   active_project : Int32
   workspace_root : WorkspaceRecord?
-  open_project_files : Array[OpenProjectFile]
-  open_file_index : Int32
   project_tree_collapsed : Array[String]
   explorer_sections_collapsed : Array[String]
   selected_project_file : String?

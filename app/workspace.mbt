@@ -39,7 +39,7 @@ pub fn live_pane(
         Focus,
         text(t, "app.pane.solo"),
         false,
-        TogglePaneBlocks,
+        WorkbenchOp(@wb.TogglePaneBlocks),
         24.0,
         22.0,
         13.0,
@@ -49,7 +49,7 @@ pub fn live_pane(
         Close,
         text(t, "app.pane.hide"),
         false,
-        TogglePaneLive,
+        WorkbenchOp(@wb.TogglePaneLive),
         24.0,
         22.0,
         13.0,
@@ -459,7 +459,7 @@ fn run_badge(
 ) -> @moui.View[Msg] {
   // 读数必须来自**舞台盒**（与 live_pane 同一个 live_stage_box），
   // 否则徽标上的百分比与实际渲染的缩放对不上。
-  let live_width = (width * model.split_ratio).max(200.0)
+  let live_width = (width * model.workbench.layout.split_ratio).max(200.0)
   let (box_w, box_h) = live_stage_box(
     live_width - 2.0,
     (height - LIVE_PANE_HEAD_FOOT).max(120.0),
@@ -571,7 +571,7 @@ pub fn pane_foot(
 /// （用户说不要），不能把不需要的窗格打开——否则一次误点之后，切回控件也会
 /// 一直挂着空画布。
 pub fn blocks_pane_wanted(model : Model) -> Bool {
-  model.pane_blocks && current_handler(model) is Some(_)
+  model.workbench.layout.pane_blocks && current_handler(model) is Some(_)
 }
 
 ///|
@@ -593,14 +593,14 @@ pub fn visual_workspace(
   let want_blocks = blocks_pane_wanted(model)
   // 两个都关掉 → 空舞台（它带恢复入口）。判据与设计稿一致：
   // 「关掉最后一个窗格就进 empty」。
-  if !model.pane_live && !want_blocks {
+  if !model.workbench.layout.pane_live && !want_blocks {
     return empty_stage(model, t, width, height)
   }
   // 只剩一个窗格：占满整个中心列，不加恢复带。
   if !want_blocks {
     return live_pane(model, t, width, height)
   }
-  if !model.pane_live {
+  if !model.workbench.layout.pane_live {
     return blocks_pane(model, t, width, height)
   }
   // 双窗格有最小可用宽度：640 设计宽按 fit_scale 的 0.5 下限缩放后仍需
@@ -615,7 +615,9 @@ pub fn visual_workspace(
   }
   // 占比也要钳：拖拽后任一侧都不得小于各自下限。
   let max_live = width - blocks_min - gap
-  let live_width = (width * model.split_ratio).max(live_min).min(max_live)
+  let live_width = (width * model.workbench.layout.split_ratio)
+    .max(live_min)
+    .min(max_live)
   let rest = (width - live_width - gap).max(blocks_min)
   @views.row(
     [
@@ -648,6 +650,8 @@ pub fn splitter(live_width : Double, total_width : Double) -> @moui.View[Msg] {
   base.on_drag_with_frame(fn(event, frame) {
     let _ = event
     // 拖到哪算哪：全局 x − 帧原点 = 该点在行内的 x
-    SetSplitRatio((event.position.x - frame.origin.x) / total_width)
+    WorkbenchOp(
+      @wb.SetSplitRatio((event.position.x - frame.origin.x) / total_width),
+    )
   })
 }

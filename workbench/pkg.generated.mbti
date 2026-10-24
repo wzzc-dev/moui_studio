@@ -1,0 +1,169 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/workbench"
+
+import {
+  "wzzc-dev/moui/core",
+  "wzzc-dev/moui_richtext",
+}
+
+// Values
+pub const EDITOR_TAB_HEIGHT : Double = 24.0
+
+pub const STUDIO_DOC_ID : String = "studio"
+
+pub fn[Ctx, Msg] editor_area(WorkbenchState, Ctx, Array[EditorProvider[Ctx, Msg]], String, (WorkbenchMsg) -> Msg, Msg, Double, Double) -> @core.View[Msg]
+
+pub fn file_document(String, String) -> Document
+
+pub fn file_document_id(String) -> String
+
+pub fn[Ctx, Msg] find_command(Array[CommandContribution[Ctx, Msg]], String) -> CommandContribution[Ctx, Msg]?
+
+pub fn[Ctx, Msg] panels_at(Array[PanelContribution[Ctx, Msg]], PanelLocation) -> Array[PanelContribution[Ctx, Msg]]
+
+pub fn[Ctx, Msg] resolve_provider(Array[EditorProvider[Ctx, Msg]], Ctx, Document, String) -> EditorProvider[Ctx, Msg]?
+
+pub fn[Ctx, Msg] selected_panel(Array[PanelContribution[Ctx, Msg]], PanelLocation, Ctx) -> PanelContribution[Ctx, Msg]?
+
+pub fn studio_document() -> Document
+
+pub fn update_workbench(WorkbenchState, WorkbenchMsg) -> WorkbenchState
+
+// Errors
+
+// Types and methods
+pub(all) enum CommandAction[Msg] {
+  Apply(Msg)
+  Dispatch(Msg)
+  Unavailable
+}
+
+pub(all) struct CommandContribution[Ctx, Msg] {
+  id : String
+  label_key : String
+  group_key : String
+  run : (Ctx) -> CommandAction[Msg]
+}
+
+pub(all) enum DocKind {
+  StudioDoc
+  FileDoc
+} derive(Eq)
+pub fn DocKind::equal(Self, Self) -> Bool
+pub fn DocKind::not_equal(Self, Self) -> Bool
+
+pub(all) struct Document {
+  id : String
+  title : String
+  resource : String
+  kind : DocKind
+  closable : Bool
+}
+
+pub(all) enum DocumentBody {
+  TextBody(TextBuffer)
+  VirtualBody
+}
+
+pub(all) struct DocumentEntry {
+  doc : Document
+  body : DocumentBody
+}
+pub fn DocumentEntry::is_dirty(Self) -> Bool
+pub fn DocumentEntry::text_buffer(Self) -> TextBuffer?
+
+pub(all) struct DocumentStore {
+  entries : Array[DocumentEntry]
+  active : Int32
+}
+pub fn DocumentStore::activate(Self, String) -> Self
+pub fn DocumentStore::active_entry(Self) -> DocumentEntry?
+pub fn DocumentStore::active_file(Self) -> (Document, TextBuffer)?
+pub fn DocumentStore::any_file_dirty(Self) -> Bool
+pub fn DocumentStore::apply_markdown_transaction(Self, String, @moui_richtext.MarkdownEditTransaction) -> Self
+pub fn DocumentStore::close(Self, String) -> Self
+pub fn DocumentStore::close_file(Self, String) -> Self
+pub fn DocumentStore::dirty_files(Self) -> Array[(String, String)]
+pub fn DocumentStore::edit(Self, String, String) -> Self
+pub fn DocumentStore::entry(Self, String) -> DocumentEntry?
+pub fn DocumentStore::file_entries(Self) -> Array[DocumentEntry]
+pub fn DocumentStore::find(Self, String) -> Int32
+pub fn DocumentStore::find_file(Self, String) -> Int32
+pub fn DocumentStore::mark_saved(Self, String) -> Self
+pub fn DocumentStore::move_caret(Self, String, Int32, @core.TextRange?) -> Self
+pub fn DocumentStore::new() -> Self
+pub fn DocumentStore::rename_file(Self, String, String, String) -> Self
+pub fn DocumentStore::upsert_file(Self, Document, TextBuffer) -> (Self, Int32)
+
+pub(all) struct EditorHost[Msg] {
+  edit : (String) -> Msg
+  caret : (Int32, @core.TextRange?) -> Msg
+  markdown : (@moui_richtext.MarkdownEditTransaction) -> Msg
+  save : Msg
+  close : Msg
+}
+
+pub(all) struct EditorProvider[Ctx, Msg] {
+  id : String
+  priority : Int32
+  accepts : (Ctx, Document) -> Bool
+  render : (Ctx, DocumentEntry, EditorHost[Msg], Double, Double) -> @core.View[Msg]
+}
+
+pub(all) struct LayoutState {
+  pane_live : Bool
+  pane_blocks : Bool
+  split_ratio : Double
+}
+pub fn LayoutState::new() -> Self
+
+pub(all) struct PanelContribution[Ctx, Msg] {
+  id : String
+  location : PanelLocation
+  label_key : String
+  badge : (Ctx) -> Int32
+  selected : (Ctx) -> Bool
+  on_select : (Ctx) -> Msg
+  render : (Ctx, Double, Double) -> @core.View[Msg]
+}
+
+pub(all) enum PanelLocation {
+  PanelLeft
+  PanelRight
+  PanelBottom
+} derive(Eq)
+pub fn PanelLocation::equal(Self, Self) -> Bool
+pub fn PanelLocation::not_equal(Self, Self) -> Bool
+
+pub(all) struct TextBuffer {
+  saved : String
+  draft : String
+  caret : Int32
+  selection : @core.TextRange?
+  md_session : @moui_richtext.MarkdownDocumentSession?
+}
+pub fn TextBuffer::is_dirty(Self) -> Bool
+pub fn TextBuffer::new(String, String) -> Self
+
+pub(all) enum WorkbenchMsg {
+  ActivateDocument(String)
+  CloseDocument(String)
+  EditDocument(String, String)
+  MoveDocumentCaret(String, Int32, @core.TextRange?)
+  ApplyMarkdownTransaction(String, @moui_richtext.MarkdownEditTransaction)
+  TogglePaneLive
+  TogglePaneBlocks
+  ShowPaneLive
+  ShowPaneBlocks
+  SetSplitRatio(Double)
+}
+
+pub(all) struct WorkbenchState {
+  docs : DocumentStore
+  layout : LayoutState
+}
+pub fn WorkbenchState::new() -> Self
+
+// Type aliases
+
+// Traits

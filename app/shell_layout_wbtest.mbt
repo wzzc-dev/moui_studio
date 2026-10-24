@@ -470,9 +470,18 @@ test "toast queue is capped and dismissible" {
 ///|
 test "split ratio clamps into the usable band" {
   let model = initial_model()
-  assert_eq(apply_shell(model, SetSplitRatio(0.05)).split_ratio, 0.2)
-  assert_eq(apply_shell(model, SetSplitRatio(0.95)).split_ratio, 0.8)
-  assert_eq(apply_shell(model, SetSplitRatio(0.5)).split_ratio, 0.5)
+  assert_eq(
+    apply_shell(model, WorkbenchOp(@wb.SetSplitRatio(0.05))).workbench.layout.split_ratio,
+    0.2,
+  )
+  assert_eq(
+    apply_shell(model, WorkbenchOp(@wb.SetSplitRatio(0.95))).workbench.layout.split_ratio,
+    0.8,
+  )
+  assert_eq(
+    apply_shell(model, WorkbenchOp(@wb.SetSplitRatio(0.5))).workbench.layout.split_ratio,
+    0.5,
+  )
 }
 
 ///|
