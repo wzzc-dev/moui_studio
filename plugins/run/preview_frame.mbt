@@ -649,7 +649,7 @@ fn json_as_image_run(value : Json) -> @core.ImageRun? {
       }
       match (source, frame, opacity, fit) {
         (Some(source), Some(frame), Some(opacity), Some(fit)) =>
-          Some(@core.ImageRun::{ source, frame, opacity, fit, })
+          Some(@core.ImageRun::{ source, frame, opacity, fit, src_rect: None, })
         _ => None
       }
     }
