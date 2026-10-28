@@ -1,0 +1,15 @@
+[package]
+name = "plugin_fixture"
+version = "1.0.0"
+edition = "2021"
+description = "MoUI Studio 插件系统参考实现（最小 WASM 插件）"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+strip = true

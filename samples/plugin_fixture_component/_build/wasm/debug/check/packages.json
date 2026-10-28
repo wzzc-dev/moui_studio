@@ -1,0 +1,9 @@
+{
+  "source_dir": "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component",
+  "name": "test/plugin_fixture_component",
+  "packages": [],
+  "deps": [],
+  "backend": "wasm",
+  "opt_level": "debug",
+  "source": null
+}

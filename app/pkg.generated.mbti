@@ -12,6 +12,7 @@ import {
   "wzzc-dev/moui_studio/domain/proposals",
   "wzzc-dev/moui_studio/domain/studio_lang",
   "wzzc-dev/moui_studio/kernel",
+  "wzzc-dev/moui_studio/kernel/plugin_contract",
   "wzzc-dev/moui_studio/plugins/ai",
   "wzzc-dev/moui_studio/plugins/code",
   "wzzc-dev/moui_studio/plugins/run",
@@ -113,6 +114,24 @@ pub fn ai_history_dialog(Model, @moui_i18n.Translator) -> @core.View[Msg]
 pub fn ai_page(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
 pub fn app_running(Model) -> Bool
+
+pub fn apply_plugin_installed(Model, Result[String, String]) -> (Model, @core.Effect[Msg])
+
+pub fn apply_plugin_manager_busy(Model, String) -> Model
+
+pub fn apply_plugin_manager_close(Model) -> Model
+
+pub fn apply_plugin_manager_notice(Model, String, Bool) -> Model
+
+pub fn apply_plugin_manager_open(Model) -> Model
+
+pub fn apply_plugin_manager_select(Model, String) -> Model
+
+pub fn apply_plugin_panel_spec(Model, String, String, String) -> Model
+
+pub fn apply_plugin_scan(Model, Array[@plugin_contract.PluginLoadResult], Bool) -> Model
+
+pub fn apply_plugin_uninstalled(Model, Result[String, String]) -> (Model, @core.Effect[Msg])
 
 pub fn artifact_done_key(ArtifactAction) -> String
 
@@ -320,9 +339,21 @@ pub fn import_single_source(Model, @services.FileServices, @wzzc-dev/moui_studio
 
 pub fn import_workspace_scan(Model, @wzzc-dev/moui_studio/services/project.WorkspaceScan, silent? : Bool) -> (Model, @core.Effect[Msg])
 
-pub fn initial_model(provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty_available? : Bool, profile? : StudioProfile, ai_available? : Bool) -> Model
+pub fn initial_model(provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty_available? : Bool, profile? : StudioProfile, ai_available? : Bool, plugin_install_available? : Bool, plugins_root? : String) -> Model
 
 pub fn install_preview_web(@host.WebViewController?, @kernel.PreviewWebControls[Msg]?) -> Unit
+
+pub fn install_web_plugin_contributions(String, String) -> Unit
+
+pub fn install_web_plugin_provider(() -> Map[String, String]) -> Unit
+
+pub fn install_web_plugin_ready_notifier(() -> Unit) -> Unit
+
+pub fn install_web_plugin_reload_trigger(() -> Int32) -> Unit
+
+pub fn interpret_plugin_view(@plugin_contract.PluginViewSpec, PluginViewContext) -> @core.View[Msg]
+
+pub fn interpret_plugin_view_json(String, PluginViewContext) -> @core.View[Msg]?
 
 pub fn ir_line_spans(Model) -> Array[IrLineSpan]
 
@@ -346,6 +377,8 @@ pub fn log_line(Model, LogLevel, String) -> Model
 
 pub fn mark_ai_sessions_dirty(Model) -> Unit
 
+pub fn mark_panels_requested(Model, Array[(String, String)]) -> Model
+
 pub fn mark_projects_dirty(Model) -> Unit
 
 pub fn model_picker_open_of(Model) -> Bool
@@ -353,6 +386,8 @@ pub fn model_picker_open_of(Model) -> Bool
 pub fn moonbit_line_ranged(String, Int32) -> Array[RangedToken]
 
 pub fn normalize_disabled_plugins(Model) -> Model
+
+pub fn notify_web_plugins_changed() -> Unit
 
 pub fn onstart_hat_row(Model, @moui_i18n.Translator) -> @core.View[Msg]
 
@@ -366,9 +401,13 @@ pub fn pane_head(String, String, Double, Array[@core.View[Msg]], tail? : String,
 
 pub fn pane_head_layout(String, String, String, Double, Int32, actions_width? : Double) -> PaneHeadLayout
 
+pub fn panels_needing_view(Model) -> Array[(String, String)]
+
 pub fn parent_of(String) -> String
 
 pub fn parse_generated_source(String, Array[@export.StmtLine]) -> @blocks_code.ParsedHandlerSource
+
+pub fn parse_plugin_color(String) -> @core.Color?
 
 pub fn pending_ai_cards(Model) -> Int32
 
@@ -376,7 +415,21 @@ pub fn pending_side_effects(Model) -> Int32
 
 pub fn plan_block_count_of(Model) -> Int32?
 
+pub fn plugin_action_request(String, String, String) -> String
+
 pub fn plugin_active(Model, String) -> Bool
+
+pub fn plugin_manager_dialog(Model, @moui_i18n.Translator, Bool, String) -> @core.View[Msg]
+
+pub fn plugin_panel_body(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
+
+pub fn plugin_panel_plugin_ids(Model) -> Array[String]
+
+pub fn plugin_panel_visible(Model) -> Bool
+
+pub fn plugin_reload_command() -> @core.ActionCommand
+
+pub fn plugin_view_request(String, String, String) -> String
 
 pub fn preferred_provider(Model) -> String
 
@@ -396,7 +449,7 @@ pub fn problem_rows(Model, @moui_i18n.Translator) -> Array[ProblemRow]
 
 pub fn problems_pane(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
-pub fn program(environment? : @services.AppEnvironment, provider_submit? : (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit, compile_submit? : (String, String, (@export.CompileProgress) -> Unit, (Result[@export.CompileReport, String]) -> Unit) -> Unit, launch_submit? : (String, (Result[Unit, String]) -> Unit) -> Unit, runtime_snapshot? : () -> RuntimeInspectSample?, compile_cancel? : () -> Unit, build_submit? : (@build.BuildKind, String, String, (Result[@build.BuildReport, String]) -> Unit) -> Unit, build_cancel? : () -> Unit, webview_controller? : @host.WebViewController?, preview_web? : @kernel.PreviewWebControls[Msg], provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty? : @kernel.PtyService[Msg], focus_terminal? : () -> Unit, profile? : StudioProfile, apply_locale? : (String) -> Unit, wall_clock? : (() -> StudioClock)?, sessions_store_path? : String, projects_store_path? : String, ai_available? : Bool, canvas_frame? : (String) -> @core.Rect?) -> @core.Program[Model, Msg]
+pub fn program(environment? : @services.AppEnvironment, provider_submit? : (@kernel.ProviderRequestSpec, (Result[String, String]) -> Unit) -> Unit, compile_submit? : (String, String, (@export.CompileProgress) -> Unit, (Result[@export.CompileReport, String]) -> Unit) -> Unit, launch_submit? : (String, (Result[Unit, String]) -> Unit) -> Unit, runtime_snapshot? : () -> RuntimeInspectSample?, compile_cancel? : () -> Unit, build_submit? : (@build.BuildKind, String, String, (Result[@build.BuildReport, String]) -> Unit) -> Unit, build_cancel? : () -> Unit, webview_controller? : @host.WebViewController?, preview_web? : @kernel.PreviewWebControls[Msg], provider_config? : ProviderConfig, compile_track_available? : Bool, export_available? : Bool, immersive? : Bool, pty? : @kernel.PtyService[Msg], focus_terminal? : () -> Unit, profile? : StudioProfile, apply_locale? : (String) -> Unit, wall_clock? : (() -> StudioClock)?, sessions_store_path? : String, projects_store_path? : String, ai_available? : Bool, canvas_frame? : (String) -> @core.Rect?, plugin_bridge? : @plugin_contract.PluginBridge) -> @core.Program[Model, Msg]
 
 pub fn program_tree(Model) -> Array[TreeNode]
 
@@ -437,6 +490,8 @@ pub fn push_toast(Model, String, Bool) -> Model
 pub fn rel_path_last_segment(String) -> String
 
 pub fn relative_time_bucket(Int32, Int32) -> (String, Int32)
+
+pub fn reload_web_plugins() -> Int32
 
 pub fn replace_target_body(Model, String, Array[@ir.Stmt]) -> Model
 
@@ -566,7 +621,7 @@ pub fn update_selection_msgs(Model, Msg) -> (Model, @core.Effect[Msg])?
 
 pub fn update_with_launch_for_test(Model, Msg, @services.AppServices, (String, (Result[Unit, String]) -> Unit) -> Unit) -> (Model, @core.Effect[Msg])
 
-pub fn update_with_services(Model, Msg, @services.AppServices, pty? : @kernel.PtyService[Msg]) -> (Model, @core.Effect[Msg])
+pub fn update_with_services(Model, Msg, @services.AppServices, pty? : @kernel.PtyService[Msg], plugin_bridge? : @plugin_contract.PluginBridge) -> (Model, @core.Effect[Msg])
 
 pub fn upsert_project(Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], @wzzc-dev/moui_studio/plugins/project.ProjectRecord) -> (Array[@wzzc-dev/moui_studio/plugins/project.ProjectRecord], Int32)
 
@@ -580,7 +635,11 @@ pub fn visible_groups(Array[TreeNode]) -> Array[String]
 
 pub fn visual_workspace(Model, @moui_i18n.Translator, Double, Double) -> @core.View[Msg]
 
+pub fn wasm_plugin_section(Model, @moui_i18n.Translator) -> @core.View[Msg]
+
 pub fn watch_rows(Model) -> Array[WatchRow]
+
+pub fn web_plugin_contributions() -> Map[String, String]
 
 pub fn with_notice(Model, String, Bool) -> Model
 
@@ -625,6 +684,7 @@ pub(all) enum BottomTab {
   BtProblems
   BtSearch
   BtTerminal
+  BtPlugins
 }
 
 pub(all) enum CodeAppearance {
@@ -658,6 +718,7 @@ pub(all) enum ConfirmKind {
   CkNewProject(Int32)
   CkOpen
   CkCloseFileTab(String)
+  CkUninstallPlugin(String)
 }
 
 pub(all) enum ContextTab {
@@ -822,6 +883,8 @@ pub(all) struct Model {
   projects_restore_pending : Int32
   restore_active_root : String
   plugin_disabled : Array[String]
+  plugin_state : PluginState
+  plugin_manager : PluginManagerState
   control_clipboard : @ir.Control?
   multi_select_mode : Bool
   multi_selected : Array[String]
@@ -1100,6 +1163,21 @@ pub(all) enum Msg {
   HighlightIrPath(Array[Int32])
   HoverIrPath(Array[Int32]?)
   RestoreCodeDraft
+  PluginsScanned(Array[@plugin_contract.PluginLoadResult])
+  PluginAction(String, String, String, String)
+  PluginPanelSpec(String, String, String)
+  PluginsLoadRequested
+  PluginPanelRequest(String, String)
+  PluginReloadTick
+  PluginManagerOpen
+  PluginManagerClose
+  PluginManagerSelect(String)
+  PluginInstallRequested(String)
+  PluginSourcePicked(@services.ServiceTaskResult[String])
+  PluginInstalled(Result[String, String])
+  PluginUninstallRequested(String)
+  PluginUninstallRun(String)
+  PluginUninstalled(Result[String, String])
 }
 
 pub(all) struct NewProjectDraft {
@@ -1116,6 +1194,64 @@ pub(all) struct PaneHeadLayout {
   title_width : Double
   subtitle_width : Double
   tail_width : Double
+}
+
+pub(all) struct PluginManagerState {
+  open : Bool
+  selected : String
+  busy : String
+  notice : String
+  notice_is_error : Bool
+}
+pub fn PluginManagerState::clear_notice(Self) -> Self
+pub fn PluginManagerState::close_manager(Self) -> Self
+pub fn PluginManagerState::is_busy(Self) -> Bool
+pub fn PluginManagerState::is_busy_with(Self, String) -> Bool
+pub fn PluginManagerState::new() -> Self
+pub fn PluginManagerState::open_manager(Self) -> Self
+pub fn PluginManagerState::select(Self, String) -> Self
+pub fn PluginManagerState::set_busy(Self, String) -> Self
+pub fn PluginManagerState::set_notice(Self, String, Bool) -> Self
+
+pub(all) struct PluginRegistry {
+  by_plugin : Map[String, @plugin_contract.PluginContributions]
+  panels : Map[String, Map[String, String]]
+  commands : Map[String, Map[String, String]]
+}
+pub fn PluginRegistry::new() -> Self
+
+pub(all) struct PluginState {
+  descriptors : Array[@plugin_contract.PluginDescriptor]
+  contributions : PluginRegistry
+  errors : Map[String, String]
+  available : Bool
+  panel_specs : Map[String, String]
+  panel_requested : Map[String, Bool]
+  install_available : Bool
+  plugins_root : String
+}
+pub fn PluginState::apply_load_results(Self, Array[@plugin_contract.PluginLoadResult]) -> Self
+pub fn PluginState::failure_reason(Self, String) -> String?
+pub fn PluginState::failures(Self) -> Array[(String, String)]
+pub fn PluginState::has_panel_spec(Self, String, String) -> Bool
+pub fn PluginState::is_enabled(Self, String, Array[String]) -> Bool
+pub fn PluginState::is_load_complete(Self) -> Bool
+pub fn PluginState::is_panel_requested(Self, String, String) -> Bool
+pub fn PluginState::loaded_ids(Self) -> Array[String]
+pub fn PluginState::mark_panel_requested(Self, String, String) -> Self
+pub fn PluginState::new() -> Self
+pub fn PluginState::panel_spec(Self, String, String) -> String?
+pub fn PluginState::plugin_commands(Self, String) -> Array[(String, String)]
+pub fn PluginState::plugin_panels(Self, String) -> Array[(String, String)]
+pub fn PluginState::set_available(Self, Bool) -> Self
+pub fn PluginState::set_install_capability(Self, Bool, String) -> Self
+pub fn PluginState::set_panel_spec(Self, String, String, String) -> Self
+
+pub(all) struct PluginViewContext {
+  plugin_id : String
+  panel_id : String
+  on_action : (String, String) -> Msg
+  button_key : (String) -> String
 }
 
 pub(all) enum PreviewMode {
@@ -1292,6 +1428,10 @@ pub(all) struct WatchRow {
   type_label : String
 }
 
+pub(all) struct WebPluginSnapshot {
+  contributions : Map[String, String]
+}
+
 pub(all) enum WorkSpace {
   WsVisual
   WsCode
@@ -1345,6 +1485,12 @@ pub type RuntimeSnapshotFn = () -> RuntimeInspectSample?
 pub using @run {type SemanticHitNode}
 
 pub using @run {type SemanticPatchRequest}
+
+pub type WebPluginProvider = () -> Map[String, String]
+
+pub type WebPluginReadyNotifier = () -> Unit
+
+pub type WebPluginReloadTrigger = () -> Int32
 
 pub using @wzzc-dev/moui_studio/plugins/project {type WorkspaceRecord}
 

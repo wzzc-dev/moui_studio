@@ -636,6 +636,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("What does this script do?"),
       ),
       ("app.bottom.collapse", GeneratedI18nMessage::Text("Collapse bottom bar")),
+      ("app.bottom.plugins", GeneratedI18nMessage::Text("Plugins")),
       ("app.bottom.problems", GeneratedI18nMessage::Text("Problems")),
       ("app.bottom.terminal", GeneratedI18nMessage::Text("Terminal")),
       (
@@ -1077,6 +1078,19 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.perspective.blocks", GeneratedI18nMessage::Text("Blocks workbench")),
       ("app.perspective.design", GeneratedI18nMessage::Text("Design workbench")),
       ("app.perspective.visual", GeneratedI18nMessage::Text("Visual editing")),
+      (
+        "app.plugin.panel.empty",
+        GeneratedI18nMessage::Text("No plugin panel to show."),
+      ),
+      (
+        "app.plugin.panel.invalid",
+        GeneratedI18nMessage::Text("Invalid plugin view protocol."),
+      ),
+      (
+        "app.plugin.panel.pending",
+        GeneratedI18nMessage::Text("Loading plugin view…"),
+      ),
+      ("app.plugin.panel.title", GeneratedI18nMessage::Text("Plugin Panels")),
       (
         "app.plugin.static_note",
         GeneratedI18nMessage::Text(
@@ -2085,6 +2099,71 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
           "Live web preview needs the local static server and webview controller (native entry); unavailable right now",
         ),
       ),
+      (
+        "app.plugin.wasm.empty",
+        GeneratedI18nMessage::Text("No WASM plugins loaded."),
+      ),
+      ("app.plugin.wasm.failed", GeneratedI18nMessage::Text("Failed to load: ")),
+      (
+        "app.settings.group.wasm_plugins",
+        GeneratedI18nMessage::Text("WASM Plugins"),
+      ),
+      ("app.plugin.manager.title", GeneratedI18nMessage::Text("Plugin Manager")),
+      ("app.plugin.manager.close", GeneratedI18nMessage::Text("Close")),
+      (
+        "app.plugin.manager.install",
+        GeneratedI18nMessage::Text("Install plugin"),
+      ),
+      (
+        "app.plugin.manager.install_hint",
+        GeneratedI18nMessage::Text(
+          "Pick a plugin directory (it must contain plugin.json)",
+        ),
+      ),
+      (
+        "app.plugin.manager.install_unavailable",
+        GeneratedI18nMessage::Text(
+          "This platform cannot install plugins (the browser has no file system).",
+        ),
+      ),
+      ("app.plugin.manager.uninstall", GeneratedI18nMessage::Text("Uninstall")),
+      (
+        "app.plugin.manager.empty",
+        GeneratedI18nMessage::Text("No plugins installed."),
+      ),
+      (
+        "app.plugin.manager.root",
+        GeneratedI18nMessage::Text("Plugin directory:"),
+      ),
+      ("app.plugin.manager.detail", GeneratedI18nMessage::Text("Details")),
+      (
+        "app.plugin.manager.capabilities",
+        GeneratedI18nMessage::Text("Capabilities:"),
+      ),
+      (
+        "app.plugin.manager.no_capabilities",
+        GeneratedI18nMessage::Text("(none)"),
+      ),
+      ("app.plugin.manager.panels", GeneratedI18nMessage::Text("Panels:")),
+      ("app.plugin.manager.commands", GeneratedI18nMessage::Text("Commands:")),
+      ("app.plugin.manager.abi", GeneratedI18nMessage::Text("ABI:")),
+      (
+        "app.plugin.manager.pick_source",
+        GeneratedI18nMessage::Text("Select plugin directory"),
+      ),
+      (
+        "app.plugin.manager.open_hint",
+        GeneratedI18nMessage::Text(
+          "管理已安装的插件（安装 / 卸载 / 详情）",
+        ),
+      ),
+      (
+        "app.confirm.uninstall_plugin",
+        GeneratedI18nMessage::Text(
+          "卸载插件 {a}？其目录将被删除。",
+        ),
+      ),
+      ("app.command.group.plugin", GeneratedI18nMessage::Text("插件")),
     ],
   },
   {
@@ -2695,6 +2774,7 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
         GeneratedI18nMessage::Text("这段逻辑是做什么的？"),
       ),
       ("app.bottom.collapse", GeneratedI18nMessage::Text("收起底栏")),
+      ("app.bottom.plugins", GeneratedI18nMessage::Text("插件")),
       ("app.bottom.problems", GeneratedI18nMessage::Text("问题")),
       ("app.bottom.terminal", GeneratedI18nMessage::Text("终端")),
       (
@@ -3120,6 +3200,19 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
       ("app.perspective.blocks", GeneratedI18nMessage::Text("积木工作台")),
       ("app.perspective.design", GeneratedI18nMessage::Text("设计工作台")),
       ("app.perspective.visual", GeneratedI18nMessage::Text("图形化编辑")),
+      (
+        "app.plugin.panel.empty",
+        GeneratedI18nMessage::Text("没有可显示的插件面板。"),
+      ),
+      (
+        "app.plugin.panel.invalid",
+        GeneratedI18nMessage::Text("插件视图协议非法。"),
+      ),
+      (
+        "app.plugin.panel.pending",
+        GeneratedI18nMessage::Text("插件视图加载中…"),
+      ),
+      ("app.plugin.panel.title", GeneratedI18nMessage::Text("插件面板")),
       (
         "app.plugin.static_note",
         GeneratedI18nMessage::Text(
@@ -4097,6 +4190,65 @@ pub let generated_i18n_catalogs : Array[GeneratedI18nCatalog] = [
           "Web 实时预览需要本机静态服务与 webview 控制器（native 入口）；当前不可用",
         ),
       ),
+      (
+        "app.plugin.wasm.empty",
+        GeneratedI18nMessage::Text("没有已加载的 WASM 插件。"),
+      ),
+      ("app.plugin.wasm.failed", GeneratedI18nMessage::Text("加载失败：")),
+      (
+        "app.settings.group.wasm_plugins",
+        GeneratedI18nMessage::Text("WASM 插件"),
+      ),
+      ("app.plugin.manager.title", GeneratedI18nMessage::Text("插件管理")),
+      ("app.plugin.manager.close", GeneratedI18nMessage::Text("关闭")),
+      ("app.plugin.manager.install", GeneratedI18nMessage::Text("安装插件")),
+      (
+        "app.plugin.manager.install_hint",
+        GeneratedI18nMessage::Text(
+          "选择一个插件目录（须含 plugin.json）",
+        ),
+      ),
+      (
+        "app.plugin.manager.install_unavailable",
+        GeneratedI18nMessage::Text(
+          "本端不支持安装插件（浏览器没有文件系统）。",
+        ),
+      ),
+      ("app.plugin.manager.uninstall", GeneratedI18nMessage::Text("卸载")),
+      (
+        "app.plugin.manager.empty",
+        GeneratedI18nMessage::Text("没有已安装的插件。"),
+      ),
+      ("app.plugin.manager.root", GeneratedI18nMessage::Text("插件目录：")),
+      ("app.plugin.manager.detail", GeneratedI18nMessage::Text("详情")),
+      (
+        "app.plugin.manager.capabilities",
+        GeneratedI18nMessage::Text("能力："),
+      ),
+      (
+        "app.plugin.manager.no_capabilities",
+        GeneratedI18nMessage::Text("（无）"),
+      ),
+      ("app.plugin.manager.panels", GeneratedI18nMessage::Text("面板：")),
+      ("app.plugin.manager.commands", GeneratedI18nMessage::Text("命令：")),
+      ("app.plugin.manager.abi", GeneratedI18nMessage::Text("ABI：")),
+      (
+        "app.plugin.manager.pick_source",
+        GeneratedI18nMessage::Text("选择插件目录"),
+      ),
+      (
+        "app.plugin.manager.open_hint",
+        GeneratedI18nMessage::Text(
+          "管理已安装的插件（安装 / 卸载 / 详情）",
+        ),
+      ),
+      (
+        "app.confirm.uninstall_plugin",
+        GeneratedI18nMessage::Text(
+          "卸载插件 {a}？其目录将被删除。",
+        ),
+      ),
+      ("app.command.group.plugin", GeneratedI18nMessage::Text("插件")),
     ],
   },
 ]

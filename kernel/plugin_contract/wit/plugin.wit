@@ -1,0 +1,12 @@
+package moui:plugin@0.1.0;
+
+interface plugin {
+  /// 贡献描述 JSON。
+  describe: func() -> string;
+  /// 处理请求 JSON，返回响应 JSON。
+  call: func(request: string) -> string;
+}
+
+world plugin-world {
+  export plugin;
+}

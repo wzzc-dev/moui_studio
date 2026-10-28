@@ -10,6 +10,7 @@ import {
   "wzzc-dev/moui_agent_mcp/stdio" @mcp_stdio,
   "wzzc-dev/moui_studio/app" @studio_app,
   "wzzc-dev/moui_studio/kernel",
+  "wzzc-dev/moui_studio/services/plugin_runtime",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
   "moonbitlang/async/raw_fd",

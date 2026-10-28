@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moui/plugin-component-fixture/cabi"
+
+// Values
+pub fn cabi_lift_string(Int32, Int32) -> String
+
+pub fn cabi_lower_string(String) -> (Int32, Int32)
+
+pub fn cabi_realloc(Int32, Int32, Int32, Int32) -> Int32
+
+pub fn load32(Int32) -> Int32
+
+pub fn store32(Int32, Int32) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

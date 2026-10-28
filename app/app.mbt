@@ -125,6 +125,7 @@ pub fn update_with_services(
   msg : Msg,
   services : @services.AppServices,
   pty~ : @kernel.PtyService[Msg] = @kernel.PtyService::unavailable(),
+  plugin_bridge~ : @plugin_contract.PluginBridge = @plugin_contract.PluginBridge::unavailable(),
 ) -> (Model, @moui.Effect[Msg]) {
   match msg {
     // 终端（M5）：PTY 输出增量喂屏；派生回执挂句柄；输入行经服务写出；
@@ -337,6 +338,166 @@ pub fn update_with_services(
         }
         Failure(_) | Cancelled => (model, @moui.Effect::none())
       }
+    // === WASM 插件系统（M8）===
+    // 请求加载插件：经 Effect::dispatch 在**后台 worker**上跑（插件是
+    // 不受信任的代码，绝不能在 UI 线程同步执行）——回执经
+    // PluginsScanned 送回 update。
+    PluginsLoadRequested =>
+      if plugin_bridge.is_available() {
+        (
+          model,
+          @moui.Effect::dispatch(fn(emit) {
+            (plugin_bridge.load)(fn(results) { emit(PluginsScanned(results)) })
+          }),
+        )
+      } else {
+        (model, @moui.Effect::none())
+      }
+    // 扫描/加载回执：写进状态切片。坏插件不阻断好插件（切片逐条处理）。
+    PluginsScanned(results) =>
+      (
+        apply_plugin_scan(model, results, plugin_bridge.is_available()),
+        @moui.Effect::none(),
+      )
+    // 插件面板视图协议到达：缓存起来，下次渲染取。
+    PluginPanelSpec(plugin_id, panel_id, spec) =>
+      (
+        apply_plugin_panel_spec(model, plugin_id, panel_id, spec),
+        @moui.Effect::none(),
+      )
+    // 请求某个插件面板的视图：经 Effect::dispatch 在 worker 上跑插件
+    // （插件是不受信任的代码，绝不在 UI 线程同步执行）。回执经
+    // PluginPanelSpec 回来 → 缓存 → 重绘。
+    PluginPanelRequest(plugin_id, panel_id) =>
+      (
+        model,
+        @moui.Effect::dispatch(fn(emit) {
+          let request = plugin_view_request(plugin_id, panel_id, "")
+          (plugin_bridge.call)(plugin_id, request, fn(result) {
+            match result {
+              Ok(response) =>
+                emit(PluginPanelSpec(plugin_id, panel_id, response))
+              Err(_) => emit(Msg::Noop)
+            }
+          })
+        }),
+      )
+    // 插件加载重试节拍：web 端插件实例化是异步的，首次加载可能看到
+    // 空列表——收到节拍就重新查一次（就绪后自然停止）。
+    PluginReloadTick =>
+      if plugin_bridge.is_available() {
+        (
+          model,
+          @moui.Effect::dispatch(fn(emit) {
+            (plugin_bridge.load)(fn(results) { emit(PluginsScanned(results)) })
+          }),
+        )
+      } else {
+        (model, @moui.Effect::none())
+      }
+    // === 插件管理面板 ===
+    // 纯状态消息（开/关/选中）在**纯转移链**里处理（见 `update.mbt` 的
+    // `update_shell_msgs`）——它们要能被命令面板的 `Apply` 路径接到
+    // （`run_studio_command` 的 Apply 分支走 `update_pure`，服务层的臂
+    // 接不到 → 消息被静默丢弃 → 命令面板入口点了没反应，实测）。
+    //
+    // 这里只留**要碰文件系统**的：安装（选目录 + 复制）与卸载（删目录）。
+    // 请求安装插件：先弹目录选择框（用户挑一份插件目录）。
+    //
+    // **本端不支持安装时不弹框**（浏览器没有文件系统）——直接说清楚，
+    // 不给一个必然失败的流程。
+    PluginInstallRequested(_) =>
+      if !plugin_bridge.can_install {
+        (
+          apply_plugin_manager_notice(
+            model, "本端不支持安装插件（浏览器没有文件系统）",
+            true,
+          ),
+          @moui.Effect::none(),
+        )
+      } else {
+        let options = @services.FileDialogOptions::new(
+          title=text(translator(model), "app.plugin.manager.pick_source"),
+        )
+        (
+          model,
+          services
+          .files()
+          .pick_directory(options~)
+          .effect(map=r => PluginSourcePicked(r)),
+        )
+      }
+    // 源目录选定：取消 = 不报错；失败 = 说清原因；成功 = 发起安装。
+    PluginSourcePicked(result) =>
+      match result {
+        Success(source_dir) => {
+          let busy = apply_plugin_manager_busy(model, source_dir)
+          (
+            busy,
+            @moui.Effect::dispatch(fn(emit) {
+              (plugin_bridge.install)(source_dir, fn(result) {
+                emit(PluginInstalled(result))
+              })
+            }),
+          )
+        }
+        Failure(error) =>
+          (
+            apply_plugin_manager_notice(
+              model,
+              "选择插件目录失败：\{error.message}",
+              true,
+            ),
+            @moui.Effect::none(),
+          )
+        Cancelled => (model, @moui.Effect::none())
+      }
+    // 安装回执：写状态 + 重扫（新插件要立刻出现在列表里）。
+    PluginInstalled(result) => apply_plugin_installed(model, result)
+    // 卸载回执：写状态 + 重扫（被卸的插件要从列表里消失）。
+    PluginUninstalled(result) => apply_plugin_uninstalled(model, result)
+    // 卸载续行（确认卡放行后）：真正去服务层删目录。
+    //
+    // **不在 UI 线程做 I/O**（删目录可能很大）——经 Effect::dispatch
+    // 走 worker，回执经 PluginUninstalled 回来。
+    PluginUninstallRun(plugin_id) =>
+      if !plugin_bridge.can_install {
+        (
+          apply_plugin_manager_notice(
+            model, "本端不支持卸载插件（浏览器没有文件系统）",
+            true,
+          ),
+          @moui.Effect::none(),
+        )
+      } else {
+        let busy = apply_plugin_manager_busy(model, plugin_id)
+        (
+          busy,
+          @moui.Effect::dispatch(fn(emit) {
+            (plugin_bridge.remove)(plugin_id, fn(result) {
+              emit(PluginUninstalled(result))
+            })
+          }),
+        )
+      }
+    // 插件动作：经 Effect::dispatch 回问插件（插件调用在服务层跑，
+    // 不在 update 里同步执行——UI 线程不阻塞，状态只在 update 里变）。
+    PluginAction(plugin_id, panel_id, action_id, payload) =>
+      (
+        model,
+        @moui.Effect::dispatch(fn(emit) {
+          let request = plugin_action_request(plugin_id, action_id, payload)
+          (plugin_bridge.call)(plugin_id, request, fn(result) {
+            match result {
+              // 回执带 panel_id：插件处理动作后回的是**新视图**，宿主据此
+              // 更新对应面板的缓存（否则新视图进不了缓存，界面不重绘）。
+              Ok(response) =>
+                emit(PluginPanelSpec(plugin_id, panel_id, response))
+              Err(_) => emit(Msg::Noop)
+            }
+          })
+        }),
+      )
     // 外观切换（G7.4）：翻转 + 持久化;Ref 同步在程序级 update 每条消息后做
     ToggleUiDark =>
       (
@@ -1948,9 +2109,38 @@ fn run_subscription(
       source.subscription(interval_ms=1000.0, map=_frame => ClockUpdated(f()))
     _ => @moui.Subscription::none()
   }
+  // 插件加载重试订阅（web 端）：浏览器实例化插件是异步的，首次加载可能
+  // 看到空列表。插件就绪前每 300ms 重查一次；就绪后订阅自动停（条件
+  // 不再满足 → 不再派生）。
+  // 判据**不**看 `available`：web 端首轮加载可能看到空列表，而
+  // `available` 要等 `PluginsScanned` 回来才置真——若拿它当条件，
+  // 首轮空结果就把订阅挡在门外，永远不会重试。故只认「有没有插件描述」。
+  let plugin_reload_subscription = match timer {
+    Some(source) =>
+      if !plugin_load_complete(model) {
+        // **必须给唯一的 key**：`TimerSource::subscription` 的默认 key 是
+        // "app:timer"，与运行/时钟/toast 订阅相同 → runtime 按 key 去重，
+        // 同 key 的订阅只有一个生效（这里被运行订阅顶掉了，故重试从不发）。
+        source.subscription(
+          interval_ms=300.0,
+          map=_frame => PluginReloadTick,
+          key="app:plugin-reload",
+          label="Plugin reload",
+        )
+      } else {
+        @moui.Subscription::none()
+      }
+    None => @moui.Subscription::none()
+  }
   @moui.Subscription::batch([
-    run_subscription_plan, toast_subscription, clock_subscription,
+    run_subscription_plan, toast_subscription, clock_subscription, plugin_reload_subscription,
   ])
+}
+
+///|
+/// 插件加载是否已完成（宿主侧的便捷判据）。
+fn plugin_load_complete(model : Model) -> Bool {
+  model.plugin_state.is_load_complete()
 }
 
 ///|
@@ -1996,6 +2186,10 @@ pub fn program(
   /// `runtime.anchor_frame` 包成回调注入（与 `runtime_snapshot` 同一
   /// 先例）。缺省恒 None = 调色板拖拽落不下来（headless/测试入口）。
   canvas_frame~ : (String) -> @core.Rect? = _key => None,
+  /// WASM 插件运行时门面（M8）：组合根注入真实后端（native = wasmoon
+  /// 宿主；web = 浏览器 wasm 宿主）。缺省 = 不可用 → UI 不显示插件入口
+  /// （与 `ai_available=false` 同款纪律）。
+  plugin_bridge~ : @plugin_contract.PluginBridge = @plugin_contract.PluginBridge::unavailable(),
 ) -> @moui.Program[Model, Msg] {
   let services = environment.services()
   let timer = environment.timer()
@@ -2008,6 +2202,8 @@ pub fn program(
   let web_controls = preview_web
   let on_locale = apply_locale
   let wall = wall_clock
+  // 插件运行时门面（M8）：组合根注入的真实后端；不可用时 UI 不显示插件入口。
+  let plugins = plugin_bridge
 
   // 预览 web 控制注入(M2-2):槽位供视图与处理器读取
   install_preview_web(webview_controller, Some(preview_web))
@@ -2093,6 +2289,10 @@ pub fn program(
         pty_available=pty.available && !(profile is Teaching),
         profile~,
         ai_available~,
+        // 插件的装卸能力与插件根目录：组合根从运行时门面抄来
+        // （渲染层只有 model，拿不到 plugin_bridge）。
+        plugin_install_available=plugin_bridge.can_install,
+        plugins_root=plugin_bridge.plugins_root,
       )
       // 组合根注入了墙钟就用真实时刻播种 Model.clock（常数钟只兜底）
       let model = match wall {
@@ -2139,6 +2339,10 @@ pub fn program(
           .effect(map=result => UiDarkLoaded(result)),
           load_effect,
           projects_load_effect,
+          // WASM 插件系统(M8):启动时请求加载插件。本端没有插件运行时
+          // (web 入口 / 教学版 profile)时这条效果不做事——UI 侧按
+          // 「能力缺席就不留空页」纪律不显示插件页签。
+          @moui.Effect::send(PluginsLoadRequested),
         ]),
       )
     },
@@ -2287,7 +2491,13 @@ pub fn program(
           // 是严格超集）：导入工程/表单设计器/语义补丁等服务消息只有这
           // 一层接得住——此前默认臂直通 update_pure，导入按钮点了没反应
           //（服务消息被静默丢弃，实测缺陷）。
-          let (next, effect) = update_with_services(model, msg, services, pty~)
+          let (next, effect) = update_with_services(
+            model,
+            msg,
+            services,
+            pty~,
+            plugin_bridge=plugins,
+          )
           // 运行时检查器挂载：只有「打开 Runtime 页签 / 显式刷新」两条
           // 路径会真正采样（O(节点数) 的全树遍历），其余消息零开销通过。
           // effect 必须与原 effect 合并——确认卡的打开续行（CkOpen 的
@@ -2327,10 +2537,35 @@ pub fn program(
       } else {
         @moui.Effect::none()
       }
+      // 插件面板视图派生（M8）：插件加载完 / 切到插件页签后，对**还没拿到
+      // 视图的面**发起一次请求。
+      //
+      // 两个守卫缺一不可：
+      // 1. 「还没拿到」——有缓存就不重复要；
+      // 2. 「还没请求过」——同一个面每次重渲都会走到这里，没有它就会把
+      //    worker 队列打满。
+      //
+      // 请求走 `PluginPanelRequest` 消息（在 update 臂里发 effect），**不**
+      // 在这里直接调插件——插件是不受信任的代码，只能在 worker 上跑。
+      let panels_to_request = panels_needing_view(next0)
+      let next1 = if panels_to_request.is_empty() {
+        next0
+      } else {
+        mark_panels_requested(next0, panels_to_request)
+      }
+      let plugin_view_effect = if panels_to_request.is_empty() {
+        @moui.Effect::none()
+      } else {
+        @moui.Effect::batch(
+          panels_to_request.map(fn(entry) {
+            @moui.Effect::send(PluginPanelRequest(entry.0, entry.1))
+          }),
+        )
+      }
       // 事件出口排空（M1 内核化）：本趟 update 发出的全部事实经事件总线
       // 翻译为后续消息（副作用在那些消息的臂里经 svc 执行）。取代旧的
       // preview_web diff / build busy 上升 / code_project flag 三个消费点。
-      let events_effect = @kernel.fire_events(next0.outbox, bus)
+      let events_effect = @kernel.fire_events(next1.outbox, bus)
       let compile_effect = if compile_submit_needed(model, next0) {
         let json = @codec.encode_program(next0.program)
         let name = sanitize_export_name(next0)
@@ -2353,18 +2588,18 @@ pub fn program(
       // 集中脏标记 + 草稿自动保存：程序编码偏离基线即标脏（标题旁 ●）；
       // 内容相对上次草稿有变化才写 settings，运行期 30fps 的 RunTick
       // 不改程序，不会反复写。
-      let encoding = @codec.encode_program(next0.program)
-      let dirty = encoding != next0.saved_encoding
-      let should_write = dirty && encoding != next0.draft_encoding
+      let encoding = @codec.encode_program(next1.program)
+      let dirty = encoding != next1.saved_encoding
+      let should_write = dirty && encoding != next1.draft_encoding
       let next = {
-        ..next0,
+        ..next1,
         // 事件已排空：outbox 归零（与旧 flag 的「消费即清位」同语义）
         outbox: [],
         dirty,
         draft_encoding: if should_write {
           encoding
         } else {
-          next0.draft_encoding
+          next1.draft_encoding
         },
       }
       let effect = if should_write {
@@ -2374,6 +2609,7 @@ pub fn program(
           compile_effect,
           terminal_spawn_effect,
           terminal_focus_effect,
+          plugin_view_effect,
           services
           .settings()
           .write(DRAFT_SETTINGS_KEY, encoding)
@@ -2382,6 +2618,7 @@ pub fn program(
       } else {
         @moui.Effect::batch([
           effect0, events_effect, compile_effect, terminal_spawn_effect, terminal_focus_effect,
+          plugin_view_effect,
         ])
       }
       (next, effect)

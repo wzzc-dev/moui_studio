@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moui/plugin-component-fixture/impl"
+
+// Values
+pub fn cabi_realloc(Int32, Int32, Int32, Int32) -> Int32
+
+pub fn wasmExportCall(Int32, Int32) -> Int32
+
+pub fn wasmExportCallPostReturn(Int32) -> Unit
+
+pub fn wasmExportDescribe() -> Int32
+
+pub fn wasmExportDescribePostReturn(Int32) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

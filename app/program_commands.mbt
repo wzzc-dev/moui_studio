@@ -9,6 +9,31 @@
 /// `KeyboardShortcut::matches` 对修饰键做精确相等比较，双注册是既定口径
 /// （与顶栏按钮上的撤销/重做一致）。命令面板（Cmd/Ctrl+K）仍留在顶栏
 /// 按钮上，避免同一快捷键双触发。
+
+///|
+/// 「重载插件列表」的命令（供 web 端从 wasm 外部驱动 app update）。
+///
+/// **为什么需要它**：web 端插件就绪后，宿主必须重新加载插件列表并更新
+/// model。wasm 的 import 是单向的，JS 无法直接驱动 app 的 update；宿主
+/// 侧的定时器重试也救不了（静止时浏览器事件循环不派发定时器）。
+///
+/// 故走「宿主导出函数 → `AppRuntime::dispatch_action_command` → 本命令
+/// → `dispatch(消息)`」这条**同步**路径：它直接调 runtime 的 dispatch
+/// 闭包，不依赖 rAF。
+///
+/// **命令本身必须稳定**：`dispatch_action_command` 按 `Eq` 比对整个
+/// `ActionCommand`（含 label / group / shortcut），故这里**不用 i18n
+/// 文案**（会随语言变，导致匹配不上），用固定字符串。
+pub fn plugin_reload_command() -> @core.ActionCommand {
+  @core.ActionCommand::new(
+    intent=@core.Activate,
+    label="Reload plugins",
+    group="Studio",
+    description="Reload the WASM plugin list.",
+  )
+}
+
+///|
 pub fn studio_program_commands(
   model : Model,
 ) -> Array[@moui.ProgramCommand[Msg]] {
@@ -305,6 +330,16 @@ pub fn studio_program_commands(
     Activate,
     model.ai_ui.session_rename is Some(_),
     AiUiOp(@ai.ClearRename),
+  )
+  // 「重载插件列表」：**无快捷键**的程序级命令（web 端从 wasm 外部驱动
+  // app update 的唯一入口——见 `plugin_reload_command` 的说明）。
+  // 不用 `bind`（它强制绑快捷键 + i18n label），这里直接 push 一个
+  // **固定**的 command（`Eq` 匹配需要稳定性）。
+  commands.push(
+    @moui.ProgramCommand::new(
+      command=plugin_reload_command(),
+      message=PluginsLoadRequested,
+    ),
   )
   commands
 }

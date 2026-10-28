@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/services/plugin_runtime_web"
+
+import {
+  "wzzc-dev/moui_studio/kernel/plugin_contract",
+}
+
+// Values
+pub fn plugin_bridge_for(PluginRuntimeWeb) -> @plugin_contract.PluginBridge
+
+pub fn string_from_js(WebString) -> String
+
+pub fn string_to_js(String) -> WebString
+
+pub fn web_plugin_ids() -> Array[String]
+
+// Errors
+
+// Types and methods
+pub(all) struct PluginRuntimeWeb {
+  plugin_ids : Array[String]
+}
+pub fn PluginRuntimeWeb::call(Self, String, String) -> Result[String, String]
+pub fn PluginRuntimeWeb::contributions_of(Self, String) -> Result[@plugin_contract.PluginContributions, String]
+pub fn PluginRuntimeWeb::is_ready(Self, String) -> Bool
+pub fn PluginRuntimeWeb::new(plugin_ids~ : Array[String]) -> Self
+
+#external
+pub type WebString
+
+// Type aliases
+
+// Traits

@@ -1,9 +1,12 @@
 import {
   "wzzc-dev/moui/backend/web",
+  "wzzc-dev/moui/core",
   "wzzc-dev/moui_web_renderer" @webgpu_adapter,
   "wzzc-dev/moui/runtime",
   "wzzc-dev/moui_devtools" @devtools,
   "wzzc-dev/moui_studio/app" @studio_app,
+  "wzzc-dev/moui_studio/services/plugin_runtime_web",
+  "wzzc-dev/moui_studio/kernel/plugin_contract",
 }
 
 supported_targets = "wasm-gc"
@@ -20,6 +23,9 @@ options(
         "web_dispatch_route",
         "web_complete_async_clipboard_read",
         "web_complete_async_file_dialog",
+        "studio_push_contributions",
+        "studio_plugins_changed",
+        "studio_reload_plugins",
       ],
     },
   },

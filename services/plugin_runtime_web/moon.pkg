@@ -1,0 +1,10 @@
+import {
+  "wzzc-dev/moui_studio/kernel/plugin_contract",
+  "moonbitlang/core/json",
+}
+
+supported_targets = "wasm-gc"
+
+options(
+  targets: { },
+)

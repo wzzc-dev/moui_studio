@@ -160,6 +160,17 @@ pub fn settings_dialog(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
       height=16.0,
       align=TextStart,
     ).foreground(@chrome.ide_text_faint()),
+    // WASM 插件（M8）：**运行时加载**的一组，与上面的静态装配插件分开
+    // 呈现——启停语义相同（同一个 plugin_disabled），但要说的话不同
+    // （有版本/职责，且加载失败要报原因）。本端没有插件运行时时整组
+    // 不出现（能力缺席就不留空页）。
+    group_label(t, "app.settings.group.wasm_plugins"),
+    wasm_plugin_section(model, t),
+    // 插件管理面板入口：**独立模态对话框**（装/卸/详情都在里面）。
+    // 设置面板只给入口——管理是「操作」，不该挤在「配置」里。
+    //
+    // 本端没有插件运行时时整组不出现（能力缺席就不留空页）。
+    plugin_manager_entry(model, t),
     group_label(t, "app.settings.group.provider"),
     field_label(t, "app.ai.endpoint", 392.0),
     @views.text_field(
@@ -254,6 +265,36 @@ fn mask_key(key : String) -> String {
   } else {
     "••••••••••••"
   }
+}
+
+///|
+/// 插件管理面板入口（设置面板里的按钮）。
+///
+/// 本端没有插件运行时 → **整行不出现**（能力缺席就不留空页）。
+fn plugin_manager_entry(model : Model, t : @i18n.Translator) -> @moui.View[Msg] {
+  if !model.plugin_state.available {
+    return @views.empty()
+  }
+  @views.row(
+    [
+      @views.button(
+        text(t, "app.plugin.manager.title"),
+        on_click=PluginManagerOpen,
+        variant=@style.Outline,
+        width=124.0,
+        height=28.0,
+      ),
+      @views.text(
+        text(t, "app.plugin.manager.open_hint"),
+        theme=@chrome.studio_theme(),
+        width=252.0,
+        height=28.0,
+        align=TextStart,
+      ).foreground(@chrome.ide_text_faint()),
+    ],
+    spacing=8.0,
+    align=Center,
+  )
 }
 
 ///|
@@ -816,6 +857,20 @@ fn studio_command_registry() -> Array[@wb.CommandContribution[StudioCtx, Msg]] {
       AiUiOp(@ai.ToggleSettings),
     ),
     cmd("studio.lang.switch", "app.command.lang.switch", file, SwitchLanguage),
+    // 插件管理面板（独立模态）：**命令面板入口**。
+    //
+    // 为什么必须有命令入口：设置面板里也放了一个入口，但设置面板内容
+    // 超长，插件那一组在**滚动区下方**——web 端实测点不到（语义节点
+    // 落在视口外，点击落空）。命令面板不受滚动影响，是可靠入口。
+    //
+    // **放在表末**：命令表的下标被回归测试逐条钉住（`commands[21]` 等），
+    // 插在中间会打乱一串断言。末尾追加只影响最后一条。
+    cmd(
+      "studio.plugin.manager",
+      "app.plugin.manager.title",
+      "app.command.group.plugin",
+      PluginManagerOpen,
+    ),
   ]
 }
 

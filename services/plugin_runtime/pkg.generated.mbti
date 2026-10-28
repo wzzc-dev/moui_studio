@@ -1,0 +1,215 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/services/plugin_runtime"
+
+import {
+  "Milky2018/wasm_core/validator",
+  "Milky2018/wasmoon/component",
+  "Milky2018/wasmoon_runtime/runtime",
+  "moonbitlang/async/aqueue",
+  "wzzc-dev/moui_studio/kernel/plugin_contract",
+}
+
+// Values
+pub const PLUGIN_ABI_CALL_EXPORT : String = "studio_call"
+
+pub const PLUGIN_ABI_DESCRIBE_EXPORT : String = "studio_describe"
+
+pub const PLUGIN_ABI_LENGTH_EXPORT : String = "studio_last_result_len"
+
+pub const PLUGIN_ABI_REQUEST_OFFSET : Int32 = 1024
+
+pub const PLUGIN_ABI_RESPONSE_OFFSET : Int32 = 0
+
+pub const PLUGIN_ABI_SET_RESPONSE_PTR_EXPORT : String = "studio_set_response_ptr"
+
+pub const PLUGIN_COMPONENT_CALL : String = "moui:plugin/plugin@0.1.0#call"
+
+pub const PLUGIN_COMPONENT_DESCRIBE : String = "moui:plugin/plugin@0.1.0#describe"
+
+pub const PLUGIN_COMPONENT_PACKAGE : String = "moui:plugin/plugin@0.1.0"
+
+pub const PLUGIN_MANIFEST_NAME : String = "plugin.json"
+
+pub const PLUGIN_SCAN_LIMIT : Int32 = 64
+
+pub fn call_component(@component.ComponentInstance, String) -> Result[String, String]
+
+pub fn call_plugin_export(@runtime.Store, @runtime.ModuleInstance, String) -> Result[String, String]
+
+pub fn capability_granted(Array[@plugin_contract.PluginCapability], @plugin_contract.PluginCapability) -> Bool
+
+pub fn describe_component(@component.ComponentInstance) -> Result[String, String]
+
+pub fn describe_manifest_errors(Array[@plugin_contract.PluginManifestError]) -> String
+
+pub fn describe_plugin_export(@runtime.Store, @runtime.ModuleInstance) -> Result[String, String]
+
+pub fn install_plugin(String, String) -> PluginInstallOutcome
+
+pub fn load_component(String, @plugin_contract.PluginManifest, Bytes) -> Result[(@plugin_contract.PluginContributions, LoadedComponent), String] raise
+
+pub fn plugin_bridge_for(PluginOwner, PluginRuntime, HostBridge) -> @plugin_contract.PluginBridge
+
+pub fn plugin_call_and_reply(PluginOwner, String, String, (Result[String, String]) -> Unit) -> Unit
+
+pub fn plugin_load_and_reply(PluginOwner, HostBridge, (Array[@plugin_contract.PluginLoadResult]) -> Unit) -> Unit
+
+pub fn plugin_memory(@runtime.Store, @runtime.ModuleInstance) -> Result[@runtime.Memory, String]
+
+pub fn plugin_submit_call(PluginOwner, String, String, (Result[String, String]) -> Unit) -> Unit
+
+pub fn plugin_submit_install(PluginOwner, String, (Result[String, String]) -> Unit) -> Unit
+
+pub fn plugin_submit_load(PluginOwner, HostBridge, (Array[@plugin_contract.PluginLoadResult]) -> Unit) -> Unit
+
+pub fn plugin_submit_remove(PluginOwner, String, (Result[String, String]) -> Unit) -> Unit
+
+pub fn plugin_submit_unload(PluginOwner, String) -> Unit
+
+pub async fn plugin_worker_loop(PluginOwner, PluginRuntime) -> Unit
+
+pub fn read_guest_bytes(@runtime.Memory, Int32, Int32) -> Result[Bytes, String]
+
+pub fn read_guest_string(@runtime.Memory, Int32, Int32) -> Result[String, String]
+
+pub fn read_plugin_result_length(@runtime.Store, @runtime.ModuleInstance) -> Int32?
+
+pub fn register_host_functions(@runtime.Linker, @plugin_contract.PluginManifest, HostBridge) -> Unit raise
+
+pub fn remove_plugin(String, String) -> PluginRemoveOutcome
+
+pub fn scan_plugins(String) -> PluginScanResult
+
+pub fn set_plugin_response_ptr(@runtime.Store, @runtime.ModuleInstance, @runtime.Memory) -> Result[Unit, String]
+
+pub fn validate_plugin_module(Bytes) -> Result[@validator.ValidatedModule, String]
+
+pub fn write_guest_bytes(@runtime.Memory, Int32, Bytes) -> Result[Unit, String]
+
+pub fn write_guest_string(@runtime.Memory, Int32, String) -> Result[Int32, String]
+
+// Errors
+
+// Types and methods
+pub(all) struct HostBridge {
+  capabilities : HostCapabilities
+  workspace : HostWorkspace?
+  state : HostStateStore
+  dispatch : (String, String) -> Bool
+  emit : (String, String) -> Unit
+  log : (String) -> Unit
+}
+pub fn HostBridge::grants(Self, Array[@plugin_contract.PluginCapability], @plugin_contract.PluginCapability) -> Bool
+pub fn HostBridge::new(capabilities? : HostCapabilities, workspace? : HostWorkspace?, state? : HostStateStore, dispatch? : (String, String) -> Bool, emit? : (String, String) -> Unit, log? : (String) -> Unit) -> Self
+
+pub(all) struct HostCapabilities {
+  allow_log : Bool
+  allow_workspace_read : Bool
+  allow_workspace_write : Bool
+  allow_state_read : Bool
+  allow_actions : Bool
+  allow_events : Bool
+}
+pub fn HostCapabilities::default() -> Self
+pub fn HostCapabilities::trusted() -> Self
+
+pub(all) struct HostStateStore {
+  values : Map[String, String]
+}
+pub fn HostStateStore::new() -> Self
+
+pub(all) struct HostWorkspace {
+  read : (String) -> String?
+  write : (String, String) -> Bool
+}
+
+pub(all) struct LoadedComponent {
+  descriptor : @plugin_contract.PluginDescriptor
+  runtime : @component.ComponentRuntime
+  instance : @component.ComponentInstance
+}
+
+pub(all) enum LoadedPlugin {
+  CoreModule(@plugin_contract.PluginDescriptor, @runtime.Store, @runtime.ModuleInstance)
+  Component(LoadedComponent)
+}
+
+pub(all) struct PluginCandidate {
+  manifest : @plugin_contract.PluginManifest
+  dir : String
+  entry_path : String
+}
+
+pub(all) enum PluginInstallOutcome {
+  Installed(String)
+  Rejected(String)
+}
+
+pub(all) enum PluginJob {
+  Load(host~ : HostBridge, on_result~ : (Array[@plugin_contract.PluginLoadResult]) -> Unit)
+  Call(plugin_id~ : String, request~ : String, on_result~ : (Result[String, String]) -> Unit)
+  Unload(plugin_id~ : String)
+  Install(source_dir~ : String, on_result~ : (Result[String, String]) -> Unit)
+  Remove(plugin_id~ : String, on_result~ : (Result[String, String]) -> Unit)
+  Shutdown
+}
+
+pub(all) struct PluginLimits {
+  memory_bytes : Int64
+  table_elements : Int64
+  gc_bytes : Int64
+  gc_objects : Int64
+  code_bytes : Int64
+  pending_work : Int64
+  input_bytes : Int64
+  compilation_units : Int64
+  call_timeout_ms : Int32
+}
+pub fn PluginLimits::default() -> Self
+pub fn PluginLimits::make_store(Self) -> @runtime.Store?
+
+pub(all) struct PluginOwner {
+  queue : @aqueue.Queue[PluginJob]
+}
+pub fn PluginOwner::new() -> Self
+
+pub(all) enum PluginRemoveOutcome {
+  Removed(String)
+  Rejected(String)
+}
+
+pub(all) struct PluginRuntime {
+  plugins_root : String
+  limits : PluginLimits
+  loaded : Map[String, LoadedPlugin]
+}
+pub fn PluginRuntime::call(Self, String, String) -> Result[String, String]
+pub fn PluginRuntime::descriptors(Self) -> Array[@plugin_contract.PluginDescriptor]
+pub fn PluginRuntime::is_loaded(Self, String) -> Bool
+pub fn PluginRuntime::load_all(Self, HostBridge) -> Array[@plugin_contract.PluginLoadResult] raise
+pub fn PluginRuntime::load_candidate(Self, PluginCandidate, HostBridge) -> @plugin_contract.PluginLoadResult raise
+pub fn PluginRuntime::new(plugins_root~ : String, limits? : PluginLimits) -> Self
+pub fn PluginRuntime::plugins_root(Self) -> String
+pub fn PluginRuntime::unload(Self, String) -> Unit
+pub fn PluginRuntime::unload_all(Self) -> Unit
+
+pub(all) enum PluginScanOutcome {
+  Found(PluginCandidate)
+  Invalid(plugin_id~ : String, reason~ : String)
+  NotAPlugin
+}
+
+pub(all) struct PluginScanResult {
+  candidates : Array[PluginCandidate]
+  invalid : Array[(String, String)]
+  truncated : Bool
+}
+
+// Type aliases
+pub type HostActionDispatch = (String, String) -> Bool
+
+pub type HostEventEmit = (String, String) -> Unit
+
+pub type HostLog = (String) -> Unit
+
+// Traits

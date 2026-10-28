@@ -1,0 +1,18 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x/fs" @x/fs,
+  "wzzc-dev/moui_studio/kernel/plugin_contract",
+  "Milky2018/wasm_core/types",
+  "Milky2018/wasm_core/parser",
+  "Milky2018/wasm_core/validator",
+  "Milky2018/wasmoon_runtime/runtime",
+  "Milky2018/wasmoon_runtime/executor",
+  "Milky2018/wasmoon/component" @component_runtime,
+}
+
+supported_targets = "native"
+
+options(
+  targets: { },
+)

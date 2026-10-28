@@ -215,6 +215,10 @@ pub(all) enum BottomTab {
   BtSearch
   /// 真终端（M5，AI 模式专属页签）
   BtTerminal
+  /// WASM 插件面板（M8）：插件贡献的面在此页签内渲染。
+  /// 与终端页签同一纪律——**插件缺席（未装配运行时 / 没有插件 / 全部禁用）
+  /// 时这个页签不出现**，不留空页。
+  BtPlugins
 }
 
 ///|
@@ -627,6 +631,13 @@ pub(all) struct Model {
   // G7.3 插件管理:禁用清单（静态装配的「启用/禁用」诚实形态——禁用 =
   // 组合根装配时过滤贡献项入口,不是运行时卸载）。id: ai / terminal / markdown
   plugin_disabled : Array[String]
+  // WASM 插件系统（M8）：已加载插件的描述 + 贡献注册 + 失败原因。
+  // 与 plugin_disabled 共用启停语义（同一个持久化键、同一个开关 UI）；
+  // 内置插件 id（ai/terminal/markdown）与 WASM 插件 id 并存，互不迁移。
+  plugin_state : PluginState
+  // 插件管理面板状态（独立模态对话框的显隐/选中/忙碌/回执）。
+  // 与 plugin_state 分开：那边是「插件运行态」，这边是「管理界面态」。
+  plugin_manager : PluginManagerState
   // G7.2 P3e 画布交互:复制剪贴板(会话内) + 多选模式与成员集
   control_clipboard : @ir.Control?
   multi_select_mode : Bool
@@ -1192,6 +1203,48 @@ pub(all) enum Msg {
   // 代码草稿回归 IR 渲染（丢弃手改）——高亮区永远来自 IR 投影，
   // 草稿与 IR 分叉时由用户显式决定放弃哪边
   RestoreCodeDraft
+  // === WASM 插件系统（M8）===
+  // 插件扫描/加载回执（native 与 web 共用同一形状）。
+  PluginsScanned(Array[@plugin_contract.PluginLoadResult])
+  // 插件动作（插件 UI 交互回传）：插件 id + **面板 id** + action id + 载荷。
+  //
+  // **带面板 id 是必需的**：动作处理后插件会回一份**新的视图**，宿主要
+  // 知道它属于哪个面板才能更新缓存（否则新视图进不了缓存，界面不重绘）。
+  // 载荷是字符串（协议层的统一形态），由 update 侧解释。
+  PluginAction(String, String, String, String)
+  // 插件面板视图协议 JSON 到达（插件 id + 面板 id + JSON）
+  PluginPanelSpec(String, String, String)
+  // 请求加载插件（启动时发一次）：加载在 worker 上跑，回执经
+  // PluginsScanned 回来——**不在 update 里同步加载**。
+  PluginsLoadRequested
+  // 请求某个插件面板的视图（按需）：面板首次进入时发起，回执经
+  // PluginPanelSpec 回来。
+  PluginPanelRequest(String, String)
+  // 插件加载重试节拍（web 端用）：浏览器实例化是异步的，插件就绪晚于
+  // 宿主启动；宿主每次收到这个节拍就重新查一次插件列表。就绪即停。
+  PluginReloadTick
+  // === 插件管理面板（独立模态对话框）===
+  // 打开/关闭管理面板。
+  PluginManagerOpen
+  PluginManagerClose
+  // 选中某个插件（详情区）。
+  PluginManagerSelect(String)
+  // 请求安装插件（源目录已由文件对话框选定）。
+  PluginInstallRequested(String)
+  // 源目录选定（文件对话框回执）：载荷 = 目录选择结果（取消 = Cancelled）。
+  PluginSourcePicked(@services.ServiceTaskResult[String])
+  // 安装回执：插件 id（成功）或失败原因。
+  PluginInstalled(Result[String, String])
+  // 请求卸载插件（**破坏性**：先经确认卡，见 ConfirmKind::CkUninstallPlugin）。
+  PluginUninstallRequested(String)
+  // 卸载确认后的**续行消息**：真正去服务层删目录。
+  //
+  // 为什么独立消息：删目录要走服务流（文件 I/O），纯转移链接不住——
+  // 故确认卡放行后派发本消息，由 update_with_services 的臂执行
+  // （同 ProjectFileDeleteRun 的模式）。
+  PluginUninstallRun(String)
+  // 卸载回执：插件 id（成功）或失败原因。
+  PluginUninstalled(Result[String, String])
 }
 
 ///|
@@ -1243,6 +1296,11 @@ pub fn initial_model(
   pty_available~ : Bool = false,
   profile~ : StudioProfile = Full,
   ai_available~ : Bool = true,
+  /// 本端能否安装插件（浏览器没有文件系统 → false）。组合根从
+  /// `PluginBridge::can_install` 抄来。
+  plugin_install_available~ : Bool = false,
+  /// 插件根目录（UI 展示用）；空 = 本端没有插件目录概念。
+  plugins_root~ : String = "",
 ) -> Model {
   let program = @proposals.sample_hello()
   let config = match provider_config {
@@ -1342,6 +1400,10 @@ pub fn initial_model(
     projects_restore_pending: 0,
     restore_active_root: "",
     plugin_disabled: [],
+    plugin_state: PluginState::new().set_install_capability(
+      plugin_install_available, plugins_root,
+    ),
+    plugin_manager: PluginManagerState::new(),
     control_clipboard: None,
     multi_select_mode: false,
     multi_selected: [],

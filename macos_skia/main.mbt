@@ -58,6 +58,17 @@ async fn main {
   let launch_owner = @launch.LaunchOwner::new()
   // 通用构建执行器(M0-7):FramePreview/WebPreview/RunNative 的 moon 命令。
   let build_owner = @build_native.BuildOwner::new()
+  // WASM 插件运行时(M8):wasmoon 宿主 + queue/worker 形态(同 provider/
+  // compile/build 的纪律——UI 线程只入队,插件代码全在 worker 上跑)。
+  // **插件是不受信任的代码**:绝不能在 UI 线程同步执行(死循环插件会
+  // 冻住界面)。
+  let plugin_owner = @plugin_runtime.PluginOwner::new()
+  let plugin_runtime = @plugin_runtime.PluginRuntime::new(
+    plugins_root=".studio/plugins",
+  )
+  // 宿主能力门面:默认**不给**工程读写(改用户代码需要显式信任);
+  // 日志/状态/动作/事件照常给。
+  let plugin_host = @plugin_runtime.HostBridge::new()
   // 终端 PTY provider(M5):vendor pty_host 宿主技术,queue+worker 形态,
   // 服务闭包同步入队(UI 零阻塞),worker 异步真派生 + 读循环。
   let pty_provider = PtyProvider::{
@@ -122,6 +133,10 @@ async fn main {
         }
       },
       environment=@macos.app_environment(window_drag=Some(window_drag)),
+      // WASM 插件系统(M8):注入真实后端门面(native = wasmoon 宿主)。
+      plugin_bridge=@plugin_runtime.plugin_bridge_for(
+        plugin_owner, plugin_runtime, plugin_host,
+      ),
       pty=pty_service,
       focus_terminal~,
       provider_config~,
@@ -231,6 +246,11 @@ async fn main {
     @build_native.build_worker_loop(build_owner)
   }
   let pty_task : async () -> Unit = async fn() { pty_worker_loop(pty_provider) }
+  // 插件 worker(M8):加载与调用都在这里跑;窗口关闭时随从任务被取消,
+  // Store 随之释放(见 @macos.run_window_with_workers 的 return_immediately)。
+  let plugin_task : async () -> Unit = async fn() {
+    @plugin_runtime.plugin_worker_loop(plugin_owner, plugin_runtime)
+  }
   // 静态服务循环:仅在绑定成功时注册(随从);close 可优雅停止
   let webpreview_task : async () -> Unit = async fn() {
     match preview_server {
@@ -255,7 +275,7 @@ async fn main {
   // 窗口一返回就取消 worker，进程随即收敛。
   @macos.run_window_with_workers(window=window_task, workers=[
     worker_task, compile_task, launch_task, agent_task, build_task, webpreview_task,
-    pty_task,
+    plugin_task, pty_task,
   ])
 }
 

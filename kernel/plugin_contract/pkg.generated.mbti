@@ -1,0 +1,242 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/moui_studio/kernel/plugin_contract"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const PLUGIN_ABI_CALL_EXPORT : String = "studio_call"
+
+pub const PLUGIN_ABI_DESCRIBE_EXPORT : String = "studio_describe"
+
+pub const PLUGIN_ABI_LENGTH_EXPORT : String = "studio_last_result_len"
+
+pub const PLUGIN_ABI_REQUEST_OFFSET : Int32 = 1024
+
+pub const PLUGIN_ABI_RESPONSE_OFFSET : Int32 = 0
+
+pub const PLUGIN_ABI_SET_RESPONSE_PTR_EXPORT : String = "studio_set_response_ptr"
+
+pub const PLUGIN_ACTION_FORMAT : String = "moui.studio.plugin.action"
+
+pub const PLUGIN_ACTION_FORMAT_VERSION : Int32 = 1
+
+pub const PLUGIN_API_VERSION : Int32 = 1
+
+pub const PLUGIN_CONTRIB_FORMAT : String = "moui.studio.plugin.contrib"
+
+pub const PLUGIN_CONTRIB_FORMAT_VERSION : Int32 = 1
+
+pub const PLUGIN_FORMAT : String = "moui.studio.plugin"
+
+pub const PLUGIN_FORMAT_VERSION : Int32 = 1
+
+pub const PLUGIN_VIEW_FORMAT : String = "moui.studio.plugin.view"
+
+pub const PLUGIN_VIEW_FORMAT_VERSION : Int32 = 1
+
+pub const PLUGIN_VIEW_REQUEST_FORMAT : String = "moui.studio.plugin.viewreq"
+
+pub const PLUGIN_VIEW_REQUEST_FORMAT_VERSION : Int32 = 1
+
+pub fn decode_contributions(String) -> Result[PluginContributions, Array[PluginContribError]]
+
+pub fn decode_manifest(String) -> Result[PluginManifest, Array[PluginManifestError]]
+
+pub fn decode_view(String) -> Result[PluginViewSpec, Array[PluginViewError]]
+
+pub fn encode_contributions(PluginContributions) -> String
+
+pub fn encode_manifest(PluginManifest) -> String
+
+pub fn encode_view(PluginViewSpec) -> String
+
+pub fn is_api_compatible(Int32) -> Bool
+
+pub fn is_valid_plugin_color(String) -> Bool
+
+pub fn is_valid_plugin_entry(String) -> Bool
+
+pub fn is_valid_plugin_id(String) -> Bool
+
+pub fn plugin_abi_descriptor() -> String
+
+pub fn plugin_abi_of_token(String) -> PluginAbi?
+
+pub fn plugin_action_request(String, String, String) -> String
+
+pub fn plugin_capability_of_token(String) -> PluginCapability?
+
+pub fn plugin_view_request(String, String, String) -> String
+
+// Errors
+
+// Types and methods
+pub(all) enum PluginAbi {
+  AbiCore
+  AbiComponent
+} derive(Eq, @debug.Debug)
+pub fn PluginAbi::equal(Self, Self) -> Bool
+pub fn PluginAbi::not_equal(Self, Self) -> Bool
+pub fn PluginAbi::to_repr(Self) -> @debug.Repr
+pub fn PluginAbi::token(Self) -> String
+
+pub(all) struct PluginBridge {
+  available : Bool
+  load : ((Array[PluginLoadResult]) -> Unit) -> Unit
+  unload : (String) -> Unit
+  call : (String, String, (Result[String, String]) -> Unit) -> Unit
+  is_loaded : (String) -> Bool
+  can_install : Bool
+  install : (String, (Result[String, String]) -> Unit) -> Unit
+  remove : (String, (Result[String, String]) -> Unit) -> Unit
+  plugins_root : String
+}
+pub fn PluginBridge::is_available(Self) -> Bool
+pub fn PluginBridge::unavailable() -> Self
+pub fn PluginBridge::with_available(((Array[PluginLoadResult]) -> Unit) -> Unit, (String) -> Unit, (String, String, (Result[String, String]) -> Unit) -> Unit, (String) -> Bool, can_install? : Bool, install? : (String, (Result[String, String]) -> Unit) -> Unit, remove? : (String, (Result[String, String]) -> Unit) -> Unit, plugins_root? : String) -> Self
+
+pub(all) enum PluginCapability {
+  CapCommands
+  CapPanels
+  CapEditor
+  CapWorkspaceRead
+  CapWorkspaceWrite
+  CapEvents
+} derive(Eq, @debug.Debug)
+pub fn PluginCapability::equal(Self, Self) -> Bool
+pub fn PluginCapability::not_equal(Self, Self) -> Bool
+pub fn PluginCapability::to_repr(Self) -> @debug.Repr
+pub fn PluginCapability::token(Self) -> String
+
+pub(all) enum PluginContribError {
+  InvalidJson
+  BadFormat
+  UnsupportedVersion(Int32)
+  BadEntry(String)
+} derive(Eq, @debug.Debug)
+pub fn PluginContribError::equal(Self, Self) -> Bool
+pub fn PluginContribError::message(Self) -> String
+pub fn PluginContribError::not_equal(Self, Self) -> Bool
+pub fn PluginContribError::output(Self, &Logger) -> Unit
+pub fn PluginContribError::to_repr(Self) -> @debug.Repr
+pub fn PluginContribError::to_string(Self) -> String
+pub impl Show for PluginContribError
+
+pub(all) struct PluginContributions {
+  panels : Array[(String, String)]
+  commands : Array[(String, String)]
+} derive(Eq, @debug.Debug)
+pub fn PluginContributions::equal(Self, Self) -> Bool
+pub fn PluginContributions::not_equal(Self, Self) -> Bool
+pub fn PluginContributions::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PluginDescriptor {
+  manifest : PluginManifest
+  status : PluginStatus
+} derive(Eq, @debug.Debug)
+pub fn PluginDescriptor::equal(Self, Self) -> Bool
+pub fn PluginDescriptor::is_active(Self) -> Bool
+pub fn PluginDescriptor::not_equal(Self, Self) -> Bool
+pub fn PluginDescriptor::to_repr(Self) -> @debug.Repr
+
+pub(all) enum PluginLoadResult {
+  Loaded(manifest~ : PluginManifest, contributions~ : PluginContributions)
+  Failed(plugin_id~ : String, reason~ : String)
+  Skipped(reason~ : String)
+}
+
+pub(all) struct PluginManifest {
+  id : String
+  name : String
+  version : String
+  description : String
+  entry : String
+  capabilities : Array[PluginCapability]
+  min_api_version : Int32
+  abi : PluginAbi
+} derive(Eq, @debug.Debug)
+pub fn PluginManifest::equal(Self, Self) -> Bool
+pub fn PluginManifest::not_equal(Self, Self) -> Bool
+pub fn PluginManifest::to_repr(Self) -> @debug.Repr
+
+pub(all) enum PluginManifestError {
+  InvalidJson
+  BadFormat
+  UnsupportedVersion(Int32)
+  MissingField(String)
+  BadCapability(String)
+  BadAbi(String)
+  BadPluginId(String)
+  BadEntry(String)
+} derive(Eq, @debug.Debug)
+pub fn PluginManifestError::equal(Self, Self) -> Bool
+pub fn PluginManifestError::message(Self) -> String
+pub fn PluginManifestError::not_equal(Self, Self) -> Bool
+pub fn PluginManifestError::output(Self, &Logger) -> Unit
+pub fn PluginManifestError::to_repr(Self) -> @debug.Repr
+pub fn PluginManifestError::to_string(Self) -> String
+pub impl Show for PluginManifestError
+
+pub(all) enum PluginStatus {
+  Loaded
+  Disabled
+  Loading
+  Failed(String)
+} derive(Eq, @debug.Debug)
+pub fn PluginStatus::equal(Self, Self) -> Bool
+pub fn PluginStatus::not_equal(Self, Self) -> Bool
+pub fn PluginStatus::to_repr(Self) -> @debug.Repr
+
+pub(all) enum PluginViewError {
+  InvalidJson
+  BadFormat
+  UnsupportedVersion(Int32)
+  MissingField(String)
+  UnknownNode(String)
+  UnknownField(String)
+  BadColor(String)
+} derive(Eq, @debug.Debug)
+pub fn PluginViewError::equal(Self, Self) -> Bool
+pub fn PluginViewError::message(Self) -> String
+pub fn PluginViewError::not_equal(Self, Self) -> Bool
+pub fn PluginViewError::output(Self, &Logger) -> Unit
+pub fn PluginViewError::to_repr(Self) -> @debug.Repr
+pub fn PluginViewError::to_string(Self) -> String
+pub impl Show for PluginViewError
+
+pub(all) enum PluginViewNode {
+  Column(Array[PluginViewSpec])
+  Row(Array[PluginViewSpec])
+  Text(String)
+  Button(label~ : String, action~ : String)
+  TextField(value~ : String, action~ : String)
+  Checkbox(label~ : String, checked~ : Bool, action~ : String)
+  Spacer
+  Divider
+  LabeledBox(label~ : String, PluginViewSpec)
+} derive(Eq, @debug.Debug)
+pub fn PluginViewNode::equal(Self, Self) -> Bool
+pub fn PluginViewNode::not_equal(Self, Self) -> Bool
+pub fn PluginViewNode::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PluginViewSpec {
+  node : PluginViewNode
+  key : String
+  width : Double?
+  height : Double?
+  padding : Double?
+  spacing : Double?
+  background : String?
+  foreground : String?
+  font_size : Double?
+  weight : Double?
+} derive(Eq, @debug.Debug)
+pub fn PluginViewSpec::equal(Self, Self) -> Bool
+pub fn PluginViewSpec::not_equal(Self, Self) -> Bool
+pub fn PluginViewSpec::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,267 @@
+{
+  "source_dir": "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src",
+  "name": "moui/plugin-component-fixture",
+  "packages": [
+    {
+      "is-main": false,
+      "is-third-party": false,
+      "root-path": "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/cabi",
+      "root": "moui/plugin-component-fixture",
+      "rel": "cabi",
+      "files": {
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/cabi/cabi.mbt": {
+          "backend": [
+            "Wasm",
+            "WasmGC",
+            "Js",
+            "Native",
+            "LLVM"
+          ],
+          "optlevel": [
+            "Release",
+            "Debug"
+          ]
+        }
+      },
+      "wbtest-files": {},
+      "test-files": {},
+      "mbt-md-files": {},
+      "deps": [
+        {
+          "path": "moonbitlang/core/prelude",
+          "alias": "prelude",
+          "fspath": "/Users/zc/.moon/lib/core/prelude"
+        }
+      ],
+      "wbtest-deps": [
+        {
+          "path": "moonbitlang/core/prelude",
+          "alias": "prelude",
+          "fspath": "/Users/zc/.moon/lib/core/prelude"
+        }
+      ],
+      "test-deps": [
+        {
+          "path": "moonbitlang/core/prelude",
+          "alias": "prelude",
+          "fspath": "/Users/zc/.moon/lib/core/prelude"
+        }
+      ],
+      "artifact": "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/cabi/cabi.mi",
+      "check-command": [
+        "check",
+        "-error-format",
+        "json",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/cabi/cabi.mbt",
+        "-o",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/cabi/cabi.mi",
+        "-pkg",
+        "moui/plugin-component-fixture/cabi",
+        "-pkg-type",
+        "library",
+        "-std-path",
+        "/Users/zc/.moon/lib/core/_build/wasm/release/bundle",
+        "-i",
+        "/Users/zc/.moon/lib/core/_build/wasm/release/bundle/prelude/prelude.mi:prelude",
+        "-pkg-sources",
+        "moui/plugin-component-fixture/cabi:/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/cabi",
+        "-target",
+        "wasm",
+        "-workspace-path",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src",
+        "-all-pkgs",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/all_pkgs.json"
+      ],
+      "wbtest-check-command": null,
+      "test-check-command": [
+        "check",
+        "-error-format",
+        "json",
+        "-doctest-only",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/cabi/cabi.mbt",
+        "-include-doctests",
+        "-o",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/cabi/cabi.blackbox_test.mi",
+        "-pkg",
+        "moui/plugin-component-fixture/cabi_blackbox_test",
+        "-pkg-type",
+        "library",
+        "-std-path",
+        "/Users/zc/.moon/lib/core/_build/wasm/release/bundle",
+        "-i",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/cabi/cabi.mi:cabi",
+        "-i",
+        "/Users/zc/.moon/lib/core/_build/wasm/release/bundle/prelude/prelude.mi:prelude",
+        "-pkg-sources",
+        "moui/plugin-component-fixture/cabi_blackbox_test:/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/cabi",
+        "-target",
+        "wasm",
+        "-blackbox-test",
+        "-workspace-path",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src",
+        "-all-pkgs",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/all_pkgs.json"
+      ],
+      "supported-targets": [
+        "Wasm",
+        "WasmGC",
+        "Js",
+        "Native",
+        "LLVM"
+      ]
+    },
+    {
+      "is-main": true,
+      "is-third-party": false,
+      "root-path": "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl",
+      "root": "moui/plugin-component-fixture",
+      "rel": "impl",
+      "files": {
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/bindings.mbt": {
+          "backend": [
+            "Wasm",
+            "WasmGC",
+            "Js",
+            "Native",
+            "LLVM"
+          ],
+          "optlevel": [
+            "Release",
+            "Debug"
+          ]
+        },
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/impl.mbt": {
+          "backend": [
+            "Wasm",
+            "WasmGC",
+            "Js",
+            "Native",
+            "LLVM"
+          ],
+          "optlevel": [
+            "Release",
+            "Debug"
+          ]
+        },
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/main.mbt": {
+          "backend": [
+            "Wasm",
+            "WasmGC",
+            "Js",
+            "Native",
+            "LLVM"
+          ],
+          "optlevel": [
+            "Release",
+            "Debug"
+          ]
+        }
+      },
+      "wbtest-files": {},
+      "test-files": {},
+      "mbt-md-files": {},
+      "deps": [
+        {
+          "path": "moonbitlang/core/prelude",
+          "alias": "prelude",
+          "fspath": "/Users/zc/.moon/lib/core/prelude"
+        },
+        {
+          "path": "moui/plugin-component-fixture/cabi",
+          "alias": "cabi",
+          "fspath": "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/cabi"
+        }
+      ],
+      "wbtest-deps": [
+        {
+          "path": "moonbitlang/core/prelude",
+          "alias": "prelude",
+          "fspath": "/Users/zc/.moon/lib/core/prelude"
+        }
+      ],
+      "test-deps": [
+        {
+          "path": "moonbitlang/core/prelude",
+          "alias": "prelude",
+          "fspath": "/Users/zc/.moon/lib/core/prelude"
+        }
+      ],
+      "artifact": "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/impl/impl.mi",
+      "check-command": [
+        "check",
+        "-error-format",
+        "json",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/bindings.mbt",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/impl.mbt",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/main.mbt",
+        "-o",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/impl/impl.mi",
+        "-pkg",
+        "moui/plugin-component-fixture/impl",
+        "-pkg-type",
+        "executable",
+        "-std-path",
+        "/Users/zc/.moon/lib/core/_build/wasm/release/bundle",
+        "-i",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/cabi/cabi.mi:cabi",
+        "-i",
+        "/Users/zc/.moon/lib/core/_build/wasm/release/bundle/prelude/prelude.mi:prelude",
+        "-pkg-sources",
+        "moui/plugin-component-fixture/impl:/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl",
+        "-target",
+        "wasm",
+        "-workspace-path",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src",
+        "-all-pkgs",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/all_pkgs.json"
+      ],
+      "wbtest-check-command": null,
+      "test-check-command": [
+        "check",
+        "-error-format",
+        "json",
+        "-doctest-only",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/bindings.mbt",
+        "-doctest-only",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/impl.mbt",
+        "-doctest-only",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl/main.mbt",
+        "-include-doctests",
+        "-o",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/impl/impl.blackbox_test.mi",
+        "-pkg",
+        "moui/plugin-component-fixture/impl_blackbox_test",
+        "-pkg-type",
+        "library",
+        "-std-path",
+        "/Users/zc/.moon/lib/core/_build/wasm/release/bundle",
+        "-i",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/cabi/cabi.mi:cabi",
+        "-i",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/impl/impl.mi:impl",
+        "-i",
+        "/Users/zc/.moon/lib/core/_build/wasm/release/bundle/prelude/prelude.mi:prelude",
+        "-pkg-sources",
+        "moui/plugin-component-fixture/impl_blackbox_test:/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/impl",
+        "-target",
+        "wasm",
+        "-blackbox-test",
+        "-workspace-path",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src",
+        "-all-pkgs",
+        "/Volumes/Data/Code/moon/moui_studio/samples/plugin_fixture_component/src/_build/wasm/debug/check/all_pkgs.json"
+      ],
+      "supported-targets": [
+        "Wasm",
+        "WasmGC",
+        "Js",
+        "Native",
+        "LLVM"
+      ]
+    }
+  ],
+  "deps": [],
+  "backend": "wasm",
+  "opt_level": "debug",
+  "source": null
+}

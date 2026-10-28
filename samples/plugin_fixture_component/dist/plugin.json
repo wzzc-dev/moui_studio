@@ -1,0 +1,12 @@
+{
+  "format": "moui.studio.plugin",
+  "format_version": 1,
+  "id": "com.example.fixture.component",
+  "name": "Fixture 插件（组件形态）",
+  "version": "1.0.0",
+  "description": "组件形态参考实现：贡献一个面板与一条命令",
+  "entry": "plugin_fixture.component.wasm",
+  "capabilities": ["CapPanels", "CapCommands"],
+  "min_api_version": 1,
+  "abi": "component"
+}

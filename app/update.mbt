@@ -517,6 +517,31 @@ fn update_shell_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? {
     }
     SetDesignZoom(zoom) =>
       Some(({ ..model, design_zoom: zoom, }, @moui.Effect::none()))
+    // 插件管理面板的**纯状态**消息（开/关/选中）。
+    //
+    // **为什么在纯链而不是服务层**：这三个动作只改 UI 状态，不碰文件
+    // 系统、不调插件——它们是纯转移。放服务层会让**命令面板入口失效**：
+    // `run_studio_command` 的 `Apply` 分支走的是 `update_pure`（纯链），
+    // 服务层的臂接不到 → 消息被静默丢弃 → 点命令面板的「插件管理」没反应
+    // （实测）。装/卸（要碰文件系统）才留在服务层。
+    PluginManagerOpen =>
+      Some((apply_plugin_manager_open(model), @moui.Effect::none()))
+    PluginManagerClose =>
+      Some((apply_plugin_manager_close(model), @moui.Effect::none()))
+    PluginManagerSelect(plugin_id) =>
+      Some(
+        (apply_plugin_manager_select(model, plugin_id), @moui.Effect::none()),
+      )
+    // 请求卸载插件：**破坏性操作**——先经确认卡（确认卡在纯链里，
+    // `ConfirmAccepted` 再经 Effect 派发 `PluginUninstallRun` 去服务层
+    // 真正删目录）。这里只置位待确认状态，是纯转移。
+    PluginUninstallRequested(plugin_id) =>
+      Some(
+        (
+          { ..model, pending_confirm: Some(CkUninstallPlugin(plugin_id)), },
+          @moui.Effect::none(),
+        ),
+      )
     Noop => Some((model, @moui.Effect::none()))
     CommandPaletteOpen =>
       Some(

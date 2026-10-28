@@ -13,3 +13,7 @@
 /.studio/
 **/.moui/dev-state.json
 **/.moui/dev-status.json
+# WASM 插件构建产物（由 scripts/build_plugin.sh 生成）
+/samples/plugin_fixture/dist/
+# Rust 插件的构建产物（cargo target/）
+/samples/plugin_fixture/target/

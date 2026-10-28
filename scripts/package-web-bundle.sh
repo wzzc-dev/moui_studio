@@ -80,6 +80,22 @@ fi
 mkdir -p "$BUNDLE_DIR/web_wasm"
 cp web_wasm/index.html "$BUNDLE_DIR/web_wasm/index.html"
 
+# 1b) The plugin host glue (ES module imported by the entry page) and the
+#     example plugin artifact it loads by default. Plugins are fetched by
+#     URL (the browser has no filesystem), so the wasm must sit next to the
+#     page. Build it first if missing: scripts/build_plugin.sh.
+if [ -f web_wasm/plugin_bridge.js ]; then
+  cp web_wasm/plugin_bridge.js "$BUNDLE_DIR/web_wasm/plugin_bridge.js"
+fi
+if [ ! -f web_wasm/plugins/plugin_fixture.wasm ]; then
+  sh scripts/build_plugin.sh
+fi
+if [ -f web_wasm/plugins/plugin_fixture.wasm ]; then
+  mkdir -p "$BUNDLE_DIR/web_wasm/plugins"
+  cp web_wasm/plugins/plugin_fixture.wasm \
+    "$BUNDLE_DIR/web_wasm/plugins/plugin_fixture.wasm"
+fi
+
 # 2) The ES-module runtimes: moui_web_renderer's runtime.js (+ its Canvas2D
 #    fallback, loaded on demand) and moui's browser_runtime.js, under
 #    mooncakes/ (no dot prefix: GitHub Pages does not serve dot-directories).

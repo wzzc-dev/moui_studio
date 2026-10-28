@@ -562,6 +562,26 @@ fn studio_overlay_host(
       ),
       presented=model.ai_ui.ai_history_open,
     ),
+    // 插件管理面板（独立模态）：装/卸插件要看状态、要看详情——
+    // 塞不进设置面板（设置是「配置」，这里是「操作」）。
+    //
+    // 本端没有插件运行时时整组不出现（能力缺席就不留空页）。
+    @views.PresentationSpec::new(
+      id="studio-plugin-manager",
+      kind=@views.PresentationKind::Dialog,
+      content=plugin_manager_dialog(
+        model,
+        t,
+        model.plugin_state.install_available,
+        model.plugin_state.plugins_root,
+      ),
+      modality=@views.PresentationModality::Modal,
+      dismiss=@views.PresentationDismissPolicy::new(
+        outside_tap=true,
+        message=Some(PluginManagerClose),
+      ),
+      presented=model.plugin_manager.open,
+    ),
     // **积木右键菜单**：挂在**顶层**宿主上（viewport 大小），而不是画布
     // 窗格里。
     //

@@ -1,0 +1,4 @@
+{
+  "backend": "wasm",
+  "opt_level": "debug"
+}

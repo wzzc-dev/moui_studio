@@ -63,12 +63,63 @@
       );
     };
     const wasmUrl = await resolveWasmUrl();
+    // WASM 插件系统(M8)：浏览器原生 WebAssembly 后端。
+    //
+    // 插件来源由页面给出（本地清单扫描在浏览器**不可达**——浏览器没有
+    // 文件系统；web 端插件以 URL 形式提供）。**弱隔离**：浏览器 wasm 无
+    // 资源配额且执行不可抢占，故插件来源必须可信。
+    //
+    // 时序：注册来源 → 注入 import object → 实例化 wasm → 预实例化插件
+    // （浏览器 instantiate 是异步的，而宿主→插件的调用必须同步——插件在
+    // 预实例化完成后才进入「已就绪」状态）。
+    const pluginBridge = await import("./plugin_bridge.js");
+    // 插件来源：默认加载随包分发的示例插件（`plugins/plugin_fixture.wasm`，
+    // 由 `scripts/build_plugin.sh` 产出）；页面可用
+    // `globalThis.__MOUI_STUDIO_PLUGIN_SOURCES__` 覆盖它（形如
+    // `[{ id, url }]`）——Web 端没有文件系统，插件只能以 URL 提供。
+    const defaultPluginSources = [
+      { id: "com.example.fixture", url: new URL("./plugins/plugin_fixture.wasm", import.meta.url).href },
+    ];
+    const pluginSources = globalThis.__MOUI_STUDIO_PLUGIN_SOURCES__ ?? defaultPluginSources;
+    pluginBridge.registerPluginSources(
+      pluginSources.map((entry) => ({
+        id: entry.id,
+        url: entry.url,
+      })),
+    );
     bootMouiWasmGcApp({
       wasmUrl,
       canvasHost: "#studio-root",
       onStatus: (text) => { if (status) status.textContent = text; },
+      imports: pluginBridge.createStudioHostImports(),
     })
-      .then(() => { if (status) status.textContent = ""; })
+      .then(async (instance) => {
+        // 插件就绪后**主动把贡献描述推给宿主**（宿主构造 runtime 早于
+        // 插件就绪——浏览器 instantiate 是异步的，实测差约 90ms——宿主
+        // 「拉」只会拉到空列表）。
+        const preloaded = await pluginBridge.preloadPlugins(
+          pluginBridge.createContributionsPusher(instance),
+        );
+        // **轮询宿主重载插件列表**。
+        //
+        // 为什么需要：web 端的浏览器事件循环是**按需驱动**的——wasm 的
+        // 事件循环不跑时，宿主自己的定时器订阅就不派发（实测首帧
+        // `ready=0`，直到用户点击界面才出现 `ready=1`）。而插件就绪
+        // 这个事实只有 JS 知道（wasm 的 import 是单向的，JS 无法反向
+        // 驱动 app 的 update）。
+        //
+        // 故用 JS 的 `setTimeout`（浏览器**自己**的任务队列，与 wasm 的
+        // 事件循环无关，故必定触发）周期性地请宿主重载插件列表，直到
+        // 插件出现在界面上。
+        pluginBridge.pollPluginsUntilReady(instance);
+        const failed = preloaded.filter((entry) => !entry.ok);
+        if (failed.length > 0 && status) {
+          status.textContent =
+            "插件加载失败: " + failed.map((e) => `${e.id} (${e.error})`).join(", ");
+        } else if (status) {
+          status.textContent = "";
+        }
+      })
       .catch((error) => {
         if (status) status.textContent = "加载失败: " + (error?.stack ?? String(error));
       });

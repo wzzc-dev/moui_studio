@@ -13,6 +13,7 @@ import {
   "wzzc-dev/moui_richtext",
   "wzzc-dev/moui_richtext/code_editor",
   "wzzc-dev/moui_studio/kernel",
+  "wzzc-dev/moui_studio/kernel/plugin_contract",
   "wzzc-dev/moui_studio/plugins/ai",
   "wzzc-dev/moui_studio/plugins/markdown" @md,
   "wzzc-dev/moui_studio/plugins/terminal",

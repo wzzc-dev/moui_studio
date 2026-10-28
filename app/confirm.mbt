@@ -20,6 +20,11 @@ pub(all) enum ConfirmKind {
   CkOpen
   /// 关闭脏文档（G4 多标签）：载荷 = 文档 id
   CkCloseFileTab(String)
+  /// 卸载插件（**删目录**）：载荷 = 插件 id
+  ///
+  /// 卸载是**不可逆**的（插件目录被删掉）——必须确认。
+  /// 「禁用」不需要确认（它只过滤入口，文件留着）。
+  CkUninstallPlugin(String)
 }
 
 ///|
@@ -35,6 +40,8 @@ pub fn confirm_copy(kind : ConfirmKind, t : @i18n.Translator) -> String {
     CkNewProject(_) => text(t, "app.confirm.new_project")
     CkOpen => text(t, "app.confirm.open")
     CkCloseFileTab(_) => text(t, "app.confirm.close_file")
+    CkUninstallPlugin(id) =>
+      text_with(t, "app.confirm.uninstall_plugin", [("a", id)])
   }
 }
 
@@ -107,17 +114,30 @@ fn update_confirm_msgs(model : Model, msg : Msg) -> (Model, @moui.Effect[Msg])? 
                   }),
                 ),
               )
+            // 卸载插件走服务流（删目录，文件 I/O）：确认后派发**独立续行
+            // 消息** PluginUninstallRun——它不是被守卫消息，无需放行标记，
+            // 服务层直接执行删除（顺序：先卸载运行时，再删目录）。
+            CkUninstallPlugin(plugin_id) =>
+              Some(
+                (
+                  cleared,
+                  @moui.Effect::dispatch(emit => {
+                    emit(PluginUninstallRun(plugin_id))
+                  }),
+                ),
+              )
             // 其余在纯链内同步续行：update_pure_inner 跳过守卫层，
             // 原处理器直接执行——测试的纯转移上下文也能走完整流程。
             _ => {
               let follow : Msg = match kind {
                 CkDeleteControl(name) => DeleteControl(name)
                 CkDeleteVariable(name) => DeleteVariable(name)
-                // 删除工程文件/新建工程在上方独立臂经 Effect 续行(服务流),
-                // 此分支不可达;穷举要求给一个无害映射。
+                // 删除工程文件/新建工程/卸载插件在上方独立臂经 Effect 续行
+                // (服务流),此分支不可达;穷举要求给一个无害映射。
                 CkDeleteProjectFile(_) => OpenRequested
                 CkNewProject(_) => OpenRequested
                 CkOpen => OpenRequested
+                CkUninstallPlugin(_) => OpenRequested
                 CkCloseFileTab(id) => WorkbenchOp(@wb.CloseDocument(id))
               }
               Some(update_pure_inner(cleared, follow))

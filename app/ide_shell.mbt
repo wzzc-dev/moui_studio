@@ -1007,6 +1007,19 @@ fn studio_panels(model : Model) -> Array[@wb.PanelContribution[StudioCtx, Msg]] 
       render: (ctx, w, h) => search_pane(ctx.model, ctx.t, w, h),
     },
   ]
+  // WASM 插件面板（M8）：**插件缺席即不注册**（无运行时 / 无插件 /
+  // 全部禁用 → 页签不出现，不留空位）。与终端页签同一纪律。
+  if plugin_panel_visible(model) {
+    panels.push({
+      id: "bottom.plugins",
+      location: @wb.PanelBottom,
+      label_key: "app.bottom.plugins",
+      badge: _ => 0,
+      selected: ctx => ctx.model.bottom_tab is BtPlugins,
+      on_select: _ => SetBottomTab(BtPlugins),
+      render: (ctx, w, h) => plugin_panel_body(ctx.model, ctx.t, w, h),
+    })
+  }
   if plugin_active(model, "terminal") {
     panels.push({
       id: "bottom.terminal",

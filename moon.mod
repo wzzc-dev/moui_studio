@@ -19,6 +19,9 @@ import {
   "wzzc-dev/moui_cli@0.2.5",
   "moonbitlang/async@0.22.5",
   "moonbitlang/x@0.5.6",
+  "Milky2018/wasmoon@0.18.0",
+  "Milky2018/wasm_core@0.18.0",
+  "Milky2018/wasmoon_runtime@0.18.0",
 }
 
 readme = "README.md"

@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/core/json",
+  "moonbitlang/core/debug",
+}
+
+supported_targets = "native+wasm-gc"
+
+options(
+  targets: { },
+)

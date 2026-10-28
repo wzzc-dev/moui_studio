@@ -1,11 +1,11 @@
 ///|
-/// 命令贡献表回归（M5）：43 个 id 全覆盖、面板 40 条顺序/文案不变、
+/// 命令贡献表回归（M5）：44 个 id 全覆盖、面板 41 条顺序/文案不变、
 /// 隐藏命令不进面板但可派发、代表命令状态转移与旧 switch 一致。
 
 ///|
-test "command registry covers all 43 ids without duplicates" {
+test "command registry covers all 44 ids without duplicates" {
   let registry = studio_command_registry()
-  assert_eq(registry.length(), 43)
+  assert_eq(registry.length(), 44)
   for index, contribution in registry {
     for probe_index, probe in registry {
       if probe_index != index && probe.id == contribution.id {
@@ -20,14 +20,14 @@ test "command registry covers all 43 ids without duplicates" {
         fail("command must be dispatchable: " + contribution.id)
     }
   }
-  // 面板可见 40 条严格按旧命令表顺序
+  // 面板可见 41 条严格按旧命令表顺序
   let visible : Array[String] = []
   for contribution in registry {
     if contribution.label_key != "" {
       visible.push(contribution.id)
     }
   }
-  assert_eq(visible.length(), 40)
+  assert_eq(visible.length(), 41)
   let expected : Array[String] = [
     "studio.mode.visual", "studio.mode.code", "studio.mode.ai", "studio.workspace.preview",
     "studio.workspace.design", "studio.workspace.blocks", "studio.left.toggle", "studio.pane.live",
@@ -39,6 +39,7 @@ test "command registry covers all 43 ids without duplicates" {
     "studio.compile.run", "studio.template.hello", "studio.template.roll_call", "studio.template.drill",
     "studio.template.store", "studio.file.new", "studio.file.save", "studio.file.open",
     "studio.file.export", "studio.preview", "studio.help", "studio.settings", "studio.lang.switch",
+    "studio.plugin.manager",
   ]
   for index, id in expected {
     assert_eq(visible[index], id, msg="palette order drifted at " + id)
@@ -49,7 +50,7 @@ test "command registry covers all 43 ids without duplicates" {
 test "command palette derives legacy descriptors in order" {
   let t = translator_for(ZhHans)
   let commands = studio_commands(t)
-  assert_eq(commands.length(), 40)
+  assert_eq(commands.length(), 41)
   for command in commands {
     // 隐藏 3 条不进面板
     assert_false(

@@ -160,6 +160,7 @@ macOS 原生入口：`moon run macos_skia --target native`
   domain/proposals/   AI 提案契约 + 校验链 + diff + 内置模板样例
   domain/blocks/      语句 → 积木规格表
   kernel/             插件内核：服务容器 / 事件总线 / 贡献点
+  kernel/plugin_contract/  WASM 插件契约（清单 / 视图协议 / 宿主 API 面）
   chrome/             共享视觉原子（主题 + 尺寸常量 + ChipTone）
   plugins/blocks/     积木几何 + 绘制计划 + 洞/值命中（零 Model/Msg）
   plugins/project/    工程域：行模型 + ProjectState + ProjectMsg
@@ -169,10 +170,23 @@ macOS 原生入口：`moon run macos_skia --target native`
   services/export/    独立应用导出（内核快照 + bundle 生成）
   services/model_provider/  OpenAI 兼容协议（纯）
   services/provider_native/  native async worker + .config.json 读取
+  services/plugin_runtime/   WASM 插件运行时（native，wasmoon 宿主 + 配额）
+  services/plugin_runtime_web/  WASM 插件运行时（web，浏览器原生 wasm）
   app/                TEA shell + 组合根 + 壳级组装视图 + 中英 catalog
   web_wasm/  macos_skia/    薄组合根
+  samples/plugin_fixture/    最小 WASM 插件（参考实现 + E2E 用）
   tools/sync_kernel/ tools/emit_bundle/
 ```
+
+## WASM 插件系统
+
+Studio 可以加载**运行时**插件：第三方代码以 WebAssembly 形式被加载，
+贡献命令、面板与界面。
+
+- 架构、清单格式、视图协议、宿主 API 白名单、**安全边界**：
+  [docs/plugin-system.md](docs/plugin-system.md)
+- ⚠️ 插件运行时**不是**安全边界（wasmoon 自述 experimental + insecure）。
+  **只安装可信来源的插件。**
 
 ## 最小验证循环
 
@@ -191,8 +205,12 @@ moon test kernel chrome plugins/ai plugins/markdown plugins/project \
 moon test services/compiled_runtime services/diff services/compile_native \
   services/export --target native
 
-moon test app --target native       # 435 个测试
+moon test app --target native       # 474 个测试
 moon test app --target wasm-gc
+
+# WASM 插件系统：契约 + 运行时 + E2E（真实加载一个 .wasm 插件）
+sh scripts/build_plugin.sh           # 先造 fixture 的 wasm 产物
+moon test kernel/plugin_contract services/plugin_runtime --target native
 
 # 导出内核漂移门：改了 domain 忘了同步 → 红
 moon run tools/sync_kernel --target native -- --check
