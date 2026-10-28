@@ -100,6 +100,31 @@ jobs:
           moon test kernel chrome plugins/ai plugins/markdown plugins/project \
             plugins/run plugins/terminal plugins/blocks --target native
 
+  plugin-e2e-tests:
+    name: Plugin E2E tests
+    # 真实加载 .wasm 插件的 E2E（README 里 "WASM 插件系统" 那条命令）。
+    # 核心形态 fixture 是 Rust 构建产物，只存在于本仓库的构建脚本里，
+    # 所以这组测试由本仓库 CI 拥有，不进母仓库的 workspace 测试扫描。
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Linux native dependencies
+        uses: ./.github/actions/setup-linux-native-deps
+
+      - name: Set up MoonBit
+        uses: ./.github/actions/setup-moonbit
+
+      - name: Install dependencies
+        run: moon update
+
+      - name: Build the core plugin fixture
+        run: sh scripts/build_plugin.sh
+
+      - name: Plugin contract and runtime E2E
+        run: moon test kernel/plugin_contract services/plugin_runtime --target native
+
   service-tests:
     name: Service layer tests
     # compile_native 的真工具链测试会构建导出 bundle 的 native GUI 入口，
