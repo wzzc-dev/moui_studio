@@ -11,7 +11,7 @@ import {
   "wzzc-dev/moui_devtools@0.2.6",
   "wzzc-dev/moui_richtext@0.2.6",
   "wzzc-dev/moui_markdown@0.2.6",
-  "wzzc-dev/window@0.5.4-0.2.3",
+  "wzzc-dev/window@0.5.4-0.2.4",
   "wzzc-dev/moui_skia_renderer@0.2.6",
   "wzzc-dev/moui_web_renderer@0.2.6",
   "wzzc-dev/moui_agent@0.2.6",
