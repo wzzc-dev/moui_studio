@@ -16,7 +16,7 @@ import {
   "wzzc-dev/moui_web_renderer@0.3.0",
   "wzzc-dev/moui_agent@0.3.0",
   "wzzc-dev/moui_agent_mcp@0.3.0",
-  "wzzc-dev/moui_cli@0.3.0",
+  "wzzc-dev/moui_cli@0.3.1",
   "moonbitlang/async@0.22.5",
   "moonbitlang/x@0.5.6",
   "Milky2018/wasmoon@0.18.0",
