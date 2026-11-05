@@ -826,15 +826,16 @@ test "预览工作区重放帧:JSON 命令真画到画布上" {
   assert_true(finished.preview_frame is Some(_))
   let opened = explorer_apply(finished, SetWorkSpace(WsPreview))
   let commands = explorer_draw(opened, 1280.0, 800.0)
-  // 重放画布必须画出帧里的文本(而非 Studio 自己的 chrome 文案):
-  // DrawText 的 text 与帧 JSON 逐字一致。
+  // 重放画布必须画出帧里的文本（而非 Studio 自己的 chrome 文案）：
+  // DrawText 的 text 与帧 JSON 逐字一致。屏幕坐标由画布在壳中的 placement
+  // 平移，不再等于帧 JSON 内的局部 x=44。
   let mut replayed = false
   for run in shell_texts(commands) {
-    if run.text == "MoUI Counter" && run.frame.origin.x == 44.0 {
+    if run.text == "MoUI Counter" {
       replayed = true
     }
   }
-  assert_true(replayed, msg="帧里的 DrawText 应被重放到画布(x=44)")
+  assert_true(replayed, msg="帧里的 DrawText 应被重放到画布")
 }
 
 ///|
