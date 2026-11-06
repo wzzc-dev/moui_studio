@@ -235,7 +235,7 @@ pub fn abi_mbt() -> String {
 
 ///|
 pub fn web_main() -> String {
-  "///|\nfn main {\n  @runtime.run_app(\n    \"MoUI Studio Export\",\n    @runtime.new_program_with_dimensions(program=@exported_app.program(), width=960.0, height=640.0),\n  )\n  .render_all(@webgpu_adapter.from_env())\n  .backend(@web.entry())\n  .run()\n}\n"
+  "///|\nfn main {\n  @apphost.run_app(\n    \"MoUI Studio Export\",\n    @runtime.new_program_with_dimensions(program=@exported_app.program(), width=960.0, height=640.0),\n  )\n  .render_all(@webgpu_adapter.from_env())\n  .backend(@web.entry())\n  .run()\n}\n"
 }
 
 ///|
@@ -350,7 +350,7 @@ pub fn readme(name : String) -> String {
 /// 窗口，`moui_skia_renderer` 提供像素，`moui/runtime` 提供 TEA 泵；三者都
 /// 是 bundle `moon.mod` 已锁定的发布模块，不需要任何 Studio 侧代码。
 pub fn native_app_pkg(name : String) -> String {
-  "import {\n  \"wzzc-dev/moui/backend/macos\",\n  \"wzzc-dev/moui_skia_renderer\" @render_skia,\n  \"wzzc-dev/moui/runtime\",\n  \"\{name}/app\" @app,\n}\n\nsupported_targets = \"native\"\n\npkgtype(kind: \"executable\")\n\noptions(\n  targets: { \"main.mbt\": [ \"native\" ] },\n)\n"
+  "import {\n  \"wzzc-dev/moui/backend/macos\",\n  \"wzzc-dev/moui_skia_renderer\" @render_skia,\n  \"wzzc-dev/moui/runtime\",\n  \"wzzc-dev/moui/apphost\",\n  \"\{name}/app\" @app,\n}\n\nsupported_targets = \"native\"\n\npkgtype(kind: \"executable\")\n\noptions(\n  targets: { \"main.mbt\": [ \"native\" ] },\n)\n"
 }
 
 ///|
@@ -360,7 +360,7 @@ pub fn native_app_pkg(name : String) -> String {
 /// `run()`（同步事件循环）而非 `run_async_pump()`：导出应用没有 provider /
 /// 编译 worker 这类后台任务，同步泵就是最短路径。
 pub fn native_app_main() -> String {
-  "///|\n/// 导出的 MoUI 应用（native GUI 入口）。\n///\n/// 事件执行走**编译轨**：`app/generated_handlers.mbt` 由 MoUI Studio 从项目\n/// IR 生成、真正参与本次 `moon build`，由 `@compiled_runtime` 执行面直接执行\n/// （bundle 里没有指令流解释器）。窗口、渲染、事件泵全部复用已发布模块，\n/// 本文件只做接线。\nfn main {\n  let title = @app.window_title()\n  let (width, height) = @app.window_size()\n  @runtime.run_app(\n    title,\n    @runtime.new_program_with_dimensions(\n      program=@app.program(),\n      width~,\n      height~,\n    ),\n  )\n  .render_all(@render_skia.from_env(platform=MacOS))\n  .backend(@macos.entry())\n  .run()\n}\n"
+  "///|\n/// 导出的 MoUI 应用（native GUI 入口）。\n///\n/// 事件执行走**编译轨**：`app/generated_handlers.mbt` 由 MoUI Studio 从项目\n/// IR 生成、真正参与本次 `moon build`，由 `@compiled_runtime` 执行面直接执行\n/// （bundle 里没有指令流解释器）。窗口、渲染、事件泵全部复用已发布模块，\n/// 本文件只做接线。\nfn main {\n  let title = @app.window_title()\n  let (width, height) = @app.window_size()\n  @apphost.run_app(\n    title,\n    @runtime.new_program_with_dimensions(\n      program=@app.program(),\n      width~,\n      height~,\n    ),\n  )\n  .render_all(@render_skia.from_env(platform=MacOS))\n  .backend(@macos.entry())\n  .run()\n}\n"
 }
 
 ///|

@@ -243,7 +243,7 @@ fn main {
     height=800.0,
   )
   runtime_ref.val = Some(runtime)
-  @runtime.run_app("MoUI Studio", runtime)
+  @apphost.run_app("MoUI Studio", runtime)
   .render_all(@webgpu_adapter.from_env())
   .backend(@web.entry())
   .run()

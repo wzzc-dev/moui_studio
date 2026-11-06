@@ -1,4 +1,5 @@
 import {
+  "wzzc-dev/moui/apphost",
   "moonbitlang/async",
   "wzzc-dev/window/dpi",
   "wzzc-dev/moui/backend/macos",
