@@ -1,7 +1,7 @@
 ///|
 /// 真实 provider 的 async IO 工作者（native）。
 ///
-/// 模式同 `moui/image_remote`：app 侧的提交是同步入队；请求在异步 worker 上完成，
+/// 模式同 `moui/backend/common/services/native`：app 侧的提交是同步入队；请求在异步 worker 上完成，
 /// 结果经回调回到 UI 线程——UI 线程从不等待网络。Web（wasm-gc）组合根不具备
 /// 本模块所需的 async runtime 支撑，因此只用于 macos_skia 入口；Web 评审主路径
 /// 继续走确定性假模型（离线硬要求不受影响）。
