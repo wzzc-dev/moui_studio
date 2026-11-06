@@ -226,7 +226,7 @@ async fn main {
   runtime_ref.val = Some(runtime)
   let host = @agent.RuntimeAgentHost::new(runtime)
   let window_task : async () -> Unit = async fn() {
-    @runtime.run_app("MoUI Studio", runtime)
+    @apphost.run_app("MoUI Studio", runtime)
     .render_all(@render_skia.from_env(platform=MacOS))
     .backend(@macos.entry(options=app_options))
     .run_async_pump()

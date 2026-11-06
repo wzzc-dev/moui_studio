@@ -100,9 +100,10 @@ test "bundle ships a native GUI entrypoint, not just a headless probe" {
   assert_true(pkg.contains("wzzc-dev/moui/backend/macos"))
   assert_true(pkg.contains("wzzc-dev/moui_skia_renderer"))
   assert_true(pkg.contains("wzzc-dev/moui/runtime"))
+  assert_true(pkg.contains("wzzc-dev/moui/apphost"))
   assert_true(pkg.contains("pkgtype(kind: \"executable\")"))
   // main 用 run_app 开窗（不是打印标记退出）
-  assert_true(main.contains("@runtime.run_app"))
+  assert_true(main.contains("@apphost.run_app"))
   assert_true(main.contains("@macos.entry()"))
   assert_true(main.contains("@render_skia.from_env"))
   assert_false(main.contains("@sys.exit"))

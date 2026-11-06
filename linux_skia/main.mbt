@@ -128,7 +128,7 @@ async fn main {
     group.spawn_bg(async fn() { @launch.launch_worker_loop(launch_owner) })
     group.spawn_bg(async fn() { @build_native.build_worker_loop(build_owner) })
     group.spawn_bg(async fn() { @mcp_stdio.serve_with_diagnostics(host) })
-    @runtime.run_app("MoUI Studio", runtime)
+    @apphost.run_app("MoUI Studio", runtime)
     .render_all(
       @render_skia.from_env(platform=@render_skia.NativeGpuPlatform::Linux),
     )
