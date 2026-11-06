@@ -125,13 +125,14 @@ pub(all) enum DragKind {
 /// 帮助、MoonBit 预览三个全屏页），WorkSpace 是可视化/代码两个编辑工作区
 /// 内部的窗格编排状态——设计稿把三视图统一进一个可视工作区，切换成本从
 /// 「换模式」降为「点图标」。
+#derive(Eq)
 pub(all) enum WorkSpace {
   WsVisual
   WsCode
   /// 工程预览(M1):headless 帧重放画布(M2/M3 加 web/native 模式)
   WsPreview
   WsEmpty
-} derive(Eq)
+}
 
 ///|
 pub extend WorkSpace with Eq::{not_equal, equal}
@@ -170,10 +171,11 @@ pub fn Model::preview_mode(model : Model) -> PreviewMode {
 /// 组合 profile（M7）：完整版（默认）/ 教学版（只保留图形化模式——
 /// 无终端、无工程、会话精简；这是「无特权内核」的验收证明：教学版 =
 /// 组合根少注册能力与模式，产品功能自洽地缺席而非崩溃）。
+#derive(Eq)
 pub(all) enum StudioProfile {
   Full
   Teaching
-} derive(Eq)
+}
 
 ///|
 pub extend StudioProfile with Eq::{not_equal, equal}
@@ -261,6 +263,7 @@ pub type ComposerMode = @ai.ComposerMode
 /// 任务模式（M2 三模式工作台）：活动栏唯一职责——「我在哪个任务里」。
 /// 每个模式绑定一套全区域预设（左栏/中心/右栏/底栏页签，见计划的预设表），
 /// 切换 = 一次性应用预设；模式内的临时收放不回写预设（契约 3）。
+#derive(Eq)
 pub(all) enum StudioPerspective {
   /// 图形化编辑：左栏结构树 / 中心可视化（画布/预览胶囊）/ 右栏检查器 /
   /// 底栏 审计│Console│问题│AI 输入
@@ -277,7 +280,7 @@ pub(all) enum StudioPerspective {
   /// 积木工作台（同上）：全幅积木画布（分类面板/自由画布）+ 右栏 AI
   /// 助手；不出现程序结构树与实时应用预览列。
   PsBlocks
-} derive(Eq)
+}
 
 ///|
 pub extend StudioPerspective with Eq::{not_equal, equal}
@@ -305,6 +308,7 @@ pub type RightPanelTab = @ai.RightPanelTab
 /// - `RvWorkspace` = AI 工作台模式（`PsAi`）右栏：更改/文件双页签。这是
 ///   **另一个产品面**（审阅 agent 改动），不属侧栏分页体系，故独立成档。
 /// - `RvHidden` = 右栏不占宽。
+#derive(Eq)
 pub(all) enum RightView {
   /// 检查器页：六个子页签 + 对象条 + 快速操作 + 运行时监视
   RvContext
@@ -314,7 +318,7 @@ pub(all) enum RightView {
   RvWorkspace
   /// 右栏不占宽
   RvHidden
-} derive(Eq)
+}
 
 ///|
 pub extend RightView with Eq::{not_equal, equal}

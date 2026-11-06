@@ -288,13 +288,14 @@ pub(all) struct AiWorkspaceParams[Msg] {
   on_reject : Msg
 }
 
+#derive(Eq)
 pub(all) enum ComposerMode {
   ComposeEdit
   ComposeGenerate
   ComposeExplain
   ComposeRepair
   ComposeChat
-} derive(Eq)
+}
 pub fn ComposerMode::equal(Self, Self) -> Bool
 pub fn ComposerMode::not_equal(Self, Self) -> Bool
 
@@ -315,10 +316,11 @@ pub(all) struct ProposalRecord {
   seq : Int32
 }
 
+#derive(Eq)
 pub(all) enum RightPanelTab {
   RpChanges
   RpFiles
-} derive(Eq)
+}
 pub fn RightPanelTab::equal(Self, Self) -> Bool
 pub fn RightPanelTab::not_equal(Self, Self) -> Bool
 

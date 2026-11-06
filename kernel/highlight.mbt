@@ -8,6 +8,7 @@
 
 ///|
 /// token 语义分类（渲染层取色）。
+#derive(Eq)
 pub(all) enum HighlightKind {
   HlPlain
   HlKeyword
@@ -15,7 +16,7 @@ pub(all) enum HighlightKind {
   HlNumber
   HlComment
   HlBuiltin
-} derive(Eq)
+}
 
 ///|
 pub extend HighlightKind with Eq::{not_equal, equal}

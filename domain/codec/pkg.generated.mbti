@@ -2,6 +2,7 @@
 package "wzzc-dev/moui_studio/domain/codec"
 
 import {
+  "moonbitlang/core/json",
   "wzzc-dev/moui_studio/domain/ir",
 }
 
@@ -10,15 +11,15 @@ pub const PROJECT_FORMAT : String = "moui.studio.project"
 
 pub const PROJECT_VERSION : Int32 = 1
 
-pub fn decode_control_props(Map[String, Json]) -> @ir.ControlProps
+pub fn decode_control_props(Map[String, @json.Json]) -> @ir.ControlProps
 
 pub fn decode_program(String) -> Result[@ir.StudioProgram, Array[CodecError]]
 
-pub fn decode_stmt_value(Json) -> Result[@ir.Stmt, CodecError]
+pub fn decode_stmt_value(@json.Json) -> Result[@ir.Stmt, CodecError]
 
 pub fn encode_program(@ir.StudioProgram) -> String
 
-pub fn merge_control_props(@ir.ControlProps, Map[String, Json]) -> @ir.ControlProps
+pub fn merge_control_props(@ir.ControlProps, Map[String, @json.Json]) -> @ir.ControlProps
 
 // Errors
 

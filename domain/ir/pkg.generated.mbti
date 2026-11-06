@@ -112,6 +112,7 @@ pub(all) enum ControlKind {
 pub fn ControlKind::supports_event(Self, EventKind) -> Bool
 pub fn ControlKind::tag(Self) -> String
 
+#derive(Eq)
 pub(all) struct ControlProps {
   font_size : Int32
   bold : Bool
@@ -123,7 +124,7 @@ pub(all) struct ControlProps {
   multiline : Bool
   placeholder : String
   password : Bool
-} derive(Eq)
+}
 pub fn ControlProps::default() -> Self
 pub fn ControlProps::equal(Self, Self) -> Bool
 pub fn ControlProps::is_default(Self) -> Bool

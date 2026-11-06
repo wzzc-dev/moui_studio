@@ -15,6 +15,12 @@ fn test_root(name : String) -> String {
 }
 
 ///|
+/// Real-toolchain tests share Moon's global registry cache. The async test
+/// runner can interleave them, so two concurrent `moon update` processes can
+/// fail nondeterministically even though each bundle is isolated.
+let toolchain_test_lock : @async.Mutex = @async.Mutex()
+
+///|
 fn parent_of(path : String) -> String {
   match path.rev_find("/") {
     Some(index) => if index == 0 { "/" } else { path[:index].to_owned() }
@@ -90,6 +96,8 @@ test "export_bundle 落盘布局可直接构建（app/generated_handlers.mbt 在
 
 ///|
 async test "注入类型错误 → moon check 失败 → 结构化诊断可映射回生成源码" {
+  toolchain_test_lock.acquire()
+  defer toolchain_test_lock.release()
   let root = test_root("failure")
   clean_test_tree(root)
   write_bundle(root, TEST_PROJECT, "probe")
@@ -195,6 +203,8 @@ test "collect_artifacts lists real binaries with true byte sizes" {
 /// `compile_bundle_at`（已落盘的目录），因此它**不在**期望集合里——
 /// 断言按「工具链六步」而不是「全部七步」。
 async test "compile_bundle_at reports every step it starts" {
+  toolchain_test_lock.acquire()
+  defer toolchain_test_lock.release()
   let root = test_root("progress")
   clean_test_tree(root)
   write_bundle(root, TEST_PROJECT, "probe")

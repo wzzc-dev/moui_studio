@@ -134,6 +134,7 @@ pub(all) struct Control {
 /// 控件属性（G7.2 v1）：字号/加粗/文字与背景色/对齐/可见/禁用，
 /// 以及 TextField 专属的三件。颜色用 `#RRGGBB` 文本（空 = 主题默认）。
 /// 解码缺字段 = 默认值——旧工程文件无损加载（兼容不迁移）。
+#derive(Eq)
 pub(all) struct ControlProps {
   /// 字号（pt）；0 = 主题默认
   font_size : Int32
@@ -153,7 +154,7 @@ pub(all) struct ControlProps {
   multiline : Bool
   placeholder : String
   password : Bool
-} derive(Eq)
+}
 
 ///|
 pub extend ControlProps with Eq::{not_equal, equal}

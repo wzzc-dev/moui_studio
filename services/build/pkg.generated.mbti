@@ -18,11 +18,12 @@ pub fn tail_output(String) -> String
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum BuildKind {
   BkFramePreview
   BkWebPreview
   BkRunNative
-} derive(Eq, @debug.Debug)
+}
 pub fn BuildKind::equal(Self, Self) -> Bool
 pub fn BuildKind::not_equal(Self, Self) -> Bool
 pub fn BuildKind::tag(Self) -> String

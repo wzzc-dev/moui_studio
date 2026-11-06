@@ -5,10 +5,11 @@
 /// 解析器当成比较运算符（实测 [3002] parse error），且元组在字段多的
 /// 结构体里可读性差。**视图事实不是程序语义**：搬脚本只改这张表，
 /// IR 零改动，撤销栈不记（与「挪控件」不同级）。
+#derive(Eq)
 pub(all) struct ScriptOrigin {
   x : Double
   y : Double
-} derive(Eq)
+}
 
 ///|
 pub extend ScriptOrigin with Eq::{not_equal, equal}

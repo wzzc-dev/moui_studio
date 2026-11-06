@@ -73,10 +73,11 @@ pub fn plugin_view_request(String, String, String) -> String
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum PluginAbi {
   AbiCore
   AbiComponent
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginAbi::equal(Self, Self) -> Bool
 pub fn PluginAbi::not_equal(Self, Self) -> Bool
 pub fn PluginAbi::to_repr(Self) -> @debug.Repr
@@ -97,6 +98,7 @@ pub fn PluginBridge::is_available(Self) -> Bool
 pub fn PluginBridge::unavailable() -> Self
 pub fn PluginBridge::with_available(((Array[PluginLoadResult]) -> Unit) -> Unit, (String) -> Unit, (String, String, (Result[String, String]) -> Unit) -> Unit, (String) -> Bool, can_install? : Bool, install? : (String, (Result[String, String]) -> Unit) -> Unit, remove? : (String, (Result[String, String]) -> Unit) -> Unit, plugins_root? : String) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PluginCapability {
   CapCommands
   CapPanels
@@ -104,18 +106,19 @@ pub(all) enum PluginCapability {
   CapWorkspaceRead
   CapWorkspaceWrite
   CapEvents
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginCapability::equal(Self, Self) -> Bool
 pub fn PluginCapability::not_equal(Self, Self) -> Bool
 pub fn PluginCapability::to_repr(Self) -> @debug.Repr
 pub fn PluginCapability::token(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PluginContribError {
   InvalidJson
   BadFormat
   UnsupportedVersion(Int32)
   BadEntry(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginContribError::equal(Self, Self) -> Bool
 pub fn PluginContribError::message(Self) -> String
 pub fn PluginContribError::not_equal(Self, Self) -> Bool
@@ -124,18 +127,20 @@ pub fn PluginContribError::to_repr(Self) -> @debug.Repr
 pub fn PluginContribError::to_string(Self) -> String
 pub impl Show for PluginContribError
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PluginContributions {
   panels : Array[(String, String)]
   commands : Array[(String, String)]
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginContributions::equal(Self, Self) -> Bool
 pub fn PluginContributions::not_equal(Self, Self) -> Bool
 pub fn PluginContributions::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PluginDescriptor {
   manifest : PluginManifest
   status : PluginStatus
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginDescriptor::equal(Self, Self) -> Bool
 pub fn PluginDescriptor::is_active(Self) -> Bool
 pub fn PluginDescriptor::not_equal(Self, Self) -> Bool
@@ -147,6 +152,7 @@ pub(all) enum PluginLoadResult {
   Skipped(reason~ : String)
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PluginManifest {
   id : String
   name : String
@@ -156,11 +162,12 @@ pub(all) struct PluginManifest {
   capabilities : Array[PluginCapability]
   min_api_version : Int32
   abi : PluginAbi
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginManifest::equal(Self, Self) -> Bool
 pub fn PluginManifest::not_equal(Self, Self) -> Bool
 pub fn PluginManifest::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PluginManifestError {
   InvalidJson
   BadFormat
@@ -170,7 +177,7 @@ pub(all) enum PluginManifestError {
   BadAbi(String)
   BadPluginId(String)
   BadEntry(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginManifestError::equal(Self, Self) -> Bool
 pub fn PluginManifestError::message(Self) -> String
 pub fn PluginManifestError::not_equal(Self, Self) -> Bool
@@ -179,16 +186,18 @@ pub fn PluginManifestError::to_repr(Self) -> @debug.Repr
 pub fn PluginManifestError::to_string(Self) -> String
 pub impl Show for PluginManifestError
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PluginStatus {
   Loaded
   Disabled
   Loading
   Failed(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginStatus::equal(Self, Self) -> Bool
 pub fn PluginStatus::not_equal(Self, Self) -> Bool
 pub fn PluginStatus::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PluginViewError {
   InvalidJson
   BadFormat
@@ -197,7 +206,7 @@ pub(all) enum PluginViewError {
   UnknownNode(String)
   UnknownField(String)
   BadColor(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginViewError::equal(Self, Self) -> Bool
 pub fn PluginViewError::message(Self) -> String
 pub fn PluginViewError::not_equal(Self, Self) -> Bool
@@ -206,6 +215,7 @@ pub fn PluginViewError::to_repr(Self) -> @debug.Repr
 pub fn PluginViewError::to_string(Self) -> String
 pub impl Show for PluginViewError
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PluginViewNode {
   Column(Array[PluginViewSpec])
   Row(Array[PluginViewSpec])
@@ -216,11 +226,12 @@ pub(all) enum PluginViewNode {
   Spacer
   Divider
   LabeledBox(label~ : String, PluginViewSpec)
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginViewNode::equal(Self, Self) -> Bool
 pub fn PluginViewNode::not_equal(Self, Self) -> Bool
 pub fn PluginViewNode::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PluginViewSpec {
   node : PluginViewNode
   key : String
@@ -232,7 +243,7 @@ pub(all) struct PluginViewSpec {
   foreground : String?
   font_size : Double?
   weight : Double?
-} derive(Eq, @debug.Debug)
+}
 pub fn PluginViewSpec::equal(Self, Self) -> Bool
 pub fn PluginViewSpec::not_equal(Self, Self) -> Bool
 pub fn PluginViewSpec::to_repr(Self) -> @debug.Repr

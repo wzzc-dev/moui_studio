@@ -39,6 +39,7 @@ pub fn[Event, Msg] EventBus::messages_for(Self[Event, Msg], Event) -> Array[Msg]
 pub fn[Event, Msg] EventBus::new() -> Self[Event, Msg]
 pub fn[Event, Msg] EventBus::on(Self[Event, Msg], String, (Event) -> Array[Msg]) -> Unit
 
+#derive(Eq)
 pub(all) enum HighlightKind {
   HlPlain
   HlKeyword
@@ -46,7 +47,7 @@ pub(all) enum HighlightKind {
   HlNumber
   HlComment
   HlBuiltin
-} derive(Eq)
+}
 pub fn HighlightKind::equal(Self, Self) -> Bool
 pub fn HighlightKind::not_equal(Self, Self) -> Bool
 

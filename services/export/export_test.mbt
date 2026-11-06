@@ -210,6 +210,25 @@ test "导出应用是可执行的（含领域内核 + runner 驱动）" {
 }
 
 ///|
+/// 导出内核也必须使用 MoonBit 0.10.19+ 的 derive 语法。内嵌源码是字符串，
+/// `moon fmt` 不会迁移它；漏掉时 Studio 自身零警告，但每个导出工程都会在
+/// `moon check` 里收到 `deprecated_syntax`。
+test "导出源码使用 #derive 而非已废弃的后缀语法" {
+  let files = @export.export_bundle(SAMPLE_PROJECT, "demo")
+  let mut found_derive = false
+  for pair in files {
+    let (path, source) = pair
+    if path.has_suffix(".mbt") {
+      assert_false(source.contains("} derive("))
+      if source.contains("#derive(") {
+        found_derive = true
+      }
+    }
+  }
+  assert_true(found_derive)
+}
+
+///|
 /// 属性 v2 P3（G7.2）：导出的 runner 必须消费 `control.props`——与 Studio
 /// 的 form_widget 同口径（字号/颜色/对齐/可见/禁用）。
 ///
