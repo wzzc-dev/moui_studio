@@ -55,7 +55,7 @@ jobs:
 
   build-macos:
     name: macOS app (arm64)
-    runs-on: macos-14
+    runs-on: macos-latest
     needs: prepare
     steps:
       - name: Checkout

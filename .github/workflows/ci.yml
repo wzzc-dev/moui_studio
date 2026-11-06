@@ -131,7 +131,7 @@ jobs:
     # 而导出的 GUI 组合根目前硬编码 macOS（moui/backend/macos +
     # platform=MacOS），Linux 上按设计编不过——与母仓库 pr profile 一样把
     # 服务层测试放在 macOS 上跑。
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
