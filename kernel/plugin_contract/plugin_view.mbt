@@ -16,6 +16,7 @@
 
 ///|
 /// 视图节点。白名单——新增节点类型是**协议版本**变更。
+#derive(Eq, Debug)
 pub(all) enum PluginViewNode {
   Column(Array[PluginViewSpec])
   Row(Array[PluginViewSpec])
@@ -26,10 +27,11 @@ pub(all) enum PluginViewNode {
   Spacer
   Divider
   LabeledBox(label~ : String, PluginViewSpec)
-} derive(Eq, Debug)
+}
 
 ///|
 /// 视图修饰（对应 `@moui.View` 的 builder 方法）。
+#derive(Eq, Debug)
 pub(all) struct PluginViewSpec {
   node : PluginViewNode
   /// 复用身份键（对齐 `View::key`）。同一 key 的节点在重渲中复用，
@@ -46,7 +48,7 @@ pub(all) struct PluginViewSpec {
   font_size : Double?
   /// 弹性权重（对应 `View::flexible`）。
   weight : Double?
-} derive(Eq, Debug)
+}
 
 ///|
 /// 视图协议格式标识（协议自带门卫——与清单格式是**两套独立版本**：
@@ -59,6 +61,7 @@ pub const PLUGIN_VIEW_FORMAT_VERSION : Int32 = 1
 
 ///|
 /// 视图协议错误分类。
+#derive(Eq, Debug)
 pub(all) enum PluginViewError {
   InvalidJson
   BadFormat
@@ -67,7 +70,7 @@ pub(all) enum PluginViewError {
   UnknownNode(String)
   UnknownField(String)
   BadColor(String)
-} derive(Eq, Debug)
+}
 
 ///|
 fn view_json_string(fields : Map[String, Json], key : String) -> String? {

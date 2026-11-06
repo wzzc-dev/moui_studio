@@ -283,6 +283,7 @@ pub fn AiSessions::append_to_last_card(
 
 ///|
 /// 作曲家模式：修改 / 生成 / 解释 / 修复 / 纯聊天。
+#derive(Eq)
 pub(all) enum ComposerMode {
   ComposeEdit
   ComposeGenerate
@@ -290,7 +291,7 @@ pub(all) enum ComposerMode {
   ComposeRepair
   /// 纯聊天（G1）：不走提案校验链，回复为普通 markdown 消息
   ComposeChat
-} derive(Eq)
+}
 
 ///|
 pub extend ComposerMode with Eq::{not_equal, equal}

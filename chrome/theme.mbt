@@ -494,13 +494,14 @@ pub fn ide_file_color(kind : IconTint) -> @core.Color {
 
 ///|
 /// 文件类型图标的色系（`ide_file_color` 的分类键）。
+#derive(Eq, Debug)
 pub(all) enum IconTint {
   TintCode
   TintDoc
   TintConfig
   TintAsset
   TintPlain
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend IconTint with Eq::{not_equal, equal}

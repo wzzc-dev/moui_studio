@@ -19,6 +19,7 @@
 
 ///|
 /// 构建种类。app 层按它分发:StudioCompile 走既有编译轨,其余走 build_native。
+#derive(Eq, Debug)
 pub(all) enum BuildKind {
   // Eq/Debug:测试断言与诊断报告需要
   /// 模式一:headless 预览帧(`moon run` 预览 harness;M1 挂 harness)
@@ -27,7 +28,7 @@ pub(all) enum BuildKind {
   BkWebPreview
   /// 模式三:native 构建(`moon build <native 入口> --target native`)
   BkRunNative
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend BuildKind with Eq::{not_equal, equal}

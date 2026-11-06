@@ -7,6 +7,7 @@
 
 ///|
 /// 插件加载状态。
+#derive(Eq, Debug)
 pub(all) enum PluginStatus {
   /// 已加载并可用
   Loaded
@@ -16,14 +17,15 @@ pub(all) enum PluginStatus {
   Loading
   /// 加载失败（带原因；原因进 UI 提示，不吞掉）
   Failed(String)
-} derive(Eq, Debug)
+}
 
 ///|
 /// 插件在宿主里的运行时描述。
+#derive(Eq, Debug)
 pub(all) struct PluginDescriptor {
   manifest : PluginManifest
   status : PluginStatus
-} derive(Eq, Debug)
+}
 
 ///|
 /// 描述符是否可用（已加载且未被禁用）。
@@ -36,12 +38,13 @@ pub fn PluginDescriptor::is_active(self : PluginDescriptor) -> Bool {
 ///
 /// 贡献用**纯数据**描述（不是闭包）：面板给出 id 与标题，命令给出
 /// id 与标题，宿主按这些描述去注册既有贡献点。
+#derive(Eq, Debug)
 pub(all) struct PluginContributions {
   /// 面板贡献：id → 标题（本地化键或纯文本，由宿主决定怎么显示）。
   panels : Array[(String, String)]
   /// 命令贡献：id → 标题。
   commands : Array[(String, String)]
-} derive(Eq, Debug)
+}
 
 ///|
 /// 贡献描述的 JSON 编解码（插件 `describe` 导出的载荷格式）。
@@ -53,12 +56,13 @@ pub const PLUGIN_CONTRIB_FORMAT_VERSION : Int32 = 1
 
 ///|
 /// 贡献描述解码错误。
+#derive(Eq, Debug)
 pub(all) enum PluginContribError {
   InvalidJson
   BadFormat
   UnsupportedVersion(Int32)
   BadEntry(String)
-} derive(Eq, Debug)
+}
 
 ///|
 fn contrib_string_field(fields : Map[String, Json], key : String) -> String? {

@@ -1297,12 +1297,13 @@ pub(all) struct RangedToken {
   kind : CodeTokenKind
 }
 
+#derive(Eq)
 pub(all) enum RightView {
   RvContext
   RvAi
   RvWorkspace
   RvHidden
-} derive(Eq)
+}
 pub fn RightView::equal(Self, Self) -> Bool
 pub fn RightView::not_equal(Self, Self) -> Bool
 
@@ -1363,20 +1364,22 @@ pub(all) enum StudioEvent {
   EvProjectsDirty
 }
 
+#derive(Eq)
 pub(all) enum StudioPerspective {
   PsVisual
   PsCode
   PsAi
   PsDesign
   PsBlocks
-} derive(Eq)
+}
 pub fn StudioPerspective::equal(Self, Self) -> Bool
 pub fn StudioPerspective::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub(all) enum StudioProfile {
   Full
   Teaching
-} derive(Eq)
+}
 pub fn StudioProfile::equal(Self, Self) -> Bool
 pub fn StudioProfile::not_equal(Self, Self) -> Bool
 
@@ -1432,12 +1435,13 @@ pub(all) struct WebPluginSnapshot {
   contributions : Map[String, String]
 }
 
+#derive(Eq)
 pub(all) enum WorkSpace {
   WsVisual
   WsCode
   WsPreview
   WsEmpty
-} derive(Eq)
+}
 pub fn WorkSpace::equal(Self, Self) -> Bool
 pub fn WorkSpace::not_equal(Self, Self) -> Bool
 

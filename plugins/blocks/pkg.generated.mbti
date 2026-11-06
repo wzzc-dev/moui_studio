@@ -232,10 +232,11 @@ pub(all) struct PalettePanelParams[Msg] {
   on_drag_custom_event : (Int32, @core.DragGestureEvent) -> Msg
 }
 
+#derive(Eq)
 pub(all) struct ScriptOrigin {
   x : Double
   y : Double
-} derive(Eq)
+}
 pub fn ScriptOrigin::equal(Self, Self) -> Bool
 pub fn ScriptOrigin::not_equal(Self, Self) -> Bool
 

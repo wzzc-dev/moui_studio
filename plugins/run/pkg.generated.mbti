@@ -2,6 +2,7 @@
 package "wzzc-dev/moui_studio/plugins/run"
 
 import {
+  "moonbitlang/core/json",
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/services",
   "wzzc-dev/moui/views/style",
@@ -20,7 +21,7 @@ pub fn compile_step_state(Array[@export.CompileProgress], @export.CompilePhase) 
 
 pub fn[Msg] compiled_run_header(CompileViewsParams[Msg], @moui_i18n.Translator) -> @core.View[Msg]
 
-pub fn draw_command_from_json(Json) -> Result[@core.DrawCommand, String]
+pub fn draw_command_from_json(@json.Json) -> Result[@core.DrawCommand, String]
 
 pub fn find_literal_span(String, String) -> (Int32, Int32)?
 
@@ -72,7 +73,7 @@ pub(all) struct PreviewFrame {
   width : Double
   height : Double
   commands : Array[@core.DrawCommand]
-  semantics : Array[Json]
+  semantics : Array[@json.Json]
   unknown_ops : Array[String]
 }
 

@@ -27,6 +27,7 @@ pub const PLUGIN_API_VERSION : Int32 = 1
 ///|
 /// 插件能力声明。宿主按此决定**暴露哪些宿主函数**——没有声明的能力
 /// 一律不暴露（导入缺失 → 实例化失败 → 该插件 Failed，绝不静默放行）。
+#derive(Eq, Debug)
 pub(all) enum PluginCapability {
   /// 贡献命令（在插件面板的命令区里，不进全局命令面板）
   CapCommands
@@ -40,7 +41,7 @@ pub(all) enum PluginCapability {
   CapWorkspaceWrite
   /// 向 Studio 事件总线发事件
   CapEvents
-} derive(Eq, Debug)
+}
 
 ///|
 /// 能力 token（清单里的稳定字符串）。**token 是契约的一部分**——
@@ -86,12 +87,13 @@ pub fn plugin_capability_of_token(token : String) -> PluginCapability? {
 ///
 /// 选哪种：组件形态更适合新插件（ABI 稳定、跨语言、样板代码少）；
 /// 核心模块形态适合无法产出组件的工具链。
+#derive(Eq, Debug)
 pub(all) enum PluginAbi {
   /// 核心 wasm 模块（默认）——手写 C 风格 ABI。
   AbiCore
   /// WebAssembly 组件——Canonical ABI。
   AbiComponent
-} derive(Eq, Debug)
+}
 
 ///|
 /// ABI 形态的 token（清单里的稳定字符串）。
@@ -114,6 +116,7 @@ pub fn plugin_abi_of_token(token : String) -> PluginAbi? {
 
 ///|
 /// 插件清单（清单文件解码后的产物）。
+#derive(Eq, Debug)
 pub(all) struct PluginManifest {
   id : String
   name : String
@@ -127,12 +130,13 @@ pub(all) struct PluginManifest {
   min_api_version : Int32
   /// 入口的 ABI 形态（默认 `AbiCore`）。
   abi : PluginAbi
-} derive(Eq, Debug)
+}
 
 ///|
 /// 清单错误分类。照 `domain/codec.CodecError` 的口径：区分「格式不对」
 /// 「版本不对」「字段缺失」「值不合法」——不同错的处置不同
 /// （版本不匹配 → Skipped；字段缺失 → Failed）。
+#derive(Eq, Debug)
 pub(all) enum PluginManifestError {
   InvalidJson
   BadFormat
@@ -142,7 +146,7 @@ pub(all) enum PluginManifestError {
   BadAbi(String)
   BadPluginId(String)
   BadEntry(String)
-} derive(Eq, Debug)
+}
 
 ///|
 /// 插件 id 的合法性：非空 + 只允许 `[A-Za-z0-9._-]`。

@@ -1,9 +1,10 @@
 ///|
 /// AI 右栏工作区页签（与 ai_workspace_panel 双页签同源）。
+#derive(Eq)
 pub(all) enum RightPanelTab {
   RpChanges
   RpFiles
-} derive(Eq)
+}
 
 ///|
 pub extend RightPanelTab with Eq::{not_equal, equal}

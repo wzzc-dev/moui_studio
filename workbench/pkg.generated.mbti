@@ -45,10 +45,11 @@ pub(all) struct CommandContribution[Ctx, Msg] {
   run : (Ctx) -> CommandAction[Msg]
 }
 
+#derive(Eq)
 pub(all) enum DocKind {
   StudioDoc
   FileDoc
-} derive(Eq)
+}
 pub fn DocKind::equal(Self, Self) -> Bool
 pub fn DocKind::not_equal(Self, Self) -> Bool
 
@@ -127,11 +128,12 @@ pub(all) struct PanelContribution[Ctx, Msg] {
   render : (Ctx, Double, Double) -> @core.View[Msg]
 }
 
+#derive(Eq)
 pub(all) enum PanelLocation {
   PanelLeft
   PanelRight
   PanelBottom
-} derive(Eq)
+}
 pub fn PanelLocation::equal(Self, Self) -> Bool
 pub fn PanelLocation::not_equal(Self, Self) -> Bool
 

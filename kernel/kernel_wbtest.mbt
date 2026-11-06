@@ -5,11 +5,12 @@
 
 ///|
 /// 假域消息：包装变体形态（根 Msg 收子 Msg，与真实 app 同构）。
+#derive(Eq, Debug)
 pub(all) enum FakeMsg {
   FakeNoop
   FakeInner(FakeInnerMsg)
   FakePing(String)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend FakeMsg with Debug::{to_repr}
@@ -18,9 +19,10 @@ pub extend FakeMsg with Debug::{to_repr}
 pub extend FakeMsg with Eq::{not_equal, equal}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum FakeInnerMsg {
   FakeAsked(String)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend FakeInnerMsg with Debug::{to_repr}
@@ -43,10 +45,11 @@ pub(all) struct FakeModel {
 
 ///|
 /// 假事件：事件载荷显式携带事实（消费方不需要回查模型）。
+#derive(Eq, Debug)
 pub(all) enum FakeEvent {
   EvAsked(String)
   EvSilent
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend FakeEvent with Debug::{to_repr}

@@ -9,10 +9,11 @@ pub fn file_document_id(rel : String) -> String {
 }
 
 ///|
+#derive(Eq)
 pub(all) enum DocKind {
   StudioDoc
   FileDoc
-} derive(Eq)
+}
 
 ///|
 pub extend DocKind with Eq::{not_equal, equal}

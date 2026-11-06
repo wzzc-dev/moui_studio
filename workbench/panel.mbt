@@ -1,9 +1,10 @@
 ///|
+#derive(Eq)
 pub(all) enum PanelLocation {
   PanelLeft
   PanelRight
   PanelBottom
-} derive(Eq)
+}
 
 ///|
 pub extend PanelLocation with Eq::{not_equal, equal}

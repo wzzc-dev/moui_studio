@@ -6,10 +6,10 @@
 /// 依赖模块路径 → 版本（顺序即导出 `moon.mod` 的 import 块顺序）。
 pub fn bundle_dependency_versions() -> Array[(String, String)] {
   [
-    ("wzzc-dev/moui", "0.3.0"),
+    ("wzzc-dev/moui", "0.3.2"),
     ("wzzc-dev/window", "0.5.4-0.2.5"),
-    ("wzzc-dev/moui_skia_renderer", "0.3.0"),
-    ("wzzc-dev/moui_web_renderer", "0.3.0"),
+    ("wzzc-dev/moui_skia_renderer", "0.3.2"),
+    ("wzzc-dev/moui_web_renderer", "0.3.2"),
     ("moonbitlang/async", "0.22.5"),
     ("moonbitlang/x", "0.5.6"),
   ]

@@ -1,8 +1,12 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "wzzc-dev/moui_studio/services/model_provider"
 
+import {
+  "moonbitlang/core/json",
+}
+
 // Values
-pub fn build_request_body(CompletionRequest) -> Json
+pub fn build_request_body(CompletionRequest) -> @json.Json
 
 pub fn completion_url(String) -> String
 
